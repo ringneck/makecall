@@ -145,59 +145,6 @@ class _HomeTabState extends State<HomeTab> {
 
           return Column(
             children: [
-              // 상단 안내 메시지
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF2196F3).withAlpha(26),
-                      const Color(0xFF2196F3).withAlpha(13),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF2196F3).withAlpha(51),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      color: Color(0xFF2196F3),
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            '현재 선택된 단말번호',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1976D2),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            extensions.length > 1
-                                ? '좌우로 슬라이드하여 단말번호를 변경할 수 있습니다'
-                                : '클릭투콜 발신 시 이 단말번호가 사용됩니다',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
               // 단말번호 슬라이드 카드
               Expanded(
                 child: PageView.builder(
@@ -312,6 +259,10 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildExtensionCard(MyExtensionModel extension, int index, {Key? key}) {
+    final authService = context.watch<AuthService>();
+    final userModel = authService.currentUserModel;
+    final apiBaseUrl = userModel?.apiBaseUrl ?? 'API 정보 없음';
+    
     return Card(
       key: key,
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -359,6 +310,49 @@ class _HomeTabState extends State<HomeTab> {
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF2196F3),
                     letterSpacing: 3,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // API Base URL
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.cloud,
+                            size: 16,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'API Base URL',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        apiBaseUrl,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[800],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
                 ],
