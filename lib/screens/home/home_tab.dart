@@ -150,116 +150,93 @@ class _HomeTabState extends State<HomeTab> {
 
           return Column(
             children: [
-              // 단말번호 슬라이드 카드
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    if (kDebugMode) {
-                      debugPrint('📄 [STEP 1] Page changed to index: $index');
-                      if (index < extensions.length) {
-                        debugPrint('   - Extension from list: ${extensions[index].extension}');
-                        debugPrint('   - Name from list: ${extensions[index].name}');
-                        debugPrint('   - ID from list: ${extensions[index].id}');
-                      }
-                    }
-                    setState(() {
-                      _currentPage = index;
-                    });
-                    // 선택된 단말번호 업데이트
-                    if (index < extensions.length) {
-                      context.read<SelectedExtensionProvider>().setSelectedExtension(
-                            extensions[index],
-                          );
-                    }
-                  },
-                  itemCount: extensions.length,
-                  itemBuilder: (context, index) {
-                    final extension = extensions[index];
-                    if (kDebugMode) {
-                      debugPrint('🏗️ ItemBuilder called for index: $index, extension: ${extension.extension}, name: ${extension.name}, id: ${extension.id}');
-                    }
-                    // 각 카드에 고유한 key 지정하여 제대로 재빌드되도록 함
-                    return _buildExtensionCard(
-                      extension, 
-                      index,
-                      apiBaseUrl: apiBaseUrl,
-                      hasApiConfig: hasApiConfig,
-                      key: ValueKey(extension.id),
-                    );
-                  },
-                ),
-              ),
-
-              // 페이지 인디케이터
+              // 단말번호 선택 드롭다운
               if (extensions.length > 1)
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // 이전 버튼
-                      IconButton(
-                        onPressed: _currentPage > 0
-                            ? () {
-                                _pageController.previousPage(
-                                  duration: const Duration(milliseconds: 300),
-                                  curve: Curves.easeInOut,
-                                );
-                              }
-                            : null,
-                        icon: const Icon(Icons.chevron_left),
-                        color: const Color(0xFF2196F3),
-                        disabledColor: Colors.grey[300],
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF2196F3).withAlpha(77),
+                        width: 2,
                       ),
-                      const SizedBox(width: 8),
-                      // 페이지 도트 인디케이터
-                      ...List.generate(
-                        extensions.length,
-                        (index) => Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _currentPage == index
-                                ? const Color(0xFF2196F3)
-                                : Colors.grey.withAlpha(128),
-                          ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(13),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      // 다음 버튼
-                      IconButton(
-                        onPressed: _currentPage < extensions.length - 1
-                            ? () {
-                                _pageController.nextPage(
-                                  duration: const Duration(milliseconds: 300),
-                                  curve: Curves.easeInOut,
+                      ],
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _currentPage,
+                        isExpanded: true,
+                        icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2196F3)),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        onChanged: (int? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              _currentPage = newValue;
+                            });
+                            // 선택된 단말번호 업데이트
+                            context.read<SelectedExtensionProvider>().setSelectedExtension(
+                                  extensions[newValue],
                                 );
-                              }
-                            : null,
-                        icon: const Icon(Icons.chevron_right),
-                        color: const Color(0xFF2196F3),
-                        disabledColor: Colors.grey[300],
+                            if (kDebugMode) {
+                              debugPrint('📄 Dropdown changed to index: $newValue');
+                              debugPrint('   - Extension: ${extensions[newValue].extension}');
+                              debugPrint('   - Name: ${extensions[newValue].name}');
+                            }
+                          }
+                        },
+                        items: extensions.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final extension = entry.value;
+                          return DropdownMenuItem<int>(
+                            value: index,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.phone_in_talk,
+                                  size: 20,
+                                  color: const Color(0xFF2196F3),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    extension.name.isNotEmpty 
+                                        ? '${extension.name} (${extension.extension})'
+                                        : extension.extension,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                       ),
-                    ],
-                  ),
-                ),
-
-              // 페이지 번호 텍스트
-              if (extensions.length > 1)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    '${_currentPage + 1} / ${extensions.length}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
                     ),
                   ),
                 ),
+              
+              // 단말번호 정보 카드
+              Expanded(
+                child: _buildExtensionCard(
+                  extensions[_currentPage], 
+                  _currentPage,
+                  apiBaseUrl: apiBaseUrl,
+                  hasApiConfig: hasApiConfig,
+                  key: ValueKey(extensions[_currentPage].id),
+                ),
+              ),
             ],
           );
         },
@@ -402,7 +379,7 @@ class _HomeTabState extends State<HomeTab> {
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      '외부발신',
+                                      '외부발신 표시정보',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
@@ -475,7 +452,7 @@ class _HomeTabState extends State<HomeTab> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    '내 단말',
+                                    '단말발신 표시정보',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -506,10 +483,10 @@ class _HomeTabState extends State<HomeTab> {
                               Text(
                                 extension.extension,
                                 style: const TextStyle(
-                                  fontSize: 48,
+                                  fontSize: 36,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF2196F3),
-                                  letterSpacing: 4,
+                                  letterSpacing: 2,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
