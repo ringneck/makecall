@@ -375,6 +375,38 @@ class _HomeTabState extends State<HomeTab> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // 외부발신 정보
+                        if (extension.externalCid != null && extension.externalCid!.isNotEmpty) ...[
+                          () {
+                            final cidInfo = extension.parseExternalCid();
+                            return Column(
+                              children: [
+                                if (cidInfo['name']!.isNotEmpty)
+                                  Text(
+                                    '외부발신 이름: ${cidInfo['name']}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                if (cidInfo['number']!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '외부발신 번호: ${cidInfo['number']}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ],
+                            );
+                          }(),
+                          const SizedBox(height: 16),
+                        ],
+                        
                         // 단말 이름
                         if (extension.name.isNotEmpty) ...[
                           Text(
@@ -397,6 +429,38 @@ class _HomeTabState extends State<HomeTab> {
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF2196F3),
                             letterSpacing: 4,
+                          ),
+                        ),
+                        
+                        // 클릭투콜 버튼
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            // TODO: 클릭투콜 기능 구현
+                            if (kDebugMode) {
+                              debugPrint('📞 Click-to-Call initiated for ${extension.extension}');
+                              debugPrint('   - Extension ID: ${extension.extensionId}');
+                              debugPrint('   - COS ID: ${extension.classOfServicesId}');
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('클릭투콜: ${extension.extension}'),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.phone),
+                          label: const Text('클릭투콜', style: TextStyle(fontSize: 18)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4CAF50),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ],
