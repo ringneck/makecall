@@ -347,4 +347,41 @@ class DatabaseService {
       rethrow;
     }
   }
+  
+  // 내 단말번호 업데이트 (API 설정 등)
+  Future<void> updateMyExtension(String id, Map<String, dynamic> data) async {
+    try {
+      await _firestore.collection('my_extensions').doc(id).update(data);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Update my extension error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 내 단말번호 API 설정 업데이트
+  Future<void> updateMyExtensionApiConfig({
+    required String id,
+    required String apiBaseUrl,
+    required String companyId,
+    required String appKey,
+    required int apiHttpPort,
+    required int apiHttpsPort,
+  }) async {
+    try {
+      await _firestore.collection('my_extensions').doc(id).update({
+        'apiBaseUrl': apiBaseUrl,
+        'companyId': companyId,
+        'appKey': appKey,
+        'apiHttpPort': apiHttpPort,
+        'apiHttpsPort': apiHttpsPort,
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Update my extension API config error: $e');
+      }
+      rethrow;
+    }
+  }
 }
