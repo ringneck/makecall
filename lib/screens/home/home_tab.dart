@@ -371,61 +371,149 @@ class _HomeTabState extends State<HomeTab> {
               Expanded(
                 child: Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(32.0),
+                    padding: const EdgeInsets.all(24.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // 외부발신 이름 (단말 이름과 비슷한 스타일)
-                        if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty) ...[
-                          Text(
-                            extension.externalCidName!,
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                        // 외부발신 정보 카드
+                        if ((extension.externalCidName != null && extension.externalCidName!.isNotEmpty) ||
+                            (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty)) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4CAF50).withAlpha(26),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFF4CAF50).withAlpha(77),
+                                width: 2,
+                              ),
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        
-                        // 외부발신 번호 (단말번호와 비슷한 스타일)
-                        if (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty) ...[
-                          Text(
-                            extension.externalCidNumber!,
-                            style: const TextStyle(
-                              fontSize: 42,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF4CAF50),
-                              letterSpacing: 2,
+                            child: Column(
+                              children: [
+                                // 외부발신 레이블
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.call_made,
+                                      size: 20,
+                                      color: const Color(0xFF4CAF50),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '외부발신',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF4CAF50),
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                
+                                // 외부발신 이름
+                                if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty)
+                                  Text(
+                                    extension.externalCidName!,
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                
+                                if (extension.externalCidName != null && 
+                                    extension.externalCidName!.isNotEmpty &&
+                                    extension.externalCidNumber != null &&
+                                    extension.externalCidNumber!.isNotEmpty)
+                                  const SizedBox(height: 8),
+                                
+                                // 외부발신 번호
+                                if (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty)
+                                  Text(
+                                    extension.externalCidNumber!,
+                                    style: const TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF4CAF50),
+                                      letterSpacing: 2,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                              ],
                             ),
-                            textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 24),
                         ],
                         
-                        // 단말 이름
-                        if (extension.name.isNotEmpty) ...[
-                          Text(
-                            extension.name,
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                        // 단말 정보 카드
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2196F3).withAlpha(26),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFF2196F3).withAlpha(77),
+                              width: 2,
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 8),
-                        ],
-
-                        // 단말번호
-                        Text(
-                          extension.extension,
-                          style: const TextStyle(
-                            fontSize: 56,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF2196F3),
-                            letterSpacing: 4,
+                          child: Column(
+                            children: [
+                              // 단말 레이블
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.phone_in_talk,
+                                    size: 20,
+                                    color: const Color(0xFF2196F3),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '내 단말',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF2196F3),
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              
+                              // 단말 이름
+                              if (extension.name.isNotEmpty)
+                                Text(
+                                  extension.name,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              
+                              if (extension.name.isNotEmpty)
+                                const SizedBox(height: 8),
+                              
+                              // 단말번호
+                              Text(
+                                extension.extension,
+                                style: const TextStyle(
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF2196F3),
+                                  letterSpacing: 4,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                         ),
                       ],
