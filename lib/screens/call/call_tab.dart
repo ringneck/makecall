@@ -154,8 +154,34 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                 color: _getCallTypeColor(call.callType),
               ),
               title: Text(call.contactName ?? call.phoneNumber),
-              subtitle: Text(
-                '${_formatDateTime(call.callTime)}${call.duration != null ? ' · ${call.formattedDuration}' : ''}',
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${_formatDateTime(call.callTime)}${call.duration != null ? ' · ${call.formattedDuration}' : ''}',
+                  ),
+                  if (call.extensionUsed != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.phone_android,
+                            size: 14,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '단말번호: ${call.extensionUsed}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
               trailing: IconButton(
                 icon: const Icon(Icons.phone, color: Color(0xFF2196F3)),
