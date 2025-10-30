@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
@@ -264,6 +265,10 @@ class _HomeTabState extends State<HomeTab> {
     final userModel = authService.currentUserModel;
     final apiBaseUrl = userModel?.apiBaseUrl ?? '설정 필요';
     final hasApiConfig = userModel?.apiBaseUrl != null;
+    
+    if (kDebugMode) {
+      debugPrint('🎨 Building card for extension: ${extension.extension}, name: ${extension.name}, id: ${extension.id}');
+    }
     
     return Card(
       key: key,

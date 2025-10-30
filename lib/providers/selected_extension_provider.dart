@@ -12,7 +12,8 @@ class SelectedExtensionProvider extends ChangeNotifier {
     _selectedExtension = extension;
     if (kDebugMode) {
       debugPrint('✅ Selected extension updated: ${extension?.extension}');
-      debugPrint('🔑 COS ID: ${extension?.classOfServicesId}');
+      debugPrint('🔑 Extension ID: ${extension?.extensionId}');
+      debugPrint('👤 Name: ${extension?.name}');
     }
     notifyListeners();
   }
