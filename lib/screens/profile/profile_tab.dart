@@ -5,7 +5,6 @@ import '../../services/api_service.dart';
 import '../../services/database_service.dart';
 import '../../models/my_extension_model.dart';
 import 'api_settings_dialog.dart';
-import 'extension_management_screen.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -208,22 +207,6 @@ class _ProfileTabState extends State<ProfileTab> {
             const SizedBox(height: 8),
             const Divider(),
           ],
-          // 단말번호 관리
-          ListTile(
-            leading: const Icon(Icons.phone_android),
-            title: const Text('단말번호 관리'),
-            subtitle: const Text('단말번호 조회 및 선택'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ExtensionManagementScreen(),
-                ),
-              );
-            },
-          ),
-          const Divider(),
           // 사용자 전화번호 정보
           ListTile(
             leading: const Icon(Icons.phone),
