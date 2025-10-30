@@ -14,12 +14,24 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _tabs = const [
-    HomeTab(),
-    CallTab(),
-    ProfileTab(),
-    SettingsTab(),
-  ];
+  void _changeTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  late final List<Widget> _tabs;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = [
+      HomeTab(onNavigateToProfile: () => _changeTab(2)),
+      const CallTab(),
+      const ProfileTab(),
+      const SettingsTab(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {

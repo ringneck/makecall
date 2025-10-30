@@ -6,7 +6,9 @@ import '../../models/my_extension_model.dart';
 import '../../providers/selected_extension_provider.dart';
 
 class HomeTab extends StatefulWidget {
-  const HomeTab({super.key});
+  final VoidCallback? onNavigateToProfile;
+  
+  const HomeTab({super.key, this.onNavigateToProfile});
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -122,8 +124,8 @@ class _HomeTabState extends State<HomeTab> {
                   const SizedBox(height: 32),
                   ElevatedButton.icon(
                     onPressed: () {
-                      // 내 정보 탭으로 이동 (인덱스 3)
-                      DefaultTabController.of(context).animateTo(3);
+                      // 내 정보 탭으로 이동 (인덱스 2)
+                      widget.onNavigateToProfile?.call();
                     },
                     icon: const Icon(Icons.person),
                     label: const Text('내 정보로 이동'),
