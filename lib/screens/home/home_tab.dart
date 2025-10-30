@@ -404,6 +404,20 @@ class _HomeTabState extends State<HomeTab> {
                               ],
                             );
                           }(),
+                          const SizedBox(height: 12),
+                        ],
+                        
+                        // 계정 코드
+                        if (extension.accountCode != null && extension.accountCode!.isNotEmpty) ...[
+                          Text(
+                            '계정코드: ${extension.accountCode}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                           const SizedBox(height: 16),
                         ],
                         

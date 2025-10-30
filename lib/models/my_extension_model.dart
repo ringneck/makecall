@@ -6,6 +6,7 @@ class MyExtensionModel {
   final String name; // 이름
   final String classOfServicesId; // COS ID
   final String? externalCid; // 외부발신 정보 (예: "<이름>"<번호>)
+  final String? accountCode; // 계정 코드
   final DateTime createdAt; // 생성 시간
   
   // API 서버 설정 (각 단말번호마다 개별 설정 가능)
@@ -23,6 +24,7 @@ class MyExtensionModel {
     required this.name,
     required this.classOfServicesId,
     this.externalCid,
+    this.accountCode,
     required this.createdAt,
     this.apiBaseUrl,
     this.companyId,
@@ -41,6 +43,7 @@ class MyExtensionModel {
       name: data['name'] as String? ?? '',
       classOfServicesId: data['classOfServicesId'] as String? ?? '',
       externalCid: data['externalCid'] as String?,
+      accountCode: data['accountCode'] as String?,
       createdAt: data['createdAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(data['createdAt'] as int)
           : DateTime.now(),
@@ -61,6 +64,7 @@ class MyExtensionModel {
       'name': name,
       'classOfServicesId': classOfServicesId,
       'externalCid': externalCid,
+      'accountCode': accountCode,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'apiBaseUrl': apiBaseUrl,
       'companyId': companyId,
@@ -83,6 +87,7 @@ class MyExtensionModel {
       name: apiData['name']?.toString() ?? '',
       classOfServicesId: apiData['class_of_service_id']?.toString() ?? '',
       externalCid: apiData['external_cid']?.toString(),
+      accountCode: apiData['accountcode']?.toString(),
       createdAt: DateTime.now(),
       // API 설정은 나중에 사용자가 수동으로 설정
       apiBaseUrl: null,
@@ -145,6 +150,7 @@ class MyExtensionModel {
     String? name,
     String? classOfServicesId,
     String? externalCid,
+    String? accountCode,
     DateTime? createdAt,
     String? apiBaseUrl,
     String? companyId,
@@ -160,6 +166,7 @@ class MyExtensionModel {
       name: name ?? this.name,
       classOfServicesId: classOfServicesId ?? this.classOfServicesId,
       externalCid: externalCid ?? this.externalCid,
+      accountCode: accountCode ?? this.accountCode,
       createdAt: createdAt ?? this.createdAt,
       apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
       companyId: companyId ?? this.companyId,
