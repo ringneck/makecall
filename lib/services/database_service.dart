@@ -250,7 +250,7 @@ class DatabaseService {
   
   // ===== 내 단말번호 관리 =====
   
-  // 내 단말번호 추가 (중복 체크 후 추가)
+  // 내 단말번호 추가 (중복 체크 후 추가 또는 업데이트)
   Future<String> addMyExtension(MyExtensionModel extension) async {
     try {
       // 중복 체크: 같은 사용자의 같은 extension이 이미 존재하는지 확인
@@ -262,14 +262,29 @@ class DatabaseService {
           .get();
       
       if (existingSnapshot.docs.isNotEmpty) {
-        // 이미 존재하면 기존 ID 반환
-        return existingSnapshot.docs.first.id;
+        // 이미 존재하면 기존 문서를 업데이트하고 ID 반환
+        final docId = existingSnapshot.docs.first.id;
+        await _firestore
+            .collection('my_extensions')
+            .doc(docId)
+            .update(extension.toFirestore());
+        
+        if (kDebugMode) {
+          debugPrint('✅ Updated existing extension: ${extension.extension} (ID: $docId)');
+        }
+        
+        return docId;
       }
       
       // 새로 추가
       final docRef = await _firestore
           .collection('my_extensions')
           .add(extension.toFirestore());
+      
+      if (kDebugMode) {
+        debugPrint('✅ Added new extension: ${extension.extension} (ID: ${docRef.id})');
+      }
+      
       return docRef.id;
     } catch (e) {
       if (kDebugMode) {
