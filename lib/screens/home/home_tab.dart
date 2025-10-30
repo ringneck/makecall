@@ -310,9 +310,8 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildExtensionCard(MyExtensionModel extension, int index, {Key? key}) {
-    return Center(
+    return Card(
       key: key,
-      child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         elevation: 8,
         shape: RoundedRectangleBorder(
@@ -330,142 +329,41 @@ class _HomeTabState extends State<HomeTab> {
               ],
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 아이콘
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF2196F3).withAlpha(51),
-                        const Color(0xFF2196F3).withAlpha(26),
-                      ],
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.phone_android,
-                    size: 64,
-                    color: Color(0xFF2196F3),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(48.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 // 단말 이름
                 if (extension.name.isNotEmpty) ...[
                   Text(
                     extension.name,
                     style: const TextStyle(
-                      fontSize: 24,
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                 ],
 
                 // 단말번호
                 Text(
                   extension.extension,
                   style: const TextStyle(
-                    fontSize: 36,
+                    fontSize: 48,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF2196F3),
-                    letterSpacing: 2,
+                    letterSpacing: 3,
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // 구분선
-                Divider(color: Colors.grey[300], thickness: 1),
-                const SizedBox(height: 16),
-
-                // 상세 정보
-                _buildInfoChip(
-                  Icons.vpn_key,
-                  'Extension ID',
-                  extension.extensionId,
-                ),
-                const SizedBox(height: 24),
-
-                // 안내 메시지
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green[700], size: 20),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          '클릭투콜 발신 시 이 단말번호가 사용됩니다',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(IconData icon, String label, String value,
-      {bool highlight = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: highlight ? Colors.orange[50] : Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: highlight ? Colors.orange[200]! : Colors.grey[300]!,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 18,
-            color: highlight ? Colors.orange[700] : Colors.grey[600],
-          ),
-          const SizedBox(width: 12),
-          Text(
-            '$label: ',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: highlight ? Colors.orange[800] : Colors.grey[700],
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
-                color: highlight ? Colors.orange[900] : Colors.black87,
+                ],
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
-        ],
-      ),
-    );
+        ),
+      );
   }
 }
