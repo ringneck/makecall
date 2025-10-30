@@ -428,38 +428,6 @@ class _HomeTabState extends State<HomeTab> {
                             letterSpacing: 4,
                           ),
                         ),
-                        
-                        // 클릭투콜 버튼
-                        const SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            // TODO: 클릭투콜 기능 구현
-                            if (kDebugMode) {
-                              debugPrint('📞 Click-to-Call initiated for ${extension.extension}');
-                              debugPrint('   - Extension ID: ${extension.extensionId}');
-                              debugPrint('   - COS ID: ${extension.classOfServicesId}');
-                            }
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('클릭투콜: ${extension.extension}'),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.phone),
-                          label: const Text('클릭투콜', style: TextStyle(fontSize: 18)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4CAF50),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 16,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
