@@ -212,7 +212,8 @@ class _HomeTabState extends State<HomeTab> {
                   itemCount: extensions.length,
                   itemBuilder: (context, index) {
                     final extension = extensions[index];
-                    return _buildExtensionCard(extension, index);
+                    // 각 카드에 고유한 key 지정하여 제대로 재빌드되도록 함
+                    return _buildExtensionCard(extension, index, key: ValueKey(extension.id));
                   },
                 ),
               ),
@@ -308,8 +309,9 @@ class _HomeTabState extends State<HomeTab> {
     return true;
   }
 
-  Widget _buildExtensionCard(MyExtensionModel extension, int index) {
+  Widget _buildExtensionCard(MyExtensionModel extension, int index, {Key? key}) {
     return Center(
+      key: key,
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         elevation: 8,
