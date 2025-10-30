@@ -193,7 +193,7 @@ class _ProfileTabState extends State<ProfileTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '전화번호로 단말번호 조회',
+                        '전화번호로 등록된 번호 조회',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
