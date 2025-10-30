@@ -144,6 +144,10 @@ class _HomeTabState extends State<HomeTab> {
             );
           }
 
+          // API 설정을 한 번만 가져오기 (PageView 외부에서)
+          final apiBaseUrl = authService.currentUserModel?.apiBaseUrl ?? '설정 필요';
+          final hasApiConfig = authService.currentUserModel?.apiBaseUrl != null;
+
           return Column(
             children: [
               // 단말번호 슬라이드 카드
@@ -163,7 +167,13 @@ class _HomeTabState extends State<HomeTab> {
                   itemBuilder: (context, index) {
                     final extension = extensions[index];
                     // 각 카드에 고유한 key 지정하여 제대로 재빌드되도록 함
-                    return _buildExtensionCard(extension, index, key: ValueKey(extension.id));
+                    return _buildExtensionCard(
+                      extension, 
+                      index,
+                      apiBaseUrl: apiBaseUrl,
+                      hasApiConfig: hasApiConfig,
+                      key: ValueKey(extension.id),
+                    );
                   },
                 ),
               ),
@@ -259,13 +269,13 @@ class _HomeTabState extends State<HomeTab> {
     return true;
   }
 
-  Widget _buildExtensionCard(MyExtensionModel extension, int index, {Key? key}) {
-    // 전역 API 설정 사용 (내 정보 탭의 API 설정)
-    final authService = context.watch<AuthService>();
-    final userModel = authService.currentUserModel;
-    final apiBaseUrl = userModel?.apiBaseUrl ?? '설정 필요';
-    final hasApiConfig = userModel?.apiBaseUrl != null;
-    
+  Widget _buildExtensionCard(
+    MyExtensionModel extension, 
+    int index, {
+    required String apiBaseUrl,
+    required bool hasApiConfig,
+    Key? key,
+  }) {
     if (kDebugMode) {
       debugPrint('🎨 Building card for extension: ${extension.extension}, name: ${extension.name}, id: ${extension.id}');
     }
