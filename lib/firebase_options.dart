@@ -66,7 +66,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '793164633643',
     projectId: 'makecallio',
     storageBucket: 'makecallio.firebasestorage.app',
-    iosBundleId: 'com.olssoo.makecallApp',
+    iosBundleId: 'com.olssoo.makecall',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -75,6 +75,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '793164633643',
     projectId: 'makecallio',
     storageBucket: 'makecallio.firebasestorage.app',
-    iosBundleId: 'com.olssoo.makecallApp',
+    iosBundleId: 'com.olssoo.makecall',
   );
 }

@@ -4,29 +4,10 @@ Firebase 기반 통합 통화 관리 Flutter 앱
 
 ## 📱 지원 플랫폼
 
-- ✅ **Android** (완벽 지원)
+- ✅ **Android** (완벽 지원 - Android 5.0+)
+- ✅ **iOS** (완벽 지원 - iOS 15.0+, 최신 iPhone/iPad 지원)
+- ✅ **macOS** (완벽 지원 - macOS 12.0+, Apple Silicon & Intel)
 - ✅ **Web** (브라우저 미리보기)
-- ❌ **iOS** (지원하지 않음)
-
-## ⚠️ 중요 안내
-
-**iOS 플랫폼은 지원하지 않습니다.**
-
-VSCode에서 `flutter run -d ios` 명령 실행 시 에러가 발생합니다.
-iOS 관련 디렉토리(ios/, macos/)는 프로젝트에서 제거되었습니다.
-
-**지원되는 실행 방법:**
-```bash
-# Android 디바이스/에뮬레이터
-flutter run -d android
-
-# 웹 브라우저
-flutter run -d chrome
-flutter run -d web-server
-
-# Release APK 빌드
-flutter build apk --release
-```
 
 ## 🎯 주요 기능
 
@@ -35,6 +16,7 @@ flutter build apk --release
 - ☁️ **Cloud Firestore**: 실시간 데이터 동기화
 - 🌐 **API 통합**: 동적 API Base URL 설정 및 PBX 연동
 - 📱 **4-탭 구조**: Home, Call, Profile, Settings
+- 🌍 **크로스 플랫폼**: Android, iOS, macOS, Web 모두 지원
 
 ## 🏗️ 기술 스택
 
@@ -81,14 +63,27 @@ flutter pub get
 ```
 
 ### 2. Firebase 설정 확인
-- `android/app/google-services.json` 파일 존재 확인
+- `android/app/google-services.json` 파일 존재 확인 (Android)
+- `ios/Runner/GoogleService-Info.plist` 필요 (iOS - 별도 생성)
 - Firebase 프로젝트 설정 완료 필요
 
-### 3. 앱 실행
+### 3. 플랫폼별 앱 실행
 
 **Android:**
 ```bash
 flutter run -d android
+```
+
+**iOS (macOS에서 실행 시):**
+```bash
+flutter run -d ios
+# 또는 특정 시뮬레이터 선택
+flutter run -d iPhone
+```
+
+**macOS:**
+```bash
+flutter run -d macos
 ```
 
 **웹 브라우저:**
@@ -102,17 +97,43 @@ flutter run -d chrome
 ```bash
 flutter build apk --release
 ```
+생성 위치: `build/app/outputs/flutter-apk/app-release.apk`
 
-생성된 APK 위치: `build/app/outputs/flutter-apk/app-release.apk`
+**iOS (macOS에서 빌드 시):**
+```bash
+flutter build ios --release
+```
+빌드 후 Xcode에서 Archive 및 App Store Connect 업로드
 
-## 📝 설정 정보
+**macOS:**
+```bash
+flutter build macos --release
+```
+생성 위치: `build/macos/Build/Products/Release/MakeCall.app`
 
-### Android 패키지 정보
+## 📝 플랫폼별 설정 정보
+
+### Android
 - **Package Name**: `com.olssoo.makecall_app`
 - **App Name**: MakeCall
 - **Target SDK**: 36 (Android 15)
+- **Min SDK**: 21 (Android 5.0 Lollipop)
 
-### API 설정
+### iOS
+- **Bundle Identifier**: `com.olssoo.makecall`
+- **App Name**: MakeCall
+- **Deployment Target**: iOS 15.0+
+- **Supported Devices**: iPhone, iPad (최신 기기 포함)
+- **Orientations**: Portrait, Landscape
+
+### macOS
+- **Bundle Identifier**: `com.olssoo.makecall`
+- **App Name**: MakeCall
+- **Deployment Target**: macOS 12.0 (Monterey)+
+- **Architectures**: Apple Silicon (M1/M2/M3) & Intel
+
+## 🔧 API 설정
+
 앱 내 프로필 탭에서 API Base URL 설정 가능:
 - API Base URL (예: `api.example.com`)
 - HTTP Port (예: `8080`)
@@ -123,7 +144,7 @@ flutter build apk --release
 - `https://{baseUrl}:{httpsPort}/api/v2`
 - `http://{baseUrl}:{httpPort}/api/v2`
 
-## 🔧 개발 가이드
+## 🛠️ 개발 가이드
 
 ### 코드 분석
 ```bash
@@ -140,22 +161,65 @@ dart format .
 flutter test
 ```
 
+### 지원 플랫폼 확인
+```bash
+flutter devices
+```
+
+## 📱 지원 기기
+
+### iOS (iOS 15.0+)
+- iPhone 15 Pro Max / Pro / Plus / Standard
+- iPhone 14 Pro Max / Pro / Plus / Standard
+- iPhone 13 Pro Max / Pro / Mini / Standard
+- iPhone 12 Pro Max / Pro / Mini / Standard
+- iPhone 11 Pro Max / Pro / Standard
+- iPhone SE (2nd gen, 3rd gen)
+- iPad Pro (모든 세대)
+- iPad Air (4th gen+)
+- iPad (9th gen+)
+- iPad mini (6th gen+)
+
+### macOS (macOS 12.0+)
+- **Apple Silicon**: MacBook Pro M1/M2/M3, MacBook Air M1/M2/M3, iMac M1/M3, Mac Studio M1/M2, Mac mini M1/M2/M4
+- **Intel**: MacBook Pro (2017+), MacBook Air (2018+), iMac (2017+), Mac mini (2018+), Mac Pro (2019+)
+
+### Android (Android 5.0+)
+- 모든 Android 5.0 이상 기기 지원
+- Pixel, Galaxy, OnePlus, Xiaomi 등 모든 제조사
+
 ## 📚 주요 변경사항
 
 - ✅ 앱 이름: MakCall → MakeCall
-- ✅ 패키지명: com.olssoo.makecall_app
+- ✅ Android 패키지명: com.olssoo.makecall_app
+- ✅ iOS/macOS Bundle ID: com.olssoo.makecall
 - ✅ API 경로: `/api2` → `/api/v2`
 - ✅ Call 탭 기본 화면: Keypad
 - ✅ Home 탭에 사용자 전화번호 표시
 - ✅ Profile 탭에 API 엔드포인트 상세 정보
 - ✅ Firestore 쿼리 최적화 (메모리 기반 정렬)
-- ✅ iOS/macOS 지원 제거 (Android 전용)
+- ✅ iOS 15.0+ 지원 (최신 iPhone/iPad)
+- ✅ macOS 12.0+ 지원 (Apple Silicon & Intel)
+- ✅ 크로스 플랫폼 완벽 지원
 
 ## 🐛 알려진 제한사항
 
-1. **iOS 미지원**: iOS 플랫폼은 지원하지 않습니다
-2. **웹 플랫폼 CORS**: 웹에서 API 호출 시 서버의 CORS 설정 필요
-3. **로컬 앱 통화**: 현재 버전에서는 비활성화됨
+1. **웹 플랫폼 CORS**: 웹에서 API 호출 시 서버의 CORS 설정 필요
+2. **로컬 앱 통화**: 현재 버전에서는 비활성화됨
+3. **iOS 빌드**: macOS 환경과 Xcode 필요
+4. **Firebase 설정**: 각 플랫폼별 Firebase 구성 파일 필요
+   - Android: `google-services.json`
+   - iOS: `GoogleService-Info.plist` (별도 생성 필요)
+
+## 🔐 Firebase iOS 설정 가이드
+
+iOS에서 Firebase를 사용하려면 추가 설정이 필요합니다:
+
+1. Firebase Console에서 iOS 앱 추가
+2. Bundle ID: `com.olssoo.makecall` 입력
+3. `GoogleService-Info.plist` 다운로드
+4. 파일을 `ios/Runner/` 디렉토리에 추가
+5. Xcode에서 프로젝트에 파일 추가 확인
 
 ## 📞 지원
 
