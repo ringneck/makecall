@@ -375,48 +375,33 @@ class _HomeTabState extends State<HomeTab> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // 외부발신 정보 (DB에 저장된 파싱된 값 사용)
-                        if ((extension.externalCidName != null && extension.externalCidName!.isNotEmpty) ||
-                            (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty)) ...[
-                          Column(
-                            children: [
-                              if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty)
-                                Text(
-                                  '외부발신 이름: ${extension.externalCidName}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              if (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  '외부발신 번호: ${extension.externalCidNumber}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        
-                        // 계정 코드
-                        if (extension.accountCode != null && extension.accountCode!.isNotEmpty) ...[
+                        // 외부발신 이름 (단말 이름과 비슷한 스타일)
+                        if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty) ...[
                           Text(
-                            '계정코드: ${extension.accountCode}',
+                            extension.externalCidName!,
                             style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 8),
+                        ],
+                        
+                        // 외부발신 번호 (단말번호와 비슷한 스타일)
+                        if (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty) ...[
+                          Text(
+                            extension.externalCidNumber!,
+                            style: const TextStyle(
+                              fontSize: 42,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF4CAF50),
+                              letterSpacing: 2,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
                         ],
                         
                         // 단말 이름
@@ -430,7 +415,7 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 8),
                         ],
 
                         // 단말번호
