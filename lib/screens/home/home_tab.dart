@@ -155,17 +155,30 @@ class _HomeTabState extends State<HomeTab> {
                 child: PageView.builder(
                   controller: _pageController,
                   onPageChanged: (index) {
+                    if (kDebugMode) {
+                      debugPrint('📄 [STEP 1] Page changed to index: $index');
+                      if (index < extensions.length) {
+                        debugPrint('   - Extension from list: ${extensions[index].extension}');
+                        debugPrint('   - Name from list: ${extensions[index].name}');
+                        debugPrint('   - ID from list: ${extensions[index].id}');
+                      }
+                    }
                     setState(() {
                       _currentPage = index;
                     });
                     // 선택된 단말번호 업데이트
-                    context.read<SelectedExtensionProvider>().setSelectedExtension(
-                          extensions[index],
-                        );
+                    if (index < extensions.length) {
+                      context.read<SelectedExtensionProvider>().setSelectedExtension(
+                            extensions[index],
+                          );
+                    }
                   },
                   itemCount: extensions.length,
                   itemBuilder: (context, index) {
                     final extension = extensions[index];
+                    if (kDebugMode) {
+                      debugPrint('🏗️ ItemBuilder called for index: $index, extension: ${extension.extension}, name: ${extension.name}, id: ${extension.id}');
+                    }
                     // 각 카드에 고유한 key 지정하여 제대로 재빌드되도록 함
                     return _buildExtensionCard(
                       extension, 
@@ -277,7 +290,11 @@ class _HomeTabState extends State<HomeTab> {
     Key? key,
   }) {
     if (kDebugMode) {
-      debugPrint('🎨 Building card for extension: ${extension.extension}, name: ${extension.name}, id: ${extension.id}');
+      debugPrint('🎨 [STEP 3] Building card for index: $index');
+      debugPrint('   - Extension: ${extension.extension}');
+      debugPrint('   - Name: ${extension.name}');
+      debugPrint('   - ID: ${extension.id}');
+      debugPrint('   - Extension ID: ${extension.extensionId}');
     }
     
     return Card(

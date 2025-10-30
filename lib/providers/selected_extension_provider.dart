@@ -11,9 +11,11 @@ class SelectedExtensionProvider extends ChangeNotifier {
   void setSelectedExtension(MyExtensionModel? extension) {
     _selectedExtension = extension;
     if (kDebugMode) {
-      debugPrint('✅ Selected extension updated: ${extension?.extension}');
-      debugPrint('🔑 Extension ID: ${extension?.extensionId}');
-      debugPrint('👤 Name: ${extension?.name}');
+      debugPrint('✅ [STEP 2] Selected extension updated:');
+      debugPrint('   - Extension: ${extension?.extension}');
+      debugPrint('   - Name: ${extension?.name}');
+      debugPrint('   - Extension ID: ${extension?.extensionId}');
+      debugPrint('   - Model ID: ${extension?.id}');
     }
     notifyListeners();
   }
