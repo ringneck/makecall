@@ -73,8 +73,28 @@ class ApiService {
       }
       
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['extensions'] ?? []);
+        final responseData = json.decode(response.body);
+        
+        // 응답 구조 확인: data 배열이 있는지 체크
+        if (responseData is Map && responseData.containsKey('data')) {
+          // data 배열에서 extension 객체들 추출
+          final dataList = responseData['data'];
+          if (dataList is List) {
+            return List<Map<String, dynamic>>.from(dataList);
+          }
+        }
+        
+        // 이전 구조 지원 (extensions 배열)
+        if (responseData is Map && responseData.containsKey('extensions')) {
+          return List<Map<String, dynamic>>.from(responseData['extensions']);
+        }
+        
+        // 응답이 배열인 경우
+        if (responseData is List) {
+          return List<Map<String, dynamic>>.from(responseData);
+        }
+        
+        return [];
       } else {
         throw Exception('서버 오류 (${response.statusCode}): ${response.body}');
       }

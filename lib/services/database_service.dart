@@ -4,6 +4,7 @@ import '../models/main_number_model.dart';
 import '../models/extension_model.dart';
 import '../models/call_history_model.dart';
 import '../models/contact_model.dart';
+import '../models/my_extension_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -244,6 +245,106 @@ class DatabaseService {
         debugPrint('Find contact by phone error: $e');
       }
       return null;
+    }
+  }
+  
+  // ===== 내 단말번호 관리 =====
+  
+  // 내 단말번호 추가 (중복 체크 후 추가)
+  Future<String> addMyExtension(MyExtensionModel extension) async {
+    try {
+      // 중복 체크: 같은 사용자의 같은 extension이 이미 존재하는지 확인
+      final existingSnapshot = await _firestore
+          .collection('my_extensions')
+          .where('userId', isEqualTo: extension.userId)
+          .where('extension', isEqualTo: extension.extension)
+          .limit(1)
+          .get();
+      
+      if (existingSnapshot.docs.isNotEmpty) {
+        // 이미 존재하면 기존 ID 반환
+        return existingSnapshot.docs.first.id;
+      }
+      
+      // 새로 추가
+      final docRef = await _firestore
+          .collection('my_extensions')
+          .add(extension.toFirestore());
+      return docRef.id;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Add my extension error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 여러 개의 내 단말번호를 한번에 추가 (배치 처리)
+  Future<List<String>> addMyExtensionsBatch(List<MyExtensionModel> extensions) async {
+    try {
+      final addedIds = <String>[];
+      
+      for (final extension in extensions) {
+        final id = await addMyExtension(extension);
+        addedIds.add(id);
+      }
+      
+      return addedIds;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Add my extensions batch error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 사용자의 내 단말번호 목록 조회
+  Stream<List<MyExtensionModel>> getMyExtensions(String userId) {
+    return _firestore
+        .collection('my_extensions')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+          final extensions = snapshot.docs
+              .map((doc) => MyExtensionModel.fromFirestore(doc.data(), doc.id))
+              .toList();
+          // 메모리에서 생성 시간으로 정렬 (최신순)
+          extensions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return extensions;
+        });
+  }
+  
+  // 내 단말번호 삭제
+  Future<void> deleteMyExtension(String id) async {
+    try {
+      await _firestore.collection('my_extensions').doc(id).delete();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Delete my extension error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 사용자의 모든 내 단말번호 삭제
+  Future<void> deleteAllMyExtensions(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('my_extensions')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      await batch.commit();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Delete all my extensions error: $e');
+      }
+      rethrow;
     }
   }
 }
