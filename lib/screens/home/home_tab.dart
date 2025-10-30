@@ -16,6 +16,7 @@ class _HomeTabState extends State<HomeTab> {
   final DatabaseService _databaseService = DatabaseService();
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  List<MyExtensionModel> _previousExtensions = [];
 
   @override
   void dispose() {
@@ -56,6 +57,39 @@ class _HomeTabState extends State<HomeTab> {
           }
 
           final extensions = snapshot.data ?? [];
+
+          // 단말번호 목록이 변경되었는지 확인
+          final extensionsChanged = !_areExtensionListsEqual(_previousExtensions, extensions);
+          
+          if (extensionsChanged) {
+            // 단말번호 목록이 변경되었을 때만 상태 업데이트
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              // 이전 목록 저장
+              _previousExtensions = List.from(extensions);
+              
+              // 현재 페이지가 범위를 벗어나면 조정
+              if (_currentPage >= extensions.length && extensions.isNotEmpty) {
+                setState(() {
+                  _currentPage = extensions.length - 1;
+                });
+                // PageController도 업데이트
+                if (_pageController.hasClients) {
+                  _pageController.jumpToPage(_currentPage);
+                }
+              } else if (extensions.isEmpty) {
+                setState(() {
+                  _currentPage = 0;
+                });
+              }
+              
+              // 선택된 단말번호 업데이트
+              if (extensions.isNotEmpty && _currentPage < extensions.length) {
+                context.read<SelectedExtensionProvider>().setSelectedExtension(
+                      extensions[_currentPage],
+                    );
+              }
+            });
+          }
 
           if (extensions.isEmpty) {
             return Center(
@@ -106,27 +140,6 @@ class _HomeTabState extends State<HomeTab> {
               ),
             );
           }
-
-          // 페이지 변경 시 선택된 단말번호 업데이트
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            // 현재 페이지가 범위를 벗어나면 마지막 페이지로 이동
-            if (_currentPage >= extensions.length && extensions.isNotEmpty) {
-              setState(() {
-                _currentPage = extensions.length - 1;
-              });
-              // PageController도 업데이트
-              if (_pageController.hasClients) {
-                _pageController.jumpToPage(_currentPage);
-              }
-            }
-            
-            // 선택된 단말번호 업데이트
-            if (extensions.isNotEmpty && _currentPage < extensions.length) {
-              context.read<SelectedExtensionProvider>().setSelectedExtension(
-                    extensions[_currentPage],
-                  );
-            }
-          });
 
           return Column(
             children: [
@@ -278,6 +291,21 @@ class _HomeTabState extends State<HomeTab> {
         },
       ),
     );
+  }
+
+  // 두 단말번호 목록이 동일한지 비교
+  bool _areExtensionListsEqual(List<MyExtensionModel> list1, List<MyExtensionModel> list2) {
+    if (list1.length != list2.length) return false;
+    
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i].id != list2[i].id || 
+          list1[i].extension != list2[i].extension ||
+          list1[i].extensionId != list2[i].extensionId) {
+        return false;
+      }
+    }
+    
+    return true;
   }
 
   Widget _buildExtensionCard(MyExtensionModel extension, int index) {
