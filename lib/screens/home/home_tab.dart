@@ -259,8 +259,11 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildExtensionCard(MyExtensionModel extension, int index, {Key? key}) {
-    // 단말번호별 API URL 사용 (각 단말번호마다 다른 API 서버 설정 가능)
-    final apiBaseUrl = extension.apiBaseUrl ?? '설정 필요';
+    // 전역 API 설정 사용 (내 정보 탭의 API 설정)
+    final authService = context.watch<AuthService>();
+    final userModel = authService.currentUserModel;
+    final apiBaseUrl = userModel?.apiBaseUrl ?? '설정 필요';
+    final hasApiConfig = userModel?.apiBaseUrl != null;
     
     return Card(
       key: key,
@@ -288,7 +291,7 @@ class _HomeTabState extends State<HomeTab> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                 decoration: BoxDecoration(
-                  color: extension.hasApiConfig 
+                  color: hasApiConfig 
                       ? const Color(0xFF2196F3).withAlpha(26)
                       : Colors.orange.withAlpha(26),
                   borderRadius: const BorderRadius.only(
@@ -302,9 +305,9 @@ class _HomeTabState extends State<HomeTab> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          extension.hasApiConfig ? Icons.cloud_done : Icons.cloud_off,
+                          hasApiConfig ? Icons.cloud_done : Icons.cloud_off,
                           size: 20,
-                          color: extension.hasApiConfig ? const Color(0xFF2196F3) : Colors.orange,
+                          color: hasApiConfig ? const Color(0xFF2196F3) : Colors.orange,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -312,7 +315,7 @@ class _HomeTabState extends State<HomeTab> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: extension.hasApiConfig ? const Color(0xFF2196F3) : Colors.orange,
+                            color: hasApiConfig ? const Color(0xFF2196F3) : Colors.orange,
                           ),
                         ),
                       ],
@@ -323,7 +326,7 @@ class _HomeTabState extends State<HomeTab> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: extension.hasApiConfig ? Colors.black87 : Colors.orange[900],
+                        color: hasApiConfig ? Colors.black87 : Colors.orange[900],
                         letterSpacing: 0.5,
                       ),
                       textAlign: TextAlign.center,
