@@ -61,7 +61,106 @@ class _ProfileTabState extends State<ProfileTab> {
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 8),
+          // 프리미엄 뱃지
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: userModel?.isPremium == true
+                      ? Colors.amber[100]
+                      : Colors.grey[200],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: userModel?.isPremium == true
+                        ? Colors.amber
+                        : Colors.grey,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      userModel?.isPremium == true
+                          ? Icons.star
+                          : Icons.person,
+                      size: 16,
+                      color: userModel?.isPremium == true
+                          ? Colors.amber[700]
+                          : Colors.grey[600],
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      userModel?.isPremium == true ? '프리미엄 회원' : '무료 회원',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: userModel?.isPremium == true
+                            ? Colors.amber[900]
+                            : Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // 프리미엄 토글 버튼 (개발/테스트용)
+              if (userId.isNotEmpty)
+                InkWell(
+                  onTap: () async {
+                    try {
+                      await authService.togglePremium();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              userModel?.isPremium == true
+                                  ? '무료 회원으로 전환되었습니다.'
+                                  : '프리미엄 회원으로 전환되었습니다.',
+                            ),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('전환 실패: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue[200]!),
+                    ),
+                    child: const Icon(
+                      Icons.swap_horiz,
+                      size: 16,
+                      color: Color(0xFF2196F3),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // 단말번호 제한 안내
+          Text(
+            '단말번호 저장 가능: ${userModel?.maxExtensions ?? 1}개',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 24),
           const Divider(),
           
           // API 설정
@@ -582,6 +681,84 @@ class _ProfileTabState extends State<ProfileTab> {
     });
 
     try {
+      // 현재 저장된 단말번호 개수 확인
+      final dbService = DatabaseService();
+      final currentExtensions = await dbService.getMyExtensions(userId).first;
+      final maxExtensions = userModel?.maxExtensions ?? 1;
+
+      // 저장 가능한 개수를 초과하는지 확인
+      if (currentExtensions.length >= maxExtensions) {
+        setState(() {
+          _isSearching = false;
+        });
+        
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              icon: Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange[700],
+                size: 48,
+              ),
+              title: const Text('저장 제한 초과'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    userModel?.isPremium == true
+                        ? '프리미엄 회원은 최대 3개까지 저장 가능합니다.'
+                        : '무료 회원은 최대 1개까지 저장 가능합니다.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '현재 저장된 개수: ${currentExtensions.length}개',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (userModel?.isPremium != true) ...[
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber[300]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.star, color: Colors.amber[700], size: 20),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              '프리미엄 회원으로 업그레이드하면\n최대 3개까지 저장할 수 있습니다!',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('확인'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
       // Firestore에 전화번호 저장
       await authService.updateUserInfo(phoneNumber: phoneNumber);
 
@@ -641,8 +818,45 @@ class _ProfileTabState extends State<ProfileTab> {
         );
       }).toList();
 
+      // 추가하려는 개수와 현재 개수의 합이 제한을 초과하는지 확인
+      final totalCount = currentExtensions.length + extensionModels.length;
+      if (totalCount > maxExtensions) {
+        setState(() {
+          _isSearching = false;
+        });
+        
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              icon: Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange[700],
+                size: 48,
+              ),
+              title: const Text('저장 제한 초과'),
+              content: Text(
+                '조회된 단말번호: ${extensionModels.length}개\n'
+                '현재 저장된 개수: ${currentExtensions.length}개\n'
+                '최대 저장 가능: $maxExtensions개\n\n'
+                '${userModel.isPremium ? "프리미엄 회원은" : "무료 회원은"} '
+                '최대 $maxExtensions개까지만 저장할 수 있습니다.\n'
+                '일부 단말번호를 삭제한 후 다시 시도해주세요.',
+                textAlign: TextAlign.center,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('확인'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
       // DB에 저장 (배치 처리)
-      final dbService = DatabaseService();
       await dbService.addMyExtensionsBatch(extensionModels);
 
       setState(() {

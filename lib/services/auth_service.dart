@@ -133,6 +133,7 @@ class AuthService extends ChangeNotifier {
     String? apiBaseUrl,
     int? apiHttpPort,
     int? apiHttpsPort,
+    bool? isPremium,
   }) async {
     if (currentUser == null) return;
     
@@ -145,6 +146,7 @@ class AuthService extends ChangeNotifier {
       if (apiBaseUrl != null) updates['apiBaseUrl'] = apiBaseUrl;
       if (apiHttpPort != null) updates['apiHttpPort'] = apiHttpPort;
       if (apiHttpsPort != null) updates['apiHttpsPort'] = apiHttpsPort;
+      if (isPremium != null) updates['isPremium'] = isPremium;
       
       await _firestore
           .collection('users')
@@ -155,6 +157,21 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Update user info error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 프리미엄 상태 토글
+  Future<void> togglePremium() async {
+    if (currentUser == null) return;
+    
+    try {
+      final newPremiumStatus = !(_currentUserModel?.isPremium ?? false);
+      await updateUserInfo(isPremium: newPremiumStatus);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Toggle premium error: $e');
       }
       rethrow;
     }

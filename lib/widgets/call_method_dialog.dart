@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
 import '../services/call_service.dart';
 import '../services/api_service.dart';
+import '../models/call_history_model.dart';
+import '../providers/selected_extension_provider.dart';
 
 class CallMethodDialog extends StatefulWidget {
   final String phoneNumber;
@@ -190,36 +193,79 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
         orElse: () => mainNumbers.isNotEmpty ? mainNumbers.first : throw Exception('대표번호를 설정해주세요'),
       );
 
-      // 단말번호 가져오기
-      final extensions = await _databaseService.getUserExtensions(userId).first;
-      final selectedExtension = extensions.firstWhere(
-        (ext) => ext.isSelected,
-        orElse: () => extensions.isNotEmpty ? extensions.first : throw Exception('단말번호를 설정해주세요'),
-      );
+      // 홈 탭에서 선택된 단말번호 가져오기 (실시간 반영)
+      final selectedExtension = context.read<SelectedExtensionProvider>().selectedExtension;
+      
+      if (selectedExtension == null) {
+        throw Exception('선택된 단말번호가 없습니다.\n홈 탭에서 단말번호를 확인해주세요.');
+      }
 
-      // API 서비스 생성
+      if (kDebugMode) {
+        debugPrint('🔥 Click to Call 시작');
+        debugPrint('📞 선택된 단말번호: ${selectedExtension.extension}');
+        debugPrint('👤 단말 이름: ${selectedExtension.name}');
+        debugPrint('🔑 COS ID: ${selectedExtension.classOfServicesId}');
+        debugPrint('📱 발신 대상: ${widget.phoneNumber}');
+      }
+
+      // API 서비스 생성 (동적 API URL 사용)
       final apiService = ApiService(
-        baseUrl: 'https://api.example.com', // 실제 API 주소로 변경 필요
-        companyId: userModel!.companyId,
+        baseUrl: userModel!.getApiUrl(useHttps: false), // HTTP 사용
+        companyId: userModel.companyId,
         appKey: userModel.appKey,
       );
 
-      final success = await _callService.makeExtensionCall(
-        phoneNumber: widget.phoneNumber,
-        userId: userId,
-        extension: selectedExtension,
-        mainNumber: defaultMainNumber,
-        userPhoneNumber: userModel.phoneNumber ?? '',
-        apiService: apiService,
+      // Click to Call API 호출
+      final result = await apiService.clickToCall(
+        caller: selectedExtension.extension, // 선택된 단말번호 사용
+        callee: widget.phoneNumber,
+        cosId: selectedExtension.classOfServicesId, // 선택된 COS ID 사용
+        cidName: defaultMainNumber.name,
+        cidNumber: defaultMainNumber.number,
+        accountCode: userModel.phoneNumber ?? '',
+      );
+
+      if (kDebugMode) {
+        debugPrint('✅ Click to Call 성공: $result');
+      }
+
+      // 통화 기록 저장
+      await _databaseService.addCallHistory(
+        CallHistoryModel(
+          id: '',
+          userId: userId,
+          phoneNumber: widget.phoneNumber,
+          callType: CallType.outgoing,
+          callMethod: CallMethod.extension,
+          callTime: DateTime.now(),
+          mainNumberUsed: defaultMainNumber.number,
+          extensionUsed: selectedExtension.extension,
+        ),
       );
 
       if (mounted) {
         Navigator.pop(context);
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Click to Call 요청이 전송되었습니다')),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '✅ Click to Call 요청 전송 완료',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text('단말: ${selectedExtension.name.isEmpty ? selectedExtension.extension : selectedExtension.name}'),
+                Text('번호: ${selectedExtension.extension}'),
+                Text('COS ID: ${selectedExtension.classOfServicesId}'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -227,6 +273,7 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
           SnackBar(
             content: Text('오류 발생: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

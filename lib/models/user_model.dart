@@ -11,6 +11,7 @@ class UserModel {
   final DateTime createdAt;
   final DateTime? lastLoginAt;
   final bool isActive;
+  final bool isPremium; // 프리미엄 사용자 여부
   
   UserModel({
     required this.uid,
@@ -25,7 +26,11 @@ class UserModel {
     required this.createdAt,
     this.lastLoginAt,
     this.isActive = true,
+    this.isPremium = false, // 기본값: 무료 사용자
   });
+  
+  // 단말번호 저장 가능 개수 반환
+  int get maxExtensions => isPremium ? 3 : 1;
   
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
     return UserModel(
@@ -43,6 +48,7 @@ class UserModel {
           ? DateTime.parse(map['lastLoginAt'] as String)
           : null,
       isActive: map['isActive'] as bool? ?? true,
+      isPremium: map['isPremium'] as bool? ?? false,
     );
   }
   
@@ -59,6 +65,7 @@ class UserModel {
       'createdAt': createdAt.toIso8601String(),
       'lastLoginAt': lastLoginAt?.toIso8601String(),
       'isActive': isActive,
+      'isPremium': isPremium,
     };
   }
   
@@ -74,6 +81,7 @@ class UserModel {
     DateTime? createdAt,
     DateTime? lastLoginAt,
     bool? isActive,
+    bool? isPremium,
   }) {
     return UserModel(
       uid: uid,
@@ -88,6 +96,7 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       isActive: isActive ?? this.isActive,
+      isPremium: isPremium ?? this.isPremium,
     );
   }
   
