@@ -186,13 +186,6 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
         throw Exception('API 서버 주소가 설정되지 않았습니다. 내 정보 > API 설정에서 설정해주세요.');
       }
 
-      // 대표번호 가져오기
-      final mainNumbers = await _databaseService.getUserMainNumbers(userId).first;
-      final defaultMainNumber = mainNumbers.firstWhere(
-        (mn) => mn.isDefault,
-        orElse: () => mainNumbers.isNotEmpty ? mainNumbers.first : throw Exception('대표번호를 설정해주세요'),
-      );
-
       // 홈 탭에서 선택된 단말번호 가져오기 (실시간 반영)
       final selectedExtension = context.read<SelectedExtensionProvider>().selectedExtension;
       
@@ -208,6 +201,28 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
         debugPrint('📱 발신 대상: ${widget.phoneNumber}');
       }
 
+      // 대표번호 가져오기 (선택사항)
+      final mainNumbers = await _databaseService.getUserMainNumbers(userId).first;
+      String cidName = selectedExtension.name.isEmpty 
+          ? selectedExtension.extension 
+          : selectedExtension.name;
+      String cidNumber = selectedExtension.extension;
+
+      // 대표번호가 있으면 사용
+      if (mainNumbers.isNotEmpty) {
+        final defaultMainNumber = mainNumbers.firstWhere(
+          (mn) => mn.isDefault,
+          orElse: () => mainNumbers.first,
+        );
+        cidName = defaultMainNumber.name;
+        cidNumber = defaultMainNumber.number;
+      }
+
+      if (kDebugMode) {
+        debugPrint('📞 CID Name: $cidName');
+        debugPrint('📞 CID Number: $cidNumber');
+      }
+
       // API 서비스 생성 (동적 API URL 사용)
       final apiService = ApiService(
         baseUrl: userModel!.getApiUrl(useHttps: false), // HTTP 사용
@@ -220,8 +235,8 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
         caller: selectedExtension.extension, // 선택된 단말번호 사용
         callee: widget.phoneNumber,
         cosId: selectedExtension.classOfServicesId, // 선택된 COS ID 사용
-        cidName: defaultMainNumber.name,
-        cidNumber: defaultMainNumber.number,
+        cidName: cidName,
+        cidNumber: cidNumber,
         accountCode: userModel.phoneNumber ?? '',
       );
 
@@ -238,7 +253,7 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
           callType: CallType.outgoing,
           callMethod: CallMethod.extension,
           callTime: DateTime.now(),
-          mainNumberUsed: defaultMainNumber.number,
+          mainNumberUsed: cidNumber,
           extensionUsed: selectedExtension.extension,
         ),
       );

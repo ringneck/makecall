@@ -109,7 +109,19 @@ class _HomeTabState extends State<HomeTab> {
 
           // 페이지 변경 시 선택된 단말번호 업데이트
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_currentPage < extensions.length) {
+            // 현재 페이지가 범위를 벗어나면 마지막 페이지로 이동
+            if (_currentPage >= extensions.length && extensions.isNotEmpty) {
+              setState(() {
+                _currentPage = extensions.length - 1;
+              });
+              // PageController도 업데이트
+              if (_pageController.hasClients) {
+                _pageController.jumpToPage(_currentPage);
+              }
+            }
+            
+            // 선택된 단말번호 업데이트
+            if (extensions.isNotEmpty && _currentPage < extensions.length) {
               context.read<SelectedExtensionProvider>().setSelectedExtension(
                     extensions[_currentPage],
                   );
@@ -348,13 +360,6 @@ class _HomeTabState extends State<HomeTab> {
                   Icons.vpn_key,
                   'Extension ID',
                   extension.extensionId,
-                ),
-                const SizedBox(height: 12),
-                _buildInfoChip(
-                  Icons.class_,
-                  'COS ID',
-                  extension.classOfServicesId,
-                  highlight: true,
                 ),
                 const SizedBox(height: 24),
 

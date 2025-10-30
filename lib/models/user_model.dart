@@ -3,6 +3,7 @@ class UserModel {
   final String email;
   final String? phoneNumberName;  // 전화번호 이름 (예: 내 휴대폰, 사무실 전화)
   final String? phoneNumber;      // 전화번호
+  final String? profileImageUrl;  // 프로필 사진 URL (Firebase Storage)
   final String? companyId;
   final String? appKey;
   final String? apiBaseUrl;
@@ -18,6 +19,7 @@ class UserModel {
     required this.email,
     this.phoneNumberName,
     this.phoneNumber,
+    this.profileImageUrl,
     this.companyId,
     this.appKey,
     this.apiBaseUrl,
@@ -38,6 +40,7 @@ class UserModel {
       email: map['email'] as String? ?? '',
       phoneNumberName: map['phoneNumberName'] as String?,
       phoneNumber: map['phoneNumber'] as String?,
+      profileImageUrl: map['profileImageUrl'] as String?,
       companyId: map['companyId'] as String?,
       appKey: map['appKey'] as String?,
       apiBaseUrl: map['apiBaseUrl'] as String?,
@@ -57,6 +60,7 @@ class UserModel {
       'email': email,
       'phoneNumberName': phoneNumberName,
       'phoneNumber': phoneNumber,
+      'profileImageUrl': profileImageUrl,
       'companyId': companyId,
       'appKey': appKey,
       'apiBaseUrl': apiBaseUrl,
@@ -73,6 +77,7 @@ class UserModel {
     String? email,
     String? phoneNumberName,
     String? phoneNumber,
+    String? profileImageUrl,
     String? companyId,
     String? appKey,
     String? apiBaseUrl,
@@ -88,6 +93,7 @@ class UserModel {
       email: email ?? this.email,
       phoneNumberName: phoneNumberName ?? this.phoneNumberName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       companyId: companyId ?? this.companyId,
       appKey: appKey ?? this.appKey,
       apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,

@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io';
 import '../models/user_model.dart';
 
 class AuthService extends ChangeNotifier {
@@ -172,6 +174,94 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Toggle premium error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 프로필 사진 업로드 (Firebase Storage)
+  Future<String?> uploadProfileImage(File imageFile) async {
+    if (currentUser == null) return null;
+    
+    try {
+      final userId = currentUser!.uid;
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_images')
+          .child('$userId.jpg');
+      
+      if (kDebugMode) {
+        debugPrint('📸 Uploading profile image for user: $userId');
+      }
+      
+      // 이미지 업로드
+      final uploadTask = await storageRef.putFile(imageFile);
+      
+      // 다운로드 URL 가져오기
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      
+      if (kDebugMode) {
+        debugPrint('✅ Profile image uploaded: $downloadUrl');
+      }
+      
+      // Firestore에 URL 저장
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .update({'profileImageUrl': downloadUrl});
+      
+      // UserModel 새로고침
+      await _loadUserModel(userId);
+      
+      return downloadUrl;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Upload profile image error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 프로필 사진 삭제
+  Future<void> deleteProfileImage() async {
+    if (currentUser == null) return;
+    
+    try {
+      final userId = currentUser!.uid;
+      
+      // Storage에서 삭제
+      try {
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('profile_images')
+            .child('$userId.jpg');
+        await storageRef.delete();
+        
+        if (kDebugMode) {
+          debugPrint('🗑️ Profile image deleted from storage');
+        }
+      } catch (e) {
+        // 파일이 없을 수도 있음 - 무시
+        if (kDebugMode) {
+          debugPrint('⚠️ Storage delete warning: $e');
+        }
+      }
+      
+      // Firestore에서 URL 제거
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .update({'profileImageUrl': null});
+      
+      // UserModel 새로고침
+      await _loadUserModel(userId);
+      
+      if (kDebugMode) {
+        debugPrint('✅ Profile image URL removed from Firestore');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Delete profile image error: $e');
       }
       rethrow;
     }
