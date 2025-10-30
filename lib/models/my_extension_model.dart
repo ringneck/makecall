@@ -55,7 +55,7 @@ class MyExtensionModel {
       extensionId: apiData['extension_id']?.toString() ?? '',
       extension: apiData['extension']?.toString() ?? '',
       name: apiData['name']?.toString() ?? '',
-      classOfServicesId: apiData['class_of_services_id']?.toString() ?? '',
+      classOfServicesId: apiData['class_of_service_id']?.toString() ?? '',
       createdAt: DateTime.now(),
     );
   }
