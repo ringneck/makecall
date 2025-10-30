@@ -218,82 +218,6 @@ class _ProfileTabState extends State<ProfileTab> {
           ),
           const Divider(),
           
-          // API Base URL 정보 표시
-          if (userModel?.apiBaseUrl != null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'API 서버 정보',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // API Base URL 표시
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue[200]!),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.dns, size: 16, color: Color(0xFF2196F3)),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'API Base URL:',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: Color(0xFF2196F3),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          userModel!.apiBaseUrl!,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'monospace',
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.info_outline, size: 14, color: Colors.grey),
-                            const SizedBox(width: 6),
-                            Text(
-                              'HTTP 포트: ${userModel.apiHttpPort}  |  HTTPS 포트: ${userModel.apiHttpsPort}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Divider(),
-          ],
-          
           // 내 단말번호 조회 및 관리 (통합 UI)
           Padding(
             padding: const EdgeInsets.all(16),
@@ -1205,30 +1129,6 @@ class _ProfileTabState extends State<ProfileTab> {
               const Divider(height: 24),
               _buildDetailRow('User ID', extension.userId),
               _buildDetailRow('저장 시간', extension.createdAt.toString().substring(0, 19)),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange[200]!),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'COS ID는 클릭투콜 실행 시 사용됩니다.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
