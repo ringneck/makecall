@@ -853,8 +853,13 @@ class _ProfileTabState extends State<ProfileTab> {
         );
       }).toList();
 
-      // 추가하려는 개수와 현재 개수의 합이 제한을 초과하는지 확인
-      final totalCount = currentExtensions.length + extensionModels.length;
+      // 중복된 단말번호와 새로운 단말번호 구분
+      final existingExtensions = currentExtensions.map((e) => e.extension).toSet();
+      final newExtensions = extensionModels.where((ext) => !existingExtensions.contains(ext.extension)).toList();
+      final duplicateExtensions = extensionModels.where((ext) => existingExtensions.contains(ext.extension)).toList();
+
+      // 새로운 단말번호만 저장 허용 수에 포함
+      final totalCount = currentExtensions.length + newExtensions.length;
       if (totalCount > maxExtensions) {
         setState(() {
           _isSearching = false;
@@ -872,6 +877,8 @@ class _ProfileTabState extends State<ProfileTab> {
               title: const Text('저장 제한 초과'),
               content: Text(
                 '조회된 단말번호: ${extensionModels.length}개\n'
+                '새로운 단말번호: ${newExtensions.length}개\n'
+                '중복 단말번호: ${duplicateExtensions.length}개\n'
                 '현재 저장된 개수: ${currentExtensions.length}개\n'
                 '최대 저장 가능: $maxExtensions개\n\n'
                 '${userModel.isPremium ? "프리미엄 회원은" : "무료 회원은"} '
@@ -891,7 +898,7 @@ class _ProfileTabState extends State<ProfileTab> {
         return;
       }
 
-      // DB에 저장 (배치 처리)
+      // DB에 저장 (배치 처리 - 중복 체크는 addMyExtension에서 처리)
       await dbService.addMyExtensionsBatch(extensionModels);
 
       setState(() {
@@ -900,9 +907,18 @@ class _ProfileTabState extends State<ProfileTab> {
 
       // 성공 메시지 표시
       if (context.mounted) {
+        String message;
+        if (duplicateExtensions.isNotEmpty && newExtensions.isNotEmpty) {
+          message = '${newExtensions.length}개의 단말번호를 저장하고, ${duplicateExtensions.length}개의 중복 단말번호를 업데이트했습니다.';
+        } else if (duplicateExtensions.isNotEmpty) {
+          message = '${duplicateExtensions.length}개의 단말번호를 업데이트했습니다.';
+        } else {
+          message = '${newExtensions.length}개의 단말번호를 저장했습니다.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${extensionModels.length}개의 단말번호를 저장했습니다.'),
+            content: Text(message),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
           ),
