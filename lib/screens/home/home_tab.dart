@@ -375,35 +375,33 @@ class _HomeTabState extends State<HomeTab> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // 외부발신 정보
-                        if (extension.externalCid != null && extension.externalCid!.isNotEmpty) ...[
-                          () {
-                            final cidInfo = extension.parseExternalCid();
-                            return Column(
-                              children: [
-                                if (cidInfo['name']!.isNotEmpty)
-                                  Text(
-                                    '외부발신 이름: ${cidInfo['name']}',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                    ),
-                                    textAlign: TextAlign.center,
+                        // 외부발신 정보 (DB에 저장된 파싱된 값 사용)
+                        if ((extension.externalCidName != null && extension.externalCidName!.isNotEmpty) ||
+                            (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty)) ...[
+                          Column(
+                            children: [
+                              if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty)
+                                Text(
+                                  '외부발신 이름: ${extension.externalCidName}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
                                   ),
-                                if (cidInfo['number']!.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '외부발신 번호: ${cidInfo['number']}',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                    ),
-                                    textAlign: TextAlign.center,
+                                  textAlign: TextAlign.center,
+                                ),
+                              if (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  '외부발신 번호: ${extension.externalCidNumber}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
                                   ),
-                                ],
+                                  textAlign: TextAlign.center,
+                                ),
                               ],
-                            );
-                          }(),
+                            ],
+                          ),
                           const SizedBox(height: 12),
                         ],
                         

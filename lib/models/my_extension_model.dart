@@ -5,7 +5,9 @@ class MyExtensionModel {
   final String extension; // 단말번호
   final String name; // 이름
   final String classOfServicesId; // COS ID
-  final String? externalCid; // 외부발신 정보 (예: "<이름>"<번호>)
+  final String? externalCid; // 외부발신 정보 원본 (예: "외부발신" <16682471>)
+  final String? externalCidName; // 외부발신 이름 (파싱됨)
+  final String? externalCidNumber; // 외부발신 번호 (파싱됨)
   final String? accountCode; // 계정 코드
   final DateTime createdAt; // 생성 시간
   
@@ -24,6 +26,8 @@ class MyExtensionModel {
     required this.name,
     required this.classOfServicesId,
     this.externalCid,
+    this.externalCidName,
+    this.externalCidNumber,
     this.accountCode,
     required this.createdAt,
     this.apiBaseUrl,
@@ -43,6 +47,8 @@ class MyExtensionModel {
       name: data['name'] as String? ?? '',
       classOfServicesId: data['classOfServicesId'] as String? ?? '',
       externalCid: data['externalCid'] as String?,
+      externalCidName: data['externalCidName'] as String?,
+      externalCidNumber: data['externalCidNumber'] as String?,
       accountCode: data['accountCode'] as String?,
       createdAt: data['createdAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(data['createdAt'] as int)
@@ -64,6 +70,8 @@ class MyExtensionModel {
       'name': name,
       'classOfServicesId': classOfServicesId,
       'externalCid': externalCid,
+      'externalCidName': externalCidName,
+      'externalCidNumber': externalCidNumber,
       'accountCode': accountCode,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'apiBaseUrl': apiBaseUrl,
@@ -79,6 +87,25 @@ class MyExtensionModel {
     required String userId,
     required Map<String, dynamic> apiData,
   }) {
+    // external_cid 파싱
+    final externalCidRaw = apiData['external_cid']?.toString();
+    String? parsedName;
+    String? parsedNumber;
+    
+    if (externalCidRaw != null && externalCidRaw.isNotEmpty) {
+      // "외부발신" 형식에서 큰따옴표 안의 이름 추출
+      final nameMatch = RegExp(r'"([^"]+)"').firstMatch(externalCidRaw);
+      if (nameMatch != null) {
+        parsedName = nameMatch.group(1);
+      }
+      
+      // <16682471> 형식에서 꺾쇠괄호 안의 번호 추출
+      final numberMatch = RegExp(r'<([0-9\-]+)>').firstMatch(externalCidRaw);
+      if (numberMatch != null) {
+        parsedNumber = numberMatch.group(1);
+      }
+    }
+    
     return MyExtensionModel(
       id: '', // Firestore에서 자동 생성
       userId: userId,
@@ -86,7 +113,9 @@ class MyExtensionModel {
       extension: apiData['extension']?.toString() ?? '',
       name: apiData['name']?.toString() ?? '',
       classOfServicesId: apiData['class_of_service_id']?.toString() ?? '',
-      externalCid: apiData['external_cid']?.toString(),
+      externalCid: externalCidRaw,
+      externalCidName: parsedName,
+      externalCidNumber: parsedNumber,
       accountCode: apiData['accountcode']?.toString(),
       createdAt: DateTime.now(),
       // API 설정은 나중에 사용자가 수동으로 설정
@@ -117,7 +146,7 @@ class MyExtensionModel {
            apiHttpsPort != null;
   }
   
-  // 외부발신 정보 파싱 ("<이름>"<번호> 형식)
+  // 외부발신 정보 파싱 ("외부발신" <16682471> 형식)
   Map<String, String> parseExternalCid() {
     if (externalCid == null || externalCid!.isEmpty) {
       return {'name': '', 'number': ''};
@@ -127,12 +156,13 @@ class MyExtensionModel {
     String callerName = '';
     String callerNumber = '';
     
-    // "<이름>"<번호> 형식 파싱
-    final nameMatch = RegExp(r'"<([^>]+)>"').firstMatch(cidString);
+    // "외부발신" 형식에서 큰따옴표 안의 이름 추출
+    final nameMatch = RegExp(r'"([^"]+)"').firstMatch(cidString);
     if (nameMatch != null) {
       callerName = nameMatch.group(1) ?? '';
     }
     
+    // <16682471> 형식에서 꺾쇠괄호 안의 번호 추출
     final numberMatch = RegExp(r'<([0-9\-]+)>').firstMatch(cidString);
     if (numberMatch != null) {
       callerNumber = numberMatch.group(1) ?? '';
@@ -150,6 +180,8 @@ class MyExtensionModel {
     String? name,
     String? classOfServicesId,
     String? externalCid,
+    String? externalCidName,
+    String? externalCidNumber,
     String? accountCode,
     DateTime? createdAt,
     String? apiBaseUrl,
@@ -166,6 +198,8 @@ class MyExtensionModel {
       name: name ?? this.name,
       classOfServicesId: classOfServicesId ?? this.classOfServicesId,
       externalCid: externalCid ?? this.externalCid,
+      externalCidName: externalCidName ?? this.externalCidName,
+      externalCidNumber: externalCidNumber ?? this.externalCidNumber,
       accountCode: accountCode ?? this.accountCode,
       createdAt: createdAt ?? this.createdAt,
       apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
