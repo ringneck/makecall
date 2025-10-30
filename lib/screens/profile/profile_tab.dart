@@ -16,6 +16,25 @@ class ProfileTab extends StatefulWidget {
 class _ProfileTabState extends State<ProfileTab> {
   bool _isSearching = false;
   String? _searchError;
+  final _phoneNumberController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // 저장된 전화번호 불러오기
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authService = context.read<AuthService>();
+      if (authService.currentUserModel?.phoneNumber != null) {
+        _phoneNumberController.text = authService.currentUserModel!.phoneNumber!;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _phoneNumberController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +63,7 @@ class _ProfileTabState extends State<ProfileTab> {
           ),
           const SizedBox(height: 32),
           const Divider(),
+          
           // API 설정
           ListTile(
             leading: const Icon(Icons.api),
@@ -63,6 +83,7 @@ class _ProfileTabState extends State<ProfileTab> {
             },
           ),
           const Divider(),
+          
           // API Base URL 정보 표시
           if (userModel?.apiBaseUrl != null) ...[
             Padding(
@@ -207,123 +228,185 @@ class _ProfileTabState extends State<ProfileTab> {
             const SizedBox(height: 8),
             const Divider(),
           ],
-          // 사용자 전화번호 정보
-          ListTile(
-            leading: const Icon(Icons.phone),
-            title: const Text('내 전화번호'),
-            subtitle: Column(
+          
+          // 내 단말번호 조회 및 관리 (통합 UI)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (userModel?.phoneNumberName != null)
-                  Text(
-                    '${userModel!.phoneNumberName}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                const Row(
+                  children: [
+                    Icon(Icons.phone_android, color: Color(0xFF2196F3)),
+                    SizedBox(width: 8),
+                    Text(
+                      '내 단말번호',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // 전화번호 입력 및 조회
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue[200]!),
                   ),
-                Text(userModel?.phoneNumber ?? '미설정'),
-              ],
-            ),
-            trailing: const Icon(Icons.edit),
-            onTap: () => _showPhoneNumberDialog(context),
-          ),
-          const Divider(),
-          
-          // 내 전화번호로 단말번호 조회 섹션
-          if (userModel?.phoneNumber != null && userModel?.apiBaseUrl != null) ...[
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '내 단말번호 조회',
+                        '전화번호로 단말번호 조회',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2196F3),
                         ),
                       ),
-                      ElevatedButton.icon(
-                        onPressed: _isSearching ? null : () => _searchMyExtensions(context),
-                        icon: _isSearching
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.search, size: 20),
-                        label: Text(_isSearching ? '조회 중...' : '조회'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2196F3),
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '내 전화번호(${userModel!.phoneNumber})와 일치하는 단말번호를 검색하고 DB에 저장합니다.',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // 검색 결과 표시
-                  if (_searchError != null)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red[50],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red[200]!),
-                      ),
-                      child: Row(
+                      const SizedBox(height: 12),
+                      Row(
                         children: [
-                          const Icon(Icons.error_outline, color: Colors.red),
-                          const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              _searchError!,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.red,
+                            child: TextField(
+                              controller: _phoneNumberController,
+                              keyboardType: TextInputType.phone,
+                              decoration: InputDecoration(
+                                labelText: '전화번호',
+                                hintText: '010-1234-5678',
+                                prefixIcon: const Icon(Icons.phone),
+                                border: const OutlineInputBorder(),
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                              onChanged: (value) async {
+                                // 전화번호가 변경되면 Firestore에 저장
+                                if (value.trim().isNotEmpty) {
+                                  await context.read<AuthService>().updateUserInfo(
+                                    phoneNumber: value.trim(),
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: _isSearching || userModel?.apiBaseUrl == null
+                                ? null
+                                : () => _searchMyExtensions(context),
+                            icon: _isSearching
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.search),
+                            label: Text(_isSearching ? '조회 중' : '조회'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2196F3),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                ],
-              ),
-            ),
-            const Divider(),
-          ],
-          
-          // 저장된 내 단말번호 목록 표시
-          if (userId.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '저장된 내 단말번호',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                      const SizedBox(height: 8),
+                      Text(
+                        userModel?.apiBaseUrl != null
+                            ? '전화번호를 입력하고 조회 버튼을 누르면 API에서 단말번호를 검색합니다.'
+                            : '⚠️ API 서버를 먼저 설정해주세요.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: userModel?.apiBaseUrl != null
+                              ? Colors.grey[700]
+                              : Colors.red,
+                        ),
+                      ),
+                      
+                      // 에러 메시지 표시
+                      if (_searchError != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _searchError!,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 12),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // 저장된 내 단말번호 목록
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '저장된 내 단말번호',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (userId.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: () => _deleteAllExtensions(context, userId),
+                        icon: const Icon(Icons.delete_sweep, size: 18),
+                        label: const Text('전체 삭제'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                
+                // StreamBuilder로 실시간 목록 표시
+                if (userId.isNotEmpty)
                   StreamBuilder<List<MyExtensionModel>>(
                     stream: DatabaseService().getMyExtensions(userId),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(
                           child: Padding(
-                            padding: EdgeInsets.all(16),
+                            padding: EdgeInsets.all(24),
                             child: CircularProgressIndicator(),
                           ),
                         );
@@ -331,14 +414,23 @@ class _ProfileTabState extends State<ProfileTab> {
                       
                       if (snapshot.hasError) {
                         return Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.red[50],
                             borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red[200]!),
                           ),
-                          child: Text(
-                            '오류: ${snapshot.error}',
-                            style: const TextStyle(color: Colors.red),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  '오류: ${snapshot.error}',
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }
@@ -347,21 +439,33 @@ class _ProfileTabState extends State<ProfileTab> {
                       
                       if (extensions.isEmpty) {
                         return Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
                             color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.grey[300]!),
                           ),
                           child: const Center(
                             child: Column(
                               children: [
-                                Icon(Icons.inbox_outlined, size: 40, color: Colors.grey),
-                                SizedBox(height: 8),
+                                Icon(Icons.inbox_outlined, size: 48, color: Colors.grey),
+                                SizedBox(height: 12),
                                 Text(
-                                  '저장된 단말번호가 없습니다.\n위의 조회 버튼을 눌러 단말번호를 검색하세요.',
+                                  '저장된 단말번호가 없습니다.',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  '위의 전화번호를 입력하고 조회 버튼을 눌러주세요.',
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.grey),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ],
                             ),
@@ -369,59 +473,154 @@ class _ProfileTabState extends State<ProfileTab> {
                         );
                       }
                       
+                      // 단말번호 목록 표시
                       return Column(
-                        children: extensions.map((ext) {
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            elevation: 2,
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF2196F3).withAlpha(51),
-                                child: const Icon(
-                                  Icons.phone_android,
-                                  color: Color(0xFF2196F3),
-                                ),
-                              ),
-                              title: Text(
-                                ext.extension,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '이름: ${ext.name}',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                  Text(
-                                    'COS ID: ${ext.classOfServicesId}',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deleteExtension(context, ext),
-                              ),
-                              onTap: () {
-                                _showExtensionDetails(context, ext);
-                              },
+                        children: [
+                          // 총 개수 표시
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.green[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.green[200]!),
                             ),
-                          );
-                        }).toList(),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '총 ${extensions.length}개의 단말번호',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          
+                          // 단말번호 카드 목록
+                          ...extensions.map((ext) {
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: InkWell(
+                                onTap: () => _showExtensionDetails(context, ext),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          CircleAvatar(
+                                            backgroundColor: const Color(0xFF2196F3).withAlpha(51),
+                                            child: const Icon(
+                                              Icons.phone_android,
+                                              color: Color(0xFF2196F3),
+                                              size: 24,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  ext.extension,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 18,
+                                                    color: Color(0xFF2196F3),
+                                                  ),
+                                                ),
+                                                if (ext.name.isNotEmpty)
+                                                  Text(
+                                                    ext.name,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete, color: Colors.red),
+                                            onPressed: () => _deleteExtension(context, ext),
+                                            tooltip: '삭제',
+                                          ),
+                                        ],
+                                      ),
+                                      const Divider(height: 24),
+                                      _buildInfoRow(
+                                        Icons.vpn_key,
+                                        'Extension ID',
+                                        ext.extensionId,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildInfoRow(
+                                        Icons.class_,
+                                        'COS ID',
+                                        ext.classOfServicesId,
+                                        highlight: true,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildInfoRow(
+                                        Icons.access_time,
+                                        '저장 시간',
+                                        ext.createdAt.toString().substring(0, 19),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ],
                       );
                     },
                   ),
-                ],
-              ),
+              ],
             ),
-            const Divider(),
-          ],
+          ),
         ],
       ),
+    );
+  }
+
+  // 정보 행 위젯
+  Widget _buildInfoRow(IconData icon, String label, String value, {bool highlight = false}) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: highlight ? Colors.orange : Colors.grey),
+        const SizedBox(width: 8),
+        Text(
+          '$label:',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: highlight ? Colors.orange[800] : Colors.grey[700],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              color: highlight ? Colors.orange[900] : Colors.black87,
+              fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -430,15 +629,16 @@ class _ProfileTabState extends State<ProfileTab> {
     final authService = context.read<AuthService>();
     final userModel = authService.currentUserModel;
     final userId = authService.currentUser?.uid ?? '';
+    final phoneNumber = _phoneNumberController.text.trim();
 
-    if (userModel == null || userModel.phoneNumber == null) {
+    if (phoneNumber.isEmpty) {
       setState(() {
-        _searchError = '전화번호가 설정되지 않았습니다.';
+        _searchError = '전화번호를 입력해주세요.';
       });
       return;
     }
 
-    if (userModel.apiBaseUrl == null) {
+    if (userModel?.apiBaseUrl == null) {
       setState(() {
         _searchError = 'API 서버가 설정되지 않았습니다.';
       });
@@ -451,9 +651,12 @@ class _ProfileTabState extends State<ProfileTab> {
     });
 
     try {
+      // Firestore에 전화번호 저장
+      await authService.updateUserInfo(phoneNumber: phoneNumber);
+
       // API Service 생성
       final apiService = ApiService(
-        baseUrl: userModel.getApiUrl(useHttps: false), // HTTP 사용
+        baseUrl: userModel!.getApiUrl(useHttps: false), // HTTP 사용
         companyId: userModel.companyId,
         appKey: userModel.appKey,
       );
@@ -462,7 +665,7 @@ class _ProfileTabState extends State<ProfileTab> {
       final dataList = await apiService.getExtensions();
 
       // 내 전화번호와 일치하는 extension 필터링
-      final myPhoneNumber = userModel.phoneNumber!.replaceAll(RegExp(r'[^0-9]'), ''); // 숫자만 추출
+      final myPhoneNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), ''); // 숫자만 추출
       
       final matched = dataList.where((item) {
         final extNumber = item['extension']?.toString().replaceAll(RegExp(r'[^0-9]'), '') ?? '';
@@ -484,7 +687,7 @@ class _ProfileTabState extends State<ProfileTab> {
               title: const Text('단말번호 없음'),
               content: const Text(
                 '해당 단말번호가 존재하지 않습니다.\n\n'
-                '내 전화번호와 일치하는 단말번호를 찾을 수 없습니다.',
+                '입력한 전화번호와 일치하는 단말번호를 찾을 수 없습니다.',
                 textAlign: TextAlign.center,
               ),
               actions: [
@@ -578,6 +781,51 @@ class _ProfileTabState extends State<ProfileTab> {
     }
   }
 
+  // 전체 삭제
+  Future<void> _deleteAllExtensions(BuildContext context, String userId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('전체 삭제'),
+        content: const Text('저장된 모든 단말번호를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('전체 삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await DatabaseService().deleteAllMyExtensions(userId);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('모든 단말번호가 삭제되었습니다.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('삭제 실패: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   // 단말번호 상세 정보 표시
   void _showExtensionDetails(BuildContext context, MyExtensionModel extension) {
     showDialog(
@@ -587,7 +835,12 @@ class _ProfileTabState extends State<ProfileTab> {
           children: [
             const Icon(Icons.phone_android, color: Color(0xFF2196F3)),
             const SizedBox(width: 8),
-            Text(extension.extension),
+            Expanded(
+              child: Text(
+                extension.extension,
+                style: const TextStyle(fontSize: 18),
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -599,7 +852,33 @@ class _ProfileTabState extends State<ProfileTab> {
               _buildDetailRow('이름', extension.name),
               _buildDetailRow('Extension ID', extension.extensionId),
               _buildDetailRow('COS ID', extension.classOfServicesId),
+              const Divider(height: 24),
+              _buildDetailRow('User ID', extension.userId),
               _buildDetailRow('저장 시간', extension.createdAt.toString().substring(0, 19)),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'COS ID는 클릭투콜 실행 시 사용됩니다.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -617,7 +896,7 @@ class _ProfileTabState extends State<ProfileTab> {
     if (value == null || value.isEmpty) return const SizedBox.shrink();
     
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -640,81 +919,6 @@ class _ProfileTabState extends State<ProfileTab> {
                 color: Colors.black87,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showPhoneNumberDialog(BuildContext context) {
-    final authService = context.read<AuthService>();
-    final nameController = TextEditingController(
-      text: authService.currentUserModel?.phoneNumberName ?? '',
-    );
-    final numberController = TextEditingController(
-      text: authService.currentUserModel?.phoneNumber ?? '',
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('내 전화번호 설정'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: '전화번호 이름',
-                hintText: '예: 내 휴대폰, 사무실 전화',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.label),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: numberController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: '전화번호',
-                hintText: '010-1234-5678',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.phone),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await context.read<AuthService>().updateUserInfo(
-                      phoneNumberName: nameController.text.trim().isEmpty 
-                          ? null 
-                          : nameController.text.trim(),
-                      phoneNumber: numberController.text.trim().isEmpty 
-                          ? null 
-                          : numberController.text.trim(),
-                    );
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('전화번호 정보가 저장되었습니다')),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('오류 발생: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('저장'),
           ),
         ],
       ),
