@@ -259,9 +259,8 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildExtensionCard(MyExtensionModel extension, int index, {Key? key}) {
-    final authService = context.watch<AuthService>();
-    final userModel = authService.currentUserModel;
-    final apiBaseUrl = userModel?.apiBaseUrl ?? 'API 정보 없음';
+    // 단말번호별 API URL 사용 (각 단말번호마다 다른 API 서버 설정 가능)
+    final apiBaseUrl = extension.apiBaseUrl ?? '설정 필요';
     
     return Card(
       key: key,
@@ -282,82 +281,95 @@ class _HomeTabState extends State<HomeTab> {
               ],
             ),
           ),
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(48.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                // 단말 이름
-                if (extension.name.isNotEmpty) ...[
-                  Text(
-                    extension.name,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // 단말번호
-                Text(
-                  extension.extension,
-                  style: const TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2196F3),
-                    letterSpacing: 3,
+          child: Column(
+            children: [
+              // API Base URL을 맨 위에 크게 표시
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                decoration: BoxDecoration(
+                  color: extension.hasApiConfig 
+                      ? const Color(0xFF2196F3).withAlpha(26)
+                      : Colors.orange.withAlpha(26),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
                   ),
                 ),
-                const SizedBox(height: 24),
-                
-                // API Base URL
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.cloud,
-                            size: 16,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'API Base URL',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        apiBaseUrl,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[800],
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          extension.hasApiConfig ? Icons.cloud_done : Icons.cloud_off,
+                          size: 20,
+                          color: extension.hasApiConfig ? const Color(0xFF2196F3) : Colors.orange,
                         ),
-                        textAlign: TextAlign.center,
+                        const SizedBox(width: 8),
+                        Text(
+                          'API 서버',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: extension.hasApiConfig ? const Color(0xFF2196F3) : Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      apiBaseUrl,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: extension.hasApiConfig ? Colors.black87 : Colors.orange[900],
+                        letterSpacing: 0.5,
                       ),
-                    ],
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              
+              // 중앙 단말번호 정보
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 단말 이름
+                        if (extension.name.isNotEmpty) ...[
+                          Text(
+                            extension.name,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // 단말번호
+                        Text(
+                          extension.extension,
+                          style: const TextStyle(
+                            fontSize: 56,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2196F3),
+                            letterSpacing: 4,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                ],
               ),
-            ),
+            ],
           ),
         ),
       );
