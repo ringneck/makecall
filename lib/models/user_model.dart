@@ -12,6 +12,7 @@ class UserModel {
   final int? apiHttpsPort;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
+  final DateTime? lastMaxExtensionsUpdate; // maxExtensions 마지막 업데이트 일시
   final bool isActive;
   final bool isPremium; // 프리미엄 사용자 여부 (하위 호환성 유지)
   final int maxExtensions; // 사용자별 단말번호 저장 가능 개수
@@ -30,6 +31,7 @@ class UserModel {
     this.apiHttpsPort = 3501,
     required this.createdAt,
     this.lastLoginAt,
+    this.lastMaxExtensionsUpdate,
     this.isActive = true,
     this.isPremium = false, // 기본값: 무료 사용자 (하위 호환성)
     this.maxExtensions = 1, // 기본값: 1개
@@ -52,6 +54,9 @@ class UserModel {
       lastLoginAt: map['lastLoginAt'] != null 
           ? DateTime.parse(map['lastLoginAt'] as String)
           : null,
+      lastMaxExtensionsUpdate: map['lastMaxExtensionsUpdate'] != null
+          ? DateTime.parse(map['lastMaxExtensionsUpdate'] as String)
+          : null,
       isActive: map['isActive'] as bool? ?? true,
       isPremium: map['isPremium'] as bool? ?? false,
       maxExtensions: map['maxExtensions'] as int? ?? 1, // 기본값 1개
@@ -72,6 +77,7 @@ class UserModel {
       'apiHttpsPort': apiHttpsPort,
       'createdAt': createdAt.toIso8601String(),
       'lastLoginAt': lastLoginAt?.toIso8601String(),
+      'lastMaxExtensionsUpdate': lastMaxExtensionsUpdate?.toIso8601String(),
       'isActive': isActive,
       'isPremium': isPremium,
       'maxExtensions': maxExtensions,
@@ -91,6 +97,7 @@ class UserModel {
     int? apiHttpsPort,
     DateTime? createdAt,
     DateTime? lastLoginAt,
+    DateTime? lastMaxExtensionsUpdate,
     bool? isActive,
     bool? isPremium,
     int? maxExtensions,
@@ -109,6 +116,7 @@ class UserModel {
       apiHttpsPort: apiHttpsPort ?? this.apiHttpsPort,
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      lastMaxExtensionsUpdate: lastMaxExtensionsUpdate ?? this.lastMaxExtensionsUpdate,
       isActive: isActive ?? this.isActive,
       isPremium: isPremium ?? this.isPremium,
       maxExtensions: maxExtensions ?? this.maxExtensions,

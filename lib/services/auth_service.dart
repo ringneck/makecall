@@ -181,6 +181,32 @@ class AuthService extends ChangeNotifier {
     }
   }
   
+  // maxExtensions 업데이트 (타임스탬프 포함)
+  Future<void> updateMaxExtensions(int maxExtensions) async {
+    if (currentUser == null) return;
+    
+    try {
+      await _firestore
+          .collection('users')
+          .doc(currentUser!.uid)
+          .update({
+        'maxExtensions': maxExtensions,
+        'lastMaxExtensionsUpdate': DateTime.now().toIso8601String(),
+      });
+      
+      await _loadUserModel(currentUser!.uid);
+      
+      if (kDebugMode) {
+        debugPrint('✅ maxExtensions updated: $maxExtensions');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Update maxExtensions error: $e');
+      }
+      rethrow;
+    }
+  }
+  
   // 프로필 사진 업로드 (Firebase Storage)
   Future<String?> uploadProfileImage(File imageFile) async {
     if (currentUser == null) return null;

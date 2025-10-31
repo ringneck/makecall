@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -20,6 +21,8 @@ class _ProfileTabState extends State<ProfileTab> {
   bool _isSearching = false;
   String? _searchError;
   final _phoneNumberController = TextEditingController();
+  final _scrollController = ScrollController();
+  bool _hasTriggeredScrollUpdate = false;
 
   @override
   void initState() {
@@ -32,13 +35,76 @@ class _ProfileTabState extends State<ProfileTab> {
       }
       // 저장된 단말번호 정보 업데이트
       _updateSavedExtensions();
+      // maxExtensions 자동 업데이트 (탭 로드 시)
+      _triggerMaxExtensionsUpdate();
     });
+    // 스크롤 리스너 추가
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _phoneNumberController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  // 스크롤 이벤트 핸들러
+  void _onScroll() {
+    if (!_hasTriggeredScrollUpdate && _scrollController.hasClients) {
+      // 스크롤이 시작되면 maxExtensions 업데이트 (한 번만)
+      _hasTriggeredScrollUpdate = true;
+      _triggerMaxExtensionsUpdate();
+    }
+  }
+
+  // maxExtensions 자동 업데이트 트리거
+  Future<void> _triggerMaxExtensionsUpdate() async {
+    final authService = context.read<AuthService>();
+    final currentMaxExtensions = authService.currentUserModel?.maxExtensions ?? 1;
+    
+    try {
+      // 현재 값을 그대로 업데이트하여 타임스탬프만 갱신
+      await authService.updateMaxExtensions(currentMaxExtensions);
+      if (kDebugMode) {
+        debugPrint('✅ maxExtensions 타임스탬프 업데이트 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ maxExtensions 업데이트 실패: $e');
+      }
+    }
+  }
+
+  // 타임스탬프 포맷 함수 (한국어 형식)
+  String _formatUpdateTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    // 1분 이내
+    if (difference.inSeconds < 60) {
+      return '방금 업데이트됨';
+    }
+    // 1시간 이내
+    else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}분 전 업데이트';
+    }
+    // 24시간 이내
+    else if (difference.inHours < 24) {
+      return '${difference.inHours}시간 전 업데이트';
+    }
+    // 그 외 - 전체 날짜 표시
+    else {
+      final year = timestamp.year;
+      final month = timestamp.month;
+      final day = timestamp.day;
+      final hour = timestamp.hour;
+      final minute = timestamp.minute;
+      final period = hour >= 12 ? '오후' : '오전';
+      final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+      
+      return '$year년 $month월 $day일 $period $displayHour:${minute.toString().padLeft(2, '0')} 업데이트';
+    }
   }
 
   // 저장된 단말번호 정보 업데이트
@@ -109,6 +175,7 @@ class _ProfileTabState extends State<ProfileTab> {
         title: const Text('내 정보'),
       ),
       body: ListView(
+        controller: _scrollController,
         children: [
           const SizedBox(height: 24),
           // 사용자 정보
@@ -167,6 +234,17 @@ class _ProfileTabState extends State<ProfileTab> {
               color: Color(0xFF2196F3),
             ),
           ),
+          const SizedBox(height: 4),
+          // 마지막 업데이트 타임스탬프 표시
+          if (userModel?.lastMaxExtensionsUpdate != null)
+            Text(
+              _formatUpdateTimestamp(userModel!.lastMaxExtensionsUpdate!),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[600],
+              ),
+            ),
           const SizedBox(height: 24),
           const Divider(),
           
