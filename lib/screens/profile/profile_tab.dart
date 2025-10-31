@@ -157,102 +157,14 @@ class _ProfileTabState extends State<ProfileTab> {
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          // 프리미엄 뱃지
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: userModel?.isPremium == true
-                      ? Colors.amber[100]
-                      : Colors.grey[200],
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: userModel?.isPremium == true
-                        ? Colors.amber
-                        : Colors.grey,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      userModel?.isPremium == true
-                          ? Icons.star
-                          : Icons.person,
-                      size: 16,
-                      color: userModel?.isPremium == true
-                          ? Colors.amber[700]
-                          : Colors.grey[600],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      userModel?.isPremium == true ? '프리미엄 회원' : '무료 회원',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: userModel?.isPremium == true
-                            ? Colors.amber[900]
-                            : Colors.grey[700],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              // 프리미엄 토글 버튼 (개발/테스트용)
-              if (userId.isNotEmpty)
-                InkWell(
-                  onTap: () async {
-                    try {
-                      await authService.togglePremium();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              userModel?.isPremium == true
-                                  ? '무료 회원으로 전환되었습니다.'
-                                  : '프리미엄 회원으로 전환되었습니다.',
-                            ),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('전환 실패: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue[200]!),
-                    ),
-                    child: const Icon(
-                      Icons.swap_horiz,
-                      size: 16,
-                      color: Color(0xFF2196F3),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
           // 단말번호 제한 안내
           Text(
-            '단말번호 저장 가능: ${userModel?.maxExtensions ?? 1}개',
+            '단말번호 저장 가능: 최대 ${userModel?.maxExtensions ?? 1}개',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2196F3),
             ),
           ),
           const SizedBox(height: 24),
@@ -264,7 +176,7 @@ class _ProfileTabState extends State<ProfileTab> {
             title: const Text('API 설정'),
             subtitle: Text(
               userModel?.apiBaseUrl != null
-                  ? '${userModel!.apiBaseUrl} (HTTP:${userModel.apiHttpPort}, HTTPS:${userModel.apiHttpsPort})'
+                  ? userModel!.apiBaseUrl!
                   : 'API 서버 주소 미설정',
               style: const TextStyle(fontSize: 12),
             ),
@@ -720,9 +632,7 @@ class _ProfileTabState extends State<ProfileTab> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    userModel?.isPremium == true
-                        ? '프리미엄 회원은 최대 3개까지 저장 가능합니다.'
-                        : '무료 회원은 최대 1개까지 저장 가능합니다.',
+                    '최대 $maxExtensions개까지 저장할 수 있습니다.',
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 14),
                   ),
@@ -735,30 +645,14 @@ class _ProfileTabState extends State<ProfileTab> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  if (userModel?.isPremium != true) ...[
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.amber[50],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.amber[300]!),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.star, color: Colors.amber[700], size: 20),
-                          const SizedBox(width: 8),
-                          const Expanded(
-                            child: Text(
-                              '프리미엄 회원으로 업그레이드하면\n최대 3개까지 저장할 수 있습니다!',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ),
-                        ],
-                      ),
+                  Text(
+                    '기존 단말번호를 삭제한 후 다시 시도해주세요.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[700],
                     ),
-                  ],
+                  ),
                 ],
               ),
               actions: [
@@ -860,7 +754,6 @@ class _ProfileTabState extends State<ProfileTab> {
                 '중복 단말번호: ${duplicateExtensions.length}개\n'
                 '현재 저장된 개수: ${currentExtensions.length}개\n'
                 '최대 저장 가능: $maxExtensions개\n\n'
-                '${userModel.isPremium ? "프리미엄 회원은" : "무료 회원은"} '
                 '최대 $maxExtensions개까지만 저장할 수 있습니다.\n'
                 '일부 단말번호를 삭제한 후 다시 시도해주세요.',
                 textAlign: TextAlign.center,

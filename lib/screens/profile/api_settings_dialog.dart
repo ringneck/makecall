@@ -13,8 +13,6 @@ class ApiSettingsDialog extends StatefulWidget {
 class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _apiBaseUrlController;
-  late final TextEditingController _apiHttpPortController;
-  late final TextEditingController _apiHttpsPortController;
   late final TextEditingController _companyIdController;
   late final TextEditingController _appKeyController;
   bool _isLoading = false;
@@ -24,8 +22,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     super.initState();
     final userModel = context.read<AuthService>().currentUserModel;
     _apiBaseUrlController = TextEditingController(text: userModel?.apiBaseUrl ?? '');
-    _apiHttpPortController = TextEditingController(text: (userModel?.apiHttpPort ?? 3500).toString());
-    _apiHttpsPortController = TextEditingController(text: (userModel?.apiHttpsPort ?? 3501).toString());
     _companyIdController = TextEditingController(text: userModel?.companyId ?? '');
     _appKeyController = TextEditingController(text: userModel?.appKey ?? '');
   }
@@ -33,8 +29,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   @override
   void dispose() {
     _apiBaseUrlController.dispose();
-    _apiHttpPortController.dispose();
-    _apiHttpsPortController.dispose();
     _companyIdController.dispose();
     _appKeyController.dispose();
     super.dispose();
@@ -48,8 +42,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     try {
       await context.read<AuthService>().updateUserInfo(
             apiBaseUrl: _apiBaseUrlController.text.trim(),
-            apiHttpPort: int.tryParse(_apiHttpPortController.text.trim()),
-            apiHttpsPort: int.tryParse(_apiHttpsPortController.text.trim()),
+            apiHttpPort: 3500,
+            apiHttpsPort: 3501,
             companyId: _companyIdController.text.trim(),
             appKey: _appKeyController.text.trim(),
           );
@@ -75,10 +69,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final userModel = context.watch<AuthService>().currentUserModel;
-    final httpUrl = userModel?.getApiUrl(useHttps: false) ?? '';
-    final httpsUrl = userModel?.getApiUrl(useHttps: true) ?? '';
-
     return AlertDialog(
       title: const Text('API 설정'),
       content: SingleChildScrollView(
@@ -100,7 +90,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   labelText: 'API Base URL',
                   hintText: '예: api.example.com',
                   border: OutlineInputBorder(),
-                  helperText: '프로토콜(http://, https://)과 포트 제외',
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -108,50 +97,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   }
                   if (value.contains('://')) {
                     return 'http://, https:// 제외하고 입력해주세요';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              // HTTP 포트
-              TextFormField(
-                controller: _apiHttpPortController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'HTTP 포트',
-                  hintText: '3500',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'HTTP 포트를 입력해주세요';
-                  }
-                  final port = int.tryParse(value);
-                  if (port == null || port < 1 || port > 65535) {
-                    return '올바른 포트 번호를 입력해주세요 (1-65535)';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              // HTTPS 포트
-              TextFormField(
-                controller: _apiHttpsPortController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'HTTPS 포트',
-                  hintText: '3501',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'HTTPS 포트를 입력해주세요';
-                  }
-                  final port = int.tryParse(value);
-                  if (port == null || port < 1 || port > 65535) {
-                    return '올바른 포트 번호를 입력해주세요 (1-65535)';
                   }
                   return null;
                 },
@@ -196,24 +141,18 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               ),
               const SizedBox(height: 16),
               // 미리보기
-              if (httpUrl.isNotEmpty || httpsUrl.isNotEmpty) ...[
+              if (_apiBaseUrlController.text.trim().isNotEmpty) ...[
                 const Divider(),
                 const SizedBox(height: 8),
                 const Text(
-                  '현재 설정된 URL:',
+                  '현재 설정된 API 서버:',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                if (httpUrl.isNotEmpty)
-                  Text(
-                    'HTTP: $httpUrl',
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                if (httpsUrl.isNotEmpty)
-                  Text(
-                    'HTTPS: $httpsUrl',
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
+                Text(
+                  _apiBaseUrlController.text.trim(),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
               ],
             ],
           ),

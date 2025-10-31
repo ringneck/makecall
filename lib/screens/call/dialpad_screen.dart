@@ -66,71 +66,103 @@ class _DialpadScreenState extends State<DialpadScreen> {
 
   // 세로 모드 레이아웃
   Widget _buildPortraitLayout() {
-    return Column(
-      children: [
-        // 전화번호 표시 영역 (고정 높이)
-        Container(
-          height: 80,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _phoneNumber.isEmpty ? '전화번호 입력' : _phoneNumber,
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w300,
-                    letterSpacing: 1,
-                    color: _phoneNumber.isEmpty ? Colors.grey[400] : Colors.black87,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (_phoneNumber.isNotEmpty)
-                IconButton(
-                  icon: Icon(Icons.backspace_outlined, color: Colors.grey[600]),
-                  iconSize: 28,
-                  onPressed: _onBackspace,
-                ),
-            ],
-          ),
-        ),
-
-        // 키패드 영역 (Expanded로 남은 공간 채우기)
-        Expanded(
-          child: Center(
-            child: SingleChildScrollView(
+    final bool isIOS = _isIOS;
+    
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 사용 가능한 높이 계산
+        final availableHeight = constraints.maxHeight;
+        
+        // iOS 스타일: 더 많은 여백, 더 큰 버튼
+        final phoneNumberHeight = isIOS ? 100.0 : 80.0;
+        final callButtonHeight = isIOS ? 120.0 : 100.0;
+        final keypadPadding = isIOS ? 24.0 : 20.0;
+        final keySpacing = isIOS ? 16.0 : 12.0;
+        
+        return Column(
+          children: [
+            // 전화번호 표시 영역
+            SizedBox(
+              height: phoneNumberHeight,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
+                padding: EdgeInsets.symmetric(horizontal: keypadPadding),
+                child: Row(
                   children: [
-                    _buildKeypadRow(['1', '2', '3'], ['', 'ABC', 'DEF']),
-                    const SizedBox(height: 12),
-                    _buildKeypadRow(['4', '5', '6'], ['GHI', 'JKL', 'MNO']),
-                    const SizedBox(height: 12),
-                    _buildKeypadRow(['7', '8', '9'], ['PQRS', 'TUV', 'WXYZ']),
-                    const SizedBox(height: 12),
-                    _buildKeypadRow(['*', '0', '#'], ['', '+', '']),
+                    Expanded(
+                      child: Text(
+                        _phoneNumber.isEmpty ? '전화번호 입력' : _phoneNumber,
+                        style: TextStyle(
+                          fontSize: isIOS ? 36 : 32,
+                          fontWeight: FontWeight.w300,
+                          letterSpacing: isIOS ? 0.5 : 1,
+                          color: _phoneNumber.isEmpty ? Colors.grey[400] : Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (_phoneNumber.isNotEmpty)
+                      IconButton(
+                        icon: Icon(
+                          Icons.backspace_outlined,
+                          color: isIOS ? Colors.grey[600] : Colors.grey[700],
+                        ),
+                        iconSize: isIOS ? 26 : 28,
+                        onPressed: _onBackspace,
+                      ),
                   ],
                 ),
               ),
             ),
-          ),
-        ),
 
-        // 통화 버튼 (고정 높이)
-        Container(
-          height: 100,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Center(
-            child: _buildCallButton(),
-          ),
-        ),
-      ],
+            // 키패드 영역 (Expanded로 남은 공간 채우기)
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isIOS ? 350 : 400,
+                    maxHeight: availableHeight - phoneNumberHeight - callButtonHeight,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: keypadPadding,
+                      vertical: isIOS ? 12 : 10,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildKeypadRow(['1', '2', '3'], ['', 'ABC', 'DEF']),
+                        SizedBox(height: keySpacing),
+                        _buildKeypadRow(['4', '5', '6'], ['GHI', 'JKL', 'MNO']),
+                        SizedBox(height: keySpacing),
+                        _buildKeypadRow(['7', '8', '9'], ['PQRS', 'TUV', 'WXYZ']),
+                        SizedBox(height: keySpacing),
+                        _buildKeypadRow(['*', '0', '#'], ['', '+', '']),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // 통화 버튼 영역
+            SizedBox(
+              height: callButtonHeight,
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: isIOS ? 32 : 16,
+                    top: isIOS ? 16 : 16,
+                  ),
+                  child: _buildCallButton(),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -230,12 +262,23 @@ class _DialpadScreenState extends State<DialpadScreen> {
   Widget _buildKey(String number, String letters) {
     // Android/iOS 네이티브 스타일 구분
     final bool isAndroidStyle = _isAndroid || kIsWeb; // Web은 Android 스타일 사용
+    final bool isIOS = _isIOS;
     
     return LayoutBuilder(
       builder: (context, constraints) {
         // 랜드스케이프 모드에서는 더 작은 크기 사용
         final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-        final size = isLandscape ? constraints.maxWidth.clamp(50.0, 70.0) : constraints.maxWidth;
+        
+        // iOS: 더 큰 버튼 크기
+        double size;
+        if (isLandscape) {
+          size = constraints.maxWidth.clamp(50.0, 70.0);
+        } else if (isIOS) {
+          // iOS: 최대 75px로 제한하여 화면에 맞춤
+          size = constraints.maxWidth.clamp(60.0, 75.0);
+        } else {
+          size = constraints.maxWidth;
+        }
         
         return SizedBox(
           width: size,
@@ -257,9 +300,12 @@ class _DialpadScreenState extends State<DialpadScreen> {
                   // Android: 테두리 없음, iOS: 얇은 테두리
                   border: isAndroidStyle
                       ? null
-                      : Border.all(color: Colors.grey.withOpacity(0.2), width: 1),
+                      : Border.all(
+                          color: Colors.grey.withOpacity(0.3),
+                          width: 1,
+                        ),
                   // iOS 스타일 배경
-                  color: _isIOS ? Colors.grey.withOpacity(0.05) : null,
+                  color: isIOS ? Colors.grey.withOpacity(0.08) : null,
                 ),
                 child: Center(
                   child: Column(
@@ -269,8 +315,12 @@ class _DialpadScreenState extends State<DialpadScreen> {
                       Text(
                         number,
                         style: TextStyle(
-                          fontSize: isLandscape ? 24 : (isAndroidStyle ? 32 : 36),
-                          fontWeight: isAndroidStyle ? FontWeight.w300 : FontWeight.w200,
+                          fontSize: isLandscape 
+                              ? 24 
+                              : (isIOS ? 38 : (isAndroidStyle ? 32 : 36)),
+                          fontWeight: isIOS 
+                              ? FontWeight.w200 
+                              : (isAndroidStyle ? FontWeight.w300 : FontWeight.w200),
                           color: Colors.black87,
                           height: 1.0,
                         ),
@@ -278,14 +328,16 @@ class _DialpadScreenState extends State<DialpadScreen> {
                       // 문자
                       if (letters.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(top: 2),
+                          padding: EdgeInsets.only(top: isIOS ? 3 : 2),
                           child: Text(
                             letters,
                             style: TextStyle(
-                              fontSize: isLandscape ? 8 : (isAndroidStyle ? 10 : 9),
+                              fontSize: isLandscape 
+                                  ? 8 
+                                  : (isIOS ? 10 : (isAndroidStyle ? 10 : 9)),
                               fontWeight: FontWeight.w500,
                               color: Colors.grey[600],
-                              letterSpacing: isAndroidStyle ? 1.2 : 0.8,
+                              letterSpacing: isIOS ? 1.0 : (isAndroidStyle ? 1.2 : 0.8),
                               height: 1.0,
                             ),
                           ),
@@ -303,24 +355,29 @@ class _DialpadScreenState extends State<DialpadScreen> {
 
   Widget _buildCallButton() {
     final bool isAndroidStyle = _isAndroid || kIsWeb;
+    final bool isIOS = _isIOS;
+    
+    // iOS: 더 큰 버튼
+    final buttonSize = isIOS ? 72.0 : 64.0;
+    final iconSize = isIOS ? 34.0 : (isAndroidStyle ? 32.0 : 30.0);
     
     return Material(
-      elevation: isAndroidStyle ? 4 : 2,
+      elevation: isAndroidStyle ? 4 : 1,
       shape: const CircleBorder(),
       color: isAndroidStyle ? const Color(0xFF4CAF50) : const Color(0xFF34C759),
       child: InkWell(
         onTap: _onCall,
         customBorder: const CircleBorder(),
         child: Container(
-          width: 64,
-          height: 64,
+          width: buttonSize,
+          height: buttonSize,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
           ),
           child: Icon(
             Icons.phone,
             color: Colors.white,
-            size: isAndroidStyle ? 32 : 30,
+            size: iconSize,
           ),
         ),
       ),
