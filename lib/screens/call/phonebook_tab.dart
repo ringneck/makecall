@@ -25,8 +25,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
   final Map<String, String> _nameTranslations = {
     // 기능 코드 (Feature Codes)
     'Echo Test': '에코테스트',
-    'Call Forward Immediately': '즉시 착신 전환 토글',
-    'Set CF Immediately Number': '즉시 전환 번호 설정',
+    'Call Forward Immediately - Toggle': '즉시 착신 전환 토글',
+    'Set CF Immediately Number': '즉시 착신 전환 번호 설정',
     
     // 일반 직책 및 부서
     'CEO': '대표이사',
