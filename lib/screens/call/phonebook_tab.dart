@@ -238,21 +238,31 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
       if (kDebugMode) {
         debugPrint('📞 API에서 ${contacts.length}개 연락처 발견');
+        debugPrint('📋 API 전체 응답: ${contacts.toString()}');
       }
 
       // Firestore에 저장
       int savedCount = 0;
       for (final contactData in contacts) {
+        if (kDebugMode) {
+          debugPrint('  🔍 API 원본 데이터 [$savedCount]: ${contactData.toString()}');
+        }
+
         final contact = PhonebookContactModel.fromApi(
           contactData,
           userId,
           phonebookId,
         );
-        await _databaseService.addOrUpdatePhonebookContact(contact);
+
+        if (kDebugMode) {
+          debugPrint('  📦 변환된 Contact: contactId=${contact.contactId}, name=${contact.name}, tel=${contact.telephone}');
+        }
+
+        final docId = await _databaseService.addOrUpdatePhonebookContact(contact);
         savedCount++;
         
         if (kDebugMode) {
-          debugPrint('  ✅ [$savedCount/${contacts.length}] ${contact.name} (${contact.telephone}) - ${contact.categoryDisplay}');
+          debugPrint('  ✅ [$savedCount/${contacts.length}] Firestore docId=$docId - ${contact.name} (${contact.telephone}) - ${contact.categoryDisplay}');
         }
       }
 
