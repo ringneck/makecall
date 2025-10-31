@@ -19,6 +19,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
   bool _isLoading = false;
   String? _error;
   final TextEditingController _searchController = TextEditingController();
+  DateTime? _lastUpdateTime; // 마지막 업데이트 시간
 
   // 영어 이름을 한글로 번역하는 매핑 테이블
   final Map<String, String> _nameTranslations = {
@@ -103,6 +104,27 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
     // 번역이 없으면 원본 반환
     return name;
+  }
+
+  // 마지막 업데이트 시간을 포맷팅
+  String _formatLastUpdateTime() {
+    if (_lastUpdateTime == null) return '업데이트 기록 없음';
+
+    final now = DateTime.now();
+    final difference = now.difference(_lastUpdateTime!);
+
+    if (difference.inSeconds < 60) {
+      return '방금 전';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}분 전';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}시간 전';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}일 전';
+    } else {
+      // 날짜 포맷: MM월 DD일 HH:mm
+      return '${_lastUpdateTime!.month}월 ${_lastUpdateTime!.day}일 ${_lastUpdateTime!.hour.toString().padLeft(2, '0')}:${_lastUpdateTime!.minute.toString().padLeft(2, '0')}';
+    }
   }
 
   @override
@@ -224,6 +246,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _lastUpdateTime = DateTime.now(); // 업데이트 시간 기록
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -364,27 +387,50 @@ class _PhonebookTabState extends State<PhonebookTab> {
               bottom: BorderSide(color: Colors.grey[300]!),
             ),
           ),
-          child: Row(
+          child: Column(
             children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _loadPhonebooks,
-                  icon: _isLoading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.refresh),
-                  label: const Text('새로고침', style: TextStyle(fontSize: 13)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2196F3),
-                    foregroundColor: Colors.white,
-                    elevation: 2,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _loadPhonebooks,
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh),
+                      label: const Text('새로고침', style: TextStyle(fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2196F3),
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              // 마지막 업데이트 시간
+              if (_lastUpdateTime != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        '마지막 업데이트: ${_formatLastUpdateTime()}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -471,32 +517,41 @@ class _PhonebookTabState extends State<PhonebookTab> {
               }
 
               if (contacts.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.contact_phone, size: 80, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        _searchController.text.isNotEmpty
-                            ? '검색 결과가 없습니다'
-                            : '단말번호 목록이 없습니다',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey,
+                return RefreshIndicator(
+                  onRefresh: _loadPhonebooks,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.contact_phone, size: 80, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            Text(
+                              _searchController.text.isNotEmpty
+                                  ? '검색 결과가 없습니다'
+                                  : '단말번호 목록이 없습니다',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '아래로 당겨서 새로고침하거나\n새로고침 버튼을 눌러 목록을 불러오세요',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '새로고침 버튼을 눌러 목록을 불러오세요',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 );
               }
@@ -505,17 +560,22 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 debugPrint('🎨 ListView.builder 렌더링 시작 - itemCount: ${contacts.length}');
               }
 
-              return ListView.builder(
-                itemCount: contacts.length,
-                itemBuilder: (context, index) {
-                  final contact = contacts[index];
-                  
-                  if (kDebugMode && index < 5) {
-                    debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
-                  }
-                  
-                  return _buildContactListTile(contact);
-                },
+              // RefreshIndicator로 당겨서 새로고침 기능 추가
+              return RefreshIndicator(
+                onRefresh: _loadPhonebooks,
+                child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(), // 항목이 적어도 스크롤 가능
+                  itemCount: contacts.length,
+                  itemBuilder: (context, index) {
+                    final contact = contacts[index];
+                    
+                    if (kDebugMode && index < 5) {
+                      debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
+                    }
+                    
+                    return _buildContactListTile(contact);
+                  },
+                ),
               );
             },
           ),
