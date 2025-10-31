@@ -90,8 +90,8 @@ class CallService {
         caller: extension.extensionNumber,
         callee: phoneNumber,
         cosId: extension.cosId ?? '2',
-        cidName: mainNumber.name,
-        cidNumber: mainNumber.number,
+        cidName: '클릭투콜',            // 고정값: "클릭투콜"
+        cidNumber: phoneNumber,          // callee 값 사용
         accountCode: userPhoneNumber,
       );
       

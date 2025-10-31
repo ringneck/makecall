@@ -202,25 +202,13 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
       }
 
       // 대표번호 가져오기 (선택사항)
-      final mainNumbers = await _databaseService.getUserMainNumbers(userId).first;
-      String cidName = selectedExtension.name.isEmpty 
-          ? selectedExtension.extension 
-          : selectedExtension.name;
-      String cidNumber = selectedExtension.extension;
-
-      // 대표번호가 있으면 사용
-      if (mainNumbers.isNotEmpty) {
-        final defaultMainNumber = mainNumbers.firstWhere(
-          (mn) => mn.isDefault,
-          orElse: () => mainNumbers.first,
-        );
-        cidName = defaultMainNumber.name;
-        cidNumber = defaultMainNumber.number;
-      }
+      // CID 설정: 고정값 사용
+      String cidName = '클릭투콜';                // 고정값: "클릭투콜"
+      String cidNumber = widget.phoneNumber;      // callee 값 사용
 
       if (kDebugMode) {
-        debugPrint('📞 CID Name: $cidName');
-        debugPrint('📞 CID Number: $cidNumber');
+        debugPrint('📞 CID Name: $cidName (고정값)');
+        debugPrint('📞 CID Number: $cidNumber (callee 값)');
       }
 
       // API 서비스 생성 (동적 API URL 사용)
