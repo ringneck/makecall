@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../widgets/call_method_dialog.dart';
 
 class DialpadScreen extends StatefulWidget {
@@ -10,6 +12,10 @@ class DialpadScreen extends StatefulWidget {
 
 class _DialpadScreenState extends State<DialpadScreen> {
   String _phoneNumber = '';
+
+  // 플랫폼 감지
+  bool get _isAndroid => !kIsWeb && Platform.isAndroid;
+  bool get _isIOS => !kIsWeb && Platform.isIOS;
 
   void _onKeyPressed(String key) {
     setState(() {
@@ -41,100 +47,70 @@ class _DialpadScreenState extends State<DialpadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 화면 크기에 따른 반응형 크기 계산
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isSmallScreen = screenWidth < 360;
-    final keyPadSize = (screenWidth - 80) / 3; // 3열 그리드
-    
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            SizedBox(height: isSmallScreen ? 16 : 24),
-            // 전화번호 표시
+            // 전화번호 표시 영역 (고정 높이)
             Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 24, 
-                vertical: isSmallScreen ? 8 : 16
-              ),
+              height: 80,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
                       _phoneNumber.isEmpty ? '전화번호 입력' : _phoneNumber,
                       style: TextStyle(
-                        fontSize: isSmallScreen ? 24 : 32,
-                        fontWeight: FontWeight.w400,
-                        color: _phoneNumber.isEmpty ? Colors.grey : Colors.black,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: 1,
+                        color: _phoneNumber.isEmpty ? Colors.grey[400] : Colors.black87,
                       ),
                       textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (_phoneNumber.isNotEmpty)
                     IconButton(
-                      icon: const Icon(Icons.backspace),
+                      icon: Icon(Icons.backspace_outlined, color: Colors.grey[600]),
+                      iconSize: 28,
                       onPressed: _onBackspace,
                     ),
                 ],
               ),
             ),
-            SizedBox(height: isSmallScreen ? 16 : 24),
-            // 키패드
+
+            // 키패드 영역 (Expanded로 남은 공간 채우기)
             Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  // 사용 가능한 높이에 맞춰 키 크기 계산
-                  final availableHeight = constraints.maxHeight - 24;
-                  final calculatedSize = availableHeight / 4;
-                  final actualKeySize = calculatedSize < keyPadSize ? calculatedSize : keyPadSize;
-                  
-                  return Center(
-                    child: SizedBox(
-                      width: actualKeySize * 3 + 48,
-                      child: GridView.count(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                        childAspectRatio: 1.0,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          _buildKey('1', '', actualKeySize),
-                          _buildKey('2', 'ABC', actualKeySize),
-                          _buildKey('3', 'DEF', actualKeySize),
-                          _buildKey('4', 'GHI', actualKeySize),
-                          _buildKey('5', 'JKL', actualKeySize),
-                          _buildKey('6', 'MNO', actualKeySize),
-                          _buildKey('7', 'PQRS', actualKeySize),
-                          _buildKey('8', 'TUV', actualKeySize),
-                          _buildKey('9', 'WXYZ', actualKeySize),
-                          _buildKey('*', '', actualKeySize),
-                          _buildKey('0', '+', actualKeySize),
-                          _buildKey('#', '', actualKeySize),
-                        ],
-                      ),
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildKeypadRow(['1', '2', '3'], ['', 'ABC', 'DEF']),
+                        const SizedBox(height: 12),
+                        _buildKeypadRow(['4', '5', '6'], ['GHI', 'JKL', 'MNO']),
+                        const SizedBox(height: 12),
+                        _buildKeypadRow(['7', '8', '9'], ['PQRS', 'TUV', 'WXYZ']),
+                        const SizedBox(height: 12),
+                        _buildKeypadRow(['*', '0', '#'], ['', '+', '']),
+                      ],
                     ),
-                  );
-                },
-              ),
-            ),
-            // 통화 버튼
-            Padding(
-              padding: EdgeInsets.all(isSmallScreen ? 16.0 : 24.0),
-              child: SizedBox(
-                width: isSmallScreen ? 64 : 72,
-                height: isSmallScreen ? 64 : 72,
-                child: FloatingActionButton(
-                  onPressed: _onCall,
-                  backgroundColor: const Color(0xFF4CAF50),
-                  elevation: 4,
-                  child: CustomPaint(
-                    size: Size(isSmallScreen ? 32 : 36, isSmallScreen ? 32 : 36),
-                    painter: PhoneIconPainter(),
                   ),
                 ),
+              ),
+            ),
+
+            // 통화 버튼 (고정 높이)
+            Container(
+              height: 100,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: _buildCallButton(),
               ),
             ),
           ],
@@ -143,128 +119,108 @@ class _DialpadScreenState extends State<DialpadScreen> {
     );
   }
 
-  Widget _buildKey(String number, String letters, double size) {
-    final fontSize = size * 0.35;
-    final letterSize = size * 0.12;
-    
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _onKeyPressed(number),
-        borderRadius: BorderRadius.circular(size / 2),
-        splashColor: const Color(0xFF2196F3).withAlpha(51),
-        highlightColor: const Color(0xFF2196F3).withAlpha(26),
-        child: Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.grey.withAlpha(77),
-              width: 1.5,
-            ),
+  Widget _buildKeypadRow(List<String> numbers, List<String> letters) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: List.generate(3, (index) {
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: _buildKey(numbers[index], letters[index]),
           ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  number,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.black87,
-                  ),
-                ),
-                if (letters.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      letters,
-                      style: TextStyle(
-                        fontSize: letterSize,
-                        color: Colors.grey[600],
-                        letterSpacing: 0.5,
-                      ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildKey(String number, String letters) {
+    // Android/iOS 네이티브 스타일 구분
+    final bool isAndroidStyle = _isAndroid || kIsWeb; // Web은 Android 스타일 사용
+    
+    return AspectRatio(
+      aspectRatio: 1.0,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _onKeyPressed(number),
+          customBorder: const CircleBorder(),
+          splashColor: isAndroidStyle 
+              ? Colors.grey.withOpacity(0.2)
+              : Colors.blue.withOpacity(0.1),
+          highlightColor: isAndroidStyle
+              ? Colors.grey.withOpacity(0.1)
+              : Colors.blue.withOpacity(0.05),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              // Android: 테두리 없음, iOS: 얇은 테두리
+              border: isAndroidStyle
+                  ? null
+                  : Border.all(color: Colors.grey.withOpacity(0.2), width: 1),
+              // iOS 스타일 배경
+              color: _isIOS ? Colors.grey.withOpacity(0.05) : null,
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 숫자
+                  Text(
+                    number,
+                    style: TextStyle(
+                      fontSize: isAndroidStyle ? 32 : 36,
+                      fontWeight: isAndroidStyle ? FontWeight.w300 : FontWeight.w200,
+                      color: Colors.black87,
+                      height: 1.0,
                     ),
                   ),
-              ],
+                  // 문자
+                  if (letters.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        letters,
+                        style: TextStyle(
+                          fontSize: isAndroidStyle ? 10 : 9,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[600],
+                          letterSpacing: isAndroidStyle ? 1.2 : 0.8,
+                          height: 1.0,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
-}
 
-// 커스텀 전화 아이콘 페인터 (SVG 스타일)
-class PhoneIconPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final path = Path();
+  Widget _buildCallButton() {
+    final bool isAndroidStyle = _isAndroid || kIsWeb;
     
-    // 전화기 수화기 모양 그리기
-    final w = size.width;
-    final h = size.height;
-    
-    // 수화기 하단 부분
-    path.moveTo(w * 0.25, h * 0.75);
-    path.cubicTo(
-      w * 0.15, h * 0.85,
-      w * 0.1, h * 0.9,
-      w * 0.15, h * 0.95,
+    return Material(
+      elevation: isAndroidStyle ? 4 : 2,
+      shape: const CircleBorder(),
+      color: isAndroidStyle ? const Color(0xFF4CAF50) : const Color(0xFF34C759),
+      child: InkWell(
+        onTap: _onCall,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.phone,
+            color: Colors.white,
+            size: isAndroidStyle ? 32 : 30,
+          ),
+        ),
+      ),
     );
-    path.lineTo(w * 0.2, h * 0.92);
-    path.cubicTo(
-      w * 0.25, h * 0.88,
-      w * 0.3, h * 0.8,
-      w * 0.35, h * 0.7,
-    );
-    
-    // 중간 연결 부분
-    path.lineTo(w * 0.65, h * 0.35);
-    
-    // 수화기 상단 부분
-    path.cubicTo(
-      w * 0.7, h * 0.25,
-      w * 0.75, h * 0.2,
-      w * 0.8, h * 0.15,
-    );
-    path.lineTo(w * 0.85, h * 0.1);
-    path.cubicTo(
-      w * 0.9, h * 0.05,
-      w * 0.85, h * 0.0,
-      w * 0.75, h * 0.1,
-    );
-    path.lineTo(w * 0.7, h * 0.15);
-    path.cubicTo(
-      w * 0.65, h * 0.2,
-      w * 0.6, h * 0.28,
-      w * 0.55, h * 0.38,
-    );
-    
-    // 연결 부분
-    path.lineTo(w * 0.25, h * 0.72);
-    path.close();
-    
-    canvas.drawPath(path, paint);
-    
-    // 강조 효과를 위한 외곽선
-    final outlinePaint = Paint()
-      ..color = Colors.white.withAlpha(128)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    
-    canvas.drawPath(path, outlinePaint);
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
