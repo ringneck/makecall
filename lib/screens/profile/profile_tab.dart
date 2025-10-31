@@ -21,8 +21,6 @@ class _ProfileTabState extends State<ProfileTab> {
   bool _isSearching = false;
   String? _searchError;
   final _phoneNumberController = TextEditingController();
-  final _scrollController = ScrollController();
-  bool _hasTriggeredScrollUpdate = false;
 
   @override
   void initState() {
@@ -35,58 +33,13 @@ class _ProfileTabState extends State<ProfileTab> {
       }
       // 저장된 단말번호 정보 업데이트
       _updateSavedExtensions();
-      // maxExtensions 자동 업데이트 (탭 로드 시)
-      _triggerMaxExtensionsUpdate();
     });
-    // 스크롤 리스너 추가
-    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _phoneNumberController.dispose();
-    _scrollController.dispose();
     super.dispose();
-  }
-
-  // 스크롤 이벤트 핸들러
-  void _onScroll() {
-    if (!_hasTriggeredScrollUpdate && _scrollController.hasClients) {
-      // 스크롤이 시작되면 maxExtensions 업데이트 (한 번만)
-      _hasTriggeredScrollUpdate = true;
-      _triggerMaxExtensionsUpdate();
-    }
-  }
-
-  // maxExtensions 자동 업데이트 트리거 (실제 저장된 단말번호 개수로 업데이트)
-  Future<void> _triggerMaxExtensionsUpdate() async {
-    final authService = context.read<AuthService>();
-    final userId = authService.currentUser?.uid;
-    
-    if (userId == null) {
-      if (kDebugMode) {
-        debugPrint('⚠️ 사용자 ID가 없어서 maxExtensions 업데이트를 건너뜁니다');
-      }
-      return;
-    }
-    
-    try {
-      // 실제 저장된 단말번호 개수 가져오기
-      final dbService = DatabaseService();
-      final savedExtensions = await dbService.getMyExtensions(userId).first;
-      final actualCount = savedExtensions.length;
-      
-      // 실제 저장된 개수로 maxExtensions 업데이트
-      await authService.updateMaxExtensions(actualCount);
-      
-      if (kDebugMode) {
-        debugPrint('✅ maxExtensions 업데이트 완료: $actualCount개 (저장된 단말번호 개수 기준)');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('⚠️ maxExtensions 업데이트 실패: $e');
-      }
-    }
   }
 
   // 타임스탬프 포맷 함수 (한국어 형식)
@@ -188,7 +141,6 @@ class _ProfileTabState extends State<ProfileTab> {
         title: const Text('내 정보'),
       ),
       body: ListView(
-        controller: _scrollController,
         children: [
           const SizedBox(height: 24),
           // 사용자 정보
