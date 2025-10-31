@@ -42,11 +42,28 @@ class AuthService extends ChangeNotifier {
   
   // 사용자 데이터 강제 새로고침 (외부에서 호출 가능)
   Future<void> refreshUserModel() async {
-    if (currentUser != null) {
+    if (currentUser == null) return;
+    
+    try {
+      // Firestore에 lastMaxExtensionsUpdate 업데이트
+      await _firestore
+          .collection('users')
+          .doc(currentUser!.uid)
+          .update({
+        'lastMaxExtensionsUpdate': DateTime.now().toIso8601String(),
+      });
+      
+      // 업데이트된 데이터 다시 로드
       await _loadUserModel(currentUser!.uid);
+      
       if (kDebugMode) {
-        debugPrint('✅ User model refreshed from Firestore');
+        debugPrint('✅ User model refreshed from Firestore with updated timestamp');
       }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Refresh user model error: $e');
+      }
+      rethrow;
     }
   }
   
