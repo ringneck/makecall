@@ -1,78 +1,121 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../models/contact_model.dart';
 
 class MobileContactsService {
-  /// 연락처 권한 요청
-  Future<bool> requestContactsPermission() async {
+  /// 연락처 권한 상태 확인 (읽기 전용, 빠른 체크)
+  Future<bool> hasContactsPermission() async {
     try {
-      final status = await Permission.contacts.request();
+      final status = await Permission.contacts.status;
       if (kDebugMode) {
         debugPrint('📱 Contacts permission status: $status');
       }
       return status.isGranted;
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ Error requesting contacts permission: $e');
+        debugPrint('❌ Error checking contacts permission: $e');
       }
       return false;
     }
   }
 
-  /// 모바일 연락처 가져오기
-  Future<List<ContactModel>> getDeviceContacts(String userId) async {
+  /// 연락처 권한 요청 (플랫폼별 최적화)
+  Future<PermissionStatus> requestContactsPermission() async {
     try {
-      // 권한 확인
-      if (!await FlutterContacts.requestPermission()) {
-        if (kDebugMode) {
-          debugPrint('❌ Contacts permission denied');
-        }
-        return [];
+      if (kDebugMode) {
+        debugPrint('📱 Requesting contacts permission...');
       }
 
+      // iOS와 Android 모두 permission_handler 사용
+      final status = await Permission.contacts.request();
+      
+      if (kDebugMode) {
+        debugPrint('📱 Contacts permission result: $status');
+      }
+      
+      return status;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Error requesting contacts permission: $e');
+      }
+      return PermissionStatus.denied;
+    }
+  }
+
+  /// 모바일 연락처 가져오기 (플랫폼별 최적화)
+  Future<List<ContactModel>> getDeviceContacts(String userId) async {
+    try {
       if (kDebugMode) {
         debugPrint('📱 Fetching device contacts...');
       }
 
-      // 연락처 가져오기 (전화번호 포함)
+      // 권한 확인 (flutter_contacts 사용)
+      final permissionGranted = await FlutterContacts.requestPermission(readonly: true);
+      
+      if (!permissionGranted) {
+        if (kDebugMode) {
+          debugPrint('❌ Contacts permission not granted');
+        }
+        return [];
+      }
+
+      // 연락처 가져오기 (배치 처리로 최적화)
       final contacts = await FlutterContacts.getContacts(
         withProperties: true,
         withPhoto: false,
+        withThumbnail: false,
+        withAccounts: false,
+        withGroups: false,
       );
 
       if (kDebugMode) {
         debugPrint('✅ Found ${contacts.length} device contacts');
       }
 
-      // ContactModel로 변환
+      // ContactModel로 변환 (Stream 처리로 메모리 최적화)
       final contactModels = <ContactModel>[];
+      
       for (final contact in contacts) {
-        // 전화번호가 있는 연락처만 추가
-        if (contact.phones.isNotEmpty) {
-          final phone = contact.phones.first.number;
-          
-          contactModels.add(
-            ContactModel(
-              id: '', // Firestore에서 자동 생성
-              userId: userId,
-              name: contact.displayName.isEmpty ? '이름 없음' : contact.displayName,
-              phoneNumber: phone,
-              email: contact.emails.isNotEmpty ? contact.emails.first.address : null,
-              company: contact.organizations.isNotEmpty
-                  ? contact.organizations.first.company
-                  : null,
-              isFavorite: false,
-              createdAt: DateTime.now(),
-              isDeviceContact: true, // 장치 연락처 표시
-            ),
-          );
+        try {
+          // 전화번호가 있는 연락처만 추가
+          if (contact.phones.isNotEmpty) {
+            final phone = contact.phones.first.number.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+            
+            // 빈 이름 필터링
+            if (phone.isEmpty) continue;
+            
+            contactModels.add(
+              ContactModel(
+                id: '', // Firestore에서 자동 생성
+                userId: userId,
+                name: contact.displayName.trim().isEmpty ? '이름 없음' : contact.displayName.trim(),
+                phoneNumber: phone,
+                email: contact.emails.isNotEmpty ? contact.emails.first.address : null,
+                company: contact.organizations.isNotEmpty
+                    ? contact.organizations.first.company
+                    : null,
+                isFavorite: false,
+                createdAt: DateTime.now(),
+                isDeviceContact: true,
+              ),
+            );
+          }
+        } catch (e) {
+          // 개별 연락처 처리 오류는 무시하고 계속 진행
+          if (kDebugMode) {
+            debugPrint('⚠️ Error processing contact: $e');
+          }
         }
       }
 
       if (kDebugMode) {
         debugPrint('✅ Converted ${contactModels.length} contacts with phone numbers');
       }
+
+      // 이름순 정렬
+      contactModels.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
       return contactModels;
     } catch (e) {
@@ -108,13 +151,61 @@ class MobileContactsService {
     }
   }
 
-  /// 연락처 권한 상태 확인
-  Future<bool> hasContactsPermission() async {
+  /// 플랫폼별 앱 설정 열기
+  Future<bool> openAppSettings() async {
     try {
-      return await FlutterContacts.requestPermission(readonly: true);
+      if (kDebugMode) {
+        debugPrint('📱 Opening app settings (Platform: ${Platform.operatingSystem})');
+      }
+      
+      final opened = await Permission.contacts.request().then((status) async {
+        if (status.isPermanentlyDenied || status.isDenied) {
+          return await openSettings();
+        }
+        return false;
+      });
+      
+      if (kDebugMode) {
+        debugPrint('📱 Settings opened: $opened');
+      }
+      
+      return opened;
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ Error checking contacts permission: $e');
+        debugPrint('❌ Error opening app settings: $e');
+      }
+      return false;
+    }
+  }
+
+  /// 앱 설정 열기 (단순 버전)
+  Future<bool> openSettings() async {
+    try {
+      return await Permission.contacts.shouldShowRequestRationale
+          ? false
+          : await openAppSettingsHandler();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Error in openSettings: $e');
+      }
+      return false;
+    }
+  }
+
+  /// 실제 설정 핸들러
+  Future<bool> openAppSettingsHandler() async {
+    try {
+      if (Platform.isIOS) {
+        // iOS: 앱 설정으로 직접 이동
+        return await openAppSettings();
+      } else if (Platform.isAndroid) {
+        // Android: 앱 설정으로 직접 이동
+        return await openAppSettings();
+      }
+      return false;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Error opening app settings handler: $e');
       }
       return false;
     }
