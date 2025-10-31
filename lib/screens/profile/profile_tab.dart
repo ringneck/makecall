@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -1061,7 +1062,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   ),
                 ),
               _buildDetailRow('SIP user id', extension.sipUserId),
-              _buildDetailRow('SIP secret', extension.sipSecret),
+              _buildDetailRowWithCopy('SIP secret', extension.sipSecret, context),
               
               // 시스템 정보
               const Divider(height: 24),
@@ -1120,6 +1121,54 @@ class _ProfileTabState extends State<ProfileTab> {
                 color: Colors.black87,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRowWithCopy(String label, String? value, BuildContext context) {
+    if (value == null || value.isEmpty) return const SizedBox.shrink();
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.copy, size: 18),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: value));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('SIP secret이 클립보드에 복사되었습니다'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            tooltip: '복사',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
