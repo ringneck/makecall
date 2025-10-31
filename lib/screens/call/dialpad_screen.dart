@@ -49,73 +49,167 @@ class _DialpadScreenState extends State<DialpadScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            // 전화번호 표시 영역 (고정 높이)
-            Container(
-              height: 80,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _phoneNumber.isEmpty ? '전화번호 입력' : _phoneNumber,
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w300,
-                        letterSpacing: 1,
-                        color: _phoneNumber.isEmpty ? Colors.grey[400] : Colors.black87,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+        child: OrientationBuilder(
+          builder: (context, orientation) {
+            if (orientation == Orientation.landscape) {
+              // 랜드스케이프 모드: 가로 레이아웃
+              return _buildLandscapeLayout();
+            } else {
+              // 포트레이트 모드: 세로 레이아웃
+              return _buildPortraitLayout();
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  // 세로 모드 레이아웃
+  Widget _buildPortraitLayout() {
+    return Column(
+      children: [
+        // 전화번호 표시 영역 (고정 높이)
+        Container(
+          height: 80,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _phoneNumber.isEmpty ? '전화번호 입력' : _phoneNumber,
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: 1,
+                    color: _phoneNumber.isEmpty ? Colors.grey[400] : Colors.black87,
                   ),
-                  if (_phoneNumber.isNotEmpty)
-                    IconButton(
-                      icon: Icon(Icons.backspace_outlined, color: Colors.grey[600]),
-                      iconSize: 28,
-                      onPressed: _onBackspace,
-                    ),
-                ],
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (_phoneNumber.isNotEmpty)
+                IconButton(
+                  icon: Icon(Icons.backspace_outlined, color: Colors.grey[600]),
+                  iconSize: 28,
+                  onPressed: _onBackspace,
+                ),
+            ],
+          ),
+        ),
+
+        // 키패드 영역 (Expanded로 남은 공간 채우기)
+        Expanded(
+          child: Center(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildKeypadRow(['1', '2', '3'], ['', 'ABC', 'DEF']),
+                    const SizedBox(height: 12),
+                    _buildKeypadRow(['4', '5', '6'], ['GHI', 'JKL', 'MNO']),
+                    const SizedBox(height: 12),
+                    _buildKeypadRow(['7', '8', '9'], ['PQRS', 'TUV', 'WXYZ']),
+                    const SizedBox(height: 12),
+                    _buildKeypadRow(['*', '0', '#'], ['', '+', '']),
+                  ],
+                ),
               ),
             ),
+          ),
+        ),
 
-            // 키패드 영역 (Expanded로 남은 공간 채우기)
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildKeypadRow(['1', '2', '3'], ['', 'ABC', 'DEF']),
-                        const SizedBox(height: 12),
-                        _buildKeypadRow(['4', '5', '6'], ['GHI', 'JKL', 'MNO']),
-                        const SizedBox(height: 12),
-                        _buildKeypadRow(['7', '8', '9'], ['PQRS', 'TUV', 'WXYZ']),
-                        const SizedBox(height: 12),
-                        _buildKeypadRow(['*', '0', '#'], ['', '+', '']),
-                      ],
+        // 통화 버튼 (고정 높이)
+        Container(
+          height: 100,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Center(
+            child: _buildCallButton(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 가로 모드 레이아웃
+  Widget _buildLandscapeLayout() {
+    return Row(
+      children: [
+        // 왼쪽: 전화번호 표시 및 통화 버튼
+        Expanded(
+          flex: 2,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 전화번호 표시
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        _phoneNumber.isEmpty ? '전화번호 입력' : _phoneNumber,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w300,
+                          letterSpacing: 1,
+                          color: _phoneNumber.isEmpty ? Colors.grey[400] : Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    if (_phoneNumber.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(Icons.backspace_outlined, color: Colors.grey[600]),
+                        iconSize: 24,
+                        onPressed: _onBackspace,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // 통화 버튼
+              _buildCallButton(),
+            ],
+          ),
+        ),
+
+        // 오른쪽: 키패드
+        Expanded(
+          flex: 3,
+          child: Center(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildKeypadRow(['1', '2', '3'], ['', 'ABC', 'DEF']),
+                      const SizedBox(height: 8),
+                      _buildKeypadRow(['4', '5', '6'], ['GHI', 'JKL', 'MNO']),
+                      const SizedBox(height: 8),
+                      _buildKeypadRow(['7', '8', '9'], ['PQRS', 'TUV', 'WXYZ']),
+                      const SizedBox(height: 8),
+                      _buildKeypadRow(['*', '0', '#'], ['', '+', '']),
+                    ],
                   ),
                 ),
               ),
             ),
-
-            // 통화 버튼 (고정 높이)
-            Container(
-              height: 100,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: _buildCallButton(),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -137,64 +231,73 @@ class _DialpadScreenState extends State<DialpadScreen> {
     // Android/iOS 네이티브 스타일 구분
     final bool isAndroidStyle = _isAndroid || kIsWeb; // Web은 Android 스타일 사용
     
-    return AspectRatio(
-      aspectRatio: 1.0,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _onKeyPressed(number),
-          customBorder: const CircleBorder(),
-          splashColor: isAndroidStyle 
-              ? Colors.grey.withOpacity(0.2)
-              : Colors.blue.withOpacity(0.1),
-          highlightColor: isAndroidStyle
-              ? Colors.grey.withOpacity(0.1)
-              : Colors.blue.withOpacity(0.05),
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              // Android: 테두리 없음, iOS: 얇은 테두리
-              border: isAndroidStyle
-                  ? null
-                  : Border.all(color: Colors.grey.withOpacity(0.2), width: 1),
-              // iOS 스타일 배경
-              color: _isIOS ? Colors.grey.withOpacity(0.05) : null,
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // 숫자
-                  Text(
-                    number,
-                    style: TextStyle(
-                      fontSize: isAndroidStyle ? 32 : 36,
-                      fontWeight: isAndroidStyle ? FontWeight.w300 : FontWeight.w200,
-                      color: Colors.black87,
-                      height: 1.0,
-                    ),
-                  ),
-                  // 문자
-                  if (letters.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        letters,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 랜드스케이프 모드에서는 더 작은 크기 사용
+        final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+        final size = isLandscape ? constraints.maxWidth.clamp(50.0, 70.0) : constraints.maxWidth;
+        
+        return SizedBox(
+          width: size,
+          height: size,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _onKeyPressed(number),
+              customBorder: const CircleBorder(),
+              splashColor: isAndroidStyle 
+                  ? Colors.grey.withOpacity(0.2)
+                  : Colors.blue.withOpacity(0.1),
+              highlightColor: isAndroidStyle
+                  ? Colors.grey.withOpacity(0.1)
+                  : Colors.blue.withOpacity(0.05),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  // Android: 테두리 없음, iOS: 얇은 테두리
+                  border: isAndroidStyle
+                      ? null
+                      : Border.all(color: Colors.grey.withOpacity(0.2), width: 1),
+                  // iOS 스타일 배경
+                  color: _isIOS ? Colors.grey.withOpacity(0.05) : null,
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 숫자
+                      Text(
+                        number,
                         style: TextStyle(
-                          fontSize: isAndroidStyle ? 10 : 9,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[600],
-                          letterSpacing: isAndroidStyle ? 1.2 : 0.8,
+                          fontSize: isLandscape ? 24 : (isAndroidStyle ? 32 : 36),
+                          fontWeight: isAndroidStyle ? FontWeight.w300 : FontWeight.w200,
+                          color: Colors.black87,
                           height: 1.0,
                         ),
                       ),
-                    ),
-                ],
+                      // 문자
+                      if (letters.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            letters,
+                            style: TextStyle(
+                              fontSize: isLandscape ? 8 : (isAndroidStyle ? 10 : 9),
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[600],
+                              letterSpacing: isAndroidStyle ? 1.2 : 0.8,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
