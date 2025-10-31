@@ -68,6 +68,7 @@ class PhonebookContactModel {
   final String? fax;
   final String? businessAddress;
   final String? homeAddress;
+  final bool isFavorite; // 즐겨찾기 여부
   final DateTime createdAt;
 
   PhonebookContactModel({
@@ -87,6 +88,7 @@ class PhonebookContactModel {
     this.fax,
     this.businessAddress,
     this.homeAddress,
+    this.isFavorite = false, // 기본값: false
     required this.createdAt,
   });
 
@@ -104,11 +106,12 @@ class PhonebookContactModel {
       email: data['email'] as String?,
       company: data['company'] as String?,
       title: data['title'] as String?,
-      mobileNumber: data['mobileNumber'] as String?,
+      mobileNumber: data['mobileNumber'] as String? ?? data['mobile'] as String?, // 기존 'mobile' 필드도 지원
       home: data['home'] as String?,
       fax: data['fax'] as String?,
       businessAddress: data['businessAddress'] as String?,
       homeAddress: data['homeAddress'] as String?,
+      isFavorite: data['isFavorite'] as bool? ?? false, // 기본값: false
       createdAt: (data['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
     );
   }
@@ -131,6 +134,7 @@ class PhonebookContactModel {
       'fax': fax,
       'businessAddress': businessAddress,
       'homeAddress': homeAddress,
+      'isFavorite': isFavorite,
       'createdAt': createdAt,
     };
   }
@@ -177,6 +181,7 @@ class PhonebookContactModel {
       fax: apiData['fax']?.toString(),
       businessAddress: apiData['business_address']?.toString(),
       homeAddress: apiData['home_address']?.toString(),
+      isFavorite: false, // API에서 불러올 때는 기본값 false
       createdAt: DateTime.now(),
     );
   }

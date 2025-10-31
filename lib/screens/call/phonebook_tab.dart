@@ -613,6 +613,12 @@ class _PhonebookTabState extends State<PhonebookTab> {
       ),
       title: Row(
         children: [
+          // 즐겨찾기 별 아이콘 (이름 앞)
+          if (contact.isFavorite)
+            const Padding(
+              padding: EdgeInsets.only(right: 4),
+              child: Icon(Icons.star, size: 16, color: Colors.amber),
+            ),
           Expanded(
             child: Text(
               translatedName,
@@ -732,18 +738,37 @@ class _PhonebookTabState extends State<PhonebookTab> {
         actions: [
           // 즐겨찾기 버튼 (왼쪽)
           IconButton(
-            onPressed: () {
-              // TODO: 즐겨찾기 기능 구현
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('즐겨찾기 기능은 추후 구현 예정입니다'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+            onPressed: () async {
+              try {
+                await _databaseService.togglePhonebookContactFavorite(
+                  contact.id,
+                  contact.isFavorite,
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        contact.isFavorite ? '즐겨찾기에서 제거되었습니다' : '즐겨찾기에 추가되었습니다',
+                      ),
+                      duration: const Duration(seconds: 2),
+                      backgroundColor: contact.isFavorite ? Colors.grey : Colors.amber,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('즐겨찾기 변경 실패: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
-            icon: const Icon(Icons.star_border),
+            icon: Icon(contact.isFavorite ? Icons.star : Icons.star_border),
             color: Colors.amber,
-            tooltip: '즐겨찾기 추가',
+            tooltip: contact.isFavorite ? '즐겨찾기 제거' : '즐겨찾기 추가',
             iconSize: 28,
           ),
           const Spacer(),

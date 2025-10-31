@@ -499,4 +499,38 @@ class DatabaseService {
             .map((doc) => PhonebookContactModel.fromFirestore(doc.data(), doc.id))
             .toList());
   }
+  
+  // Phonebook 연락처 즐겨찾기 토글
+  Future<void> togglePhonebookContactFavorite(String contactDocId, bool currentFavoriteState) async {
+    try {
+      await _firestore.collection('phonebook_contacts').doc(contactDocId).update({
+        'isFavorite': !currentFavoriteState,
+      });
+      if (kDebugMode) {
+        debugPrint('✅ Favorite toggled: $contactDocId -> ${!currentFavoriteState}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Toggle favorite error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // Phonebook 즐겨찾기 연락처만 조회
+  Stream<List<PhonebookContactModel>> getFavoritePhonebookContacts(String userId) {
+    return _firestore
+        .collection('phonebook_contacts')
+        .where('userId', isEqualTo: userId)
+        .where('isFavorite', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) {
+          final contacts = snapshot.docs
+              .map((doc) => PhonebookContactModel.fromFirestore(doc.data(), doc.id))
+              .toList();
+          // 메모리에서 이름으로 정렬
+          contacts.sort((a, b) => a.name.compareTo(b.name));
+          return contacts;
+        });
+  }
 }
