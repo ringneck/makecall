@@ -5,6 +5,7 @@ import '../models/extension_model.dart';
 import '../models/call_history_model.dart';
 import '../models/contact_model.dart';
 import '../models/my_extension_model.dart';
+import '../models/phonebook_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -398,5 +399,104 @@ class DatabaseService {
       }
       rethrow;
     }
+  }
+  
+  // ===== Phonebook 관리 =====
+  
+  // Phonebook 추가 또는 업데이트
+  Future<String> addOrUpdatePhonebook(PhonebookModel phonebook) async {
+    try {
+      // 동일한 phonebookId가 있는지 확인
+      final snapshot = await _firestore
+          .collection('phonebooks')
+          .where('userId', isEqualTo: phonebook.userId)
+          .where('phonebookId', isEqualTo: phonebook.phonebookId)
+          .get();
+      
+      if (snapshot.docs.isNotEmpty) {
+        // 기존 문서 업데이트
+        final docId = snapshot.docs.first.id;
+        await _firestore.collection('phonebooks').doc(docId).update(phonebook.toFirestore());
+        if (kDebugMode) {
+          debugPrint('✅ Updated existing phonebook: ${phonebook.name}');
+        }
+        return docId;
+      } else {
+        // 새 문서 추가
+        final docRef = await _firestore.collection('phonebooks').add(phonebook.toFirestore());
+        if (kDebugMode) {
+          debugPrint('✅ Added new phonebook: ${phonebook.name}');
+        }
+        return docRef.id;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Add/Update phonebook error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 사용자의 Phonebook 목록 조회
+  Stream<List<PhonebookModel>> getUserPhonebooks(String userId) {
+    return _firestore
+        .collection('phonebooks')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => PhonebookModel.fromFirestore(doc.data(), doc.id))
+            .toList());
+  }
+  
+  // Phonebook 연락처 추가 또는 업데이트
+  Future<String> addOrUpdatePhonebookContact(PhonebookContactModel contact) async {
+    try {
+      // 동일한 contactId가 있는지 확인
+      final snapshot = await _firestore
+          .collection('phonebook_contacts')
+          .where('userId', isEqualTo: contact.userId)
+          .where('phonebookId', isEqualTo: contact.phonebookId)
+          .where('contactId', isEqualTo: contact.contactId)
+          .get();
+      
+      if (snapshot.docs.isNotEmpty) {
+        // 기존 문서 업데이트
+        final docId = snapshot.docs.first.id;
+        await _firestore.collection('phonebook_contacts').doc(docId).update(contact.toFirestore());
+        return docId;
+      } else {
+        // 새 문서 추가
+        final docRef = await _firestore.collection('phonebook_contacts').add(contact.toFirestore());
+        return docRef.id;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Add/Update phonebook contact error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 특정 Phonebook의 연락처 목록 조회
+  Stream<List<PhonebookContactModel>> getPhonebookContacts(String userId, String phonebookId) {
+    return _firestore
+        .collection('phonebook_contacts')
+        .where('userId', isEqualTo: userId)
+        .where('phonebookId', isEqualTo: phonebookId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => PhonebookContactModel.fromFirestore(doc.data(), doc.id))
+            .toList());
+  }
+  
+  // 사용자의 모든 Phonebook 연락처 조회
+  Stream<List<PhonebookContactModel>> getAllPhonebookContacts(String userId) {
+    return _firestore
+        .collection('phonebook_contacts')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => PhonebookContactModel.fromFirestore(doc.data(), doc.id))
+            .toList());
   }
 }

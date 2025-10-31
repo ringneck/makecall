@@ -217,4 +217,102 @@ class ApiService {
       return false;
     }
   }
+  
+  // Phonebook 목록 조회
+  Future<List<Map<String, dynamic>>> getPhonebooks() async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔄 API 요청: GET $baseUrl/phonebooks');
+        debugPrint('📋 헤더: $_headers');
+      }
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/phonebooks'),
+        headers: _headers,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('요청 시간 초과 (30초)'),
+      );
+      
+      if (kDebugMode) {
+        debugPrint('✅ 응답 상태: ${response.statusCode}');
+        debugPrint('📦 응답 본문: ${response.body}');
+      }
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        
+        // 응답 구조 확인: data 배열이 있는지 체크
+        if (responseData is Map && responseData.containsKey('data')) {
+          final dataList = responseData['data'];
+          if (dataList is List) {
+            return List<Map<String, dynamic>>.from(dataList);
+          }
+        }
+        
+        // 응답이 배열인 경우
+        if (responseData is List) {
+          return List<Map<String, dynamic>>.from(responseData);
+        }
+        
+        return [];
+      } else {
+        throw Exception('서버 오류 (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Get phonebooks error: $e');
+      }
+      throw _handleError(e, 'Phonebook 목록 조회');
+    }
+  }
+  
+  // Phonebook 연락처 목록 조회
+  Future<List<Map<String, dynamic>>> getPhonebookContacts(String phonebookId) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔄 API 요청: GET $baseUrl/phonebooks/$phonebookId/contacts');
+        debugPrint('📋 헤더: $_headers');
+      }
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/phonebooks/$phonebookId/contacts'),
+        headers: _headers,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('요청 시간 초과 (30초)'),
+      );
+      
+      if (kDebugMode) {
+        debugPrint('✅ 응답 상태: ${response.statusCode}');
+        debugPrint('📦 응답 본문: ${response.body}');
+      }
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        
+        // 응답 구조 확인: data 배열이 있는지 체크
+        if (responseData is Map && responseData.containsKey('data')) {
+          final dataList = responseData['data'];
+          if (dataList is List) {
+            return List<Map<String, dynamic>>.from(dataList);
+          }
+        }
+        
+        // 응답이 배열인 경우
+        if (responseData is List) {
+          return List<Map<String, dynamic>>.from(responseData);
+        }
+        
+        return [];
+      } else {
+        throw Exception('서버 오류 (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Get phonebook contacts error: $e');
+      }
+      throw _handleError(e, 'Phonebook 연락처 조회');
+    }
+  }
 }

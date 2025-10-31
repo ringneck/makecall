@@ -6,6 +6,7 @@ import '../../services/mobile_contacts_service.dart';
 import '../../models/contact_model.dart';
 import '../../models/call_history_model.dart';
 import 'dialpad_screen.dart';
+import 'phonebook_tab.dart';
 import '../../widgets/call_method_dialog.dart';
 import '../../widgets/add_contact_dialog.dart';
 
@@ -29,8 +30,8 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    // 기본 화면을 키패드(인덱스 3)로 설정
-    _tabController = TabController(length: 4, vsync: this, initialIndex: 3);
+    // 기본 화면을 키패드(인덱스 4)로 설정
+    _tabController = TabController(length: 5, vsync: this, initialIndex: 4);
   }
 
   @override
@@ -47,7 +48,9 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
         title: const Text('통화'),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           tabs: const [
+            Tab(text: '단말번호'),
             Tab(text: '즐겨찾기'),
             Tab(text: '최근통화'),
             Tab(text: '연락처'),
@@ -58,6 +61,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
       body: TabBarView(
         controller: _tabController,
         children: [
+          const PhonebookTab(),
           _buildFavoritesTab(),
           _buildCallHistoryTab(),
           _buildContactsTab(),
