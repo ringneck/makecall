@@ -743,6 +743,16 @@ class _PhonebookTabState extends State<PhonebookTab> {
     // 이름 번역
     final translatedName = _translateName(contact.name);
     
+    // 디버그: 데이터 확인
+    if (kDebugMode) {
+      debugPrint('📋 Contact Detail - Name: ${contact.name}');
+      debugPrint('   📞 telephone: ${contact.telephone}');
+      debugPrint('   📱 mobileNumber: ${contact.mobileNumber}');
+      debugPrint('   📧 email: ${contact.email}');
+      debugPrint('   🏢 company: ${contact.company}');
+      debugPrint('   📋 title: ${contact.title}');
+    }
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -776,26 +786,46 @@ class _PhonebookTabState extends State<PhonebookTab> {
             children: [
               // 전화번호 정보 (우선 표시) - 통화 아이콘 포함
               _buildDetailRowWithActions('전화번호', contact.telephone, context, isPrimary: true),
-              if (contact.mobileNumber != null && contact.mobileNumber!.isNotEmpty) 
+              
+              // 휴대전화
+              if (contact.mobileNumber != null && contact.mobileNumber!.isNotEmpty) ...[
                 _buildDetailRowWithActions('휴대전화', contact.mobileNumber, context, showSms: true),
-              if (contact.home != null && contact.home!.isNotEmpty) 
+              ],
+              
+              // 집 전화
+              if (contact.home != null && contact.home!.isNotEmpty) ...[
                 _buildDetailRowWithActions('집 전화', contact.home, context),
-              if (contact.fax != null && contact.fax!.isNotEmpty) 
+              ],
+              
+              // 팩스
+              if (contact.fax != null && contact.fax!.isNotEmpty) ...[
                 _buildDetailRowWithCopy('팩스', contact.fax),
+              ],
               
               // 이메일
-              if (contact.email != null && contact.email!.isNotEmpty) 
+              if (contact.email != null && contact.email!.isNotEmpty) ...[
                 _buildDetailRowWithEmail('이메일', contact.email),
+              ],
               
-              // 회사 정보
-              if (contact.company != null && contact.company!.isNotEmpty) 
+              // 회사
+              if (contact.company != null && contact.company!.isNotEmpty) ...[
                 _buildDetailRow('회사', contact.company),
-              if (contact.title != null && contact.title!.isNotEmpty) 
+              ],
+              
+              // 직책
+              if (contact.title != null && contact.title!.isNotEmpty) ...[
                 _buildDetailRow('직책', contact.title),
-              if (contact.businessAddress != null && contact.businessAddress!.isNotEmpty)
+              ],
+              
+              // 회사 주소
+              if (contact.businessAddress != null && contact.businessAddress!.isNotEmpty) ...[
                 _buildDetailRow('회사 주소', contact.businessAddress),
-              if (contact.homeAddress != null && contact.homeAddress!.isNotEmpty) 
+              ],
+              
+              // 집 주소
+              if (contact.homeAddress != null && contact.homeAddress!.isNotEmpty) ...[
                 _buildDetailRow('집 주소', contact.homeAddress),
+              ],
             ],
           ),
         ),
