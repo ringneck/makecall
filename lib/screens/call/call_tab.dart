@@ -29,6 +29,13 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
   bool _showDeviceContacts = false;
   List<ContactModel> _deviceContacts = [];
 
+  // 영어 이름을 한글로 번역하는 매핑 테이블
+  final Map<String, String> _nameTranslations = {
+    'Echo Test': '에코테스트',
+    'Call Forward Immediately - Toggle': '즉시 착신 전환 토글',
+    'Set CF Immediately Number': '즉시 착신 전환 번호 설정',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -812,6 +819,11 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     }
   }
 
+  // 이름 번역 함수
+  String _translateName(String name) {
+    return _nameTranslations[name] ?? name;
+  }
+
   // 단말번호 연락처 리스트 타일
   Widget _buildPhonebookContactListTile(PhonebookContactModel contact) {
     Color categoryColor = Colors.blue;
@@ -825,6 +837,9 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
       categoryIcon = Icons.star;
     }
 
+    // 이름 번역
+    final translatedName = _translateName(contact.name);
+
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: Colors.amber[100],
@@ -834,7 +849,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
         children: [
           Expanded(
             child: Text(
-              contact.name,
+              translatedName,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
