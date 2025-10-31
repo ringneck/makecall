@@ -23,12 +23,14 @@ class _ProfileTabState extends State<ProfileTab> {
   @override
   void initState() {
     super.initState();
-    // 저장된 전화번호 불러오기
+    // 저장된 전화번호 불러오기 및 단말번호 업데이트
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authService = context.read<AuthService>();
       if (authService.currentUserModel?.phoneNumber != null) {
         _phoneNumberController.text = authService.currentUserModel!.phoneNumber!;
       }
+      // 저장된 단말번호 정보 업데이트
+      _updateSavedExtensions();
     });
   }
 
@@ -36,6 +38,63 @@ class _ProfileTabState extends State<ProfileTab> {
   void dispose() {
     _phoneNumberController.dispose();
     super.dispose();
+  }
+
+  // 저장된 단말번호 정보 업데이트
+  Future<void> _updateSavedExtensions() async {
+    final authService = context.read<AuthService>();
+    final userModel = authService.currentUserModel;
+    final userId = authService.currentUser?.uid ?? '';
+
+    // API 설정이 없으면 종료
+    if (userModel?.apiBaseUrl == null) {
+      return;
+    }
+
+    try {
+      // 저장된 단말번호 가져오기
+      final dbService = DatabaseService();
+      final savedExtensions = await dbService.getMyExtensions(userId).first;
+
+      if (savedExtensions.isEmpty) {
+        return;
+      }
+
+      // API Service 생성
+      final apiService = ApiService(
+        baseUrl: userModel!.getApiUrl(useHttps: false),
+        companyId: userModel.companyId,
+        appKey: userModel.appKey,
+      );
+
+      // API에서 전체 단말번호 목록 가져오기
+      final dataList = await apiService.getExtensions();
+
+      // 저장된 각 단말번호에 대해 업데이트
+      for (final savedExtension in savedExtensions) {
+        // API 데이터에서 매칭되는 단말번호 찾기
+        final matchedData = dataList.firstWhere(
+          (item) => item['extension']?.toString() == savedExtension.extension,
+          orElse: () => <String, dynamic>{},
+        );
+
+        if (matchedData.isNotEmpty) {
+          // 새로운 정보로 업데이트
+          final updatedExtension = MyExtensionModel.fromApi(
+            userId: userId,
+            apiData: matchedData,
+          );
+
+          // DB 업데이트 (addMyExtension은 중복 시 업데이트 수행)
+          await dbService.addMyExtension(updatedExtension);
+        }
+      }
+
+      print('✅ 저장된 단말번호 정보 업데이트 완료 (${savedExtensions.length}개)');
+    } catch (e) {
+      print('⚠️ 단말번호 업데이트 실패: $e');
+      // 에러가 발생해도 UI는 정상적으로 표시되도록 무시
+    }
   }
 
   @override
