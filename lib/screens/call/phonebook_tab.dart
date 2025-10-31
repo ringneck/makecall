@@ -697,12 +697,12 @@ class _PhonebookTabState extends State<PhonebookTab> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 전화번호 정보 (우선 표시)
-              _buildDetailRow('전화번호', contact.telephone, isPrimary: true),
+              // 전화번호 정보 (우선 표시) - 통화 아이콘 포함
+              _buildDetailRowWithCall('전화번호', contact.telephone, context, isPrimary: true),
               if (contact.mobile != null && contact.mobile!.isNotEmpty) 
-                _buildDetailRow('휴대전화', contact.mobile),
+                _buildDetailRowWithCall('휴대전화', contact.mobile, context),
               if (contact.home != null && contact.home!.isNotEmpty) 
-                _buildDetailRow('집 전화', contact.home),
+                _buildDetailRowWithCall('집 전화', contact.home, context),
               if (contact.fax != null && contact.fax!.isNotEmpty) 
                 _buildDetailRow('팩스', contact.fax),
               
@@ -727,17 +727,16 @@ class _PhonebookTabState extends State<PhonebookTab> {
             onPressed: () => Navigator.pop(context),
             child: const Text('닫기'),
           ),
-          ElevatedButton.icon(
+          // 전화 걸기 아이콘 버튼 (텍스트 제거)
+          IconButton(
             onPressed: () {
               Navigator.pop(context);
               _quickCall(contact.telephone);
             },
             icon: const Icon(Icons.phone),
-            label: const Text('전화 걸기'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2196F3),
-              foregroundColor: Colors.white,
-            ),
+            color: const Color(0xFF2196F3),
+            tooltip: '전화 걸기',
+            iconSize: 28,
           ),
         ],
       ),
@@ -772,6 +771,49 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 fontWeight: isPrimary ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 전화번호 필드 (통화 아이콘 포함)
+  Widget _buildDetailRowWithCall(String label, String? value, BuildContext context, {bool isPrimary = false}) {
+    if (value == null || value.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: isPrimary ? const Color(0xFF2196F3) : Colors.grey[700],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                fontWeight: isPrimary ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+          // 전화 걸기 아이콘
+          IconButton(
+            icon: const Icon(Icons.phone, size: 18, color: Color(0xFF2196F3)),
+            onPressed: () => _quickCall(value),
+            tooltip: '전화 걸기',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
