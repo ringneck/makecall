@@ -58,16 +58,29 @@ class _ProfileTabState extends State<ProfileTab> {
     }
   }
 
-  // maxExtensions 자동 업데이트 트리거
+  // maxExtensions 자동 업데이트 트리거 (실제 저장된 단말번호 개수로 업데이트)
   Future<void> _triggerMaxExtensionsUpdate() async {
     final authService = context.read<AuthService>();
-    final currentMaxExtensions = authService.currentUserModel?.maxExtensions ?? 1;
+    final userId = authService.currentUser?.uid;
+    
+    if (userId == null) {
+      if (kDebugMode) {
+        debugPrint('⚠️ 사용자 ID가 없어서 maxExtensions 업데이트를 건너뜁니다');
+      }
+      return;
+    }
     
     try {
-      // 현재 값을 그대로 업데이트하여 타임스탬프만 갱신
-      await authService.updateMaxExtensions(currentMaxExtensions);
+      // 실제 저장된 단말번호 개수 가져오기
+      final dbService = DatabaseService();
+      final savedExtensions = await dbService.getMyExtensions(userId).first;
+      final actualCount = savedExtensions.length;
+      
+      // 실제 저장된 개수로 maxExtensions 업데이트
+      await authService.updateMaxExtensions(actualCount);
+      
       if (kDebugMode) {
-        debugPrint('✅ maxExtensions 타임스탬프 업데이트 완료');
+        debugPrint('✅ maxExtensions 업데이트 완료: $actualCount개 (저장된 단말번호 개수 기준)');
       }
     } catch (e) {
       if (kDebugMode) {
