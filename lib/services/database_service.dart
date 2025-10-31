@@ -451,24 +451,68 @@ class DatabaseService {
   // Phonebook 연락처 추가 또는 업데이트
   Future<String> addOrUpdatePhonebookContact(PhonebookContactModel contact) async {
     try {
-      // 동일한 contactId가 있는지 확인
-      final snapshot = await _firestore
+      // 동일한 telephone 값이 있는지 먼저 확인 (우선순위 1)
+      final telephoneSnapshot = await _firestore
+          .collection('phonebook_contacts')
+          .where('userId', isEqualTo: contact.userId)
+          .where('phonebookId', isEqualTo: contact.phonebookId)
+          .where('telephone', isEqualTo: contact.telephone)
+          .get();
+      
+      if (telephoneSnapshot.docs.isNotEmpty) {
+        // 동일한 전화번호가 있으면 업데이트 (즐겨찾기 상태 보존)
+        final docId = telephoneSnapshot.docs.first.id;
+        final existingData = telephoneSnapshot.docs.first.data();
+        final existingIsFavorite = existingData['isFavorite'] as bool? ?? false;
+        
+        // 기존 즐겨찾기 상태를 유지하면서 다른 데이터 업데이트
+        final updatedData = contact.toFirestore();
+        updatedData['isFavorite'] = existingIsFavorite; // 즐겨찾기 상태 보존
+        
+        await _firestore.collection('phonebook_contacts').doc(docId).update(updatedData);
+        
+        if (kDebugMode) {
+          debugPrint('✅ Updated existing contact by telephone: ${contact.telephone} (isFavorite: $existingIsFavorite preserved)');
+        }
+        
+        return docId;
+      }
+      
+      // telephone로 찾지 못했으면 contactId로 확인 (우선순위 2)
+      final contactIdSnapshot = await _firestore
           .collection('phonebook_contacts')
           .where('userId', isEqualTo: contact.userId)
           .where('phonebookId', isEqualTo: contact.phonebookId)
           .where('contactId', isEqualTo: contact.contactId)
           .get();
       
-      if (snapshot.docs.isNotEmpty) {
-        // 기존 문서 업데이트
-        final docId = snapshot.docs.first.id;
-        await _firestore.collection('phonebook_contacts').doc(docId).update(contact.toFirestore());
+      if (contactIdSnapshot.docs.isNotEmpty) {
+        // contactId로 찾았으면 업데이트 (즐겨찾기 상태 보존)
+        final docId = contactIdSnapshot.docs.first.id;
+        final existingData = contactIdSnapshot.docs.first.data();
+        final existingIsFavorite = existingData['isFavorite'] as bool? ?? false;
+        
+        // 기존 즐겨찾기 상태를 유지하면서 다른 데이터 업데이트
+        final updatedData = contact.toFirestore();
+        updatedData['isFavorite'] = existingIsFavorite; // 즐겨찾기 상태 보존
+        
+        await _firestore.collection('phonebook_contacts').doc(docId).update(updatedData);
+        
+        if (kDebugMode) {
+          debugPrint('✅ Updated existing contact by contactId: ${contact.contactId} (isFavorite: $existingIsFavorite preserved)');
+        }
+        
         return docId;
-      } else {
-        // 새 문서 추가
-        final docRef = await _firestore.collection('phonebook_contacts').add(contact.toFirestore());
-        return docRef.id;
       }
+      
+      // 새 문서 추가 (telephone, contactId 모두 없는 경우)
+      final docRef = await _firestore.collection('phonebook_contacts').add(contact.toFirestore());
+      
+      if (kDebugMode) {
+        debugPrint('✅ Added new contact: ${contact.name} (${contact.telephone})');
+      }
+      
+      return docRef.id;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Add/Update phonebook contact error: $e');
