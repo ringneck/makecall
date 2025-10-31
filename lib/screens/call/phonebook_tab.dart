@@ -54,7 +54,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
       }
 
       final apiService = ApiService(
-        baseUrl: userModel!.apiBaseUrl!,
+        baseUrl: userModel!.getApiUrl(useHttps: false),
         companyId: userModel.companyId,
         appKey: userModel.appKey,
       );
