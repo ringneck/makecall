@@ -19,6 +19,7 @@ class ProfileTab extends StatefulWidget {
 
 class _ProfileTabState extends State<ProfileTab> {
   bool _isSearching = false;
+  bool _isRefreshing = false;
   String? _searchError;
   final _phoneNumberController = TextEditingController();
 
@@ -40,6 +41,77 @@ class _ProfileTabState extends State<ProfileTab> {
   void dispose() {
     _phoneNumberController.dispose();
     super.dispose();
+  }
+
+  // 수동 업데이트 핸들러 (Firestore에서 사용자 데이터 새로고침)
+  Future<void> _handleManualRefresh() async {
+    if (_isRefreshing) return;
+    
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    try {
+      final authService = context.read<AuthService>();
+      final userId = authService.currentUser?.uid;
+      
+      if (userId == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 사용자 ID가 없어서 새로고침을 건너뜁니다');
+        }
+        return;
+      }
+
+      // Firestore에서 사용자 데이터 강제 새로고침
+      await authService.refreshUserModel();
+      
+      if (kDebugMode) {
+        debugPrint('✅ 사용자 데이터 새로고침 완료');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 12),
+                Text('정보가 업데이트되었습니다'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 새로고침 실패: $e');
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(child: Text('업데이트 실패: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
+    }
   }
 
   // 타임스탬프 포맷 함수 (한국어 형식)
@@ -200,16 +272,74 @@ class _ProfileTabState extends State<ProfileTab> {
             ),
           ),
           const SizedBox(height: 4),
-          // 마지막 업데이트 타임스탬프 표시
-          if (userModel?.lastMaxExtensionsUpdate != null)
-            Text(
-              _formatUpdateTimestamp(userModel!.lastMaxExtensionsUpdate!),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[600],
+          // 마지막 업데이트 타임스탬프 표시 및 수동 업데이트 버튼
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (userModel?.lastMaxExtensionsUpdate != null)
+                Text(
+                  _formatUpdateTimestamp(userModel!.lastMaxExtensionsUpdate!),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              const SizedBox(width: 8),
+              // 수동 업데이트 버튼
+              InkWell(
+                onTap: _isRefreshing ? null : _handleManualRefresh,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _isRefreshing 
+                        ? Colors.grey[300] 
+                        : const Color(0xFF2196F3).withAlpha(26),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _isRefreshing 
+                          ? Colors.grey[400]! 
+                          : const Color(0xFF2196F3).withAlpha(77),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _isRefreshing
+                          ? SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.grey[600]!,
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              Icons.refresh,
+                              size: 14,
+                              color: const Color(0xFF2196F3),
+                            ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _isRefreshing ? '업데이트 중...' : '새로고침',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _isRefreshing 
+                              ? Colors.grey[600] 
+                              : const Color(0xFF2196F3),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
+          ),
           const SizedBox(height: 24),
           const Divider(),
           
