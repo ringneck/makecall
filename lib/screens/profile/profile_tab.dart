@@ -1035,11 +1035,44 @@ class _ProfileTabState extends State<ProfileTab> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 기본 정보
               _buildDetailRow('단말번호', extension.extension),
               _buildDetailRow('이름', extension.name),
+              _buildDetailRow('계정코드', extension.accountCode),
+              
+              // 외부발신 정보
+              if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty)
+                const Divider(height: 24),
+              if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    '외부발신 정보',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF4CAF50),
+                    ),
+                  ),
+                ),
+              _buildDetailRow('외부발신 이름', extension.externalCidName),
+              _buildDetailRow('외부발신 번호', extension.externalCidNumber),
+              
+              // 시스템 정보
+              const Divider(height: 24),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  '시스템 정보',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
               _buildDetailRow('Extension ID', extension.extensionId),
               _buildDetailRow('COS ID', extension.classOfServicesId),
-              const Divider(height: 24),
               _buildDetailRow('User ID', extension.userId),
               _buildDetailRow('저장 시간', extension.createdAt.toString().substring(0, 19)),
             ],
