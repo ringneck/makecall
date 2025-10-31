@@ -166,16 +166,26 @@ class _PhonebookTabState extends State<PhonebookTab> {
       }
 
       // 3. Firestore에 저장
+      int totalContactsSaved = 0;
       for (final phonebookData in internalPhonebooks) {
         final phonebook = PhonebookModel.fromApi(phonebookData, userId);
         await _databaseService.addOrUpdatePhonebook(phonebook);
 
+        if (kDebugMode) {
+          debugPrint('📚 Phonebook 저장: ${phonebook.name} (ID: ${phonebook.phonebookId})');
+        }
+
         // 4. 각 phonebook의 연락처 불러오기
-        await _loadPhonebookContacts(
+        final contactCount = await _loadPhonebookContacts(
           phonebook.phonebookId,
           userId,
           apiService,
         );
+        totalContactsSaved += contactCount;
+      }
+
+      if (kDebugMode) {
+        debugPrint('✅ 총 저장된 연락처 수: $totalContactsSaved');
       }
 
       if (mounted) {
@@ -214,7 +224,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
   }
 
   // 특정 Phonebook의 연락처 불러오기
-  Future<void> _loadPhonebookContacts(
+  Future<int> _loadPhonebookContacts(
     String phonebookId,
     String userId,
     ApiService apiService,
@@ -227,10 +237,11 @@ class _PhonebookTabState extends State<PhonebookTab> {
       final contacts = await apiService.getPhonebookContacts(phonebookId);
 
       if (kDebugMode) {
-        debugPrint('📞 ${contacts.length}개 연락처 발견');
+        debugPrint('📞 API에서 ${contacts.length}개 연락처 발견');
       }
 
       // Firestore에 저장
+      int savedCount = 0;
       for (final contactData in contacts) {
         final contact = PhonebookContactModel.fromApi(
           contactData,
@@ -238,16 +249,24 @@ class _PhonebookTabState extends State<PhonebookTab> {
           phonebookId,
         );
         await _databaseService.addOrUpdatePhonebookContact(contact);
+        savedCount++;
         
         if (kDebugMode) {
-          debugPrint('✅ 연락처 저장: ${contact.name} (${contact.telephone}) - ${contact.categoryDisplay}');
+          debugPrint('  ✅ [$savedCount/${contacts.length}] ${contact.name} (${contact.telephone}) - ${contact.categoryDisplay}');
         }
       }
+
+      if (kDebugMode) {
+        debugPrint('✅ Phonebook $phonebookId: 총 $savedCount개 연락처 저장 완료');
+      }
+
+      return savedCount;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Phonebook 연락처 로드 오류: $e');
       }
       // 개별 phonebook 연락처 로드 실패는 전체 프로세스를 중단하지 않음
+      return 0;
     }
   }
 
@@ -367,6 +386,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
               var contacts = snapshot.data ?? [];
 
+              if (kDebugMode) {
+                debugPrint('📋 Firestore에서 가져온 총 연락처 수: ${contacts.length}');
+              }
+
               // 검색 필터링
               if (_searchController.text.isNotEmpty) {
                 final query = _searchController.text.toLowerCase();
@@ -376,6 +399,32 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       translatedName.toLowerCase().contains(query) ||
                       contact.telephone.contains(query);
                 }).toList();
+                
+                if (kDebugMode) {
+                  debugPrint('🔍 검색 후 연락처 수: ${contacts.length}');
+                }
+              }
+
+              // 정렬: 기능번호(Feature Codes)를 맨 위에, 그 다음 단말번호(Extensions)
+              contacts.sort((a, b) {
+                // Feature Codes를 우선 정렬
+                if (a.category == 'Feature Codes' && b.category != 'Feature Codes') {
+                  return -1; // a를 앞으로
+                }
+                if (a.category != 'Feature Codes' && b.category == 'Feature Codes') {
+                  return 1; // b를 앞으로
+                }
+                
+                // 같은 카테고리 내에서는 이름순 정렬
+                return a.name.compareTo(b.name);
+              });
+
+              if (kDebugMode) {
+                debugPrint('✅ 정렬 완료 - 표시할 연락처 수: ${contacts.length}');
+                if (contacts.isNotEmpty) {
+                  debugPrint('📌 첫 번째 연락처: ${contacts.first.name} (${contacts.first.category})');
+                  debugPrint('📌 마지막 연락처: ${contacts.last.name} (${contacts.last.category})');
+                }
               }
 
               if (contacts.isEmpty) {
@@ -409,10 +458,19 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 );
               }
 
+              if (kDebugMode) {
+                debugPrint('🎨 ListView.builder 렌더링 시작 - itemCount: ${contacts.length}');
+              }
+
               return ListView.builder(
                 itemCount: contacts.length,
                 itemBuilder: (context, index) {
                   final contact = contacts[index];
+                  
+                  if (kDebugMode && index < 5) {
+                    debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
+                  }
+                  
                   return _buildContactListTile(contact);
                 },
               );
