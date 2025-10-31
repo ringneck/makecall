@@ -1045,6 +1045,24 @@ class _ProfileTabState extends State<ProfileTab> {
               _buildDetailRow('외부발신 이름', extension.externalCidName),
               _buildDetailRow('외부발신 번호', extension.externalCidNumber),
               
+              // SIP 정보
+              if (extension.sipUserId != null && extension.sipUserId!.isNotEmpty)
+                const Divider(height: 24),
+              if (extension.sipUserId != null && extension.sipUserId!.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'SIP 정보',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2196F3),
+                    ),
+                  ),
+                ),
+              _buildDetailRow('SIP user id', extension.sipUserId),
+              _buildDetailRow('SIP secret', extension.sipSecret),
+              
               // 시스템 정보
               const Divider(height: 24),
               const Padding(

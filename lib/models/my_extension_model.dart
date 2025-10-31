@@ -9,6 +9,8 @@ class MyExtensionModel {
   final String? externalCidName; // 외부발신 이름 (파싱됨)
   final String? externalCidNumber; // 외부발신 번호 (파싱됨)
   final String? accountCode; // 계정 코드
+  final String? sipUserId; // SIP user id (devices.user)
+  final String? sipSecret; // SIP secret (devices.secret)
   final DateTime createdAt; // 생성 시간
   
   // API 서버 설정 (각 단말번호마다 개별 설정 가능)
@@ -29,6 +31,8 @@ class MyExtensionModel {
     this.externalCidName,
     this.externalCidNumber,
     this.accountCode,
+    this.sipUserId,
+    this.sipSecret,
     required this.createdAt,
     this.apiBaseUrl,
     this.companyId,
@@ -50,6 +54,8 @@ class MyExtensionModel {
       externalCidName: data['externalCidName'] as String?,
       externalCidNumber: data['externalCidNumber'] as String?,
       accountCode: data['accountCode'] as String?,
+      sipUserId: data['sipUserId'] as String?,
+      sipSecret: data['sipSecret'] as String?,
       createdAt: data['createdAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(data['createdAt'] as int)
           : DateTime.now(),
@@ -73,6 +79,8 @@ class MyExtensionModel {
       'externalCidName': externalCidName,
       'externalCidNumber': externalCidNumber,
       'accountCode': accountCode,
+      'sipUserId': sipUserId,
+      'sipSecret': sipSecret,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'apiBaseUrl': apiBaseUrl,
       'companyId': companyId,
@@ -106,6 +114,18 @@ class MyExtensionModel {
       }
     }
     
+    // devices에서 SIP user와 secret 추출
+    String? sipUser;
+    String? sipSecretValue;
+    
+    if (apiData['devices'] is List && (apiData['devices'] as List).isNotEmpty) {
+      final firstDevice = (apiData['devices'] as List).first;
+      if (firstDevice is Map<String, dynamic>) {
+        sipUser = firstDevice['user']?.toString();
+        sipSecretValue = firstDevice['secret']?.toString();
+      }
+    }
+    
     return MyExtensionModel(
       id: '', // Firestore에서 자동 생성
       userId: userId,
@@ -117,6 +137,8 @@ class MyExtensionModel {
       externalCidName: parsedName,
       externalCidNumber: parsedNumber,
       accountCode: apiData['accountcode']?.toString(),
+      sipUserId: sipUser,
+      sipSecret: sipSecretValue,
       createdAt: DateTime.now(),
       // API 설정은 나중에 사용자가 수동으로 설정
       apiBaseUrl: null,
@@ -183,6 +205,8 @@ class MyExtensionModel {
     String? externalCidName,
     String? externalCidNumber,
     String? accountCode,
+    String? sipUserId,
+    String? sipSecret,
     DateTime? createdAt,
     String? apiBaseUrl,
     String? companyId,
@@ -201,6 +225,8 @@ class MyExtensionModel {
       externalCidName: externalCidName ?? this.externalCidName,
       externalCidNumber: externalCidNumber ?? this.externalCidNumber,
       accountCode: accountCode ?? this.accountCode,
+      sipUserId: sipUserId ?? this.sipUserId,
+      sipSecret: sipSecret ?? this.sipSecret,
       createdAt: createdAt ?? this.createdAt,
       apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
       companyId: companyId ?? this.companyId,
