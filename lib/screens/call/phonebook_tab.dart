@@ -802,54 +802,60 @@ class _PhonebookTabState extends State<PhonebookTab> {
             ),
           ],
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 전화번호 정보 (우선 표시) - 통화 아이콘 포함
-              _buildDetailRowWithActions('전화번호', contact.telephone, context, isPrimary: true),
-              
-              // 휴대전화
-              if (contact.mobileNumber != null && contact.mobileNumber!.isNotEmpty) ...[
-                _buildDetailRowWithActions('휴대전화', contact.mobileNumber, context, showSms: true),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.9,
+            minHeight: 100,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 전화번호 정보 (우선 표시) - 통화 아이콘 포함
+                _buildDetailRowWithActions('전화번호', contact.telephone, context, isPrimary: true),
+                
+                // 휴대전화
+                if (contact.mobileNumber != null && contact.mobileNumber!.isNotEmpty) ...[
+                  _buildDetailRowWithActions('휴대전화', contact.mobileNumber, context, showSms: true),
+                ],
+                
+                // 집 전화
+                if (contact.home != null && contact.home!.isNotEmpty) ...[
+                  _buildDetailRowWithActions('집 전화', contact.home, context),
+                ],
+                
+                // 팩스
+                if (contact.fax != null && contact.fax!.isNotEmpty) ...[
+                  _buildDetailRowWithCopy('팩스', contact.fax),
+                ],
+                
+                // 이메일
+                if (contact.email != null && contact.email!.isNotEmpty) ...[
+                  _buildDetailRowWithEmail('이메일', contact.email),
+                ],
+                
+                // 회사
+                if (contact.company != null && contact.company!.isNotEmpty) ...[
+                  _buildDetailRow('회사', contact.company),
+                ],
+                
+                // 직책
+                if (contact.title != null && contact.title!.isNotEmpty) ...[
+                  _buildDetailRow('직책', contact.title),
+                ],
+                
+                // 회사 주소
+                if (contact.businessAddress != null && contact.businessAddress!.isNotEmpty) ...[
+                  _buildDetailRow('회사 주소', contact.businessAddress),
+                ],
+                
+                // 집 주소
+                if (contact.homeAddress != null && contact.homeAddress!.isNotEmpty) ...[
+                  _buildDetailRow('집 주소', contact.homeAddress),
+                ],
               ],
-              
-              // 집 전화
-              if (contact.home != null && contact.home!.isNotEmpty) ...[
-                _buildDetailRowWithActions('집 전화', contact.home, context),
-              ],
-              
-              // 팩스
-              if (contact.fax != null && contact.fax!.isNotEmpty) ...[
-                _buildDetailRowWithCopy('팩스', contact.fax),
-              ],
-              
-              // 이메일
-              if (contact.email != null && contact.email!.isNotEmpty) ...[
-                _buildDetailRowWithEmail('이메일', contact.email),
-              ],
-              
-              // 회사
-              if (contact.company != null && contact.company!.isNotEmpty) ...[
-                _buildDetailRow('회사', contact.company),
-              ],
-              
-              // 직책
-              if (contact.title != null && contact.title!.isNotEmpty) ...[
-                _buildDetailRow('직책', contact.title),
-              ],
-              
-              // 회사 주소
-              if (contact.businessAddress != null && contact.businessAddress!.isNotEmpty) ...[
-                _buildDetailRow('회사 주소', contact.businessAddress),
-              ],
-              
-              // 집 주소
-              if (contact.homeAddress != null && contact.homeAddress!.isNotEmpty) ...[
-                _buildDetailRow('집 주소', contact.homeAddress),
-              ],
-            ],
+            ),
           ),
         ),
         actions: [
