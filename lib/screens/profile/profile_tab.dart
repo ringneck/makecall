@@ -616,19 +616,6 @@ class _ProfileTabState extends State<ProfileTab> {
                                       
                                       // 기본 정보
                                       _buildInfoRow(
-                                        Icons.vpn_key,
-                                        'Extension ID',
-                                        ext.extensionId,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      _buildInfoRow(
-                                        Icons.class_,
-                                        'COS ID',
-                                        ext.classOfServicesId,
-                                        highlight: true,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      _buildInfoRow(
                                         Icons.access_time,
                                         '저장 시간',
                                         ext.createdAt.toString().substring(0, 19),
