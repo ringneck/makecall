@@ -5,11 +5,13 @@ import '../services/database_service.dart';
 class AddContactDialog extends StatefulWidget {
   final String userId;
   final ContactModel? contact; // null이면 추가, 있으면 수정
+  final String? initialPhoneNumber; // 초기 전화번호 (최근통화에서 추가시)
 
   const AddContactDialog({
     super.key,
     required this.userId,
     this.contact,
+    this.initialPhoneNumber,
   });
 
   @override
@@ -30,12 +32,16 @@ class _AddContactDialogState extends State<AddContactDialog> {
   void initState() {
     super.initState();
     if (widget.contact != null) {
+      // 수정 모드
       _nameController.text = widget.contact!.name;
       _phoneController.text = widget.contact!.phoneNumber;
       _emailController.text = widget.contact!.email ?? '';
       _companyController.text = widget.contact!.company ?? '';
       _notesController.text = widget.contact!.notes ?? '';
       _isFavorite = widget.contact!.isFavorite;
+    } else if (widget.initialPhoneNumber != null) {
+      // 최근통화에서 추가 - 전화번호 미리 채우기
+      _phoneController.text = widget.initialPhoneNumber!;
     }
   }
 

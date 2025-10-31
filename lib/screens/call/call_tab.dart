@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/mobile_contacts_service.dart';
@@ -238,9 +239,24 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                     ),
                 ],
               ),
-              trailing: IconButton(
-                icon: const Icon(Icons.phone, color: Color(0xFF2196F3)),
-                onPressed: () => _showCallMethodDialog(call.phoneNumber),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 연락처 추가 버튼
+                  IconButton(
+                    icon: const Icon(Icons.person_add, size: 20),
+                    color: Colors.green,
+                    onPressed: () => _showAddContactFromCallDialog(call),
+                    tooltip: '연락처 추가',
+                  ),
+                  // 전화 걸기 버튼
+                  IconButton(
+                    icon: const Icon(Icons.phone),
+                    color: const Color(0xFF2196F3),
+                    onPressed: () => _showCallMethodDialog(call.phoneNumber),
+                    tooltip: '전화 걸기',
+                  ),
+                ],
               ),
             );
           },
@@ -623,6 +639,16 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
       return;
     }
 
+    // 권한 확인
+    final hasPermission = await _mobileContactsService.hasContactsPermission();
+    if (!hasPermission) {
+      // 권한이 없으면 안내 다이얼로그 표시
+      if (mounted) {
+        _showPermissionRequestDialog();
+      }
+      return;
+    }
+
     setState(() => _isLoadingDeviceContacts = true);
 
     try {
@@ -638,7 +664,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
       if (contacts.isEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('장치 연락처를 불러올 수 없습니다. 권한을 확인해주세요.'),
+            content: Text('장치 연락처를 불러올 수 없습니다.'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -656,6 +682,45 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     }
   }
 
+  /// 권한 요청 다이얼로그 표시
+  void _showPermissionRequestDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.contacts, color: Color(0xFF2196F3)),
+            SizedBox(width: 12),
+            Text('연락처 권한 필요'),
+          ],
+        ),
+        content: const Text(
+          '장치 연락처를 불러오려면 연락처 접근 권한이 필요합니다.\n\n'
+          '설정으로 이동하여 연락처 권한을 허용해주세요.',
+          style: TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              // 설정으로 이동
+              await openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('설정 열기'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddContactDialog(String userId) {
     showDialog(
       context: context,
@@ -669,6 +734,31 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
       builder: (context) => AddContactDialog(
         userId: contact.userId,
         contact: contact,
+      ),
+    );
+  }
+
+  /// 최근통화에서 연락처 추가 다이얼로그
+  void _showAddContactFromCallDialog(CallHistoryModel call) {
+    final userId = context.read<AuthService>().currentUser?.uid ?? '';
+    
+    // 이미 이름이 있는 경우 (연락처가 있음)
+    if (call.contactName != null && call.contactName!.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${call.contactName}은(는) 이미 연락처에 등록되어 있습니다'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 전화번호만 있는 경우 - 연락처 추가 다이얼로그 표시
+    showDialog(
+      context: context,
+      builder: (context) => AddContactDialog(
+        userId: userId,
+        initialPhoneNumber: call.phoneNumber, // 전화번호 미리 채우기
       ),
     );
   }
