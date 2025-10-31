@@ -108,10 +108,43 @@ class _PhonebookTabState extends State<PhonebookTab> {
   @override
   void initState() {
     super.initState();
-    // 화면 진입 시 자동으로 phonebook 목록 불러오기
+    // 화면 진입 시 DB에 데이터가 없으면 자동으로 API 호출
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadPhonebooks();
+      _checkAndLoadPhonebooks();
     });
+  }
+
+  // DB에 데이터가 있는지 확인하고, 없으면 API 호출
+  Future<void> _checkAndLoadPhonebooks() async {
+    try {
+      final userId = context.read<AuthService>().currentUser?.uid ?? '';
+      if (userId.isEmpty) return;
+
+      // Firestore에서 연락처 개수 확인
+      final snapshot = await _databaseService
+          .getAllPhonebookContacts(userId)
+          .first;
+
+      if (kDebugMode) {
+        debugPrint('📊 Firestore에 저장된 연락처 수: ${snapshot.length}');
+      }
+
+      // 데이터가 없으면 API 호출
+      if (snapshot.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('📭 데이터가 없습니다. API 호출을 시작합니다...');
+        }
+        await _loadPhonebooks();
+      } else {
+        if (kDebugMode) {
+          debugPrint('✅ 기존 데이터 사용 (${snapshot.length}개)');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 데이터 확인 오류: $e');
+      }
+    }
   }
 
   @override
@@ -604,16 +637,28 @@ class _PhonebookTabState extends State<PhonebookTab> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 전화번호 정보 (우선 표시)
               _buildDetailRow('전화번호', contact.telephone, isPrimary: true),
-              if (contact.mobile != null) _buildDetailRow('휴대전화', contact.mobile),
-              if (contact.home != null) _buildDetailRow('집 전화', contact.home),
-              if (contact.fax != null) _buildDetailRow('팩스', contact.fax),
-              if (contact.email != null) _buildDetailRow('이메일', contact.email),
-              if (contact.company != null) _buildDetailRow('회사', contact.company),
-              if (contact.title != null) _buildDetailRow('직책', contact.title),
-              if (contact.businessAddress != null)
+              if (contact.mobile != null && contact.mobile!.isNotEmpty) 
+                _buildDetailRow('휴대전화', contact.mobile),
+              if (contact.home != null && contact.home!.isNotEmpty) 
+                _buildDetailRow('집 전화', contact.home),
+              if (contact.fax != null && contact.fax!.isNotEmpty) 
+                _buildDetailRow('팩스', contact.fax),
+              
+              // 이메일
+              if (contact.email != null && contact.email!.isNotEmpty) 
+                _buildDetailRow('이메일', contact.email),
+              
+              // 회사 정보
+              if (contact.company != null && contact.company!.isNotEmpty) 
+                _buildDetailRow('회사', contact.company),
+              if (contact.title != null && contact.title!.isNotEmpty) 
+                _buildDetailRow('직책', contact.title),
+              if (contact.businessAddress != null && contact.businessAddress!.isNotEmpty)
                 _buildDetailRow('회사 주소', contact.businessAddress),
-              if (contact.homeAddress != null) _buildDetailRow('집 주소', contact.homeAddress),
+              if (contact.homeAddress != null && contact.homeAddress!.isNotEmpty) 
+                _buildDetailRow('집 주소', contact.homeAddress),
             ],
           ),
         ),
