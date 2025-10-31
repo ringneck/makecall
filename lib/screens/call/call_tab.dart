@@ -5,6 +5,7 @@ import '../../services/database_service.dart';
 import '../../services/mobile_contacts_service.dart';
 import '../../models/contact_model.dart';
 import '../../models/call_history_model.dart';
+import '../../models/phonebook_model.dart';
 import 'dialpad_screen.dart';
 import 'phonebook_tab.dart';
 import '../../widgets/call_method_dialog.dart';
@@ -74,49 +75,99 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
   Widget _buildFavoritesTab() {
     final userId = context.watch<AuthService>().currentUser?.uid ?? '';
 
+    // 연락처와 단말번호 즐겨찾기를 모두 표시
     return StreamBuilder<List<ContactModel>>(
       stream: _databaseService.getFavoriteContacts(userId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+      builder: (context, contactSnapshot) {
+        return StreamBuilder<List<PhonebookContactModel>>(
+          stream: _databaseService.getFavoritePhonebookContacts(userId),
+          builder: (context, phonebookSnapshot) {
+            if (contactSnapshot.connectionState == ConnectionState.waiting ||
+                phonebookSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        final favorites = snapshot.data ?? [];
+            final contactFavorites = contactSnapshot.data ?? [];
+            final phonebookFavorites = phonebookSnapshot.data ?? [];
+            
+            final totalCount = contactFavorites.length + phonebookFavorites.length;
 
-        if (favorites.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            if (totalCount == 0) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.star_border, size: 80, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '즐겨찾기가 없습니다',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '연락처나 단말번호에서 별 아이콘을 눌러\n즐겨찾기에 추가하세요',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView(
               children: [
-                Icon(Icons.star_border, size: 80, color: Colors.grey[400]),
-                const SizedBox(height: 16),
-                const Text(
-                  '즐겨찾기가 없습니다',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
+                // 단말번호 즐겨찾기 섹션
+                if (phonebookFavorites.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.phone_android, size: 20, color: Colors.green),
+                        const SizedBox(width: 8),
+                        Text(
+                          '단말번호 (${phonebookFavorites.length})',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '연락처에서 별 아이콘을 눌러 즐겨찾기에 추가하세요',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
+                  ...phonebookFavorites.map((contact) => _buildPhonebookContactListTile(contact)),
+                ],
+                
+                // 연락처 즐겨찾기 섹션
+                if (contactFavorites.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.contacts, size: 20, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Text(
+                          '연락처 (${contactFavorites.length})',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  ...contactFavorites.map((contact) => _buildContactListTile(contact)),
+                ],
               ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          itemCount: favorites.length,
-          itemBuilder: (context, index) {
-            final contact = favorites[index];
-            return _buildContactListTile(contact);
+            );
           },
         );
       },
@@ -669,5 +720,72 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
         );
       }
     }
+  }
+
+  // 단말번호 연락처 리스트 타일
+  Widget _buildPhonebookContactListTile(PhonebookContactModel contact) {
+    Color categoryColor = Colors.blue;
+    IconData categoryIcon = Icons.phone;
+
+    if (contact.category == 'Extensions') {
+      categoryColor = Colors.green;
+      categoryIcon = Icons.phone_android;
+    } else if (contact.category == 'Feature Codes') {
+      categoryColor = Colors.orange;
+      categoryIcon = Icons.star;
+    }
+
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: Colors.amber[100],
+        child: Icon(Icons.star, color: Colors.amber[700]),
+      ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              contact.name,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: categoryColor.withAlpha(26),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: categoryColor.withAlpha(77)),
+            ),
+            child: Text(
+              contact.categoryDisplay,
+              style: TextStyle(
+                fontSize: 11,
+                color: categoryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            contact.telephone,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          if (contact.company != null)
+            Text(
+              contact.company!,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+        ],
+      ),
+      trailing: IconButton(
+        icon: const Icon(Icons.phone, color: Color(0xFF2196F3)),
+        onPressed: () => _showCallMethodDialog(contact.telephone),
+        tooltip: '전화 걸기',
+      ),
+      onTap: () => _showCallMethodDialog(contact.telephone),
+    );
   }
 }
