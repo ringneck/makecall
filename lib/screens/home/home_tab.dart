@@ -36,7 +36,9 @@ class _HomeTabState extends State<HomeTab> {
       appBar: AppBar(
         title: const Text('MakeCall'),
       ),
-      body: StreamBuilder<List<MyExtensionModel>>(
+      body: SafeArea(
+        bottom: true,
+        child: StreamBuilder<List<MyExtensionModel>>(
         stream: _databaseService.getMyExtensions(userId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -95,52 +97,67 @@ class _HomeTabState extends State<HomeTab> {
           }
 
           if (extensions.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.phone_disabled,
-                    size: 80,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    '저장된 단말번호가 없습니다',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey,
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '내 정보 탭에서 단말번호를 조회하고 저장해주세요.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // 내 정보 탭으로 이동 (인덱스 2)
-                      widget.onNavigateToProfile?.call();
-                    },
-                    icon: const Icon(Icons.person),
-                    label: const Text('내 정보로 이동'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.phone_disabled,
+                              size: 80,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              '저장된 단말번호가 없습니다',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              '내 정보 탭에서 단말번호를 조회하고 저장해주세요.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                // 내 정보 탭으로 이동 (인덱스 2)
+                                widget.onNavigateToProfile?.call();
+                              },
+                              icon: const Icon(Icons.person),
+                              label: const Text('내 정보로 이동'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2196F3),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             );
           }
 
@@ -148,98 +165,116 @@ class _HomeTabState extends State<HomeTab> {
           final apiBaseUrl = authService.currentUserModel?.apiBaseUrl ?? '설정 필요';
           final hasApiConfig = authService.currentUserModel?.apiBaseUrl != null;
 
-          return Column(
-            children: [
-              // 단말번호 선택 드롭다운
-              if (extensions.length > 1)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFF2196F3).withAlpha(77),
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(13),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                  ),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        // 단말번호 선택 드롭다운
+                        if (extensions.length > 1)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFF2196F3).withAlpha(77),
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withAlpha(13),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<int>(
+                                  value: _currentPage,
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2196F3)),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                  onChanged: (int? newValue) {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _currentPage = newValue;
+                                      });
+                                      // 선택된 단말번호 업데이트
+                                      context.read<SelectedExtensionProvider>().setSelectedExtension(
+                                            extensions[newValue],
+                                          );
+                                      if (kDebugMode) {
+                                        debugPrint('📄 Dropdown changed to index: $newValue');
+                                        debugPrint('   - Extension: ${extensions[newValue].extension}');
+                                        debugPrint('   - Name: ${extensions[newValue].name}');
+                                      }
+                                    }
+                                  },
+                                  items: extensions.asMap().entries.map((entry) {
+                                    final index = entry.key;
+                                    final extension = entry.value;
+                                    return DropdownMenuItem<int>(
+                                      value: index,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.phone_in_talk,
+                                            size: 20,
+                                            color: const Color(0xFF2196F3),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              extension.name.isNotEmpty 
+                                                  ? '${extension.name} (${extension.extension})'
+                                                  : extension.extension,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        
+                        // 단말번호 정보 카드
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildExtensionCard(
+                              extensions[_currentPage], 
+                              _currentPage,
+                              apiBaseUrl: apiBaseUrl,
+                              hasApiConfig: hasApiConfig,
+                              key: ValueKey(extensions[_currentPage].id),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: _currentPage,
-                        isExpanded: true,
-                        icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2196F3)),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                        onChanged: (int? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _currentPage = newValue;
-                            });
-                            // 선택된 단말번호 업데이트
-                            context.read<SelectedExtensionProvider>().setSelectedExtension(
-                                  extensions[newValue],
-                                );
-                            if (kDebugMode) {
-                              debugPrint('📄 Dropdown changed to index: $newValue');
-                              debugPrint('   - Extension: ${extensions[newValue].extension}');
-                              debugPrint('   - Name: ${extensions[newValue].name}');
-                            }
-                          }
-                        },
-                        items: extensions.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final extension = entry.value;
-                          return DropdownMenuItem<int>(
-                            value: index,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.phone_in_talk,
-                                  size: 20,
-                                  color: const Color(0xFF2196F3),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    extension.name.isNotEmpty 
-                                        ? '${extension.name} (${extension.extension})'
-                                        : extension.extension,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
                   ),
                 ),
-              
-              // 단말번호 정보 카드
-              Expanded(
-                child: _buildExtensionCard(
-                  extensions[_currentPage], 
-                  _currentPage,
-                  apiBaseUrl: apiBaseUrl,
-                  hasApiConfig: hasApiConfig,
-                  key: ValueKey(extensions[_currentPage].id),
-                ),
-              ),
-            ],
+              );
+            },
           );
         },
+        ),
       ),
     );
   }
@@ -276,7 +311,7 @@ class _HomeTabState extends State<HomeTab> {
     
     return Card(
       key: key,
-        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         elevation: 8,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -293,8 +328,11 @@ class _HomeTabState extends State<HomeTab> {
               ],
             ),
           ),
-          child: Column(
-            children: [
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               // API Base URL을 맨 위에 크게 표시
               Container(
                 width: double.infinity,
@@ -345,13 +383,11 @@ class _HomeTabState extends State<HomeTab> {
               ),
               
               // 중앙 단말번호 정보
-              Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                         // 외부발신 정보 카드
                         if ((extension.externalCidName != null && extension.externalCidName!.isNotEmpty) ||
                             (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty)) ...[
@@ -493,12 +529,11 @@ class _HomeTabState extends State<HomeTab> {
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       );
