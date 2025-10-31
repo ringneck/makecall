@@ -770,10 +770,19 @@ class _PhonebookTabState extends State<PhonebookTab> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
         title: Row(
           children: [
             Expanded(
-              child: Text(translatedName),
+              child: Text(
+                translatedName,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -915,7 +924,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: isPrimary ? const Color(0xFF2196F3) : Colors.grey[700],
+                color: isPrimary ? const Color(0xFF2196F3) : const Color(0xFF424242),
               ),
             ),
           ),
@@ -950,7 +959,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: isPrimary ? const Color(0xFF2196F3) : Colors.grey[700],
+                color: isPrimary ? const Color(0xFF2196F3) : const Color(0xFF424242),
               ),
             ),
           ),
@@ -1010,10 +1019,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
             width: 90,
             child: Text(
               '$label:',
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: Colors.grey[700],
+                color: Color(0xFF424242),
               ),
             ),
           ),
@@ -1052,10 +1061,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
             width: 90,
             child: Text(
               '$label:',
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: Colors.grey[700],
+                color: Color(0xFF424242),
               ),
             ),
           ),
