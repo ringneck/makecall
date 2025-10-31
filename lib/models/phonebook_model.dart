@@ -151,13 +151,22 @@ class PhonebookContactModel {
       categoryDisplay = '기능번호';
     }
 
+    // contactId 생성: API id가 있으면 사용, 없으면 전화번호 기반으로 생성
+    final apiId = apiData['id']?.toString() ?? '';
+    final telephone = apiData['telephone']?.toString() ?? '';
+    
+    // 고유 contactId 생성: phonebookId + telephone 조합 (전화번호는 고유함)
+    final contactId = apiId.isNotEmpty 
+        ? apiId 
+        : '${phonebookId}_$telephone';
+
     return PhonebookContactModel(
       id: '',
       userId: userId,
       phonebookId: phonebookId,
-      contactId: apiData['id']?.toString() ?? '',
+      contactId: contactId,
       name: apiData['name']?.toString() ?? '',
-      telephone: apiData['telephone']?.toString() ?? '',
+      telephone: telephone,
       category: category,
       categoryDisplay: categoryDisplay,
       email: apiData['email']?.toString(),
