@@ -608,8 +608,13 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: categoryColor.withAlpha(51),
-        child: Icon(categoryIcon, color: categoryColor),
+        backgroundColor: contact.isFavorite
+            ? Colors.amber[100]
+            : categoryColor.withAlpha(51),
+        child: Icon(
+          contact.isFavorite ? Icons.star : categoryIcon,
+          color: contact.isFavorite ? Colors.amber[700] : categoryColor,
+        ),
       ),
       title: Row(
         children: [
@@ -657,13 +662,72 @@ class _PhonebookTabState extends State<PhonebookTab> {
             ),
         ],
       ),
-      trailing: IconButton(
-        icon: const Icon(Icons.phone, color: Color(0xFF2196F3)),
-        onPressed: () => _quickCall(contact.telephone),
-        tooltip: '빠른 발신',
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 즐겨찾기 토글 버튼
+          IconButton(
+            icon: Icon(
+              contact.isFavorite ? Icons.star : Icons.star_border,
+              color: contact.isFavorite ? Colors.amber : Colors.grey,
+            ),
+            onPressed: () => _toggleFavorite(contact),
+            tooltip: contact.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가',
+          ),
+          // 전화 걸기 버튼
+          IconButton(
+            icon: const Icon(Icons.phone, color: Color(0xFF2196F3)),
+            onPressed: () => _quickCall(contact.telephone),
+            tooltip: '빠른 발신',
+          ),
+        ],
       ),
       onTap: () => _showContactDetail(contact),
     );
+  }
+
+  // 즐겨찾기 토글 (연락처와 동일한 동작)
+  Future<void> _toggleFavorite(PhonebookContactModel contact) async {
+    try {
+      await _databaseService.togglePhonebookContactFavorite(
+        contact.id,
+        contact.isFavorite,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  contact.isFavorite ? Icons.star_border : Icons.star,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  contact.isFavorite
+                      ? '즐겨찾기에서 제거되었습니다'
+                      : '즐겨찾기에 추가되었습니다',
+                ),
+              ],
+            ),
+            backgroundColor: contact.isFavorite ? Colors.grey[700] : Colors.amber[700],
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('즐겨찾기 변경 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // 빠른 발신
