@@ -501,9 +501,23 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 }
               }
 
-              // 정렬: 기능번호(Feature Codes)를 맨 위에, 그 다음 단말번호(Extensions)
+              // 정렬: 에코테스트 최우선, 그 다음 기능번호(Feature Codes), 마지막 단말번호(Extensions)
               contacts.sort((a, b) {
-                // Feature Codes를 우선 정렬
+                // 에코테스트 이름 확인 (영어/한글 모두 고려)
+                final aIsEchoTest = a.name.toLowerCase().contains('echo test') || 
+                                   a.name.contains('에코테스트');
+                final bIsEchoTest = b.name.toLowerCase().contains('echo test') || 
+                                   b.name.contains('에코테스트');
+                
+                // 에코테스트를 최우선 정렬
+                if (aIsEchoTest && !bIsEchoTest) {
+                  return -1; // a를 맨 앞으로
+                }
+                if (!aIsEchoTest && bIsEchoTest) {
+                  return 1; // b를 맨 앞으로
+                }
+                
+                // 둘 다 에코테스트가 아닌 경우, Feature Codes 우선 정렬
                 if (a.category == 'Feature Codes' && b.category != 'Feature Codes') {
                   return -1; // a를 앞으로
                 }
