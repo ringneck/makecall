@@ -752,7 +752,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
     );
   }
 
-  // 상세 정보 보기
+  // 상세 정보 보기 - Modal Bottom Sheet (Material Design 3)
   void _showContactDetail(PhonebookContactModel contact) {
     // 이름 번역
     final translatedName = _translateName(contact.name);
@@ -767,150 +767,328 @@ class _PhonebookTabState extends State<PhonebookTab> {
       debugPrint('   📋 title: ${contact.title}');
     }
     
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                translatedName,
-                style: const TextStyle(
-                  color: Colors.black87,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: (contact.category == 'Extensions' ? Colors.green : Colors.orange)
-                    .withAlpha(26),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                contact.categoryDisplay,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: contact.category == 'Extensions' ? Colors.green : Colors.orange,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.9,
-            minHeight: 100,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            translatedName,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: (contact.category == 'Extensions' ? Colors.green : Colors.orange).withAlpha(26),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              contact.categoryDisplay,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: contact.category == 'Extensions' ? Colors.green : Colors.orange,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 즐겨찾기 버튼
+                    IconButton(
+                      onPressed: () async {
+                        try {
+                          await _databaseService.togglePhonebookContactFavorite(
+                            contact.id,
+                            contact.isFavorite,
+                          );
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  contact.isFavorite ? '즐겨찾기에서 제거되었습니다' : '즐겨찾기에 추가되었습니다',
+                                ),
+                                duration: const Duration(seconds: 2),
+                                backgroundColor: contact.isFavorite ? Colors.grey : Colors.amber,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('즐겨찾기 변경 실패: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: Icon(contact.isFavorite ? Icons.star : Icons.star_border),
+                      color: Colors.amber,
+                      iconSize: 28,
+                    ),
+                  ],
+                ),
+              ),
+              
+              const Divider(height: 1),
+              
+              // Content
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    // 전화번호
+                    _buildDetailCard(
+                      icon: Icons.phone,
+                      label: '전화번호',
+                      value: contact.telephone,
+                      isPrimary: true,
+                      onTap: () => _quickCall(contact.telephone),
+                      onCopy: () => _copyToClipboard(contact.telephone),
+                    ),
+                    
+                    // 휴대전화
+                    if (contact.mobileNumber != null && contact.mobileNumber!.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.smartphone,
+                        label: '휴대전화',
+                        value: contact.mobileNumber!,
+                        onTap: () => _quickCall(contact.mobileNumber!),
+                        onCopy: () => _copyToClipboard(contact.mobileNumber!),
+                        onSms: () => _sendSms(contact.mobileNumber!),
+                      ),
+                    
+                    // 집 전화
+                    if (contact.home != null && contact.home!.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.home,
+                        label: '집 전화',
+                        value: contact.home!,
+                        onTap: () => _quickCall(contact.home!),
+                        onCopy: () => _copyToClipboard(contact.home!),
+                      ),
+                    
+                    // 팩스
+                    if (contact.fax != null && contact.fax!.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.print,
+                        label: '팩스',
+                        value: contact.fax!,
+                        onCopy: () => _copyToClipboard(contact.fax!),
+                      ),
+                    
+                    // 이메일
+                    if (contact.email != null && contact.email!.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.email,
+                        label: '이메일',
+                        value: contact.email!,
+                        onTap: () => _sendEmail(contact.email!),
+                        onCopy: () => _copyToClipboard(contact.email!),
+                      ),
+                    
+                    // 회사
+                    if (contact.company != null && contact.company!.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.business,
+                        label: '회사',
+                        value: contact.company!,
+                        onCopy: () => _copyToClipboard(contact.company!),
+                      ),
+                    
+                    // 직책
+                    if (contact.title != null && contact.title!.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.badge,
+                        label: '직책',
+                        value: contact.title!,
+                        onCopy: () => _copyToClipboard(contact.title!),
+                      ),
+                    
+                    // 회사 주소
+                    if (contact.businessAddress != null && contact.businessAddress!.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.location_on,
+                        label: '회사 주소',
+                        value: contact.businessAddress!,
+                        onCopy: () => _copyToClipboard(contact.businessAddress!),
+                      ),
+                    
+                    // 집 주소
+                    if (contact.homeAddress != null && contact.homeAddress!.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.home_work,
+                        label: '집 주소',
+                        value: contact.homeAddress!,
+                        onCopy: () => _copyToClipboard(contact.homeAddress!),
+                      ),
+                  ],
+                ),
+              ),
+              
+              // Bottom action button
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _quickCall(contact.telephone);
+                      },
+                      icon: const Icon(Icons.phone, size: 24),
+                      label: const Text(
+                        '전화 걸기',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2196F3),
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  // Material Design 3 스타일 카드
+  Widget _buildDetailCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    bool isPrimary = false,
+    VoidCallback? onTap,
+    VoidCallback? onCopy,
+    VoidCallback? onSms,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                // 전화번호 정보 (우선 표시) - 통화 아이콘 포함
-                _buildDetailRowWithActions('전화번호', contact.telephone, context, isPrimary: true),
-                
-                // 휴대전화
-                if (contact.mobileNumber != null && contact.mobileNumber!.isNotEmpty) ...[
-                  _buildDetailRowWithActions('휴대전화', contact.mobileNumber, context, showSms: true),
-                ],
-                
-                // 집 전화
-                if (contact.home != null && contact.home!.isNotEmpty) ...[
-                  _buildDetailRowWithActions('집 전화', contact.home, context),
-                ],
-                
-                // 팩스
-                if (contact.fax != null && contact.fax!.isNotEmpty) ...[
-                  _buildDetailRowWithCopy('팩스', contact.fax),
-                ],
-                
-                // 이메일
-                if (contact.email != null && contact.email!.isNotEmpty) ...[
-                  _buildDetailRowWithEmail('이메일', contact.email),
-                ],
-                
-                // 회사
-                if (contact.company != null && contact.company!.isNotEmpty) ...[
-                  _buildDetailRow('회사', contact.company),
-                ],
-                
-                // 직책
-                if (contact.title != null && contact.title!.isNotEmpty) ...[
-                  _buildDetailRow('직책', contact.title),
-                ],
-                
-                // 회사 주소
-                if (contact.businessAddress != null && contact.businessAddress!.isNotEmpty) ...[
-                  _buildDetailRow('회사 주소', contact.businessAddress),
-                ],
-                
-                // 집 주소
-                if (contact.homeAddress != null && contact.homeAddress!.isNotEmpty) ...[
-                  _buildDetailRow('집 주소', contact.homeAddress),
-                ],
+                // Icon
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isPrimary ? const Color(0xFF2196F3).withAlpha(26) : Colors.grey[200],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 24,
+                    color: isPrimary ? const Color(0xFF2196F3) : Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Text
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        value,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                          fontWeight: isPrimary ? FontWeight.w600 : FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Actions
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (onCopy != null)
+                      IconButton(
+                        onPressed: onCopy,
+                        icon: const Icon(Icons.content_copy, size: 20),
+                        color: Colors.grey[600],
+                        tooltip: '복사',
+                      ),
+                    if (onSms != null)
+                      IconButton(
+                        onPressed: onSms,
+                        icon: const Icon(Icons.sms, size: 20),
+                        color: Colors.green,
+                        tooltip: 'SMS',
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
         ),
-        actions: [
-          // 즐겨찾기 버튼 (왼쪽)
-          IconButton(
-            onPressed: () async {
-              try {
-                await _databaseService.togglePhonebookContactFavorite(
-                  contact.id,
-                  contact.isFavorite,
-                );
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        contact.isFavorite ? '즐겨찾기에서 제거되었습니다' : '즐겨찾기에 추가되었습니다',
-                      ),
-                      duration: const Duration(seconds: 2),
-                      backgroundColor: contact.isFavorite ? Colors.grey : Colors.amber,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('즐겨찾기 변경 실패: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            icon: Icon(contact.isFavorite ? Icons.star : Icons.star_border),
-            color: Colors.amber,
-            tooltip: contact.isFavorite ? '즐겨찾기 제거' : '즐겨찾기 추가',
-            iconSize: 28,
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
-          ),
-          // 전화 걸기 아이콘 버튼 (텍스트 제거)
-          IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _quickCall(contact.telephone);
-            },
-            icon: const Icon(Icons.phone),
-            color: const Color(0xFF2196F3),
-            tooltip: '전화 걸기',
-            iconSize: 28,
-          ),
-        ],
       ),
     );
   }
