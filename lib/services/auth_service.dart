@@ -130,6 +130,7 @@ class AuthService extends ChangeNotifier {
   Future<void> updateUserInfo({
     String? phoneNumberName,
     String? phoneNumber,
+    String? companyName,
     String? companyId,
     String? appKey,
     String? apiBaseUrl,
@@ -143,6 +144,7 @@ class AuthService extends ChangeNotifier {
       final updates = <String, dynamic>{};
       if (phoneNumberName != null) updates['phoneNumberName'] = phoneNumberName;
       if (phoneNumber != null) updates['phoneNumber'] = phoneNumber;
+      if (companyName != null) updates['companyName'] = companyName;
       if (companyId != null) updates['companyId'] = companyId;
       if (appKey != null) updates['appKey'] = appKey;
       if (apiBaseUrl != null) updates['apiBaseUrl'] = apiBaseUrl;

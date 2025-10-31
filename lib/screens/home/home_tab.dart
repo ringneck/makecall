@@ -162,8 +162,8 @@ class _HomeTabState extends State<HomeTab> {
           }
 
           // API 설정을 한 번만 가져오기 (PageView 외부에서)
-          final apiBaseUrl = authService.currentUserModel?.apiBaseUrl ?? '설정 필요';
-          final hasApiConfig = authService.currentUserModel?.apiBaseUrl != null;
+          final companyName = authService.currentUserModel?.companyName ?? '회사명 설정 필요';
+          final hasCompanyName = authService.currentUserModel?.companyName != null;
 
           return LayoutBuilder(
             builder: (context, constraints) {
@@ -260,8 +260,8 @@ class _HomeTabState extends State<HomeTab> {
                             child: _buildExtensionCard(
                               extensions[_currentPage], 
                               _currentPage,
-                              apiBaseUrl: apiBaseUrl,
-                              hasApiConfig: hasApiConfig,
+                              companyName: companyName,
+                              hasCompanyName: hasCompanyName,
                               key: ValueKey(extensions[_currentPage].id),
                             ),
                           ),
@@ -297,8 +297,8 @@ class _HomeTabState extends State<HomeTab> {
   Widget _buildExtensionCard(
     MyExtensionModel extension, 
     int index, {
-    required String apiBaseUrl,
-    required bool hasApiConfig,
+    required String companyName,
+    required bool hasCompanyName,
     Key? key,
   }) {
     if (kDebugMode) {
@@ -333,12 +333,12 @@ class _HomeTabState extends State<HomeTab> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-              // API Base URL을 맨 위에 크게 표시
+              // 회사명을 맨 위에 크게 표시
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                 decoration: BoxDecoration(
-                  color: hasApiConfig 
+                  color: hasCompanyName 
                       ? const Color(0xFF2196F3).withAlpha(26)
                       : Colors.orange.withAlpha(26),
                   borderRadius: const BorderRadius.only(
@@ -352,28 +352,28 @@ class _HomeTabState extends State<HomeTab> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          hasApiConfig ? Icons.cloud_done : Icons.cloud_off,
+                          hasCompanyName ? Icons.business : Icons.business_outlined,
                           size: 20,
-                          color: hasApiConfig ? const Color(0xFF2196F3) : Colors.orange,
+                          color: hasCompanyName ? const Color(0xFF2196F3) : Colors.orange,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'API 서버',
+                          '회사',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: hasApiConfig ? const Color(0xFF2196F3) : Colors.orange,
+                            color: hasCompanyName ? const Color(0xFF2196F3) : Colors.orange,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      apiBaseUrl,
+                      companyName,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: hasApiConfig ? Colors.black87 : Colors.orange[900],
+                        color: hasCompanyName ? Colors.black87 : Colors.orange[900],
                         letterSpacing: 0.5,
                       ),
                       textAlign: TextAlign.center,

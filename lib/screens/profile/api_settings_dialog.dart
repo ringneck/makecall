@@ -12,6 +12,7 @@ class ApiSettingsDialog extends StatefulWidget {
 
 class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _companyNameController;
   late final TextEditingController _apiBaseUrlController;
   late final TextEditingController _companyIdController;
   late final TextEditingController _appKeyController;
@@ -21,6 +22,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   void initState() {
     super.initState();
     final userModel = context.read<AuthService>().currentUserModel;
+    _companyNameController = TextEditingController(text: userModel?.companyName ?? '');
     _apiBaseUrlController = TextEditingController(text: userModel?.apiBaseUrl ?? '');
     _companyIdController = TextEditingController(text: userModel?.companyId ?? '');
     _appKeyController = TextEditingController(text: userModel?.appKey ?? '');
@@ -28,6 +30,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
 
   @override
   void dispose() {
+    _companyNameController.dispose();
     _apiBaseUrlController.dispose();
     _companyIdController.dispose();
     _appKeyController.dispose();
@@ -41,6 +44,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
 
     try {
       await context.read<AuthService>().updateUserInfo(
+            companyName: _companyNameController.text.trim(),
             apiBaseUrl: _apiBaseUrlController.text.trim(),
             apiHttpPort: 3500,
             apiHttpsPort: 3501,
@@ -51,7 +55,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('API 설정이 저장되었습니다')),
+          const SnackBar(content: Text('회사/API 설정이 저장되었습니다')),
         );
       }
     } catch (e) {
@@ -70,7 +74,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('API 설정'),
+      title: const Text('회사 / API 설정'),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -78,6 +82,30 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 회사명
+              const Text(
+                '회사 정보',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _companyNameController,
+                decoration: const InputDecoration(
+                  labelText: '회사명',
+                  hintText: '예: OO주식회사',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.business),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return '회사명을 입력해주세요';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
               // API 베이스 URL
               const Text(
                 'API 서버 주소',

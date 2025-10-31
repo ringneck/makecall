@@ -170,14 +170,14 @@ class _ProfileTabState extends State<ProfileTab> {
           const SizedBox(height: 24),
           const Divider(),
           
-          // API 설정
+          // 회사 / API 설정
           ListTile(
-            leading: const Icon(Icons.api),
-            title: const Text('API 설정'),
+            leading: const Icon(Icons.business),
+            title: const Text('회사 / API 설정'),
             subtitle: Text(
-              userModel?.apiBaseUrl != null
-                  ? userModel!.apiBaseUrl!
-                  : 'API 서버 주소 미설정',
+              userModel?.companyName != null
+                  ? userModel!.companyName!
+                  : '회사명 미설정',
               style: const TextStyle(fontSize: 12),
             ),
             trailing: const Icon(Icons.chevron_right),
