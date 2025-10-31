@@ -63,7 +63,7 @@ class PhonebookContactModel {
   final String? email;
   final String? company;
   final String? title;
-  final String? mobile;
+  final String? mobileNumber;
   final String? home;
   final String? fax;
   final String? businessAddress;
@@ -82,7 +82,7 @@ class PhonebookContactModel {
     this.email,
     this.company,
     this.title,
-    this.mobile,
+    this.mobileNumber,
     this.home,
     this.fax,
     this.businessAddress,
@@ -104,7 +104,7 @@ class PhonebookContactModel {
       email: data['email'] as String?,
       company: data['company'] as String?,
       title: data['title'] as String?,
-      mobile: data['mobile'] as String?,
+      mobileNumber: data['mobileNumber'] as String?,
       home: data['home'] as String?,
       fax: data['fax'] as String?,
       businessAddress: data['businessAddress'] as String?,
@@ -126,7 +126,7 @@ class PhonebookContactModel {
       'email': email,
       'company': company,
       'title': title,
-      'mobile': mobile,
+      'mobileNumber': mobileNumber,
       'home': home,
       'fax': fax,
       'businessAddress': businessAddress,
@@ -172,7 +172,7 @@ class PhonebookContactModel {
       email: apiData['email']?.toString(),
       company: apiData['company']?.toString(),
       title: apiData['title']?.toString(),
-      mobile: apiData['mobile']?.toString(),
+      mobileNumber: apiData['mobile_number']?.toString(),
       home: apiData['home']?.toString(),
       fax: apiData['fax']?.toString(),
       businessAddress: apiData['business_address']?.toString(),

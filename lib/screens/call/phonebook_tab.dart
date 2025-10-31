@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
 import '../../services/database_service.dart';
@@ -703,17 +705,17 @@ class _PhonebookTabState extends State<PhonebookTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 전화번호 정보 (우선 표시) - 통화 아이콘 포함
-              _buildDetailRowWithCall('전화번호', contact.telephone, context, isPrimary: true),
-              if (contact.mobile != null && contact.mobile!.isNotEmpty) 
-                _buildDetailRowWithCall('휴대전화', contact.mobile, context),
+              _buildDetailRowWithActions('전화번호', contact.telephone, context, isPrimary: true),
+              if (contact.mobileNumber != null && contact.mobileNumber!.isNotEmpty) 
+                _buildDetailRowWithActions('휴대전화', contact.mobileNumber, context, showSms: true),
               if (contact.home != null && contact.home!.isNotEmpty) 
-                _buildDetailRowWithCall('집 전화', contact.home, context),
+                _buildDetailRowWithActions('집 전화', contact.home, context),
               if (contact.fax != null && contact.fax!.isNotEmpty) 
-                _buildDetailRow('팩스', contact.fax),
+                _buildDetailRowWithCopy('팩스', contact.fax),
               
               // 이메일
               if (contact.email != null && contact.email!.isNotEmpty) 
-                _buildDetailRow('이메일', contact.email),
+                _buildDetailRowWithEmail('이메일', contact.email),
               
               // 회사 정보
               if (contact.company != null && contact.company!.isNotEmpty) 
@@ -728,6 +730,23 @@ class _PhonebookTabState extends State<PhonebookTab> {
           ),
         ),
         actions: [
+          // 즐겨찾기 버튼 (왼쪽)
+          IconButton(
+            onPressed: () {
+              // TODO: 즐겨찾기 기능 구현
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('즐겨찾기 기능은 추후 구현 예정입니다'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            icon: const Icon(Icons.star_border),
+            color: Colors.amber,
+            tooltip: '즐겨찾기 추가',
+            iconSize: 28,
+          ),
+          const Spacer(),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('닫기'),
@@ -782,8 +801,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
     );
   }
 
-  // 전화번호 필드 (통화 아이콘 포함)
-  Widget _buildDetailRowWithCall(String label, String? value, BuildContext context, {bool isPrimary = false}) {
+  // 전화번호 필드 (통화, 복사, SMS 아이콘 포함)
+  Widget _buildDetailRowWithActions(String label, String? value, BuildContext context, {bool isPrimary = false, bool showSms = false}) {
     if (value == null || value.isEmpty) return const SizedBox.shrink();
 
     return Padding(
@@ -812,6 +831,26 @@ class _PhonebookTabState extends State<PhonebookTab> {
               ),
             ),
           ),
+          // 복사 아이콘
+          IconButton(
+            icon: const Icon(Icons.content_copy, size: 16, color: Colors.grey),
+            onPressed: () => _copyToClipboard(value),
+            tooltip: '복사',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 4),
+          // SMS 아이콘 (휴대전화만)
+          if (showSms) ...[
+            IconButton(
+              icon: const Icon(Icons.sms, size: 16, color: Colors.green),
+              onPressed: () => _sendSms(value),
+              tooltip: 'SMS 보내기',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 4),
+          ],
           // 전화 걸기 아이콘
           IconButton(
             icon: const Icon(Icons.phone, size: 18, color: Color(0xFF2196F3)),
@@ -823,5 +862,172 @@ class _PhonebookTabState extends State<PhonebookTab> {
         ],
       ),
     );
+  }
+
+  // 팩스 필드 (복사 아이콘만 포함)
+  Widget _buildDetailRowWithCopy(String label, String? value) {
+    if (value == null || value.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          // 복사 아이콘
+          IconButton(
+            icon: const Icon(Icons.content_copy, size: 16, color: Colors.grey),
+            onPressed: () => _copyToClipboard(value),
+            tooltip: '복사',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 이메일 필드 (메일 보내기 아이콘 포함)
+  Widget _buildDetailRowWithEmail(String label, String? value) {
+    if (value == null || value.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          // 복사 아이콘
+          IconButton(
+            icon: const Icon(Icons.content_copy, size: 16, color: Colors.grey),
+            onPressed: () => _copyToClipboard(value),
+            tooltip: '복사',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 4),
+          // 이메일 보내기 아이콘
+          IconButton(
+            icon: const Icon(Icons.email, size: 18, color: Color(0xFF2196F3)),
+            onPressed: () => _sendEmail(value),
+            tooltip: '이메일 보내기',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 클립보드 복사
+  void _copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('복사됨: $text'),
+        duration: const Duration(seconds: 2),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  // SMS 보내기
+  Future<void> _sendSms(String phoneNumber) async {
+    final uri = Uri.parse('sms:$phoneNumber');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('SMS 앱을 실행할 수 없습니다'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('SMS 실행 오류: $e');
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('SMS 실행 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // 이메일 보내기
+  Future<void> _sendEmail(String email) async {
+    final uri = Uri.parse('mailto:$email');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('이메일 앱을 실행할 수 없습니다'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('이메일 실행 오류: $e');
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('이메일 실행 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
