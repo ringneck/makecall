@@ -222,12 +222,12 @@ class ApiService {
   Future<List<Map<String, dynamic>>> getPhonebooks() async {
     try {
       if (kDebugMode) {
-        debugPrint('🔄 API 요청: GET $baseUrl/phonebooks');
+        debugPrint('🔄 API 요청: GET $baseUrl/api/v2/phonebooks');
         debugPrint('📋 헤더: $_headers');
       }
       
       final response = await http.get(
-        Uri.parse('$baseUrl/phonebooks'),
+        Uri.parse('$baseUrl/api/v2/phonebooks'),
         headers: _headers,
       ).timeout(
         const Duration(seconds: 30),
@@ -271,12 +271,12 @@ class ApiService {
   Future<List<Map<String, dynamic>>> getPhonebookContacts(String phonebookId) async {
     try {
       if (kDebugMode) {
-        debugPrint('🔄 API 요청: GET $baseUrl/phonebooks/$phonebookId/contacts');
+        debugPrint('🔄 API 요청: GET $baseUrl/api/v2/phonebooks/$phonebookId/contacts');
         debugPrint('📋 헤더: $_headers');
       }
       
       final response = await http.get(
-        Uri.parse('$baseUrl/phonebooks/$phonebookId/contacts'),
+        Uri.parse('$baseUrl/api/v2/phonebooks/$phonebookId/contacts'),
         headers: _headers,
       ).timeout(
         const Duration(seconds: 30),
