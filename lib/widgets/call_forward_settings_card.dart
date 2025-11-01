@@ -666,12 +666,15 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                                 color: isDefaultNumber ? Colors.grey : Colors.blue,
                               ),
                               const SizedBox(width: 6),
-                              Text(
-                                PhoneFormatter.format(_destination),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDefaultNumber ? Colors.grey : Colors.black87,
+                              Flexible(
+                                child: Text(
+                                  PhoneFormatter.format(_destination),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDefaultNumber ? Colors.grey : Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               const SizedBox(width: 4),
