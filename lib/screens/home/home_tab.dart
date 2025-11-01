@@ -100,8 +100,8 @@ class _HomeTabState extends State<HomeTab> {
           }
 
           // 사용자 전역 설정 가져오기
-          final companyName = authService.currentUserModel?.companyName ?? '닉네임 설정 필요';
-          final hasCompanyName = authService.currentUserModel?.companyName != null;
+          final companyName = authService.currentUserModel?.companyName;
+          final hasCompanyName = companyName != null && companyName.isNotEmpty;
 
           if (extensions.isEmpty) {
             return LayoutBuilder(
@@ -201,35 +201,38 @@ class _HomeTabState extends State<HomeTab> {
                           ),
                           child: Row(
                             children: [
-                              // 닉네임
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      companyName,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: hasCompanyName ? const Color(0xFF2196F3) : Colors.grey[600],
+                                    // 닉네임 (있을 때만 표시)
+                                    if (hasCompanyName) ...[
+                                      Text(
+                                        companyName!,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF2196F3),
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
+                                      const SizedBox(height: 4),
+                                    ],
+                                    // 선택된 단말번호
                                     Row(
                                       children: [
                                         Icon(
                                           Icons.phone_android,
-                                          size: 14,
+                                          size: 16,
                                           color: Colors.grey[600],
                                         ),
-                                        const SizedBox(width: 4),
+                                        const SizedBox(width: 6),
                                         Text(
                                           PhoneFormatter.format(extensions[_currentPage].extension),
                                           style: TextStyle(
-                                            fontSize: 14,
+                                            fontSize: 16,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.grey[700],
+                                            color: hasCompanyName ? Colors.grey[700] : const Color(0xFF2196F3),
                                           ),
                                         ),
                                       ],
@@ -237,7 +240,7 @@ class _HomeTabState extends State<HomeTab> {
                                   ],
                                 ),
                               ),
-                              // 통화 상태 아이콘 (있다면 여기에 표시 가능)
+                              // 우측 화살표 아이콘
                               Icon(
                                 Icons.chevron_right,
                                 color: Colors.grey[400],
@@ -368,7 +371,7 @@ class _HomeTabState extends State<HomeTab> {
   Widget _buildExtensionCard(
     MyExtensionModel extension, 
     int index, {
-    required String companyName,
+    required String? companyName,
     required bool hasCompanyName,
     required AuthService authService,
     Key? key,
@@ -412,34 +415,33 @@ class _HomeTabState extends State<HomeTab> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-              // 닉네임을 맨 위에 크게 표시
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                decoration: BoxDecoration(
-                  color: hasCompanyName 
-                      ? const Color(0xFF2196F3).withAlpha(26)
-                      : Colors.orange.withAlpha(26),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
+              // 닉네임을 맨 위에 크게 표시 (있을 때만)
+              if (hasCompanyName)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2196F3).withAlpha(26),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Text(
+                    companyName!,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      letterSpacing: 0.5,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-                child: Text(
-                  companyName,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: hasCompanyName ? Colors.black87 : Colors.orange[900],
-                    letterSpacing: 0.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
               
               // 중앙 단말번호 정보
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                padding: EdgeInsets.fromLTRB(20, hasCompanyName ? 20 : 28, 20, 24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
