@@ -179,83 +179,10 @@ class _HomeTabState extends State<HomeTab> {
                   child: IntrinsicHeight(
                     child: Column(
                       children: [
-                        // 상단 헤더: 닉네임과 선택된 단말번호
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                const Color(0xFF2196F3).withAlpha(26),
-                                Colors.white,
-                              ],
-                            ),
-                            border: Border(
-                              bottom: BorderSide(
-                                color: const Color(0xFF2196F3).withAlpha(51),
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // 닉네임 (있을 때만 표시)
-                                    if (hasCompanyName) ...[
-                                      Text(
-                                        companyName!,
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF2196F3),
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                    ],
-                                    // 선택된 단말번호
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.phone_android,
-                                          size: 16,
-                                          color: Colors.grey[600],
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Flexible(
-                                          child: Text(
-                                            PhoneFormatter.format(extensions[_currentPage].extension),
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: hasCompanyName ? Colors.grey[700] : const Color(0xFF2196F3),
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // 우측 화살표 아이콘
-                              Icon(
-                                Icons.chevron_right,
-                                color: Colors.grey[400],
-                              ),
-                            ],
-                          ),
-                        ),
-                        
                         // 단말번호 선택 드롭다운
                         if (extensions.length > 1)
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               decoration: BoxDecoration(
@@ -420,7 +347,7 @@ class _HomeTabState extends State<HomeTab> {
               children: [
               // 중앙 단말번호 정보
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -429,7 +356,7 @@ class _HomeTabState extends State<HomeTab> {
                             (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty)) ...[
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: const Color(0xFF4CAF50).withAlpha(26),
                               borderRadius: BorderRadius.circular(16),
@@ -461,7 +388,7 @@ class _HomeTabState extends State<HomeTab> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 8),
                                 
                                 // 외부발신 이름
                                 if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty)
@@ -479,7 +406,7 @@ class _HomeTabState extends State<HomeTab> {
                                     extension.externalCidName!.isNotEmpty &&
                                     extension.externalCidNumber != null &&
                                     extension.externalCidNumber!.isNotEmpty)
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 6),
                                 
                                 // 외부발신 번호
                                 if (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty)
@@ -496,7 +423,7 @@ class _HomeTabState extends State<HomeTab> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
                         ],
                         
                         // 통화 상태 표시 (실시간)
@@ -505,7 +432,7 @@ class _HomeTabState extends State<HomeTab> {
                         // 단말 정보 카드
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: const Color(0xFF2196F3).withAlpha(26),
                             borderRadius: BorderRadius.circular(16),
@@ -537,7 +464,7 @@ class _HomeTabState extends State<HomeTab> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 8),
                               
                               // 단말 이름
                               if (extension.name.isNotEmpty)
@@ -552,7 +479,7 @@ class _HomeTabState extends State<HomeTab> {
                                 ),
                               
                               if (extension.name.isNotEmpty)
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 6),
                               
                               // 단말번호
                               Text(
@@ -568,7 +495,7 @@ class _HomeTabState extends State<HomeTab> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         
                         // 착신전환 설정 카드 (사용자 전역 WebSocket 설정이 있는 경우 표시)
                         if (userWsServerUrl != null && 
@@ -583,7 +510,7 @@ class _HomeTabState extends State<HomeTab> {
                             useSSL: userUseSSL,
                             amiServerId: userAmiServerId,
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
                         ],
                   ],
                 ),
