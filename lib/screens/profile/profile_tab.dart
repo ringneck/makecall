@@ -792,6 +792,9 @@ class _ProfileTabState extends State<ProfileTab> {
         });
         
         if (context.mounted) {
+          // 키보드 숨기기
+          FocusScope.of(context).unfocus();
+          
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -869,6 +872,9 @@ class _ProfileTabState extends State<ProfileTab> {
             _isSearching = false;
           });
           
+          // 키보드 숨기기
+          FocusScope.of(context).unfocus();
+          
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -912,6 +918,9 @@ class _ProfileTabState extends State<ProfileTab> {
         });
         
         if (context.mounted) {
+          // 키보드 숨기기
+          FocusScope.of(context).unfocus();
+          
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -949,6 +958,11 @@ class _ProfileTabState extends State<ProfileTab> {
       setState(() {
         _isSearching = false;
       });
+
+      // 키보드 숨기기
+      if (context.mounted) {
+        FocusScope.of(context).unfocus();
+      }
 
       // 성공 메시지 표시
       if (context.mounted) {
