@@ -183,28 +183,27 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
-                    Icons.phone_in_talk,
-                    size: 80,
-                    color: Color(0xFF2196F3),
+                  // 로고 이미지
+                  Image.network(
+                    'https://page.gensparksite.com/v1/base64_upload/494cf189094ee9e548e5615c235944b2',
+                    height: 120,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.phone_in_talk,
+                        size: 80,
+                        color: Color(0xFF2196F3),
+                      );
+                    },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   const Text(
-                    'MakeCall',
+                    '당신의 더 나은 커뮤니케이션',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2196F3),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '실시간 통화 관리 시스템',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
                       color: Colors.grey,
+                      letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 48),
