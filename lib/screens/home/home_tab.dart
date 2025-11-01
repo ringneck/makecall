@@ -162,7 +162,7 @@ class _HomeTabState extends State<HomeTab> {
           }
 
           // API 설정을 한 번만 가져오기 (PageView 외부에서)
-          final companyName = authService.currentUserModel?.companyName ?? '회사명 설정 필요';
+          final companyName = authService.currentUserModel?.companyName ?? '닉네임 설정 필요';
           final hasCompanyName = authService.currentUserModel?.companyName != null;
 
           return LayoutBuilder(
@@ -333,7 +333,7 @@ class _HomeTabState extends State<HomeTab> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-              // 회사명을 맨 위에 크게 표시
+              // 닉네임을 맨 위에 크게 표시
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -346,39 +346,15 @@ class _HomeTabState extends State<HomeTab> {
                     topRight: Radius.circular(20),
                   ),
                 ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          hasCompanyName ? Icons.business : Icons.business_outlined,
-                          size: 20,
-                          color: hasCompanyName ? const Color(0xFF2196F3) : Colors.orange,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '회사',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: hasCompanyName ? const Color(0xFF2196F3) : Colors.orange,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      companyName,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: hasCompanyName ? Colors.black87 : Colors.orange[900],
-                        letterSpacing: 0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                child: Text(
+                  companyName,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: hasCompanyName ? Colors.black87 : Colors.orange[900],
+                    letterSpacing: 0.5,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
               

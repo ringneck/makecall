@@ -350,7 +350,7 @@ class _ProfileTabState extends State<ProfileTab> {
             subtitle: Text(
               userModel?.companyName != null
                   ? userModel!.companyName!
-                  : '회사명 미설정',
+                  : '닉네임 미설정',
               style: const TextStyle(fontSize: 12),
             ),
             trailing: const Icon(Icons.chevron_right),
