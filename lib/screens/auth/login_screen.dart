@@ -206,7 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     child: Image.network(
-                      'https://page.gensparksite.com/v1/base64_upload/50062f8d2fea27ee567e74358d7c4dbe',
+                      'https://cdn1.genspark.ai/user-upload-image/rmbg_generated/0_fb40465b-fd3f-4909-83f7-523e4174d3bc',
                       width: 120,
                       height: 120,
                       fit: BoxFit.contain,
