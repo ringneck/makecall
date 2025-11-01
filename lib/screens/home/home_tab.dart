@@ -37,7 +37,7 @@ class _HomeTabState extends State<HomeTab> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MAKECALL'),
+        title: const Text('홈'),
       ),
       body: SafeArea(
         bottom: true,
