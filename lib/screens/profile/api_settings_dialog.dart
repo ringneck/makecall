@@ -18,7 +18,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   late final TextEditingController _appKeyController;
   late final TextEditingController _websocketServerUrlController;
   late final TextEditingController _websocketServerPortController;
-  late final TextEditingController _amiServerIdController;
   bool _isLoading = false;
   bool _websocketUseSSL = false;
 
@@ -32,7 +31,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     _appKeyController = TextEditingController(text: userModel?.appKey ?? '');
     _websocketServerUrlController = TextEditingController(text: userModel?.websocketServerUrl ?? '');
     _websocketServerPortController = TextEditingController(text: (userModel?.websocketServerPort ?? 6600).toString());
-    _amiServerIdController = TextEditingController(text: (userModel?.amiServerId ?? 1).toString());
     _websocketUseSSL = userModel?.websocketUseSSL ?? false;
   }
 
@@ -44,7 +42,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     _appKeyController.dispose();
     _websocketServerUrlController.dispose();
     _websocketServerPortController.dispose();
-    _amiServerIdController.dispose();
     super.dispose();
   }
 
@@ -64,7 +61,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
             websocketServerUrl: _websocketServerUrlController.text.trim(),
             websocketServerPort: int.tryParse(_websocketServerPortController.text.trim()) ?? 6600,
             websocketUseSSL: _websocketUseSSL,
-            amiServerId: int.tryParse(_amiServerIdController.text.trim()) ?? 1,
+            amiServerId: 1,
           );
 
       if (mounted) {
@@ -206,31 +203,35 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 8),
-              TextFormField(
-                controller: _websocketServerUrlController,
-                decoration: const InputDecoration(
-                  labelText: 'WebSocket 서버 주소',
-                  hintText: '예: ws.example.com',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.wifi),
-                ),
-                validator: (value) {
-                  if (value != null && value.trim().isNotEmpty) {
-                    if (value.contains('://')) {
-                      return 'ws://, wss:// 제외하고 입력해주세요';
-                    }
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _websocketServerUrlController,
+                      decoration: const InputDecoration(
+                        labelText: 'WebSocket 서버 주소',
+                        hintText: '예: ws.example.com',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.wifi),
+                      ),
+                      validator: (value) {
+                        if (value != null && value.trim().isNotEmpty) {
+                          if (value.contains('://')) {
+                            return 'ws://, wss:// 제외하고 입력해주세요';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 1,
                     child: TextFormField(
                       controller: _websocketServerPortController,
                       decoration: const InputDecoration(
-                        labelText: 'WebSocket 포트',
+                        labelText: '포트',
                         hintText: '6600',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.numbers),
@@ -243,32 +244,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         if (value != null && value.trim().isNotEmpty) {
                           final port = int.tryParse(value.trim());
                           if (port == null || port < 1 || port > 65535) {
-                            return '1-65535 범위의 포트를 입력해주세요';
-                          }
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _amiServerIdController,
-                      decoration: const InputDecoration(
-                        labelText: 'AMI Server ID',
-                        hintText: '1',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.dns),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      validator: (value) {
-                        if (value != null && value.trim().isNotEmpty) {
-                          final id = int.tryParse(value.trim());
-                          if (id == null || id < 1) {
-                            return '1 이상의 숫자를 입력해주세요';
+                            return '포트 범위: 1-65535';
                           }
                         }
                         return null;
