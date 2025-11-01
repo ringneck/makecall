@@ -419,7 +419,7 @@ class _HomeTabState extends State<HomeTab> {
                                   Text(
                                     extension.externalCidName!,
                                     style: const TextStyle(
-                                      fontSize: 24,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
                                     ),
@@ -437,7 +437,7 @@ class _HomeTabState extends State<HomeTab> {
                                   Text(
                                     extension.externalCidNumber!,
                                     style: const TextStyle(
-                                      fontSize: 36,
+                                      fontSize: 30,
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF4CAF50),
                                       letterSpacing: 2,
@@ -452,22 +452,6 @@ class _HomeTabState extends State<HomeTab> {
                         
                         // 통화 상태 표시 (실시간)
                         CallStateIndicator(extension: extension.extension),
-                        
-                        // 착신전환 설정 카드 (사용자 전역 WebSocket 설정이 있는 경우 표시)
-                        if (userWsServerUrl != null && 
-                            userWsServerUrl.isNotEmpty &&
-                            userCompanyId != null &&
-                            userCompanyId.isNotEmpty) ...[
-                          CallForwardSettingsCard(
-                            extension: extension,
-                            tenantId: userCompanyId,
-                            wsServerAddress: userWsServerUrl,
-                            wsServerPort: userWsPort,
-                            useSSL: userUseSSL,
-                            amiServerId: userAmiServerId,
-                          ),
-                          const SizedBox(height: 24),
-                        ],
                         
                         // 단말 정보 카드
                         Container(
@@ -511,7 +495,7 @@ class _HomeTabState extends State<HomeTab> {
                                 Text(
                                   extension.name,
                                   style: const TextStyle(
-                                    fontSize: 24,
+                                    fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
                                   ),
@@ -525,7 +509,7 @@ class _HomeTabState extends State<HomeTab> {
                               Text(
                                 extension.extension,
                                 style: const TextStyle(
-                                  fontSize: 36,
+                                  fontSize: 30,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF2196F3),
                                   letterSpacing: 2,
@@ -535,6 +519,23 @@ class _HomeTabState extends State<HomeTab> {
                             ],
                           ),
                         ),
+                        const SizedBox(height: 24),
+                        
+                        // 착신전환 설정 카드 (사용자 전역 WebSocket 설정이 있는 경우 표시)
+                        if (userWsServerUrl != null && 
+                            userWsServerUrl.isNotEmpty &&
+                            userCompanyId != null &&
+                            userCompanyId.isNotEmpty) ...[
+                          CallForwardSettingsCard(
+                            extension: extension,
+                            tenantId: userCompanyId,
+                            wsServerAddress: userWsServerUrl,
+                            wsServerPort: userWsPort,
+                            useSSL: userUseSSL,
+                            amiServerId: userAmiServerId,
+                          ),
+                          const SizedBox(height: 24),
+                        ],
                   ],
                 ),
               ),
