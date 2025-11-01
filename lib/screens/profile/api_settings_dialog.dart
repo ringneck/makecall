@@ -85,27 +85,38 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final dialogWidth = screenWidth > 600 ? 500.0 : screenWidth * 0.9;
+    
     return AlertDialog(
-      title: const Text('기본 설정'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      title: const Text('기본 설정', style: TextStyle(fontSize: 18)),
+      contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+      content: SizedBox(
+        width: dialogWidth,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // 닉네임
               const Text(
                 '닉네임',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _companyNameController,
+                style: const TextStyle(fontSize: 14),
                 decoration: const InputDecoration(
                   labelText: '닉네임',
                   hintText: '예: 홍길동',
                   border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  labelStyle: TextStyle(fontSize: 13),
+                  hintStyle: TextStyle(fontSize: 13),
+                  errorStyle: TextStyle(fontSize: 11),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -113,6 +124,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   }
                   return null;
                 },
+                autovalidateMode: AutovalidateMode.onUserInteraction,
               ),
               const SizedBox(height: 24),
               const Divider(),
@@ -120,15 +132,20 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               // API 베이스 URL
               const Text(
                 'API 서버 주소',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _apiBaseUrlController,
+                style: const TextStyle(fontSize: 14),
                 decoration: const InputDecoration(
                   labelText: 'API Base URL',
                   hintText: '예: api.example.com',
                   border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  labelStyle: TextStyle(fontSize: 13),
+                  hintStyle: TextStyle(fontSize: 13),
+                  errorStyle: TextStyle(fontSize: 11),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -146,15 +163,20 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               // API 인증 정보
               const Text(
                 'API 인증 정보',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _companyIdController,
+                style: const TextStyle(fontSize: 14),
                 decoration: const InputDecoration(
                   labelText: 'Company ID',
                   hintText: 'REST API Company ID',
                   border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  labelStyle: TextStyle(fontSize: 13),
+                  hintStyle: TextStyle(fontSize: 13),
+                  errorStyle: TextStyle(fontSize: 11),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -166,10 +188,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _appKeyController,
+                style: const TextStyle(fontSize: 14),
                 decoration: const InputDecoration(
                   labelText: 'App-Key',
                   hintText: 'REST API App-Key',
                   border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  labelStyle: TextStyle(fontSize: 13),
+                  hintStyle: TextStyle(fontSize: 13),
+                  errorStyle: TextStyle(fontSize: 11),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -184,7 +211,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               // WebSocket 설정
               const Text(
                 'WebSocket 설정',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(height: 8),
               Row(
@@ -193,10 +220,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                     flex: 3,
                     child: TextFormField(
                       controller: _websocketServerUrlController,
+                      style: const TextStyle(fontSize: 14),
                       decoration: const InputDecoration(
                         labelText: 'WebSocket 서버 주소',
                         hintText: '예: ws.example.com',
                         border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        labelStyle: TextStyle(fontSize: 13),
+                        hintStyle: TextStyle(fontSize: 13),
+                        errorStyle: TextStyle(fontSize: 11),
                       ),
                       validator: (value) {
                         if (value != null && value.trim().isNotEmpty) {
@@ -213,10 +245,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                     flex: 1,
                     child: TextFormField(
                       controller: _websocketServerPortController,
+                      style: const TextStyle(fontSize: 14),
                       decoration: const InputDecoration(
                         labelText: '포트',
                         hintText: '6600',
                         border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        labelStyle: TextStyle(fontSize: 13),
+                        hintStyle: TextStyle(fontSize: 13),
+                        errorStyle: TextStyle(fontSize: 11),
                       ),
                       keyboardType: TextInputType.number,
                       inputFormatters: [
@@ -243,11 +280,11 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: SwitchListTile(
-                  title: const Text('SSL 사용 (wss)'),
+                  title: const Text('SSL 사용 (wss)', style: TextStyle(fontSize: 14)),
                   subtitle: Text(
                     _websocketUseSSL ? 'wss:// (보안 연결)' : 'ws:// (일반 연결)',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       color: _websocketUseSSL ? Colors.green : Colors.orange,
                     ),
                   ),
@@ -260,6 +297,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   secondary: Icon(
                     _websocketUseSSL ? Icons.lock : Icons.lock_open,
                     color: _websocketUseSSL ? Colors.green : Colors.orange,
+                    size: 22,
                   ),
                 ),
               ),
@@ -278,16 +316,18 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                     children: [
                       const Text(
                         'WebSocket 연결 주소:',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${_websocketUseSSL ? 'wss' : 'ws'}://${_websocketServerUrlController.text.trim()}:${_websocketServerPortController.text.trim()}',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
                           color: _websocketUseSSL ? Colors.green.shade700 : Colors.orange.shade700,
                           fontFamily: 'monospace',
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
                       ),
                     ],
                   ),
@@ -296,11 +336,12 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
             ],
           ),
         ),
+        ),
       ),
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.pop(context),
-          child: const Text('취소'),
+          child: const Text('취소', style: TextStyle(fontSize: 14)),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _handleSave,
@@ -310,7 +351,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('저장'),
+              : const Text('저장', style: TextStyle(fontSize: 14)),
         ),
       ],
     );
