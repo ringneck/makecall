@@ -90,12 +90,12 @@ class _DialpadScreenState extends State<DialpadScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        _phoneNumber.isEmpty ? '전화번호 입력' : _phoneNumber,
+                        _phoneNumber.isEmpty ? '' : _phoneNumber,
                         style: TextStyle(
                           fontSize: isIOS ? 36 : 32,
                           fontWeight: FontWeight.w300,
                           letterSpacing: isIOS ? 0.5 : 1,
-                          color: _phoneNumber.isEmpty ? Colors.grey[400] : Colors.black87,
+                          color: Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 1,
@@ -184,12 +184,12 @@ class _DialpadScreenState extends State<DialpadScreen> {
                   children: [
                     Flexible(
                       child: Text(
-                        _phoneNumber.isEmpty ? '전화번호 입력' : _phoneNumber,
-                        style: TextStyle(
+                        _phoneNumber.isEmpty ? '' : _phoneNumber,
+                        style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w300,
                           letterSpacing: 1,
-                          color: _phoneNumber.isEmpty ? Colors.grey[400] : Colors.black87,
+                          color: Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 2,
