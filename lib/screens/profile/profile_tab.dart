@@ -210,7 +210,7 @@ class _ProfileTabState extends State<ProfileTab> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('내 정보'),
+        title: const Text('단말'),
       ),
       body: ListView(
         children: [
@@ -345,11 +345,11 @@ class _ProfileTabState extends State<ProfileTab> {
           
           // 기본 설정
           ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('기본 설정'),
+            leading: const Icon(Icons.settings, size: 22),
+            title: const Text('기본 설정', style: TextStyle(fontSize: 15)),
             subtitle: const Text(
               'API 서버, WebSocket 설정',
-              style: TextStyle(fontSize: 12),
+              style: TextStyle(fontSize: 11),
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
@@ -369,12 +369,12 @@ class _ProfileTabState extends State<ProfileTab> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.phone_android, color: Color(0xFF2196F3)),
+                    Icon(Icons.phone_android, color: Color(0xFF2196F3), size: 20),
                     SizedBox(width: 8),
                     Text(
                       '내 단말번호',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -396,7 +396,7 @@ class _ProfileTabState extends State<ProfileTab> {
                       const Text(
                         '전화번호로 등록된 번호 조회',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF2196F3),
                         ),
@@ -513,7 +513,7 @@ class _ProfileTabState extends State<ProfileTab> {
                     const Text(
                       '저장된 내 단말번호',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -580,12 +580,12 @@ class _ProfileTabState extends State<ProfileTab> {
                           child: const Center(
                             child: Column(
                               children: [
-                                Icon(Icons.inbox_outlined, size: 48, color: Colors.grey),
-                                SizedBox(height: 12),
+                                Icon(Icons.inbox_outlined, size: 44, color: Colors.grey),
+                                SizedBox(height: 10),
                                 Text(
                                   '저장된 단말번호가 없습니다.',
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.grey,
                                   ),
@@ -595,7 +595,7 @@ class _ProfileTabState extends State<ProfileTab> {
                                   '위의 전화번호를 입력하고 조회 버튼을 눌러주세요.',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     color: Colors.grey,
                                   ),
                                 ),
@@ -618,12 +618,12 @@ class _ProfileTabState extends State<ProfileTab> {
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                const Icon(Icons.check_circle, color: Colors.green, size: 18),
                                 const SizedBox(width: 8),
                                 Text(
                                   '총 ${extensions.length}개의 단말번호',
                                   style: const TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.green,
                                   ),
@@ -657,11 +657,12 @@ class _ProfileTabState extends State<ProfileTab> {
                                       Row(
                                         children: [
                                           CircleAvatar(
+                                            radius: 20,
                                             backgroundColor: const Color(0xFF2196F3).withAlpha(51),
                                             child: const Icon(
                                               Icons.phone_android,
                                               color: Color(0xFF2196F3),
-                                              size: 24,
+                                              size: 20,
                                             ),
                                           ),
                                           const SizedBox(width: 12),
@@ -673,7 +674,7 @@ class _ProfileTabState extends State<ProfileTab> {
                                                   ext.extension,
                                                   style: const TextStyle(
                                                     fontWeight: FontWeight.bold,
-                                                    fontSize: 18,
+                                                    fontSize: 16,
                                                     color: Color(0xFF2196F3),
                                                   ),
                                                 ),
@@ -681,7 +682,7 @@ class _ProfileTabState extends State<ProfileTab> {
                                                   Text(
                                                     ext.name,
                                                     style: const TextStyle(
-                                                      fontSize: 14,
+                                                      fontSize: 13,
                                                       color: Colors.black87,
                                                     ),
                                                   ),
@@ -690,7 +691,7 @@ class _ProfileTabState extends State<ProfileTab> {
                                           ),
                                           const Spacer(),
                                           IconButton(
-                                            icon: const Icon(Icons.delete, color: Colors.red),
+                                            icon: const Icon(Icons.delete, color: Colors.red, size: 22),
                                             onPressed: () => _deleteExtension(context, ext),
                                             tooltip: '삭제',
                                           ),
@@ -726,12 +727,12 @@ class _ProfileTabState extends State<ProfileTab> {
   Widget _buildInfoRow(IconData icon, String label, String value, {bool highlight = false}) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: highlight ? Colors.orange : Colors.grey),
+        Icon(icon, size: 14, color: highlight ? Colors.orange : Colors.grey),
         const SizedBox(width: 8),
         Text(
           '$label:',
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: highlight ? Colors.orange[800] : Colors.grey[700],
           ),
@@ -741,7 +742,7 @@ class _ProfileTabState extends State<ProfileTab> {
           child: Text(
             value,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               color: highlight ? Colors.orange[900] : Colors.black87,
               fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
             ),
