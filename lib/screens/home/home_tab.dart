@@ -52,7 +52,7 @@ class _HomeTabState extends State<HomeTab> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const Icon(Icons.error_outline, size: 56, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
                     '오류가 발생했습니다: ${snapshot.error}',
@@ -119,14 +119,14 @@ class _HomeTabState extends State<HomeTab> {
                           children: [
                             Icon(
                               Icons.phone_disabled,
-                              size: 80,
+                              size: 64,
                               color: Colors.grey[400],
                             ),
                             const SizedBox(height: 24),
                             const Text(
                               '저장된 단말번호가 없습니다',
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.grey,
                               ),
@@ -136,7 +136,7 @@ class _HomeTabState extends State<HomeTab> {
                               '내 정보 탭에서 단말번호를 조회하고 저장해주세요.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 13,
                                 color: Colors.grey[600],
                               ),
                             ),
@@ -203,9 +203,9 @@ class _HomeTabState extends State<HomeTab> {
                                 child: DropdownButton<int>(
                                   value: _currentPage,
                                   isExpanded: true,
-                                  icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2196F3)),
+                                  icon: const Icon(Icons.arrow_drop_down, size: 24, color: Color(0xFF2196F3)),
                                   style: const TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black87,
                                   ),
@@ -234,7 +234,7 @@ class _HomeTabState extends State<HomeTab> {
                                         children: [
                                           Icon(
                                             Icons.phone_in_talk,
-                                            size: 20,
+                                            size: 18,
                                             color: const Color(0xFF2196F3),
                                           ),
                                           const SizedBox(width: 12),
@@ -360,7 +360,7 @@ class _HomeTabState extends State<HomeTab> {
                 child: Text(
                   companyName,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: hasCompanyName ? Colors.black87 : Colors.orange[900],
                     letterSpacing: 0.5,
@@ -397,17 +397,17 @@ class _HomeTabState extends State<HomeTab> {
                                   children: [
                                     Icon(
                                       Icons.call_made,
-                                      size: 20,
+                                      size: 16,
                                       color: const Color(0xFF4CAF50),
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
                                       '외부발신 표시정보',
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         color: const Color(0xFF4CAF50),
-                                        letterSpacing: 1,
+                                        letterSpacing: 0.5,
                                       ),
                                     ),
                                   ],
@@ -419,7 +419,7 @@ class _HomeTabState extends State<HomeTab> {
                                   Text(
                                     extension.externalCidName!,
                                     style: const TextStyle(
-                                      fontSize: 20,
+                                      fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
                                     ),
@@ -437,10 +437,10 @@ class _HomeTabState extends State<HomeTab> {
                                   Text(
                                     extension.externalCidNumber!,
                                     style: const TextStyle(
-                                      fontSize: 30,
+                                      fontSize: 24,
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF4CAF50),
-                                      letterSpacing: 2,
+                                      letterSpacing: 1.5,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -473,17 +473,17 @@ class _HomeTabState extends State<HomeTab> {
                                 children: [
                                   Icon(
                                     Icons.phone_in_talk,
-                                    size: 20,
+                                    size: 16,
                                     color: const Color(0xFF2196F3),
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
                                     '단말발신 표시정보',
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: const Color(0xFF2196F3),
-                                      letterSpacing: 1,
+                                      letterSpacing: 0.5,
                                     ),
                                   ),
                                 ],
@@ -495,7 +495,7 @@ class _HomeTabState extends State<HomeTab> {
                                 Text(
                                   extension.name,
                                   style: const TextStyle(
-                                    fontSize: 20,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
                                   ),
@@ -509,10 +509,10 @@ class _HomeTabState extends State<HomeTab> {
                               Text(
                                 extension.extension,
                                 style: const TextStyle(
-                                  fontSize: 30,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF2196F3),
-                                  letterSpacing: 2,
+                                  letterSpacing: 1.5,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
