@@ -31,15 +31,15 @@ def get_project_id(config):
 
 def print_storage_rules():
     """Firebase Storage 보안 규칙 출력"""
-    rules = """
-rules_version = '2';
+    rules = """rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
     // 프로필 이미지: 인증된 사용자만 자신의 이미지 업로드/삭제 가능
-    match /profile_images/{userId}.jpg {
-      allow read: if true;  // 모든 사용자가 프로필 이미지 조회 가능
-      allow write: if request.auth != null && request.auth.uid == userId;  // 본인만 업로드/삭제 가능
-      allow delete: if request.auth != null && request.auth.uid == userId;  // 본인만 삭제 가능
+    match /profile_images/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
     
     // 기타 파일: 인증된 사용자만 접근 가능
@@ -47,9 +47,8 @@ service firebase.storage {
       allow read, write: if request.auth != null;
     }
   }
-}
-"""
-    return rules.strip()
+}"""
+    return rules
 
 def save_rules_to_file(rules, project_id):
     """보안 규칙을 파일로 저장"""
