@@ -98,6 +98,10 @@ class _HomeTabState extends State<HomeTab> {
             });
           }
 
+          // 사용자 전역 설정 가져오기
+          final companyName = authService.currentUserModel?.companyName ?? '닉네임 설정 필요';
+          final hasCompanyName = authService.currentUserModel?.companyName != null;
+
           if (extensions.isEmpty) {
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -162,10 +166,6 @@ class _HomeTabState extends State<HomeTab> {
               },
             );
           }
-
-          // API 설정을 한 번만 가져오기 (PageView 외부에서)
-          final companyName = authService.currentUserModel?.companyName ?? '닉네임 설정 필요';
-          final hasCompanyName = authService.currentUserModel?.companyName != null;
 
           return LayoutBuilder(
             builder: (context, constraints) {
@@ -264,6 +264,7 @@ class _HomeTabState extends State<HomeTab> {
                               _currentPage,
                               companyName: companyName,
                               hasCompanyName: hasCompanyName,
+                              authService: authService,
                               key: ValueKey(extensions[_currentPage].id),
                             ),
                           ),
@@ -301,6 +302,7 @@ class _HomeTabState extends State<HomeTab> {
     int index, {
     required String companyName,
     required bool hasCompanyName,
+    required AuthService authService,
     Key? key,
   }) {
     if (kDebugMode) {
@@ -310,6 +312,13 @@ class _HomeTabState extends State<HomeTab> {
       debugPrint('   - ID: ${extension.id}');
       debugPrint('   - Extension ID: ${extension.extensionId}');
     }
+    
+    // 사용자 전역 WebSocket 설정 가져오기
+    final userWsServerUrl = authService.currentUserModel?.websocketServerUrl;
+    final userCompanyId = authService.currentUserModel?.companyId;
+    final userWsPort = authService.currentUserModel?.websocketServerPort ?? 7099;
+    final userUseSSL = authService.currentUserModel?.websocketUseSSL ?? false;
+    final userAmiServerId = authService.currentUserModel?.amiServerId ?? 1;
     
     return Card(
       key: key,
@@ -444,18 +453,18 @@ class _HomeTabState extends State<HomeTab> {
                         // 통화 상태 표시 (실시간)
                         CallStateIndicator(extension: extension.extension),
                         
-                        // 착신전환 설정 카드 (API 설정이 있는 경우만 표시)
-                        if (extension.apiBaseUrl != null && 
-                            extension.apiBaseUrl!.isNotEmpty &&
-                            extension.companyId != null &&
-                            extension.companyId!.isNotEmpty) ...[
+                        // 착신전환 설정 카드 (사용자 전역 WebSocket 설정이 있는 경우 표시)
+                        if (userWsServerUrl != null && 
+                            userWsServerUrl.isNotEmpty &&
+                            userCompanyId != null &&
+                            userCompanyId.isNotEmpty) ...[
                           CallForwardSettingsCard(
                             extension: extension,
-                            tenantId: extension.companyId,
-                            wsServerAddress: extension.apiBaseUrl,
-                            wsServerPort: 7099, // DCMIWS 기본 포트
-                            useSSL: false, // 사용자 설정에 따라 변경 가능
-                            amiServerId: 1, // 기본값 (사용자 설정으로 확장 가능)
+                            tenantId: userCompanyId,
+                            wsServerAddress: userWsServerUrl,
+                            wsServerPort: userWsPort,
+                            useSSL: userUseSSL,
+                            amiServerId: userAmiServerId,
                           ),
                           const SizedBox(height: 24),
                         ],
