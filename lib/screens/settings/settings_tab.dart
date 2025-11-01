@@ -143,7 +143,7 @@ class SettingsTab extends StatelessWidget {
   void _showLicensePage(BuildContext context) {
     showLicensePage(
       context: context,
-      applicationName: 'MakeCall',
+      applicationName: 'MAKECALL',
       applicationVersion: '1.0.0',
       applicationIcon: const Icon(Icons.phone_in_talk, size: 48),
     );

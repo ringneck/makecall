@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SelectedExtensionProvider()),
       ],
       child: MaterialApp(
-        title: 'MakeCall',
+        title: 'MAKECALL',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
