@@ -37,6 +37,14 @@ class MyApp extends StatelessWidget {
           appBarTheme: const AppBarTheme(
             centerTitle: true,
             elevation: 0,
+            backgroundColor: Color(0xFF2196F3),
+            foregroundColor: Colors.white,
+            iconTheme: IconThemeData(color: Colors.white),
+            titleTextStyle: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         home: Consumer<AuthService>(
