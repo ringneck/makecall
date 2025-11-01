@@ -67,7 +67,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('회사/API/WebSocket 설정이 저장되었습니다')),
+          const SnackBar(content: Text('기본 설정이 저장되었습니다')),
         );
       }
     } catch (e) {
@@ -86,7 +86,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('회사 / API 설정'),
+      title: const Text('기본 설정'),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -94,23 +94,22 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 회사명
+              // 닉네임
               const Text(
-                '회사 정보',
+                '닉네임',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _companyNameController,
                 decoration: const InputDecoration(
-                  labelText: '회사명',
-                  hintText: '예: OO주식회사',
+                  labelText: '닉네임',
+                  hintText: '예: 홍길동',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.business),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return '회사명을 입력해주세요';
+                    return '닉네임을 입력해주세요';
                   }
                   return null;
                 },
@@ -213,7 +212,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         labelText: 'WebSocket 서버 주소',
                         hintText: '예: ws.example.com',
                         border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.wifi),
                       ),
                       validator: (value) {
                         if (value != null && value.trim().isNotEmpty) {
@@ -234,7 +232,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         labelText: '포트',
                         hintText: '6600',
                         border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.numbers),
                       ),
                       keyboardType: TextInputType.number,
                       inputFormatters: [
