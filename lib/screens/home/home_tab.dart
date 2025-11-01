@@ -227,12 +227,15 @@ class _HomeTabState extends State<HomeTab> {
                                           color: Colors.grey[600],
                                         ),
                                         const SizedBox(width: 6),
-                                        Text(
-                                          PhoneFormatter.format(extensions[_currentPage].extension),
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: hasCompanyName ? Colors.grey[700] : const Color(0xFF2196F3),
+                                        Flexible(
+                                          child: Text(
+                                            PhoneFormatter.format(extensions[_currentPage].extension),
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: hasCompanyName ? Colors.grey[700] : const Color(0xFF2196F3),
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                       ],
