@@ -58,7 +58,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
-            label: '내 정보',
+            label: '단말',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
