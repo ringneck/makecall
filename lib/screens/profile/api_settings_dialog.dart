@@ -178,21 +178,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-              // 미리보기
-              if (_apiBaseUrlController.text.trim().isNotEmpty) ...[
-                const Divider(),
-                const SizedBox(height: 8),
-                const Text(
-                  '현재 설정된 API 서버:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _apiBaseUrlController.text.trim(),
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-              ],
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 16),
