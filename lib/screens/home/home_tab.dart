@@ -5,7 +5,8 @@ import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../models/my_extension_model.dart';
 import '../../providers/selected_extension_provider.dart';
-import '../../widgets/call_forward_info_card.dart';
+import '../../widgets/call_forward_settings_card.dart';
+import '../../widgets/call_state_indicator.dart';
 
 class HomeTab extends StatefulWidget {
   final VoidCallback? onNavigateToProfile;
@@ -440,12 +441,15 @@ class _HomeTabState extends State<HomeTab> {
                           const SizedBox(height: 24),
                         ],
                         
-                        // 착신번호 정보 카드 (API 설정이 있는 경우만 표시)
+                        // 통화 상태 표시 (실시간)
+                        CallStateIndicator(extension: extension.extension),
+                        
+                        // 착신전환 설정 카드 (API 설정이 있는 경우만 표시)
                         if (extension.apiBaseUrl != null && 
                             extension.apiBaseUrl!.isNotEmpty &&
                             extension.companyId != null &&
                             extension.companyId!.isNotEmpty) ...[
-                          CallForwardInfoCard(
+                          CallForwardSettingsCard(
                             extension: extension,
                             tenantId: extension.companyId,
                             wsServerAddress: extension.apiBaseUrl,

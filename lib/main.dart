@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'providers/selected_extension_provider.dart';
+import 'providers/dcmiws_event_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/main_screen.dart';
 
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => SelectedExtensionProvider()),
+        ChangeNotifierProvider(create: (_) => DCMIWSEventProvider()),
       ],
       child: MaterialApp(
         title: 'MAKECALL',
