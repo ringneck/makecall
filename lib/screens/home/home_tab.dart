@@ -5,6 +5,7 @@ import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../models/my_extension_model.dart';
 import '../../providers/selected_extension_provider.dart';
+import '../../widgets/call_forward_info_card.dart';
 
 class HomeTab extends StatefulWidget {
   final VoidCallback? onNavigateToProfile;
@@ -435,6 +436,22 @@ class _HomeTabState extends State<HomeTab> {
                                   ),
                               ],
                             ),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                        
+                        // 착신번호 정보 카드 (API 설정이 있는 경우만 표시)
+                        if (extension.apiBaseUrl != null && 
+                            extension.apiBaseUrl!.isNotEmpty &&
+                            extension.companyId != null &&
+                            extension.companyId!.isNotEmpty) ...[
+                          CallForwardInfoCard(
+                            extension: extension,
+                            tenantId: extension.companyId,
+                            wsServerAddress: extension.apiBaseUrl,
+                            wsServerPort: 7099, // DCMIWS 기본 포트
+                            useSSL: false, // 사용자 설정에 따라 변경 가능
+                            amiServerId: 1, // 기본값 (사용자 설정으로 확장 가능)
                           ),
                           const SizedBox(height: 24),
                         ],

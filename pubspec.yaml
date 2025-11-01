@@ -51,6 +51,7 @@ dependencies:
   
   # Networking
   http: 1.5.0
+  web_socket_channel: 3.0.2
   
   # Phone & Permission
   url_launcher: 6.3.1
