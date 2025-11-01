@@ -179,6 +179,73 @@ class _HomeTabState extends State<HomeTab> {
                   child: IntrinsicHeight(
                     child: Column(
                       children: [
+                        // 상단 헤더: 닉네임과 선택된 단말번호
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                const Color(0xFF2196F3).withAlpha(26),
+                                Colors.white,
+                              ],
+                            ),
+                            border: Border(
+                              bottom: BorderSide(
+                                color: const Color(0xFF2196F3).withAlpha(51),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              // 닉네임
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      companyName,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: hasCompanyName ? const Color(0xFF2196F3) : Colors.grey[600],
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.phone_android,
+                                          size: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          PhoneFormatter.format(extensions[_currentPage].extension),
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // 통화 상태 아이콘 (있다면 여기에 표시 가능)
+                              Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey[400],
+                              ),
+                            ],
+                          ),
+                        ),
+                        
                         // 단말번호 선택 드롭다운
                         if (extensions.length > 1)
                           Padding(

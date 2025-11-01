@@ -345,13 +345,11 @@ class _ProfileTabState extends State<ProfileTab> {
           
           // 기본 설정
           ListTile(
-            leading: const Icon(Icons.business),
+            leading: const Icon(Icons.settings),
             title: const Text('기본 설정'),
-            subtitle: Text(
-              userModel?.companyName != null
-                  ? userModel!.companyName!
-                  : '닉네임 미설정',
-              style: const TextStyle(fontSize: 12),
+            subtitle: const Text(
+              'API 서버, WebSocket, 닉네임 설정',
+              style: TextStyle(fontSize: 12),
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
