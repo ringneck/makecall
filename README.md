@@ -194,8 +194,12 @@ flutter build web --release
 - **Min SDK**: 21 (Android 5.0 Lollipop)
 - **Permissions**: 
   - INTERNET (API 통신)
-  - READ_CONTACTS (연락처 접근)
+  - READ_CONTACTS / WRITE_CONTACTS (연락처 접근)
   - CALL_PHONE (전화 걸기)
+  - CAMERA (카메라 촬영)
+  - READ_EXTERNAL_STORAGE / WRITE_EXTERNAL_STORAGE (Android 12 이하)
+  - READ_MEDIA_IMAGES (Android 13+)
+  - POST_NOTIFICATIONS (푸시 알림)
 
 ### iOS
 - **Bundle Identifier**: `com.olssoo.makecall`
@@ -203,9 +207,11 @@ flutter build web --release
 - **Deployment Target**: iOS 15.0+
 - **Supported Devices**: iPhone, iPad (최신 기기 포함)
 - **Orientations**: Portrait, Landscape
-- **Permissions**:
+- **Permissions (Privacy Usage Descriptions)**:
   - Contacts (연락처 접근)
-  - Photo Library (프로필 사진)
+  - Camera (카메라 촬영 - 프로필 사진)
+  - Photo Library (갤러리 접근 - 프로필 사진)
+  - Photo Library Add (사진 저장)
 
 ### macOS
 - **Bundle Identifier**: `com.olssoo.makecall`
@@ -321,6 +327,14 @@ flutter devices
 
 ## 📚 주요 변경사항
 
+### 2024-10-31: 프로필 이미지 업로드 버그 수정
+- ✅ **iOS hang 문제 해결**: 사진 선택 시 앱이 멈추는 문제 수정
+- ✅ **Android 권한 추가**: CAMERA, READ_MEDIA_IMAGES 등 필수 권한 추가
+- ✅ **iOS Privacy 설정**: 카메라, 갤러리 접근 권한 설명 추가
+- ✅ **업로드 타임아웃**: 30초 타임아웃 및 에러 처리 개선
+- ✅ **Firebase Storage Rules**: 보안 규칙 설정 스크립트 추가
+- ✅ **진행 상황 로깅**: 업로드 진행 상황 디버그 로그 추가
+
 ### 2024-10-31: 앱 아이콘 및 사용자 관리 개선
 - ✅ **앱 아이콘 업데이트**: 최신 iOS/Android 가이드라인 적용
 - ✅ **회사 정보 추가**: 회사명 설정 기능
@@ -373,6 +387,21 @@ flutter devices
 3. Production mode 또는 Test mode 선택
 4. 지역 선택 (가까운 지역 권장)
 5. Database 생성 완료
+
+### Firebase Storage 설정 (프로필 이미지 업로드용)
+1. Firebase Console → Build → Storage
+2. "Get started" 클릭하여 Storage 활성화
+3. 보안 규칙 설정:
+   ```bash
+   python3 setup_firebase_storage_rules.py
+   ```
+4. 출력된 보안 규칙을 Firebase Console → Storage → Rules에 복사
+5. "게시" 버튼 클릭하여 규칙 적용
+
+**보안 규칙 요약**:
+- 프로필 이미지: 인증된 사용자가 자신의 이미지만 업로드/삭제 가능
+- 모든 사용자가 프로필 이미지 조회 가능
+- 기타 파일: 인증된 사용자만 접근 가능
 
 ## 📞 지원
 
