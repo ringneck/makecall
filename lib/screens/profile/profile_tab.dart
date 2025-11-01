@@ -343,10 +343,10 @@ class _ProfileTabState extends State<ProfileTab> {
           const SizedBox(height: 24),
           const Divider(),
           
-          // 회사 / API 설정
+          // 기본 설정
           ListTile(
             leading: const Icon(Icons.business),
-            title: const Text('회사 / API 설정'),
+            title: const Text('기본 설정'),
             subtitle: Text(
               userModel?.companyName != null
                   ? userModel!.companyName!
