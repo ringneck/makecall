@@ -210,7 +210,9 @@ class AuthService extends ChangeNotifier {
   
   // 프로필 사진 업로드 (Firebase Storage)
   Future<String?> uploadProfileImage(File imageFile) async {
-    if (currentUser == null) return null;
+    if (currentUser == null) {
+      throw Exception('로그인이 필요합니다.');
+    }
     
     try {
       final userId = currentUser!.uid;
@@ -221,28 +223,95 @@ class AuthService extends ChangeNotifier {
       
       if (kDebugMode) {
         debugPrint('📸 Uploading profile image for user: $userId');
+        debugPrint('📁 File path: ${imageFile.path}');
+        debugPrint('📊 File size: ${await imageFile.length()} bytes');
       }
       
-      // 이미지 업로드
-      final uploadTask = await storageRef.putFile(imageFile);
+      // 파일 크기 확인 (10MB 제한)
+      final fileSize = await imageFile.length();
+      if (fileSize > 10 * 1024 * 1024) {
+        throw Exception('이미지 파일 크기가 10MB를 초과합니다.');
+      }
+      
+      // 이미지 업로드 (타임아웃 30초)
+      final uploadTask = storageRef.putFile(
+        imageFile,
+        SettableMetadata(
+          contentType: 'image/jpeg',
+          customMetadata: {
+            'uploadedBy': userId,
+            'uploadedAt': DateTime.now().toIso8601String(),
+          },
+        ),
+      );
+      
+      // 업로드 진행 상황 로깅 (디버그 모드)
+      if (kDebugMode) {
+        uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+          final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          debugPrint('📤 Upload progress: ${progress.toStringAsFixed(2)}%');
+        });
+      }
+      
+      // 업로드 완료 대기
+      final snapshot = await uploadTask.timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('업로드 시간이 초과되었습니다. 네트워크를 확인해주세요.');
+        },
+      );
       
       // 다운로드 URL 가져오기
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      final downloadUrl = await snapshot.ref.getDownloadURL();
       
       if (kDebugMode) {
-        debugPrint('✅ Profile image uploaded: $downloadUrl');
+        debugPrint('✅ Profile image uploaded successfully');
+        debugPrint('🔗 Download URL: $downloadUrl');
       }
       
       // Firestore에 URL 저장
       await _firestore
           .collection('users')
           .doc(userId)
-          .update({'profileImageUrl': downloadUrl});
+          .update({
+        'profileImageUrl': downloadUrl,
+        'profileImageUpdatedAt': DateTime.now().toIso8601String(),
+      }).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Firestore 업데이트 시간이 초과되었습니다.');
+        },
+      );
+      
+      if (kDebugMode) {
+        debugPrint('✅ Firestore updated with new profile image URL');
+      }
       
       // UserModel 새로고침
       await _loadUserModel(userId);
       
       return downloadUrl;
+    } on FirebaseException catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Firebase error: ${e.code} - ${e.message}');
+      }
+      
+      // Firebase 에러를 한글로 변환
+      String errorMessage;
+      switch (e.code) {
+        case 'unauthorized':
+          errorMessage = 'Firebase Storage 접근 권한이 없습니다. 관리자에게 문의하세요.';
+          break;
+        case 'canceled':
+          errorMessage = '업로드가 취소되었습니다.';
+          break;
+        case 'unknown':
+          errorMessage = '알 수 없는 오류가 발생했습니다.';
+          break;
+        default:
+          errorMessage = 'Firebase 오류: ${e.message ?? e.code}';
+      }
+      throw Exception(errorMessage);
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Upload profile image error: $e');

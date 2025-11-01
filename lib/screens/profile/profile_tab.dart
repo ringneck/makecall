@@ -1305,22 +1305,43 @@ class _ProfileTabState extends State<ProfileTab> {
   // 이미지 선택
   Future<void> _pickImage(ImageSource source, AuthService authService) async {
     try {
+      if (kDebugMode) {
+        debugPrint('🖼️ Starting image picker with source: $source');
+      }
+      
       final picker = ImagePicker();
+      
+      // iOS hang 방지: 약간의 지연을 추가하여 UI 스레드가 완전히 정리되도록 함
+      await Future.delayed(const Duration(milliseconds: 100));
+      
       final pickedFile = await picker.pickImage(
         source: source,
         maxWidth: 512,
         maxHeight: 512,
         imageQuality: 85,
+        requestFullMetadata: false,  // iOS에서 메타데이터 요청을 건너뛰어 성능 향상
       );
 
-      if (pickedFile == null) return;
+      if (pickedFile == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ Image picker cancelled by user');
+        }
+        return;
+      }
+
+      if (kDebugMode) {
+        debugPrint('✅ Image picked: ${pickedFile.path}');
+      }
 
       // 로딩 다이얼로그 표시
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(
+      if (!mounted) return;
+      
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => PopScope(
+          canPop: false,  // 백버튼으로 닫기 방지
+          child: const Center(
             child: Card(
               child: Padding(
                 padding: EdgeInsets.all(24.0),
@@ -1335,39 +1356,66 @@ class _ProfileTabState extends State<ProfileTab> {
               ),
             ),
           ),
-        );
-      }
+        ),
+      );
 
-      // Firebase Storage에 업로드
+      // Firebase Storage에 업로드 (비동기 처리)
       final imageFile = File(pickedFile.path);
+      
+      if (kDebugMode) {
+        debugPrint('📤 Uploading image to Firebase Storage...');
+      }
+      
       await authService.uploadProfileImage(imageFile);
 
-      if (context.mounted) {
-        Navigator.pop(context); // 로딩 다이얼로그 닫기
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
-                Text('프로필 사진이 업데이트되었습니다'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      if (kDebugMode) {
+        debugPrint('✅ Image upload completed successfully');
       }
+
+      if (!mounted) return;
+      
+      Navigator.pop(context); // 로딩 다이얼로그 닫기
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Text('프로필 사진이 업데이트되었습니다'),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
     } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context); // 로딩 다이얼로그 닫기
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('이미지 업로드 실패: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (kDebugMode) {
+        debugPrint('❌ Image upload error: $e');
       }
+      
+      if (!mounted) return;
+      
+      // 로딩 다이얼로그가 열려있으면 닫기
+      Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('이미지 업로드 실패: ${e.toString()}'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
