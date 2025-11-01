@@ -690,37 +690,34 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                     ],
                   ),
                 ),
-                Switch(
-                  value: _isEnabled && !isDefaultNumber,
-                  onChanged: _isSaving ? null : _toggleCallForward,
-                  activeTrackColor: const Color(0xFFFF9800).withValues(alpha: 0.5),
-                  activeThumbColor: const Color(0xFFFF9800),
-                ),
               ],
             ),
           ),
           
           const SizedBox(height: 12),
           
-          // 마지막 업데이트 시간 & 새로고침 버튼
+          // 착신전환 활성화 스위치 & 새로고침 버튼
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // 마지막 업데이트 시간
+              // 착신전환 활성화 스위치
               Row(
                 children: [
-                  Icon(
-                    Icons.update,
-                    size: 14,
-                    color: Colors.grey[600],
-                  ),
-                  const SizedBox(width: 4),
                   Text(
-                    _formatLastUpdated(),
+                    '착신전환',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[700],
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  Switch(
+                    value: _isEnabled && !isDefaultNumber,
+                    onChanged: _isSaving ? null : _toggleCallForward,
+                    activeTrackColor: const Color(0xFFFF9800).withValues(alpha: 0.5),
+                    activeThumbColor: const Color(0xFFFF9800),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 ],
               ),
