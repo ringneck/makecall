@@ -183,19 +183,59 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // 로고 이미지
-                  Image.network(
-                    'https://page.gensparksite.com/v1/base64_upload/494cf189094ee9e548e5615c235944b2',
-                    height: 120,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.phone_in_talk,
-                        size: 80,
-                        color: Color(0xFF2196F3),
-                      );
-                    },
+                  // 로고 이미지 - 고급스러운 스타일
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF2196F3).withValues(alpha: 0.1),
+                          const Color(0xFF1976D2).withValues(alpha: 0.05),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2196F3).withValues(alpha: 0.2),
+                          blurRadius: 30,
+                          spreadRadius: 5,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Image.network(
+                      'https://page.gensparksite.com/v1/base64_upload/50062f8d2fea27ee567e74358d7c4dbe',
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.phone_in_talk,
+                          size: 80,
+                          color: Color(0xFF2196F3),
+                        );
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return SizedBox(
+                          width: 120,
+                          height: 120,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   const Text(
                     '당신의 더 나은 커뮤니케이션',
                     textAlign: TextAlign.center,
