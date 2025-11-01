@@ -10,6 +10,10 @@ class UserModel {
   final String? apiBaseUrl;
   final int? apiHttpPort;
   final int? apiHttpsPort;
+  final String? websocketServerUrl;  // WebSocket 서버 주소
+  final int? websocketServerPort;    // WebSocket 서버 포트 (기본: 6600)
+  final bool? websocketUseSSL;       // WebSocket SSL 사용 여부 (wss 또는 ws, 기본: false)
+  final int? amiServerId;            // AMI 서버 ID (다중 서버 구분, 기본: 1)
   final DateTime createdAt;
   final DateTime? lastLoginAt;
   final DateTime? lastMaxExtensionsUpdate; // maxExtensions 마지막 업데이트 일시
@@ -29,6 +33,10 @@ class UserModel {
     this.apiBaseUrl,
     this.apiHttpPort = 3500,
     this.apiHttpsPort = 3501,
+    this.websocketServerUrl,
+    this.websocketServerPort = 6600,
+    this.websocketUseSSL = false,
+    this.amiServerId = 1,
     required this.createdAt,
     this.lastLoginAt,
     this.lastMaxExtensionsUpdate,
@@ -50,6 +58,10 @@ class UserModel {
       apiBaseUrl: map['apiBaseUrl'] as String?,
       apiHttpPort: map['apiHttpPort'] as int? ?? 3500,
       apiHttpsPort: map['apiHttpsPort'] as int? ?? 3501,
+      websocketServerUrl: map['websocketServerUrl'] as String?,
+      websocketServerPort: map['websocketServerPort'] as int? ?? 6600,
+      websocketUseSSL: map['websocketUseSSL'] as bool? ?? false,
+      amiServerId: map['amiServerId'] as int? ?? 1,
       createdAt: DateTime.parse(map['createdAt'] as String? ?? DateTime.now().toIso8601String()),
       lastLoginAt: map['lastLoginAt'] != null 
           ? DateTime.parse(map['lastLoginAt'] as String)
@@ -75,6 +87,10 @@ class UserModel {
       'apiBaseUrl': apiBaseUrl,
       'apiHttpPort': apiHttpPort,
       'apiHttpsPort': apiHttpsPort,
+      'websocketServerUrl': websocketServerUrl,
+      'websocketServerPort': websocketServerPort,
+      'websocketUseSSL': websocketUseSSL,
+      'amiServerId': amiServerId,
       'createdAt': createdAt.toIso8601String(),
       'lastLoginAt': lastLoginAt?.toIso8601String(),
       'lastMaxExtensionsUpdate': lastMaxExtensionsUpdate?.toIso8601String(),
@@ -95,6 +111,10 @@ class UserModel {
     String? apiBaseUrl,
     int? apiHttpPort,
     int? apiHttpsPort,
+    String? websocketServerUrl,
+    int? websocketServerPort,
+    bool? websocketUseSSL,
+    int? amiServerId,
     DateTime? createdAt,
     DateTime? lastLoginAt,
     DateTime? lastMaxExtensionsUpdate,
@@ -114,6 +134,10 @@ class UserModel {
       apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
       apiHttpPort: apiHttpPort ?? this.apiHttpPort,
       apiHttpsPort: apiHttpsPort ?? this.apiHttpsPort,
+      websocketServerUrl: websocketServerUrl ?? this.websocketServerUrl,
+      websocketServerPort: websocketServerPort ?? this.websocketServerPort,
+      websocketUseSSL: websocketUseSSL ?? this.websocketUseSSL,
+      amiServerId: amiServerId ?? this.amiServerId,
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       lastMaxExtensionsUpdate: lastMaxExtensionsUpdate ?? this.lastMaxExtensionsUpdate,
@@ -132,4 +156,16 @@ class UserModel {
     final protocol = useHttps ? 'https' : 'http';
     return '$protocol://$apiBaseUrl:$port/api/v2';
   }
+  
+  // WebSocket URL 생성 헬퍼 메서드
+  String getWebSocketUrl() {
+    if (websocketServerUrl == null || websocketServerUrl!.isEmpty) {
+      return '';
+    }
+    final protocol = (websocketUseSSL ?? false) ? 'wss' : 'ws';
+    return '$protocol://$websocketServerUrl:$websocketServerPort';
+  }
+  
+  // TenantID getter (companyId와 동일)
+  String? get tenantId => companyId;
 }

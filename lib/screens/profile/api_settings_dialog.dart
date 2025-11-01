@@ -16,7 +16,11 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   late final TextEditingController _apiBaseUrlController;
   late final TextEditingController _companyIdController;
   late final TextEditingController _appKeyController;
+  late final TextEditingController _websocketServerUrlController;
+  late final TextEditingController _websocketServerPortController;
+  late final TextEditingController _amiServerIdController;
   bool _isLoading = false;
+  bool _websocketUseSSL = false;
 
   @override
   void initState() {
@@ -26,6 +30,10 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     _apiBaseUrlController = TextEditingController(text: userModel?.apiBaseUrl ?? '');
     _companyIdController = TextEditingController(text: userModel?.companyId ?? '');
     _appKeyController = TextEditingController(text: userModel?.appKey ?? '');
+    _websocketServerUrlController = TextEditingController(text: userModel?.websocketServerUrl ?? '');
+    _websocketServerPortController = TextEditingController(text: (userModel?.websocketServerPort ?? 6600).toString());
+    _amiServerIdController = TextEditingController(text: (userModel?.amiServerId ?? 1).toString());
+    _websocketUseSSL = userModel?.websocketUseSSL ?? false;
   }
 
   @override
@@ -34,6 +42,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     _apiBaseUrlController.dispose();
     _companyIdController.dispose();
     _appKeyController.dispose();
+    _websocketServerUrlController.dispose();
+    _websocketServerPortController.dispose();
+    _amiServerIdController.dispose();
     super.dispose();
   }
 
@@ -50,12 +61,16 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
             apiHttpsPort: 3501,
             companyId: _companyIdController.text.trim(),
             appKey: _appKeyController.text.trim(),
+            websocketServerUrl: _websocketServerUrlController.text.trim(),
+            websocketServerPort: int.tryParse(_websocketServerPortController.text.trim()) ?? 6600,
+            websocketUseSSL: _websocketUseSSL,
+            amiServerId: int.tryParse(_amiServerIdController.text.trim()) ?? 1,
           );
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('회사/API 설정이 저장되었습니다')),
+          const SnackBar(content: Text('회사/API/WebSocket 설정이 저장되었습니다')),
         );
       }
     } catch (e) {
@@ -180,6 +195,144 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 Text(
                   _apiBaseUrlController.text.trim(),
                   style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+              ],
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+              // WebSocket 설정
+              const Text(
+                'WebSocket 설정',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _websocketServerUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'WebSocket 서버 주소',
+                  hintText: '예: ws.example.com',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.wifi),
+                ),
+                validator: (value) {
+                  if (value != null && value.trim().isNotEmpty) {
+                    if (value.contains('://')) {
+                      return 'ws://, wss:// 제외하고 입력해주세요';
+                    }
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _websocketServerPortController,
+                      decoration: const InputDecoration(
+                        labelText: 'WebSocket 포트',
+                        hintText: '6600',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.numbers),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      validator: (value) {
+                        if (value != null && value.trim().isNotEmpty) {
+                          final port = int.tryParse(value.trim());
+                          if (port == null || port < 1 || port > 65535) {
+                            return '1-65535 범위의 포트를 입력해주세요';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _amiServerIdController,
+                      decoration: const InputDecoration(
+                        labelText: 'AMI Server ID',
+                        hintText: '1',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.dns),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      validator: (value) {
+                        if (value != null && value.trim().isNotEmpty) {
+                          final id = int.tryParse(value.trim());
+                          if (id == null || id < 1) {
+                            return '1 이상의 숫자를 입력해주세요';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // ws/wss 프로토콜 선택
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SwitchListTile(
+                  title: const Text('SSL 사용 (wss)'),
+                  subtitle: Text(
+                    _websocketUseSSL ? 'wss:// (보안 연결)' : 'ws:// (일반 연결)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _websocketUseSSL ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                  value: _websocketUseSSL,
+                  onChanged: (value) {
+                    setState(() {
+                      _websocketUseSSL = value;
+                    });
+                  },
+                  secondary: Icon(
+                    _websocketUseSSL ? Icons.lock : Icons.lock_open,
+                    color: _websocketUseSSL ? Colors.green : Colors.orange,
+                  ),
+                ),
+              ),
+              // WebSocket URL 미리보기
+              if (_websocketServerUrlController.text.trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'WebSocket 연결 주소:',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_websocketUseSSL ? 'wss' : 'ws'}://${_websocketServerUrlController.text.trim()}:${_websocketServerPortController.text.trim()}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _websocketUseSSL ? Colors.green.shade700 : Colors.orange.shade700,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ],

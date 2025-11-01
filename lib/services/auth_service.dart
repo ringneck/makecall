@@ -164,6 +164,10 @@ class AuthService extends ChangeNotifier {
     int? apiHttpPort,
     int? apiHttpsPort,
     bool? isPremium,
+    String? websocketServerUrl,
+    int? websocketServerPort,
+    bool? websocketUseSSL,
+    int? amiServerId,
   }) async {
     if (currentUser == null) return;
     
@@ -178,6 +182,10 @@ class AuthService extends ChangeNotifier {
       if (apiHttpPort != null) updates['apiHttpPort'] = apiHttpPort;
       if (apiHttpsPort != null) updates['apiHttpsPort'] = apiHttpsPort;
       if (isPremium != null) updates['isPremium'] = isPremium;
+      if (websocketServerUrl != null) updates['websocketServerUrl'] = websocketServerUrl;
+      if (websocketServerPort != null) updates['websocketServerPort'] = websocketServerPort;
+      if (websocketUseSSL != null) updates['websocketUseSSL'] = websocketUseSSL;
+      if (amiServerId != null) updates['amiServerId'] = amiServerId;
       
       await _firestore
           .collection('users')
