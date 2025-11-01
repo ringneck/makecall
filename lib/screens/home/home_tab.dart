@@ -7,6 +7,7 @@ import '../../models/my_extension_model.dart';
 import '../../providers/selected_extension_provider.dart';
 import '../../widgets/call_forward_settings_card.dart';
 import '../../widgets/call_state_indicator.dart';
+import '../../utils/phone_formatter.dart';
 
 class HomeTab extends StatefulWidget {
   final VoidCallback? onNavigateToProfile;
@@ -435,7 +436,7 @@ class _HomeTabState extends State<HomeTab> {
                                 // 외부발신 번호
                                 if (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty)
                                   Text(
-                                    extension.externalCidNumber!,
+                                    PhoneFormatter.format(extension.externalCidNumber!),
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w600,
@@ -507,7 +508,7 @@ class _HomeTabState extends State<HomeTab> {
                               
                               // 단말번호
                               Text(
-                                extension.extension,
+                                PhoneFormatter.format(extension.extension),
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w600,

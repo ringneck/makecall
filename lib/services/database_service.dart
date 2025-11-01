@@ -6,6 +6,7 @@ import '../models/call_history_model.dart';
 import '../models/contact_model.dart';
 import '../models/my_extension_model.dart';
 import '../models/phonebook_model.dart';
+import '../models/call_forward_info_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -576,5 +577,111 @@ class DatabaseService {
           contacts.sort((a, b) => a.name.compareTo(b.name));
           return contacts;
         });
+  }
+
+  // ===== 착신전환 정보 관리 =====
+
+  // 착신전환 정보 조회 (실시간 스트림)
+  Stream<CallForwardInfoModel?> getCallForwardInfo(String userId, String extensionNumber) {
+    final docId = '${userId}_$extensionNumber';
+    return _firestore
+        .collection('call_forward_info')
+        .doc(docId)
+        .snapshots()
+        .map((doc) {
+          if (doc.exists) {
+            return CallForwardInfoModel.fromFirestore(doc);
+          }
+          return null;
+        });
+  }
+
+  // 착신전환 정보 저장/업데이트
+  Future<void> saveCallForwardInfo(CallForwardInfoModel info) async {
+    try {
+      final docId = '${info.userId}_${info.extensionNumber}';
+      await _firestore
+          .collection('call_forward_info')
+          .doc(docId)
+          .set(info.toFirestore(), SetOptions(merge: true));
+      
+      if (kDebugMode) {
+        debugPrint('✅ Call forward info saved: $docId');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Save call forward info error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // 착신전환 활성화 상태 업데이트
+  Future<void> updateCallForwardEnabled(
+    String userId,
+    String extensionNumber,
+    bool isEnabled,
+  ) async {
+    try {
+      final docId = '${userId}_$extensionNumber';
+      await _firestore.collection('call_forward_info').doc(docId).set({
+        'userId': userId,
+        'extensionNumber': extensionNumber,
+        'isEnabled': isEnabled,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
+      if (kDebugMode) {
+        debugPrint('✅ Call forward enabled updated: $docId -> $isEnabled');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Update call forward enabled error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // 착신번호 업데이트
+  Future<void> updateCallForwardDestination(
+    String userId,
+    String extensionNumber,
+    String destinationNumber,
+  ) async {
+    try {
+      final docId = '${userId}_$extensionNumber';
+      await _firestore.collection('call_forward_info').doc(docId).set({
+        'userId': userId,
+        'extensionNumber': extensionNumber,
+        'destinationNumber': destinationNumber,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
+      if (kDebugMode) {
+        debugPrint('✅ Call forward destination updated: $docId -> $destinationNumber');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Update call forward destination error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // 착신전환 정보 삭제
+  Future<void> deleteCallForwardInfo(String userId, String extensionNumber) async {
+    try {
+      final docId = '${userId}_$extensionNumber';
+      await _firestore.collection('call_forward_info').doc(docId).delete();
+      
+      if (kDebugMode) {
+        debugPrint('✅ Call forward info deleted: $docId');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Delete call forward info error: $e');
+      }
+      rethrow;
+    }
   }
 }
