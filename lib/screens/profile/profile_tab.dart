@@ -920,40 +920,41 @@ class _ProfileTabState extends State<ProfileTab> {
     );
 
     if (selected != null && context.mounted) {
-      final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
-      
       if (kDebugMode) {
-        debugPrint('🔍 선택된 단말번호: "$selected" (타입: ${selected.runtimeType}, 길이: ${selected.length})');
-        debugPrint('📋 현재 저장된 단말번호 목록: $currentMyExtensions (개수: ${currentMyExtensions.length})');
+        debugPrint('🔍 선택된 단말번호: "$selected"');
       }
       
-      // 1. 내 계정에 이미 등록되어 있는지 확인
-      if (currentMyExtensions.contains(selected)) {
-        if (kDebugMode) {
-          debugPrint('⚠️ 내 계정에 이미 등록된 단말번호: $selected');
-        }
-        
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('이미 내 계정에 등록된 단말번호입니다.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-        return;
-      }
-      
-      // 2. 다른 사용자가 이미 등록했는지 확인
+      // registered_extensions에서 등록 여부 확인 (내 계정 포함)
       try {
         final dbService = DatabaseService();
         final registrationInfo = await dbService.checkExtensionRegistration(selected);
         
         if (registrationInfo != null) {
-          // 다른 사용자가 이미 등록함
+          // 이미 등록되어 있음 - 내가 등록한 건지 확인
+          final registeredUserId = registrationInfo['userId'] as String? ?? '';
           final registeredEmail = registrationInfo['userEmail'] as String? ?? '';
           final registeredName = registrationInfo['userName'] as String? ?? '';
+          final currentUserId = authService.currentUser?.uid ?? '';
           
+          if (registeredUserId == currentUserId) {
+            // 내가 이미 등록한 단말번호
+            if (kDebugMode) {
+              debugPrint('⚠️ 내 계정에 이미 등록된 단말번호: $selected');
+            }
+            
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('이미 내 계정에 등록된 단말번호입니다.'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+            return;
+          }
+          
+          // 다른 사용자가 이미 등록함
           if (kDebugMode) {
             debugPrint('❌ 단말번호 "$selected"는 다른 사용자가 사용 중: $registeredEmail');
           }
@@ -1004,7 +1005,7 @@ class _ProfileTabState extends State<ProfileTab> {
           return;
         }
         
-        // 3. 사용 가능 - 등록 진행
+        // 사용 가능 - 등록 진행
         if (kDebugMode) {
           debugPrint('💾 단말번호 등록 시작: $selected');
         }
@@ -1021,9 +1022,12 @@ class _ProfileTabState extends State<ProfileTab> {
           userName: userName,
         );
         
-        // users 문서의 myExtensions 배열에 추가
-        final updatedExtensions = [...currentMyExtensions, selected];
-        await authService.updateUserInfo(myExtensions: updatedExtensions);
+        // users 문서의 myExtensions 배열에 추가 (중복 방지)
+        final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
+        if (!currentMyExtensions.contains(selected)) {
+          final updatedExtensions = [...currentMyExtensions, selected];
+          await authService.updateUserInfo(myExtensions: updatedExtensions);
+        }
         
         // 상태 업데이트 완료 대기
         await Future.delayed(const Duration(milliseconds: 300));
