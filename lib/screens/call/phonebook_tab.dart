@@ -733,7 +733,11 @@ class _PhonebookTabState extends State<PhonebookTab> {
           // 전화 걸기 버튼
           IconButton(
             icon: const Icon(Icons.phone, color: Color(0xFF2196F3)),
-            onPressed: () => _quickCall(contact.telephone, category: contact.category),
+            onPressed: () => _quickCall(
+              contact.telephone,
+              category: contact.category,
+              name: contact.name,
+            ),
             tooltip: '빠른 발신',
           ),
         ],
@@ -786,10 +790,41 @@ class _PhonebookTabState extends State<PhonebookTab> {
     }
   }
 
-  // 빠른 발신
-  Future<void> _quickCall(String phoneNumber, {String? category}) async {
-    // 기능번호(Feature Codes)는 다이얼로그 없이 바로 Click to Call
+  // 기능번호 판별 헬퍼 메서드
+  bool _isFeatureCode(String phoneNumber, String? category, String? name) {
+    // 1. Category가 'Feature Codes'인 경우
     if (category == 'Feature Codes') {
+      return true;
+    }
+    
+    // 2. 전화번호가 *로 시작하는 경우
+    if (phoneNumber.startsWith('*')) {
+      return true;
+    }
+    
+    // 3. 이름에 '에코테스트' 또는 'Echo Test' 포함
+    if (name != null) {
+      final nameLower = name.toLowerCase();
+      if (nameLower.contains('echo test') || nameLower.contains('에코테스트')) {
+        return true;
+      }
+      
+      // 4. 이름에 '기능번호' 또는 'feature code' 포함
+      if (nameLower.contains('기능번호') || nameLower.contains('feature code')) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  // 빠른 발신
+  Future<void> _quickCall(String phoneNumber, {String? category, String? name}) async {
+    // 기능번호 판별: category, 전화번호, 이름을 종합적으로 확인
+    if (_isFeatureCode(phoneNumber, category, name)) {
+      if (kDebugMode) {
+        debugPrint('🌟 기능번호 감지: $phoneNumber (category: $category, name: $name)');
+      }
       await _handleFeatureCodeCall(phoneNumber);
       return;
     }
@@ -1068,7 +1103,11 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       label: '전화번호',
                       value: contact.telephone,
                       isPrimary: true,
-                      onTap: () => _quickCall(contact.telephone, category: contact.category),
+                      onTap: () => _quickCall(
+                        contact.telephone,
+                        category: contact.category,
+                        name: contact.name,
+                      ),
                       onCopy: () => _copyToClipboard(contact.telephone),
                     ),
                     
@@ -1161,7 +1200,11 @@ class _PhonebookTabState extends State<PhonebookTab> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
-                        _quickCall(contact.telephone, category: contact.category);
+                        _quickCall(
+                          contact.telephone,
+                          category: contact.category,
+                          name: contact.name,
+                        );
                       },
                       icon: const Icon(Icons.phone, size: 24),
                       label: const Text(
