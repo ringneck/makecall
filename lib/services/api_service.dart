@@ -316,6 +316,31 @@ class ApiService {
     }
   }
 
+  // Internal Phonebook 목록만 필터링하여 조회
+  Future<List<Map<String, dynamic>>> getInternalPhonebooks() async {
+    try {
+      final allPhonebooks = await getPhonebooks();
+      
+      // 'Internal' 또는 'internal'이 포함된 phonebook만 필터링
+      final internalPhonebooks = allPhonebooks.where((phonebook) {
+        final name = phonebook['name']?.toString().toLowerCase() ?? '';
+        return name.contains('internal');
+      }).toList();
+      
+      if (kDebugMode) {
+        debugPrint('📚 전체 Phonebook: ${allPhonebooks.length}개');
+        debugPrint('🔐 Internal Phonebook: ${internalPhonebooks.length}개');
+      }
+      
+      return internalPhonebooks;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Get internal phonebooks error: $e');
+      }
+      rethrow;
+    }
+  }
+
   // Phonebook에서 단말번호 목록 추출 (email 필터링 포함)
   Future<List<Map<String, dynamic>>> getExtensionsFromPhonebook({
     required String phonebookId,
@@ -354,6 +379,79 @@ class ApiService {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Get extensions from phonebook error: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // 사용자 이메일로 Internal Phonebook에서 단말번호 조회
+  Future<List<Map<String, dynamic>>> getMyExtensionsFromInternalPhonebook({
+    required String userEmail,
+  }) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔍 사용자 이메일로 단말번호 조회: $userEmail');
+      }
+
+      // Internal Phonebook만 조회
+      final internalPhonebooks = await getInternalPhonebooks();
+      
+      if (internalPhonebooks.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('⚠️ Internal Phonebook이 없습니다.');
+        }
+        return [];
+      }
+
+      // 모든 Internal Phonebook에서 이메일이 일치하는 연락처 찾기
+      final List<Map<String, dynamic>> matchedExtensions = [];
+      
+      for (var phonebook in internalPhonebooks) {
+        final phonebookId = phonebook['id']?.toString() ?? '';
+        final phonebookName = phonebook['name']?.toString() ?? '';
+        
+        if (phonebookId.isEmpty) continue;
+        
+        if (kDebugMode) {
+          debugPrint('📚 Phonebook 조회 중: $phonebookName (ID: $phonebookId)');
+        }
+
+        // 해당 phonebook의 모든 연락처 조회
+        final contacts = await getPhonebookContacts(phonebookId);
+        
+        // 이메일이 일치하는 연락처 찾기
+        for (var contact in contacts) {
+          final contactEmail = contact['email']?.toString().trim().toLowerCase() ?? '';
+          
+          if (contactEmail == userEmail.toLowerCase()) {
+            // 이메일 일치 - extension 필드가 있는지 확인
+            final extension = contact['extension']?.toString().trim() ?? '';
+            
+            if (extension.isNotEmpty) {
+              matchedExtensions.add({
+                'extension': extension,
+                'name': contact['name']?.toString().trim() ?? '',
+                'email': contactEmail,
+                'phonebookName': phonebookName,
+                'phonebookId': phonebookId,
+              });
+              
+              if (kDebugMode) {
+                debugPrint('✅ 일치하는 연락처 발견: $extension (${contact['name']})');
+              }
+            }
+          }
+        }
+      }
+      
+      if (kDebugMode) {
+        debugPrint('📱 총 ${matchedExtensions.length}개의 단말번호 발견');
+      }
+      
+      return matchedExtensions;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Get my extensions from internal phonebook error: $e');
       }
       rethrow;
     }

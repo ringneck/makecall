@@ -755,16 +755,10 @@ class _ProfileTabState extends State<ProfileTab> {
         appKey: userModel.appKey,
       );
 
-      // Phonebook 목록 조회
-      final phonebooks = await apiService.getPhonebooks();
-      
-      if (phonebooks.isEmpty) {
-        setState(() {
-          _isSearching = false;
-          _searchError = 'Phonebook이 없습니다.';
-        });
-        return;
-      }
+      // 사용자 이메일로 Internal Phonebook에서 단말번호 조회
+      final matchedExtensions = await apiService.getMyExtensionsFromInternalPhonebook(
+        userEmail: userEmail,
+      );
 
       setState(() {
         _isSearching = false;
@@ -775,53 +769,18 @@ class _ProfileTabState extends State<ProfileTab> {
         FocusScope.of(context).unfocus();
       }
 
-      // Phonebook이 여러 개인 경우 선택 다이얼로그 표시
-      String? selectedPhonebookId;
-      
-      if (phonebooks.length > 1) {
-        if (context.mounted) {
-          selectedPhonebookId = await _showPhonebookSelectionDialog(context, phonebooks);
-        }
-        
-        if (selectedPhonebookId == null) {
-          // 사용자가 취소함
-          return;
-        }
-      } else {
-        // Phonebook이 하나인 경우 자동 선택
-        selectedPhonebookId = phonebooks[0]['id']?.toString() ?? '';
-      }
-      
-      if (selectedPhonebookId.isEmpty) {
-        setState(() {
-          _searchError = 'Phonebook ID를 찾을 수 없습니다.';
-        });
-        return;
-      }
-
-      // 선택된 Phonebook에서 단말번호 목록 가져오기
-      setState(() {
-        _isSearching = true;
-      });
-
-      final allExtensions = await apiService.getExtensionsFromPhonebook(
-        phonebookId: selectedPhonebookId,
-      );
-
-      setState(() {
-        _isSearching = false;
-      });
-
-      if (allExtensions.isEmpty) {
+      if (matchedExtensions.isEmpty) {
         if (context.mounted) {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
               icon: const Icon(Icons.info_outline, color: Colors.orange, size: 48),
               title: const Text('단말번호 없음'),
-              content: const Text(
-                '선택한 Phonebook에 단말번호가 없습니다.',
+              content: Text(
+                'Internal Phonebook에서 이메일이 "$userEmail"인 \n단말번호를 찾을 수 없습니다.\n\n'
+                'Phonebook 관리자에게 연락처 등록을 요청하세요.',
                 textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13),
               ),
               actions: [
                 TextButton(
@@ -839,7 +798,7 @@ class _ProfileTabState extends State<ProfileTab> {
       if (context.mounted) {
         await _showExtensionSelectionDialog(
           context,
-          allExtensions,
+          matchedExtensions,
           userEmail,
           userId,
           authService,
@@ -852,46 +811,6 @@ class _ProfileTabState extends State<ProfileTab> {
         _searchError = '단말번호 조회 실패: ${e.toString()}';
       });
     }
-  }
-
-  // Phonebook 선택 다이얼로그
-  Future<String?> _showPhonebookSelectionDialog(
-    BuildContext context,
-    List<Map<String, dynamic>> phonebooks,
-  ) async {
-    return await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Phonebook 선택', style: TextStyle(fontSize: 18)),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: phonebooks.length,
-              itemBuilder: (context, index) {
-                final phonebook = phonebooks[index];
-                final id = phonebook['id']?.toString() ?? '';
-                final name = phonebook['name']?.toString() ?? 'Phonebook ${index + 1}';
-                
-                return ListTile(
-                  leading: const Icon(Icons.contact_phone, color: Color(0xFF2196F3)),
-                  title: Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                  subtitle: Text('ID: $id', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  onTap: () => Navigator.pop(context, id),
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('취소', style: TextStyle(fontSize: 14)),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   // 단말번호 선택 다이얼로그
@@ -915,8 +834,9 @@ class _ProfileTabState extends State<ProfileTab> {
               itemBuilder: (context, index) {
                 final ext = extensions[index];
                 final extension = ext['extension'] as String;
-                final name = ext['name'] as String;
-                final email = ext['email'] as String;
+                final name = ext['name'] as String? ?? '';
+                final email = ext['email'] as String? ?? '';
+                final phonebookName = ext['phonebookName'] as String? ?? '';
                 
                 return ListTile(
                   leading: const Icon(Icons.phone_android, color: Color(0xFF2196F3)),
@@ -926,6 +846,11 @@ class _ProfileTabState extends State<ProfileTab> {
                     children: [
                       if (name.isNotEmpty) Text(name, style: const TextStyle(fontSize: 13)),
                       if (email.isNotEmpty) Text(email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      if (phonebookName.isNotEmpty) 
+                        Text(
+                          '📚 $phonebookName',
+                          style: TextStyle(fontSize: 11, color: Colors.blue[700]),
+                        ),
                     ],
                   ),
                   onTap: () => Navigator.pop(context, extension),
@@ -944,45 +869,9 @@ class _ProfileTabState extends State<ProfileTab> {
     );
 
     if (selected != null && context.mounted) {
-      // 선택한 단말번호의 이메일 확인
-      final selectedExt = extensions.firstWhere(
-        (e) => e['extension'] == selected,
-        orElse: () => {},
-      );
-      
-      final extEmail = (selectedExt['email'] as String? ?? '').trim().toLowerCase();
-      final userEmailLower = userEmail.trim().toLowerCase();
-
-      if (extEmail != userEmailLower) {
-        // 이메일 불일치
-        if (context.mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              icon: const Icon(Icons.error_outline, color: Colors.red, size: 48),
-              title: const Text('등록 불가'),
-              content: Text(
-                '이메일이 일치하지 않아 등록할 수 없습니다.\n\n'
-                '사용자 이메일: $userEmail\n'
-                '단말번호 이메일: ${selectedExt['email']}\n\n'
-                '동일한 이메일의 단말번호만 등록 가능합니다.',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('확인'),
-                ),
-              ],
-            ),
-          );
-        }
-        return;
-      }
-
-      // 이메일 일치 - 저장
+      // Internal Phonebook에서 이미 이메일로 필터링했으므로 바로 저장
       final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
+      
       if (!currentMyExtensions.contains(selected)) {
         final updatedExtensions = [...currentMyExtensions, selected];
         await authService.updateUserInfo(myExtensions: updatedExtensions);
