@@ -873,9 +873,16 @@ class _ProfileTabState extends State<ProfileTab> {
       final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
       
       if (kDebugMode) {
-        debugPrint('🔍 선택된 단말번호: $selected');
-        debugPrint('📋 현재 저장된 단말번호 목록: $currentMyExtensions');
-        debugPrint('✅ 중복 체크: ${currentMyExtensions.contains(selected)}');
+        debugPrint('🔍 선택된 단말번호: "$selected" (타입: ${selected.runtimeType}, 길이: ${selected.length})');
+        debugPrint('📋 현재 저장된 단말번호 목록: $currentMyExtensions (개수: ${currentMyExtensions.length})');
+        
+        // 각 항목과 비교
+        for (var i = 0; i < currentMyExtensions.length; i++) {
+          final existing = currentMyExtensions[i];
+          debugPrint('   [$i] "$existing" (타입: ${existing.runtimeType}, 길이: ${existing.length}) == "$selected"? ${existing == selected}');
+        }
+        
+        debugPrint('✅ contains() 결과: ${currentMyExtensions.contains(selected)}');
       }
       
       if (!currentMyExtensions.contains(selected)) {

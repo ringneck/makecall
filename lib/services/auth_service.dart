@@ -30,7 +30,17 @@ class AuthService extends ChangeNotifier {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
-        _currentUserModel = UserModel.fromMap(doc.data()!, uid);
+        final data = doc.data()!;
+        _currentUserModel = UserModel.fromMap(data, uid);
+        
+        // myExtensions 필드 디버그 로깅
+        if (kDebugMode) {
+          final rawMyExtensions = data['myExtensions'];
+          debugPrint('📥 Firestore에서 사용자 데이터 로드');
+          debugPrint('   - myExtensions (raw): $rawMyExtensions (타입: ${rawMyExtensions.runtimeType})');
+          debugPrint('   - myExtensions (파싱): ${_currentUserModel?.myExtensions}');
+        }
+        
         notifyListeners();
       }
     } catch (e) {
