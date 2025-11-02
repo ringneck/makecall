@@ -463,18 +463,6 @@ class _ProfileTabState extends State<ProfileTab> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        userModel?.apiBaseUrl != null
-                            ? '내 이메일과 일치하는 단말번호를 조회하여 등록할 수 있습니다.'
-                            : '⚠️ API 서버를 먼저 설정해주세요.',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: userModel?.apiBaseUrl != null
-                              ? Colors.grey[700]
-                              : Colors.red,
-                        ),
-                      ),
                       
                       // 에러 메시지 표시
                       if (_searchError != null) ...[
