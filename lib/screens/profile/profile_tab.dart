@@ -436,15 +436,6 @@ class _ProfileTabState extends State<ProfileTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Phonebook에서 단말번호 조회',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2196F3),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -475,7 +466,7 @@ class _ProfileTabState extends State<ProfileTab> {
                       const SizedBox(height: 8),
                       Text(
                         userModel?.apiBaseUrl != null
-                            ? 'Phonebook에서 내 이메일과 일치하는 단말번호를 조회하여 등록할 수 있습니다.'
+                            ? '내 이메일과 일치하는 단말번호를 조회하여 등록할 수 있습니다.'
                             : '⚠️ API 서버를 먼저 설정해주세요.',
                         style: TextStyle(
                           fontSize: 11,
@@ -798,7 +789,7 @@ class _ProfileTabState extends State<ProfileTab> {
         appKey: userModel.appKey,
       );
 
-      // 사용자 이메일로 Internal Phonebook에서 단말번호 조회
+      // 사용자 이메일로 단말번호 조회
       final matchedExtensions = await apiService.getMyExtensionsFromInternalPhonebook(
         userEmail: userEmail,
       );
@@ -820,8 +811,8 @@ class _ProfileTabState extends State<ProfileTab> {
               icon: const Icon(Icons.info_outline, color: Colors.orange, size: 48),
               title: const Text('단말번호 없음'),
               content: Text(
-                'Internal Phonebook에서 이메일이 "$userEmail"인 \n단말번호를 찾을 수 없습니다.\n\n'
-                'Phonebook 관리자에게 연락처 등록을 요청하세요.',
+                '이메일이 "$userEmail"인 \n단말번호를 찾을 수 없습니다.\n\n'
+                '관리자에게 단말번호 등록을 요청하세요.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13),
               ),
