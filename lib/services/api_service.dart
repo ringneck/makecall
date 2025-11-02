@@ -354,9 +354,9 @@ class ApiService {
       final List<Map<String, dynamic>> extensions = [];
       
       for (var contact in contacts) {
-        // extension 필드가 있고 비어있지 않은 경우만 추가
-        if (contact['extension'] != null && 
-            contact['extension'].toString().trim().isNotEmpty) {
+        // telephone 필드가 단말번호
+        if (contact['telephone'] != null && 
+            contact['telephone'].toString().trim().isNotEmpty) {
           
           // email 필터링이 있는 경우
           if (filterEmail != null && filterEmail.isNotEmpty) {
@@ -367,7 +367,7 @@ class ApiService {
           }
           
           extensions.add({
-            'extension': contact['extension'].toString().trim(),
+            'extension': contact['telephone'].toString().trim(),  // telephone이 단말번호
             'name': contact['name']?.toString().trim() ?? '',
             'email': contact['email']?.toString().trim() ?? '',
           });
@@ -427,12 +427,12 @@ class ApiService {
           final contactEmail = contact['email']?.toString().trim().toLowerCase() ?? '';
           
           if (contactEmail == userEmail.toLowerCase()) {
-            // 이메일 일치 - extension 필드가 있는지 확인
-            final extension = contact['extension']?.toString().trim() ?? '';
+            // 이메일 일치 - telephone 필드가 단말번호
+            final telephone = contact['telephone']?.toString().trim() ?? '';
             
-            if (extension.isNotEmpty) {
+            if (telephone.isNotEmpty) {
               matchedExtensions.add({
-                'extension': extension,
+                'extension': telephone,  // telephone 필드를 extension으로 저장
                 'name': contact['name']?.toString().trim() ?? '',
                 'email': contactEmail,
                 'phonebookName': phonebookName,
@@ -440,7 +440,11 @@ class ApiService {
               });
               
               if (kDebugMode) {
-                debugPrint('✅ 일치하는 연락처 발견: $extension (${contact['name']})');
+                debugPrint('✅ 일치하는 연락처 발견: $telephone (${contact['name']}, email: $contactEmail)');
+              }
+            } else {
+              if (kDebugMode) {
+                debugPrint('⚠️ 이메일은 일치하지만 telephone 필드가 없음: ${contact['name']} ($contactEmail)');
               }
             }
           }
