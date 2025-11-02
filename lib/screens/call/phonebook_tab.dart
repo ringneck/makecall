@@ -486,8 +486,25 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 debugPrint('📋 Firestore에서 가져온 총 연락처 수: ${contacts.length}');
               }
 
-              // 검색 필터링
-              if (_searchController.text.isNotEmpty) {
+              return FutureBuilder<List<String>>(
+                future: _databaseService.getUserRegisteredExtensions(userId),
+                builder: (context, registeredSnapshot) {
+                  // registered_extensions 로드 중에는 모든 연락처 표시
+                  final registeredExtensions = registeredSnapshot.data ?? [];
+                  
+                  // registered_extensions에 등록된 단말번호 제외
+                  if (registeredExtensions.isNotEmpty) {
+                    contacts = contacts.where((contact) {
+                      return !registeredExtensions.contains(contact.telephone);
+                    }).toList();
+                    
+                    if (kDebugMode) {
+                      debugPrint('🔒 등록된 단말번호 제외 후: ${contacts.length}개 (제외: ${registeredExtensions.length}개)');
+                    }
+                  }
+
+                  // 검색 필터링
+                  if (_searchController.text.isNotEmpty) {
                 final query = _searchController.text.toLowerCase();
                 contacts = contacts.where((contact) {
                   final translatedName = _translateName(contact.name);
@@ -582,21 +599,23 @@ class _PhonebookTabState extends State<PhonebookTab> {
               }
 
               // RefreshIndicator로 당겨서 새로고침 기능 추가
-              return RefreshIndicator(
-                onRefresh: _loadPhonebooks,
-                child: ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(), // 항목이 적어도 스크롤 가능
-                  itemCount: contacts.length,
-                  itemBuilder: (context, index) {
-                    final contact = contacts[index];
-                    
-                    if (kDebugMode && index < 5) {
-                      debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
-                    }
-                    
-                    return _buildContactListTile(contact);
-                  },
-                ),
+                  return RefreshIndicator(
+                    onRefresh: _loadPhonebooks,
+                    child: ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(), // 항목이 적어도 스크롤 가능
+                      itemCount: contacts.length,
+                      itemBuilder: (context, index) {
+                        final contact = contacts[index];
+                        
+                        if (kDebugMode && index < 5) {
+                          debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
+                        }
+                        
+                        return _buildContactListTile(contact);
+                      },
+                    ),
+                  );
+                },
               );
             },
           ),
