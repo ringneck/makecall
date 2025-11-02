@@ -1014,7 +1014,14 @@ class _ProfileTabState extends State<ProfileTab> {
         final userEmail = authService.currentUser?.email ?? '';
         final userName = authService.currentUserModel?.phoneNumberName ?? '';
         
-        // registered_extensions에 등록
+        // 선택된 extension의 이름 가져오기
+        final selectedExtData = extensions.firstWhere(
+          (ext) => ext['extension'] == selected,
+          orElse: () => {},
+        );
+        final selectedName = selectedExtData['name'] as String? ?? '';
+        
+        // 1. registered_extensions 컬렉션에 등록 (중복 방지용)
         await dbService.registerExtension(
           extension: selected,
           userId: userId,
@@ -1022,7 +1029,25 @@ class _ProfileTabState extends State<ProfileTab> {
           userName: userName,
         );
         
-        // users 문서의 myExtensions 배열에 추가 (중복 방지)
+        // 2. my_extensions 컬렉션에 추가 (UI 표시용)
+        final myExtension = MyExtensionModel(
+          id: '', // DatabaseService.addMyExtension에서 자동 생성
+          userId: userId,
+          extensionId: '', // API에서 가져올 때까지 비워둠
+          extension: selected,
+          name: selectedName,
+          classOfServicesId: '', // API에서 가져올 때까지 비워둠
+          createdAt: DateTime.now(),
+          // API 설정은 사용자 프로필에서 가져옴
+          apiBaseUrl: authService.currentUserModel?.apiBaseUrl,
+          companyId: authService.currentUserModel?.companyId,
+          appKey: authService.currentUserModel?.appKey,
+          apiHttpPort: authService.currentUserModel?.apiHttpPort,
+          apiHttpsPort: authService.currentUserModel?.apiHttpsPort,
+        );
+        await dbService.addMyExtension(myExtension);
+        
+        // 3. users 문서의 myExtensions 배열에 추가 (중복 방지)
         final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
         if (!currentMyExtensions.contains(selected)) {
           final updatedExtensions = [...currentMyExtensions, selected];
@@ -1030,11 +1055,13 @@ class _ProfileTabState extends State<ProfileTab> {
         }
         
         // 상태 업데이트 완료 대기
-        await Future.delayed(const Duration(milliseconds: 300));
+        await Future.delayed(const Duration(milliseconds: 500));
         
         if (kDebugMode) {
           debugPrint('✅ 단말번호 등록 완료: $selected');
-          debugPrint('📋 업데이트 후 목록: ${authService.currentUserModel?.myExtensions}');
+          debugPrint('   - registered_extensions 등록');
+          debugPrint('   - my_extensions 컬렉션 추가');
+          debugPrint('   - users.myExtensions 배열 업데이트');
         }
 
         if (context.mounted) {
