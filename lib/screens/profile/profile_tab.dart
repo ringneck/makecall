@@ -766,30 +766,6 @@ class _ProfileTabState extends State<ProfileTab> {
         return;
       }
 
-      // 첫 번째 phonebook 사용
-      final phonebookId = phonebooks[0]['id']?.toString() ?? '';
-      
-      if (phonebookId.isEmpty) {
-        setState(() {
-          _isSearching = false;
-          _searchError = 'Phonebook ID를 찾을 수 없습니다.';
-        });
-        return;
-      }
-
-      // Phonebook에서 단말번호 목록 가져오기 (이메일 필터링 없이)
-      final allExtensions = await apiService.getExtensionsFromPhonebook(
-        phonebookId: phonebookId,
-      );
-
-      if (allExtensions.isEmpty) {
-        setState(() {
-          _isSearching = false;
-          _searchError = 'Phonebook에 단말번호가 없습니다.';
-        });
-        return;
-      }
-
       setState(() {
         _isSearching = false;
       });
@@ -797,6 +773,66 @@ class _ProfileTabState extends State<ProfileTab> {
       // 키보드 숨기기
       if (context.mounted) {
         FocusScope.of(context).unfocus();
+      }
+
+      // Phonebook이 여러 개인 경우 선택 다이얼로그 표시
+      String? selectedPhonebookId;
+      
+      if (phonebooks.length > 1) {
+        if (context.mounted) {
+          selectedPhonebookId = await _showPhonebookSelectionDialog(context, phonebooks);
+        }
+        
+        if (selectedPhonebookId == null) {
+          // 사용자가 취소함
+          return;
+        }
+      } else {
+        // Phonebook이 하나인 경우 자동 선택
+        selectedPhonebookId = phonebooks[0]['id']?.toString() ?? '';
+      }
+      
+      if (selectedPhonebookId.isEmpty) {
+        setState(() {
+          _searchError = 'Phonebook ID를 찾을 수 없습니다.';
+        });
+        return;
+      }
+
+      // 선택된 Phonebook에서 단말번호 목록 가져오기
+      setState(() {
+        _isSearching = true;
+      });
+
+      final allExtensions = await apiService.getExtensionsFromPhonebook(
+        phonebookId: selectedPhonebookId,
+      );
+
+      setState(() {
+        _isSearching = false;
+      });
+
+      if (allExtensions.isEmpty) {
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              icon: const Icon(Icons.info_outline, color: Colors.orange, size: 48),
+              title: const Text('단말번호 없음'),
+              content: const Text(
+                '선택한 Phonebook에 단말번호가 없습니다.',
+                textAlign: TextAlign.center,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('확인'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
       }
 
       // 단말번호 선택 다이얼로그 표시
@@ -816,6 +852,46 @@ class _ProfileTabState extends State<ProfileTab> {
         _searchError = '단말번호 조회 실패: ${e.toString()}';
       });
     }
+  }
+
+  // Phonebook 선택 다이얼로그
+  Future<String?> _showPhonebookSelectionDialog(
+    BuildContext context,
+    List<Map<String, dynamic>> phonebooks,
+  ) async {
+    return await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Phonebook 선택', style: TextStyle(fontSize: 18)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: phonebooks.length,
+              itemBuilder: (context, index) {
+                final phonebook = phonebooks[index];
+                final id = phonebook['id']?.toString() ?? '';
+                final name = phonebook['name']?.toString() ?? 'Phonebook ${index + 1}';
+                
+                return ListTile(
+                  leading: const Icon(Icons.contact_phone, color: Color(0xFF2196F3)),
+                  title: Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  subtitle: Text('ID: $id', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  onTap: () => Navigator.pop(context, id),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('취소', style: TextStyle(fontSize: 14)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // 단말번호 선택 다이얼로그
