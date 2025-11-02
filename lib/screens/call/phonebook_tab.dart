@@ -505,56 +505,77 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
                   // 검색 필터링
                   if (_searchController.text.isNotEmpty) {
-                final query = _searchController.text.toLowerCase();
-                contacts = contacts.where((contact) {
-                  final translatedName = _translateName(contact.name);
-                  return contact.name.toLowerCase().contains(query) ||
-                      translatedName.toLowerCase().contains(query) ||
-                      contact.telephone.contains(query);
-                }).toList();
-                
-                if (kDebugMode) {
-                  debugPrint('🔍 검색 후 연락처 수: ${contacts.length}');
-                }
-              }
+                    final query = _searchController.text.toLowerCase();
+                    contacts = contacts.where((contact) {
+                      final translatedName = _translateName(contact.name);
+                      return contact.name.toLowerCase().contains(query) ||
+                          translatedName.toLowerCase().contains(query) ||
+                          contact.telephone.contains(query);
+                    }).toList();
+                    
+                    if (kDebugMode) {
+                      debugPrint('🔍 검색 후 연락처 수: ${contacts.length}');
+                    }
+                  }
 
-              // 정렬: 에코테스트 최우선, 그 다음 기능번호(Feature Codes), 마지막 단말번호(Extensions)
-              contacts.sort((a, b) {
-                // 에코테스트 이름 확인 (영어/한글 모두 고려)
-                final aIsEchoTest = a.name.toLowerCase().contains('echo test') || 
-                                   a.name.contains('에코테스트');
-                final bIsEchoTest = b.name.toLowerCase().contains('echo test') || 
-                                   b.name.contains('에코테스트');
-                
-                // 에코테스트를 최우선 정렬
-                if (aIsEchoTest && !bIsEchoTest) {
-                  return -1; // a를 맨 앞으로
-                }
-                if (!aIsEchoTest && bIsEchoTest) {
-                  return 1; // b를 맨 앞으로
-                }
-                
-                // 둘 다 에코테스트가 아닌 경우, Feature Codes 우선 정렬
-                if (a.category == 'Feature Codes' && b.category != 'Feature Codes') {
-                  return -1; // a를 앞으로
-                }
-                if (a.category != 'Feature Codes' && b.category == 'Feature Codes') {
-                  return 1; // b를 앞으로
-                }
-                
-                // 같은 카테고리 내에서는 이름순 정렬
-                return a.name.compareTo(b.name);
-              });
+                  // telephone 중복 제거 (같은 번호는 하나만 표시)
+                  final seenTelephones = <String>{};
+                  final uniqueContacts = <PhonebookContactModel>[];
+                  
+                  for (final contact in contacts) {
+                    if (!seenTelephones.contains(contact.telephone)) {
+                      seenTelephones.add(contact.telephone);
+                      uniqueContacts.add(contact);
+                    } else {
+                      if (kDebugMode) {
+                        debugPrint('🔁 중복 제거: ${contact.telephone} (${contact.name})');
+                      }
+                    }
+                  }
+                  
+                  contacts = uniqueContacts;
+                  
+                  if (kDebugMode) {
+                    debugPrint('🎯 중복 제거 후: ${contacts.length}개 (고유 telephone 개수)');
+                  }
 
-              if (kDebugMode) {
-                debugPrint('✅ 정렬 완료 - 표시할 연락처 수: ${contacts.length}');
-                if (contacts.isNotEmpty) {
-                  debugPrint('📌 첫 번째 연락처: ${contacts.first.name} (${contacts.first.category})');
-                  debugPrint('📌 마지막 연락처: ${contacts.last.name} (${contacts.last.category})');
-                }
-              }
+                  // 정렬: 에코테스트 최우선, 그 다음 기능번호(Feature Codes), 마지막 단말번호(Extensions)
+                  contacts.sort((a, b) {
+                    // 에코테스트 이름 확인 (영어/한글 모두 고려)
+                    final aIsEchoTest = a.name.toLowerCase().contains('echo test') || 
+                                       a.name.contains('에코테스트');
+                    final bIsEchoTest = b.name.toLowerCase().contains('echo test') || 
+                                       b.name.contains('에코테스트');
+                    
+                    // 에코테스트를 최우선 정렬
+                    if (aIsEchoTest && !bIsEchoTest) {
+                      return -1; // a를 맨 앞으로
+                    }
+                    if (!aIsEchoTest && bIsEchoTest) {
+                      return 1; // b를 맨 앞으로
+                    }
+                    
+                    // 둘 다 에코테스트가 아닌 경우, Feature Codes 우선 정렬
+                    if (a.category == 'Feature Codes' && b.category != 'Feature Codes') {
+                      return -1; // a를 앞으로
+                    }
+                    if (a.category != 'Feature Codes' && b.category == 'Feature Codes') {
+                      return 1; // b를 앞으로
+                    }
+                    
+                    // 같은 카테고리 내에서는 이름순 정렬
+                    return a.name.compareTo(b.name);
+                  });
 
-              if (contacts.isEmpty) {
+                  if (kDebugMode) {
+                    debugPrint('✅ 정렬 완료 - 표시할 연락처 수: ${contacts.length}');
+                    if (contacts.isNotEmpty) {
+                      debugPrint('📌 첫 번째 연락처: ${contacts.first.name} (${contacts.first.category})');
+                      debugPrint('📌 마지막 연락처: ${contacts.last.name} (${contacts.last.category})');
+                    }
+                  }
+
+                  if (contacts.isEmpty) {
                 return RefreshIndicator(
                   onRefresh: _loadPhonebooks,
                   child: SingleChildScrollView(
