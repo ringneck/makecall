@@ -316,20 +316,23 @@ class ApiService {
     }
   }
 
-  // Internal Phonebook 목록만 필터링하여 조회
+  // Internal Phonebook 목록만 필터링하여 조회 (source_type: "internal")
   Future<List<Map<String, dynamic>>> getInternalPhonebooks() async {
     try {
       final allPhonebooks = await getPhonebooks();
       
-      // 'Internal' 또는 'internal'이 포함된 phonebook만 필터링
+      // source_type이 "internal"인 phonebook만 필터링
       final internalPhonebooks = allPhonebooks.where((phonebook) {
-        final name = phonebook['name']?.toString().toLowerCase() ?? '';
-        return name.contains('internal');
+        final sourceType = phonebook['source_type']?.toString().toLowerCase() ?? '';
+        return sourceType == 'internal';
       }).toList();
       
       if (kDebugMode) {
         debugPrint('📚 전체 Phonebook: ${allPhonebooks.length}개');
-        debugPrint('🔐 Internal Phonebook: ${internalPhonebooks.length}개');
+        debugPrint('🔐 Internal Phonebook (source_type=internal): ${internalPhonebooks.length}개');
+        for (var pb in internalPhonebooks) {
+          debugPrint('   - ${pb['name']} (ID: ${pb['id']}, source_type: ${pb['source_type']})');
+        }
       }
       
       return internalPhonebooks;
