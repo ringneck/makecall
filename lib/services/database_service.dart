@@ -579,6 +579,101 @@ class DatabaseService {
         });
   }
 
+  // ===== 등록된 단말번호 관리 (중복 방지) =====
+  
+  // 단말번호가 이미 다른 사용자에 의해 등록되었는지 확인
+  Future<Map<String, dynamic>?> checkExtensionRegistration(String extension) async {
+    try {
+      final doc = await _firestore
+          .collection('registered_extensions')
+          .doc(extension)
+          .get();
+      
+      if (doc.exists) {
+        final data = doc.data()!;
+        if (kDebugMode) {
+          debugPrint('📱 단말번호 "$extension" 이미 등록됨: ${data['userEmail']} (${data['userName']})');
+        }
+        return data;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ 단말번호 "$extension" 사용 가능');
+      }
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Check extension registration error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 단말번호 등록 (registered_extensions 컬렉션에 추가)
+  Future<void> registerExtension({
+    required String extension,
+    required String userId,
+    required String userEmail,
+    String? userName,
+  }) async {
+    try {
+      await _firestore
+          .collection('registered_extensions')
+          .doc(extension)
+          .set({
+        'userId': userId,
+        'userEmail': userEmail,
+        'userName': userName ?? '',
+        'registeredAt': FieldValue.serverTimestamp(),
+      });
+      
+      if (kDebugMode) {
+        debugPrint('✅ 단말번호 "$extension" 등록 완료: $userEmail');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Register extension error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 단말번호 등록 해제 (registered_extensions 컬렉션에서 삭제)
+  Future<void> unregisterExtension(String extension) async {
+    try {
+      await _firestore
+          .collection('registered_extensions')
+          .doc(extension)
+          .delete();
+      
+      if (kDebugMode) {
+        debugPrint('✅ 단말번호 "$extension" 등록 해제 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Unregister extension error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 사용자의 모든 등록된 단말번호 조회
+  Future<List<String>> getUserRegisteredExtensions(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('registered_extensions')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      return snapshot.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Get user registered extensions error: $e');
+      }
+      rethrow;
+    }
+  }
+
   // ===== 착신전환 정보 관리 =====
 
   // 착신전환 정보 조회 (실시간 스트림)

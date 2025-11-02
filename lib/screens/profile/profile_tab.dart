@@ -821,6 +821,17 @@ class _ProfileTabState extends State<ProfileTab> {
     String userId,
     AuthService authService,
   ) async {
+    // 각 단말번호의 등록 상태 확인
+    final dbService = DatabaseService();
+    final registrationStatus = <String, Map<String, dynamic>?>{};
+    
+    for (final ext in extensions) {
+      final extension = ext['extension'] as String;
+      registrationStatus[extension] = await dbService.checkExtensionRegistration(extension);
+    }
+    
+    if (!context.mounted) return;
+    
     final selected = await showDialog<String>(
       context: context,
       builder: (context) {
@@ -838,22 +849,62 @@ class _ProfileTabState extends State<ProfileTab> {
                 final email = ext['email'] as String? ?? '';
                 final phonebookName = ext['phonebookName'] as String? ?? '';
                 
+                final registrationInfo = registrationStatus[extension];
+                final isRegistered = registrationInfo != null;
+                final registeredEmail = registrationInfo?['userEmail'] as String? ?? '';
+                
                 return ListTile(
-                  leading: const Icon(Icons.phone_android, color: Color(0xFF2196F3)),
-                  title: Text(extension, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  leading: Icon(
+                    isRegistered ? Icons.lock : Icons.phone_android,
+                    color: isRegistered ? Colors.grey : const Color(0xFF2196F3),
+                  ),
+                  title: Row(
+                    children: [
+                      Text(
+                        extension,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isRegistered ? Colors.grey : Colors.black,
+                        ),
+                      ),
+                      if (isRegistered) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            '사용중',
+                            style: TextStyle(fontSize: 10, color: Colors.black54),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (name.isNotEmpty) Text(name, style: const TextStyle(fontSize: 13)),
-                      if (email.isNotEmpty) Text(email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      if (name.isNotEmpty) 
+                        Text(name, style: TextStyle(fontSize: 13, color: isRegistered ? Colors.grey : Colors.black87)),
+                      if (email.isNotEmpty) 
+                        Text(email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       if (phonebookName.isNotEmpty) 
                         Text(
                           '📚 $phonebookName',
-                          style: TextStyle(fontSize: 11, color: Colors.blue[700]),
+                          style: TextStyle(fontSize: 11, color: isRegistered ? Colors.grey : Colors.blue[700]),
+                        ),
+                      if (isRegistered && registeredEmail.isNotEmpty)
+                        Text(
+                          '🔒 등록자: $registeredEmail',
+                          style: const TextStyle(fontSize: 11, color: Colors.redAccent),
                         ),
                     ],
                   ),
-                  onTap: () => Navigator.pop(context, extension),
+                  enabled: !isRegistered,
+                  onTap: isRegistered ? null : () => Navigator.pop(context, extension),
                 );
               },
             ),
@@ -869,36 +920,116 @@ class _ProfileTabState extends State<ProfileTab> {
     );
 
     if (selected != null && context.mounted) {
-      // Internal Phonebook에서 이미 이메일로 필터링했으므로 바로 저장
       final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
       
       if (kDebugMode) {
         debugPrint('🔍 선택된 단말번호: "$selected" (타입: ${selected.runtimeType}, 길이: ${selected.length})');
         debugPrint('📋 현재 저장된 단말번호 목록: $currentMyExtensions (개수: ${currentMyExtensions.length})');
-        
-        // 각 항목과 비교
-        for (var i = 0; i < currentMyExtensions.length; i++) {
-          final existing = currentMyExtensions[i];
-          debugPrint('   [$i] "$existing" (타입: ${existing.runtimeType}, 길이: ${existing.length}) == "$selected"? ${existing == selected}');
-        }
-        
-        debugPrint('✅ contains() 결과: ${currentMyExtensions.contains(selected)}');
       }
       
-      if (!currentMyExtensions.contains(selected)) {
-        final updatedExtensions = [...currentMyExtensions, selected];
-        
+      // 1. 내 계정에 이미 등록되어 있는지 확인
+      if (currentMyExtensions.contains(selected)) {
         if (kDebugMode) {
-          debugPrint('💾 단말번호 저장 시작: $updatedExtensions');
+          debugPrint('⚠️ 내 계정에 이미 등록된 단말번호: $selected');
         }
         
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('이미 내 계정에 등록된 단말번호입니다.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+      
+      // 2. 다른 사용자가 이미 등록했는지 확인
+      try {
+        final dbService = DatabaseService();
+        final registrationInfo = await dbService.checkExtensionRegistration(selected);
+        
+        if (registrationInfo != null) {
+          // 다른 사용자가 이미 등록함
+          final registeredEmail = registrationInfo['userEmail'] as String? ?? '';
+          final registeredName = registrationInfo['userName'] as String? ?? '';
+          
+          if (kDebugMode) {
+            debugPrint('❌ 단말번호 "$selected"는 다른 사용자가 사용 중: $registeredEmail');
+          }
+          
+          if (context.mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('등록 불가', style: TextStyle(fontSize: 18)),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('이 단말번호는 다른 사용자가 이미 등록했습니다.', 
+                      style: TextStyle(fontSize: 14)),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('📱 단말번호: $selected', 
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          if (registeredName.isNotEmpty)
+                            Text('👤 사용자: $registeredName', 
+                              style: const TextStyle(fontSize: 13)),
+                          if (registeredEmail.isNotEmpty)
+                            Text('📧 이메일: $registeredEmail', 
+                              style: const TextStyle(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('확인', style: TextStyle(fontSize: 14)),
+                  ),
+                ],
+              ),
+            );
+          }
+          return;
+        }
+        
+        // 3. 사용 가능 - 등록 진행
+        if (kDebugMode) {
+          debugPrint('💾 단말번호 등록 시작: $selected');
+        }
+        
+        final userId = authService.currentUser?.uid ?? '';
+        final userEmail = authService.currentUser?.email ?? '';
+        final userName = authService.currentUserModel?.phoneNumberName ?? '';
+        
+        // registered_extensions에 등록
+        await dbService.registerExtension(
+          extension: selected,
+          userId: userId,
+          userEmail: userEmail,
+          userName: userName,
+        );
+        
+        // users 문서의 myExtensions 배열에 추가
+        final updatedExtensions = [...currentMyExtensions, selected];
         await authService.updateUserInfo(myExtensions: updatedExtensions);
         
         // 상태 업데이트 완료 대기
         await Future.delayed(const Duration(milliseconds: 300));
         
         if (kDebugMode) {
-          debugPrint('✅ 단말번호 저장 완료');
+          debugPrint('✅ 단말번호 등록 완료: $selected');
           debugPrint('📋 업데이트 후 목록: ${authService.currentUserModel?.myExtensions}');
         }
 
@@ -907,19 +1038,20 @@ class _ProfileTabState extends State<ProfileTab> {
             SnackBar(
               content: Text('단말번호 "$selected"이(가) 등록되었습니다.'),
               backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
             ),
           );
         }
-      } else {
+      } catch (e) {
         if (kDebugMode) {
-          debugPrint('⚠️ 이미 등록된 단말번호: $selected');
+          debugPrint('❌ 단말번호 등록 오류: $e');
         }
         
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('이미 등록된 단말번호입니다.'),
-              backgroundColor: Colors.orange,
+            SnackBar(
+              content: Text('단말번호 등록 실패: $e'),
+              backgroundColor: Colors.red,
             ),
           );
         }
@@ -950,7 +1082,27 @@ class _ProfileTabState extends State<ProfileTab> {
 
     if (confirmed == true) {
       try {
-        await DatabaseService().deleteMyExtension(extension.id);
+        final authService = context.read<AuthService>();
+        final dbService = DatabaseService();
+        
+        // 1. my_extensions 컬렉션에서 삭제
+        await dbService.deleteMyExtension(extension.id);
+        
+        // 2. users 문서의 myExtensions 배열에서 제거
+        final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
+        final updatedExtensions = currentMyExtensions.where((e) => e != extension.extension).toList();
+        await authService.updateUserInfo(myExtensions: updatedExtensions);
+        
+        // 3. registered_extensions 컬렉션에서 등록 해제
+        await dbService.unregisterExtension(extension.extension);
+        
+        if (kDebugMode) {
+          debugPrint('✅ 단말번호 삭제 완료: ${extension.extension}');
+          debugPrint('   - my_extensions 컬렉션 삭제');
+          debugPrint('   - users.myExtensions 배열 업데이트');
+          debugPrint('   - registered_extensions 등록 해제');
+        }
+        
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -960,6 +1112,10 @@ class _ProfileTabState extends State<ProfileTab> {
           );
         }
       } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ 단말번호 삭제 실패: $e');
+        }
+        
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -995,7 +1151,30 @@ class _ProfileTabState extends State<ProfileTab> {
 
     if (confirmed == true) {
       try {
-        await DatabaseService().deleteAllMyExtensions(userId);
+        final authService = context.read<AuthService>();
+        final dbService = DatabaseService();
+        
+        // 1. 현재 등록된 단말번호 목록 가져오기
+        final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
+        
+        // 2. my_extensions 컬렉션에서 전체 삭제
+        await dbService.deleteAllMyExtensions(userId);
+        
+        // 3. users 문서의 myExtensions 배열 비우기
+        await authService.updateUserInfo(myExtensions: []);
+        
+        // 4. registered_extensions에서 각 단말번호 등록 해제
+        for (final extension in currentMyExtensions) {
+          await dbService.unregisterExtension(extension);
+        }
+        
+        if (kDebugMode) {
+          debugPrint('✅ 모든 단말번호 삭제 완료 (${currentMyExtensions.length}개)');
+          debugPrint('   - my_extensions 컬렉션 전체 삭제');
+          debugPrint('   - users.myExtensions 배열 초기화');
+          debugPrint('   - registered_extensions 등록 해제: $currentMyExtensions');
+        }
+        
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -1005,6 +1184,10 @@ class _ProfileTabState extends State<ProfileTab> {
           );
         }
       } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ 전체 삭제 실패: $e');
+        }
+        
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
