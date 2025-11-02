@@ -890,7 +890,6 @@ class _ProfileTabState extends State<ProfileTab> {
                 final extension = ext['extension'] as String;
                 final name = ext['name'] as String? ?? '';
                 final email = ext['email'] as String? ?? '';
-                final phonebookName = ext['phonebookName'] as String? ?? '';
                 
                 final registrationInfo = registrationStatus[extension];
                 final isRegistered = registrationInfo != null;
@@ -934,11 +933,6 @@ class _ProfileTabState extends State<ProfileTab> {
                         Text(name, style: TextStyle(fontSize: 13, color: isRegistered ? Colors.grey : Colors.black87)),
                       if (email.isNotEmpty) 
                         Text(email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                      if (phonebookName.isNotEmpty) 
-                        Text(
-                          '📚 $phonebookName',
-                          style: TextStyle(fontSize: 11, color: isRegistered ? Colors.grey : Colors.blue[700]),
-                        ),
                       if (isRegistered && registeredEmail.isNotEmpty)
                         Text(
                           '🔒 등록자: $registeredEmail',
