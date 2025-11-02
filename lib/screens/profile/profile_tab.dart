@@ -157,11 +157,54 @@ class _ProfileTabState extends State<ProfileTab> {
     }
 
     try {
-      // 저장된 단말번호 가져오기
       final dbService = DatabaseService();
+      
+      // 1. registered_extensions에서 내가 등록한 단말번호 가져오기
+      final registeredExtensions = await dbService.getUserRegisteredExtensions(userId);
+      
+      // 2. my_extensions에서 이미 있는 단말번호 목록 가져오기
       final savedExtensions = await dbService.getMyExtensions(userId).first;
+      final existingExtensionNumbers = savedExtensions.map((e) => e.extension).toSet();
+      
+      // 3. registered_extensions에는 있지만 my_extensions에는 없는 단말번호 찾기
+      final missingExtensions = registeredExtensions
+          .where((ext) => !existingExtensionNumbers.contains(ext))
+          .toList();
+      
+      // 4. 누락된 단말번호를 my_extensions에 추가 (마이그레이션)
+      if (missingExtensions.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint('🔄 마이그레이션 시작: ${missingExtensions.length}개 단말번호를 my_extensions에 추가');
+        }
+        
+        for (final extension in missingExtensions) {
+          final myExtension = MyExtensionModel(
+            id: '',
+            userId: userId,
+            extensionId: '',
+            extension: extension,
+            name: extension, // 이름을 모르므로 단말번호를 이름으로 사용
+            classOfServicesId: '',
+            createdAt: DateTime.now(),
+            apiBaseUrl: userModel?.apiBaseUrl,
+            companyId: userModel?.companyId,
+            appKey: userModel?.appKey,
+            apiHttpPort: userModel?.apiHttpPort,
+            apiHttpsPort: userModel?.apiHttpsPort,
+          );
+          
+          await dbService.addMyExtension(myExtension);
+          
+          if (kDebugMode) {
+            debugPrint('   ✅ $extension 추가 완료');
+          }
+        }
+      }
+      
+      // 5. 저장된 단말번호 가져오기 (마이그레이션 후)
+      final allSavedExtensions = await dbService.getMyExtensions(userId).first;
 
-      if (savedExtensions.isEmpty) {
+      if (allSavedExtensions.isEmpty) {
         return;
       }
 
@@ -176,7 +219,7 @@ class _ProfileTabState extends State<ProfileTab> {
       final dataList = await apiService.getExtensions();
 
       // 저장된 각 단말번호에 대해 업데이트
-      for (final savedExtension in savedExtensions) {
+      for (final savedExtension in allSavedExtensions) {
         // API 데이터에서 매칭되는 단말번호 찾기
         final matchedData = dataList.firstWhere(
           (item) => item['extension']?.toString() == savedExtension.extension,
