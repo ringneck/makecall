@@ -1090,12 +1090,21 @@ class _ProfileTabState extends State<ProfileTab> {
         );
         await dbService.addMyExtension(myExtension);
         
-        // 3. users 문서의 myExtensions 배열에 추가 (중복 방지)
+        // 3. users 문서 업데이트
         final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
+        
+        // myExtensions 배열에 추가 (중복 방지)
+        List<String>? updatedExtensions;
         if (!currentMyExtensions.contains(selected)) {
-          final updatedExtensions = [...currentMyExtensions, selected];
-          await authService.updateUserInfo(myExtensions: updatedExtensions);
+          updatedExtensions = [...currentMyExtensions, selected];
         }
+        
+        // phoneNumber와 phoneNumberName도 함께 업데이트
+        await authService.updateUserInfo(
+          phoneNumber: selected,
+          phoneNumberName: selectedName.isNotEmpty ? selectedName : selected,
+          myExtensions: updatedExtensions ?? currentMyExtensions,
+        );
         
         // 상태 업데이트 완료 대기
         await Future.delayed(const Duration(milliseconds: 500));
@@ -1105,6 +1114,8 @@ class _ProfileTabState extends State<ProfileTab> {
           debugPrint('   - registered_extensions 등록');
           debugPrint('   - my_extensions 컬렉션 추가');
           debugPrint('   - users.myExtensions 배열 업데이트');
+          debugPrint('   - users.phoneNumber: $selected');
+          debugPrint('   - users.phoneNumberName: ${selectedName.isNotEmpty ? selectedName : selected}');
         }
 
         if (context.mounted) {
