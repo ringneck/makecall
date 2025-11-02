@@ -168,6 +168,7 @@ class AuthService extends ChangeNotifier {
     int? websocketServerPort,
     bool? websocketUseSSL,
     int? amiServerId,
+    List<String>? myExtensions,
   }) async {
     if (currentUser == null) return;
     
@@ -186,6 +187,7 @@ class AuthService extends ChangeNotifier {
       if (websocketServerPort != null) updates['websocketServerPort'] = websocketServerPort;
       if (websocketUseSSL != null) updates['websocketUseSSL'] = websocketUseSSL;
       if (amiServerId != null) updates['amiServerId'] = amiServerId;
+      if (myExtensions != null) updates['myExtensions'] = myExtensions;
       
       await _firestore
           .collection('users')

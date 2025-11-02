@@ -382,7 +382,7 @@ class _ProfileTabState extends State<ProfileTab> {
                 ),
                 const SizedBox(height: 16),
                 
-                // 전화번호 입력 및 조회
+                // 단말번호 조회 버튼
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -394,7 +394,7 @@ class _ProfileTabState extends State<ProfileTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '전화번호로 등록된 번호 조회',
+                        'Phonebook에서 단말번호 조회',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -402,71 +402,40 @@ class _ProfileTabState extends State<ProfileTab> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _phoneNumberController,
-                              keyboardType: TextInputType.phone,
-                              decoration: InputDecoration(
-                                labelText: '전화번호',
-                                hintText: '010-1234-5678',
-                                prefixIcon: const Icon(Icons.phone),
-                                border: const OutlineInputBorder(),
-                                filled: true,
-                                fillColor: Colors.white,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                              ),
-                              onChanged: (value) async {
-                                // 전화번호가 변경되면 Firestore에 저장
-                                if (value.trim().isNotEmpty) {
-                                  await context.read<AuthService>().updateUserInfo(
-                                    phoneNumber: value.trim(),
-                                  );
-                                }
-                              },
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _isSearching || userModel?.apiBaseUrl == null
+                              ? null
+                              : () => _searchMyExtensions(context),
+                          icon: _isSearching
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.search),
+                          label: Text(_isSearching ? '조회 중...' : '단말번호 조회 및 등록'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2196F3),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          ElevatedButton.icon(
-                            onPressed: _isSearching || userModel?.apiBaseUrl == null
-                                ? null
-                                : () => _searchMyExtensions(context),
-                            icon: _isSearching
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.search),
-                            label: Text(_isSearching ? '조회 중' : '조회'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2196F3),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 16,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         userModel?.apiBaseUrl != null
-                            ? '전화번호를 입력하고 조회 버튼을 누르면 API에서 단말번호를 검색합니다.'
+                            ? 'Phonebook에서 내 이메일과 일치하는 단말번호를 조회하여 등록할 수 있습니다.'
                             : '⚠️ API 서버를 먼저 설정해주세요.',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           color: userModel?.apiBaseUrl != null
                               ? Colors.grey[700]
                               : Colors.red,
@@ -757,18 +726,18 @@ class _ProfileTabState extends State<ProfileTab> {
     final authService = context.read<AuthService>();
     final userModel = authService.currentUserModel;
     final userId = authService.currentUser?.uid ?? '';
-    final phoneNumber = _phoneNumberController.text.trim();
-
-    if (phoneNumber.isEmpty) {
-      setState(() {
-        _searchError = '전화번호를 입력해주세요.';
-      });
-      return;
-    }
+    final userEmail = userModel?.email ?? '';
 
     if (userModel?.apiBaseUrl == null) {
       setState(() {
         _searchError = 'API 서버가 설정되지 않았습니다.';
+      });
+      return;
+    }
+
+    if (userEmail.isEmpty) {
+      setState(() {
+        _searchError = '사용자 이메일 정보가 없습니다.';
       });
       return;
     }
@@ -779,180 +748,47 @@ class _ProfileTabState extends State<ProfileTab> {
     });
 
     try {
-      // 현재 저장된 단말번호 개수 확인
-      final dbService = DatabaseService();
-      final currentExtensions = await dbService.getMyExtensions(userId).first;
-      final maxExtensions = userModel?.maxExtensions ?? 1;
-
-      // 저장 가능한 개수를 초과하는지 확인
-      if (currentExtensions.length >= maxExtensions) {
-        setState(() {
-          _isSearching = false;
-        });
-        
-        if (context.mounted) {
-          // 키보드 숨기기
-          FocusScope.of(context).unfocus();
-          
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              icon: Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.orange[700],
-                size: 48,
-              ),
-              title: const Text('저장 제한 초과'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '최대 $maxExtensions개까지 저장할 수 있습니다.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '현재 저장된 개수: ${currentExtensions.length}개',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '기존 단말번호를 삭제한 후 다시 시도해주세요.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('확인'),
-                ),
-              ],
-            ),
-          );
-        }
-        return;
-      }
-
-      // Firestore에 전화번호 저장
-      await authService.updateUserInfo(phoneNumber: phoneNumber);
-
       // API Service 생성
       final apiService = ApiService(
-        baseUrl: userModel!.getApiUrl(useHttps: false), // HTTP 사용
+        baseUrl: userModel!.getApiUrl(useHttps: false),
         companyId: userModel.companyId,
         appKey: userModel.appKey,
       );
 
-      // data 배열에서 단말번호 조회
-      final dataList = await apiService.getExtensions();
-
-      // 내 전화번호와 일치하는 extension 필터링
-      final myPhoneNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), ''); // 숫자만 추출
+      // Phonebook 목록 조회
+      final phonebooks = await apiService.getPhonebooks();
       
-      final matched = dataList.where((item) {
-        final extNumber = item['extension']?.toString().replaceAll(RegExp(r'[^0-9]'), '') ?? '';
-        // extension 필드가 내 전화번호와 일치하는지 확인
-        return extNumber.isNotEmpty && myPhoneNumber.contains(extNumber);
-      }).toList();
-
-      if (matched.isEmpty) {
-        // 결과가 없으면 팝업으로 알림
-        if (context.mounted) {
-          setState(() {
-            _isSearching = false;
-          });
-          
-          // 키보드 숨기기
-          FocusScope.of(context).unfocus();
-          
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              icon: const Icon(Icons.error_outline, color: Colors.orange, size: 48),
-              title: const Text('단말번호 없음'),
-              content: const Text(
-                '해당 단말번호가 존재하지 않습니다.\n\n'
-                '입력한 전화번호와 일치하는 단말번호를 찾을 수 없습니다.',
-                textAlign: TextAlign.center,
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('확인'),
-                ),
-              ],
-            ),
-          );
-        }
-        return;
-      }
-
-      // 매칭된 단말번호를 MyExtensionModel로 변환
-      final extensionModels = matched.map((item) {
-        return MyExtensionModel.fromApi(
-          userId: userId,
-          apiData: item,
-        );
-      }).toList();
-
-      // 중복된 단말번호와 새로운 단말번호 구분
-      final existingExtensions = currentExtensions.map((e) => e.extension).toSet();
-      final newExtensions = extensionModels.where((ext) => !existingExtensions.contains(ext.extension)).toList();
-      final duplicateExtensions = extensionModels.where((ext) => existingExtensions.contains(ext.extension)).toList();
-
-      // 새로운 단말번호만 저장 허용 수에 포함
-      final totalCount = currentExtensions.length + newExtensions.length;
-      if (totalCount > maxExtensions) {
+      if (phonebooks.isEmpty) {
         setState(() {
           _isSearching = false;
+          _searchError = 'Phonebook이 없습니다.';
         });
-        
-        if (context.mounted) {
-          // 키보드 숨기기
-          FocusScope.of(context).unfocus();
-          
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              icon: Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.orange[700],
-                size: 48,
-              ),
-              title: const Text('저장 제한 초과'),
-              content: Text(
-                '조회된 단말번호: ${extensionModels.length}개\n'
-                '새로운 단말번호: ${newExtensions.length}개\n'
-                '중복 단말번호: ${duplicateExtensions.length}개\n'
-                '현재 저장된 개수: ${currentExtensions.length}개\n'
-                '최대 저장 가능: $maxExtensions개\n\n'
-                '최대 $maxExtensions개까지만 저장할 수 있습니다.\n'
-                '일부 단말번호를 삭제한 후 다시 시도해주세요.',
-                textAlign: TextAlign.center,
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('확인'),
-                ),
-              ],
-            ),
-          );
-        }
         return;
       }
 
-      // DB에 저장 (배치 처리 - 중복 체크는 addMyExtension에서 처리)
-      await dbService.addMyExtensionsBatch(extensionModels);
+      // 첫 번째 phonebook 사용
+      final phonebookId = phonebooks[0]['id']?.toString() ?? '';
+      
+      if (phonebookId.isEmpty) {
+        setState(() {
+          _isSearching = false;
+          _searchError = 'Phonebook ID를 찾을 수 없습니다.';
+        });
+        return;
+      }
+
+      // Phonebook에서 단말번호 목록 가져오기 (이메일 필터링 없이)
+      final allExtensions = await apiService.getExtensionsFromPhonebook(
+        phonebookId: phonebookId,
+      );
+
+      if (allExtensions.isEmpty) {
+        setState(() {
+          _isSearching = false;
+          _searchError = 'Phonebook에 단말번호가 없습니다.';
+        });
+        return;
+      }
 
       setState(() {
         _isSearching = false;
@@ -963,30 +799,136 @@ class _ProfileTabState extends State<ProfileTab> {
         FocusScope.of(context).unfocus();
       }
 
-      // 성공 메시지 표시
+      // 단말번호 선택 다이얼로그 표시
       if (context.mounted) {
-        String message;
-        if (duplicateExtensions.isNotEmpty && newExtensions.isNotEmpty) {
-          message = '${newExtensions.length}개의 단말번호를 저장하고, ${duplicateExtensions.length}개의 중복 단말번호를 업데이트했습니다.';
-        } else if (duplicateExtensions.isNotEmpty) {
-          message = '${duplicateExtensions.length}개의 단말번호를 업데이트했습니다.';
-        } else {
-          message = '${newExtensions.length}개의 단말번호를 저장했습니다.';
-        }
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
+        await _showExtensionSelectionDialog(
+          context,
+          allExtensions,
+          userEmail,
+          userId,
+          authService,
         );
       }
+
     } catch (e) {
       setState(() {
         _isSearching = false;
         _searchError = '단말번호 조회 실패: ${e.toString()}';
       });
+    }
+  }
+
+  // 단말번호 선택 다이얼로그
+  Future<void> _showExtensionSelectionDialog(
+    BuildContext context,
+    List<Map<String, dynamic>> extensions,
+    String userEmail,
+    String userId,
+    AuthService authService,
+  ) async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('단말번호 선택', style: TextStyle(fontSize: 18)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: extensions.length,
+              itemBuilder: (context, index) {
+                final ext = extensions[index];
+                final extension = ext['extension'] as String;
+                final name = ext['name'] as String;
+                final email = ext['email'] as String;
+                
+                return ListTile(
+                  leading: const Icon(Icons.phone_android, color: Color(0xFF2196F3)),
+                  title: Text(extension, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (name.isNotEmpty) Text(name, style: const TextStyle(fontSize: 13)),
+                      if (email.isNotEmpty) Text(email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    ],
+                  ),
+                  onTap: () => Navigator.pop(context, extension),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('취소', style: TextStyle(fontSize: 14)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selected != null && context.mounted) {
+      // 선택한 단말번호의 이메일 확인
+      final selectedExt = extensions.firstWhere(
+        (e) => e['extension'] == selected,
+        orElse: () => {},
+      );
+      
+      final extEmail = (selectedExt['email'] as String? ?? '').trim().toLowerCase();
+      final userEmailLower = userEmail.trim().toLowerCase();
+
+      if (extEmail != userEmailLower) {
+        // 이메일 불일치
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              icon: const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              title: const Text('등록 불가'),
+              content: Text(
+                '이메일이 일치하지 않아 등록할 수 없습니다.\n\n'
+                '사용자 이메일: $userEmail\n'
+                '단말번호 이메일: ${selectedExt['email']}\n\n'
+                '동일한 이메일의 단말번호만 등록 가능합니다.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('확인'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
+      // 이메일 일치 - 저장
+      final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
+      if (!currentMyExtensions.contains(selected)) {
+        final updatedExtensions = [...currentMyExtensions, selected];
+        await authService.updateUserInfo(myExtensions: updatedExtensions);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('단말번호 "$selected"이(가) 등록되었습니다.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('이미 등록된 단말번호입니다.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
     }
   }
 

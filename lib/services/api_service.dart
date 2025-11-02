@@ -315,4 +315,47 @@ class ApiService {
       throw _handleError(e, 'Phonebook 연락처 조회');
     }
   }
+
+  // Phonebook에서 단말번호 목록 추출 (email 필터링 포함)
+  Future<List<Map<String, dynamic>>> getExtensionsFromPhonebook({
+    required String phonebookId,
+    String? filterEmail,
+  }) async {
+    try {
+      final contacts = await getPhonebookContacts(phonebookId);
+      final List<Map<String, dynamic>> extensions = [];
+      
+      for (var contact in contacts) {
+        // extension 필드가 있고 비어있지 않은 경우만 추가
+        if (contact['extension'] != null && 
+            contact['extension'].toString().trim().isNotEmpty) {
+          
+          // email 필터링이 있는 경우
+          if (filterEmail != null && filterEmail.isNotEmpty) {
+            final contactEmail = contact['email']?.toString().trim().toLowerCase() ?? '';
+            if (contactEmail != filterEmail.toLowerCase()) {
+              continue; // email이 일치하지 않으면 스킵
+            }
+          }
+          
+          extensions.add({
+            'extension': contact['extension'].toString().trim(),
+            'name': contact['name']?.toString().trim() ?? '',
+            'email': contact['email']?.toString().trim() ?? '',
+          });
+        }
+      }
+      
+      if (kDebugMode) {
+        debugPrint('📱 추출된 단말번호 개수: ${extensions.length}개');
+      }
+      
+      return extensions;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Get extensions from phonebook error: $e');
+      }
+      rethrow;
+    }
+  }
 }
