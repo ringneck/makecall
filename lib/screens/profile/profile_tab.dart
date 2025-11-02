@@ -872,9 +872,28 @@ class _ProfileTabState extends State<ProfileTab> {
       // Internal Phonebook에서 이미 이메일로 필터링했으므로 바로 저장
       final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
       
+      if (kDebugMode) {
+        debugPrint('🔍 선택된 단말번호: $selected');
+        debugPrint('📋 현재 저장된 단말번호 목록: $currentMyExtensions');
+        debugPrint('✅ 중복 체크: ${currentMyExtensions.contains(selected)}');
+      }
+      
       if (!currentMyExtensions.contains(selected)) {
         final updatedExtensions = [...currentMyExtensions, selected];
+        
+        if (kDebugMode) {
+          debugPrint('💾 단말번호 저장 시작: $updatedExtensions');
+        }
+        
         await authService.updateUserInfo(myExtensions: updatedExtensions);
+        
+        // 상태 업데이트 완료 대기
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        if (kDebugMode) {
+          debugPrint('✅ 단말번호 저장 완료');
+          debugPrint('📋 업데이트 후 목록: ${authService.currentUserModel?.myExtensions}');
+        }
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -885,6 +904,10 @@ class _ProfileTabState extends State<ProfileTab> {
           );
         }
       } else {
+        if (kDebugMode) {
+          debugPrint('⚠️ 이미 등록된 단말번호: $selected');
+        }
+        
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
