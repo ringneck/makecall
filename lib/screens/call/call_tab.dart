@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/mobile_contacts_service.dart';
+import '../../services/api_service.dart';
 import '../../models/contact_model.dart';
 import '../../models/call_history_model.dart';
 import '../../models/phonebook_model.dart';
+import '../../providers/selected_extension_provider.dart';
 import 'dialpad_screen.dart';
 import 'phonebook_tab.dart';
 import '../../widgets/call_method_dialog.dart';
@@ -590,11 +593,165 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     }
   }
 
+  // 기능번호 판별 (즐겨찾기, 최근통화 전용)
+  bool _isFeatureCode(String phoneNumber) {
+    // *로 시작하는 번호는 기능번호로 판별
+    return phoneNumber.startsWith('*');
+  }
+
   void _showCallMethodDialog(String phoneNumber) {
+    // 기능번호는 다이얼로그 없이 바로 Click to Call
+    if (_isFeatureCode(phoneNumber)) {
+      if (kDebugMode) {
+        debugPrint('🌟 즐곊/최근통화 기능번호 감지: $phoneNumber');
+      }
+      _handleFeatureCodeCall(phoneNumber);
+      return;
+    }
+
+    // 일반 번호는 발신 방법 선택 다이얼로그 표시
     showDialog(
       context: context,
       builder: (context) => CallMethodDialog(phoneNumber: phoneNumber),
     );
+  }
+
+  // 기능번호 자동 발신 (Click to Call API 직접 호출)
+  Future<void> _handleFeatureCodeCall(String phoneNumber) async {
+    try {
+      final authService = context.read<AuthService>();
+      final userId = authService.currentUser?.uid ?? '';
+      final userModel = authService.currentUserModel;
+
+      if (userModel?.companyId == null || userModel?.appKey == null) {
+        throw Exception('API 인증 정보가 설정되지 않았습니다. 내 정보에서 설정해주세요.');
+      }
+
+      if (userModel?.apiBaseUrl == null) {
+        throw Exception('API 서버 주소가 설정되지 않았습니다. 내 정보 > API 설정에서 설정해주세요.');
+      }
+
+      // 홈 탭에서 선택된 단말번호 가져오기 (실시간 반영)
+      final selectedExtension = context.read<SelectedExtensionProvider>().selectedExtension;
+      
+      if (selectedExtension == null) {
+        throw Exception('선택된 단말번호가 없습니다.\n홈 탭에서 단말번호를 확인해주세요.');
+      }
+
+      if (kDebugMode) {
+        debugPrint('🌟 즐곊/최근통화 기능번호 자동 발신 시작 (다이얼로그 건너뛰기)');
+        debugPrint('📞 선택된 단말번호: ${selectedExtension.extension}');
+        debugPrint('👤 단말 이름: ${selectedExtension.name}');
+        debugPrint('🔑 COS ID: ${selectedExtension.classOfServicesId}');
+        debugPrint('🎯 기능번호: $phoneNumber');
+      }
+
+      // CID 설정: 고정값 사용
+      String cidName = '클릭투콜';                // 고정값: "클릭투콜"
+      String cidNumber = phoneNumber;      // callee 값 사용
+
+      if (kDebugMode) {
+        debugPrint('📞 CID Name: $cidName (고정값)');
+        debugPrint('📞 CID Number: $cidNumber (callee 값)');
+      }
+
+      // 로딩 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Text('기능번호 발신 중...'),
+              ],
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // API 서비스 생성 (동적 API URL 사용)
+      final apiService = ApiService(
+        baseUrl: userModel!.getApiUrl(useHttps: false), // HTTP 사용
+        companyId: userModel.companyId,
+        appKey: userModel.appKey,
+      );
+
+      // Click to Call API 호출
+      final result = await apiService.clickToCall(
+        caller: selectedExtension.extension, // 선택된 단말번호 사용
+        callee: phoneNumber,
+        cosId: selectedExtension.classOfServicesId, // 선택된 COS ID 사용
+        cidName: cidName,
+        cidNumber: cidNumber,
+        accountCode: userModel.phoneNumber ?? '',
+      );
+
+      if (kDebugMode) {
+        debugPrint('✅ 즐곊/최근통화 기능번호 Click to Call 성공: $result');
+      }
+
+      // 통화 기록 저장
+      await _databaseService.addCallHistory(
+        CallHistoryModel(
+          id: '',
+          userId: userId,
+          phoneNumber: phoneNumber,
+          callType: CallType.outgoing,
+          callMethod: CallMethod.extension,
+          callTime: DateTime.now(),
+          mainNumberUsed: cidNumber,
+          extensionUsed: selectedExtension.extension,
+        ),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '🌟 기능번호 발신 완료',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text('단말: ${selectedExtension.name.isEmpty ? selectedExtension.extension : selectedExtension.name}'),
+                Text('기능번호: $phoneNumber'),
+              ],
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('기능번호 발신 실패: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      
+      if (kDebugMode) {
+        debugPrint('❌ 즐곊/최근통화 기능번호 발신 오류: $e');
+      }
+    }
   }
 
   Future<void> _toggleFavorite(ContactModel contact) async {
