@@ -38,6 +38,20 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
     }
   }
 
+  /// 안전한 SnackBar 표시 헬퍼 (위젯이 dispose되어도 에러 없음)
+  void _safeShowSnackBar(SnackBar snackBar) {
+    if (!mounted) return;
+    
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (e) {
+      // 위젯이 이미 dispose된 경우 무시
+      if (kDebugMode) {
+        debugPrint('⚠️ CallMethodDialog: SnackBar 표시 건너뜀 (위젯 비활성화): $e');
+      }
+    }
+  }
+
   // 5자리 이하 숫자인지 확인하고 자동 발신
   Future<void> _checkAndAutoCall() async {
     final phoneNumber = widget.phoneNumber.replaceAll(RegExp(r'[^0-9]'), ''); // 숫자만 추출
@@ -129,11 +143,11 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
       if (mounted) {
         Navigator.pop(context);
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          _safeShowSnackBar(
             const SnackBar(content: Text('전화를 거는 중입니다...')),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          _safeShowSnackBar(
             const SnackBar(
               content: Text('전화를 걸 수 없습니다'),
               backgroundColor: Colors.red,
@@ -277,7 +291,7 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
+        _safeShowSnackBar(
           SnackBar(
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -300,15 +314,13 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류 발생: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
+      _safeShowSnackBar(
+        SnackBar(
+          content: Text('오류 발생: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
