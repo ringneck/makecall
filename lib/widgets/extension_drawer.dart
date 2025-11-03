@@ -36,30 +36,9 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
     return Drawer(
       backgroundColor: const Color(0xFF263238), // 어두운 배경색
       child: SafeArea(
-        child: Column(
-          children: [
-            // Drawer 헤더 (닫기 버튼만)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              color: const Color(0xFF263238),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white70),
-                    onPressed: () => Navigator.pop(context),
-                    tooltip: '닫기',
-                  ),
-                ],
-              ),
-            ),
-            
-            // 내용
-            Expanded(
-              child: Container(
-                color: const Color(0xFF263238),
-                child: StreamBuilder<List<MyExtensionModel>>(
+        child: Container(
+          color: const Color(0xFF263238),
+          child: StreamBuilder<List<MyExtensionModel>>(
                   stream: _databaseService.getMyExtensions(userId),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -278,9 +257,6 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                   },
                 ),
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
