@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:convert';
 import '../models/saved_account_model.dart';
 import '../models/user_model.dart';
@@ -85,20 +86,108 @@ class AccountManagerService {
     }
   }
 
-  // 계정 삭제
+  /// 계정 삭제 (Cascade: 모든 관련 데이터 삭제)
+  /// 
+  /// 고급 개발자 패턴: Transaction-like cascade deletion
+  /// - SharedPreferences: 저장된 계정 정보
+  /// - Hive: 로컬 데이터 (통화 기록, 연락처, 착신전환 정보)
+  /// - 에러 발생 시에도 부분 삭제 진행 (best-effort approach)
   Future<void> removeAccount(String uid) async {
+    print('🗑️ Starting cascade deletion for uid: $uid');
+    
+    final deletionResults = <String, bool>{};
+    
     try {
-      final prefs = await SharedPreferences.getInstance();
-      List<SavedAccountModel> accounts = await getSavedAccounts();
-      
-      accounts.removeWhere((acc) => acc.uid == uid);
-      
-      final accountsJson = json.encode(accounts.map((acc) => acc.toMap()).toList());
-      await prefs.setString(_savedAccountsKey, accountsJson);
+      // 1️⃣ SharedPreferences에서 저장된 계정 제거
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        List<SavedAccountModel> accounts = await getSavedAccounts();
+        
+        accounts.removeWhere((acc) => acc.uid == uid);
+        
+        final accountsJson = json.encode(accounts.map((acc) => acc.toMap()).toList());
+        await prefs.setString(_savedAccountsKey, accountsJson);
+        
+        deletionResults['SharedPreferences'] = true;
+        print('✅ [1/4] SharedPreferences account removed');
+      } catch (e) {
+        deletionResults['SharedPreferences'] = false;
+        print('❌ [1/4] SharedPreferences deletion failed: $e');
+      }
 
-      print('✅ Account removed: $uid');
+      // 2️⃣ Hive: 통화 기록 삭제
+      try {
+        final callHistoryBox = await Hive.openBox('call_history');
+        
+        // userId가 일치하는 모든 항목 삭제
+        final keysToDelete = <dynamic>[];
+        for (var key in callHistoryBox.keys) {
+          final item = callHistoryBox.get(key);
+          if (item is Map && item['userId'] == uid) {
+            keysToDelete.add(key);
+          }
+        }
+        
+        await callHistoryBox.deleteAll(keysToDelete);
+        deletionResults['CallHistory'] = true;
+        print('✅ [2/4] Call history deleted: ${keysToDelete.length} items');
+      } catch (e) {
+        deletionResults['CallHistory'] = false;
+        print('❌ [2/4] Call history deletion failed: $e');
+      }
+
+      // 3️⃣ Hive: 연락처 삭제
+      try {
+        final contactsBox = await Hive.openBox('contacts');
+        
+        final keysToDelete = <dynamic>[];
+        for (var key in contactsBox.keys) {
+          final item = contactsBox.get(key);
+          if (item is Map && item['userId'] == uid) {
+            keysToDelete.add(key);
+          }
+        }
+        
+        await contactsBox.deleteAll(keysToDelete);
+        deletionResults['Contacts'] = true;
+        print('✅ [3/4] Contacts deleted: ${keysToDelete.length} items');
+      } catch (e) {
+        deletionResults['Contacts'] = false;
+        print('❌ [3/4] Contacts deletion failed: $e');
+      }
+
+      // 4️⃣ Hive: 착신전환 정보 삭제
+      try {
+        final cfBox = await Hive.openBox('call_forward_info');
+        
+        final keysToDelete = <dynamic>[];
+        for (var key in cfBox.keys) {
+          final item = cfBox.get(key);
+          if (item is Map && item['userId'] == uid) {
+            keysToDelete.add(key);
+          }
+        }
+        
+        await cfBox.deleteAll(keysToDelete);
+        deletionResults['CallForwardInfo'] = true;
+        print('✅ [4/4] Call forward info deleted: ${keysToDelete.length} items');
+      } catch (e) {
+        deletionResults['CallForwardInfo'] = false;
+        print('❌ [4/4] Call forward info deletion failed: $e');
+      }
+
+      // 📊 결과 요약
+      final successCount = deletionResults.values.where((v) => v).length;
+      final totalCount = deletionResults.length;
+      
+      print('🎯 Cascade deletion complete: $successCount/$totalCount successful');
+      deletionResults.forEach((key, success) {
+        print('   ${success ? "✅" : "❌"} $key');
+      });
+      
     } catch (e) {
-      print('❌ Error removing account: $e');
+      print('❌ Fatal error during cascade deletion: $e');
+      rethrow;
     }
   }
 
