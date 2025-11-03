@@ -531,11 +531,11 @@ class _CallTabState extends State<CallTab> {
       body: IndexedStack(
         index: _currentTabIndex,
         children: [
-          const PhonebookTab(),
-          _buildFavoritesTab(),
-          _buildCallHistoryTab(),
-          _buildContactsTab(),
-          const DialpadScreen(),
+          const PhonebookTab(),        // 0: 단말번호
+          _buildCallHistoryTab(),      // 1: 최근통화
+          const DialpadScreen(),       // 2: 키패드
+          _buildFavoritesTab(),        // 3: 즐겨찾기
+          _buildContactsTab(),         // 4: 연락처
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -564,20 +564,20 @@ class _CallTabState extends State<CallTab> {
             label: '단말번호',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.star, size: 24),
-            label: '즐겨찾기',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.history, size: 24),
             label: '최근통화',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.contacts, size: 24),
-            label: '연락처',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.dialpad, size: 24),
             label: '키패드',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.star, size: 24),
+            label: '즐겨찾기',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.contacts, size: 24),
+            label: '연락처',
           ),
         ],
       ),
@@ -1572,7 +1572,7 @@ class _CallTabState extends State<CallTab> {
               textColor: Colors.white,
               onPressed: () {
                 setState(() {
-                  _currentTabIndex = 1; // 즐겨찾기 탭으로 이동
+                  _currentTabIndex = 3; // 즐겨찾기 탭으로 이동
                 });
               },
             ),
