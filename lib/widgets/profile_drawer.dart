@@ -259,43 +259,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // Drawer Header
-          DrawerHeader(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFF2196F3),
-                  const Color(0xFF2196F3).withAlpha(204),
-                ],
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  '단말',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  userModel?.email ?? '이메일 없음',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 24),
+          // 상단 여백 (상태바 영역)
+          SizedBox(height: MediaQuery.of(context).padding.top + 16),
           // 사용자 정보
           Stack(
             alignment: Alignment.center,
@@ -831,7 +796,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           const Divider(thickness: 1),
           const SizedBox(height: 8),
           
-          // 계정 관리
+          // 계정 및 조직
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Container(
@@ -843,12 +808,24 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               child: const ListTile(
                 leading: Icon(Icons.account_circle, color: Colors.orange),
                 title: Text(
-                  '계정 관리',
+                  '계정 및 조직',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text('로그아웃, 계정 삭제', style: TextStyle(fontSize: 12)),
+                subtitle: Text('계정 추가, 로그아웃', style: TextStyle(fontSize: 12)),
               ),
             ),
+          ),
+          
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+            leading: const Icon(Icons.person_add, color: Colors.green, size: 22),
+            title: const Text('계정 추가', style: TextStyle(fontSize: 15)),
+            subtitle: const Text(
+              '새로운 계정으로 로그인',
+              style: TextStyle(fontSize: 11),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: () => _handleAddAccount(context),
           ),
           
           ListTile(
@@ -857,18 +834,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             title: const Text('로그아웃', style: TextStyle(fontSize: 15)),
             trailing: const Icon(Icons.chevron_right, size: 20),
             onTap: () => _handleLogout(context),
-          ),
-          
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-            leading: const Icon(Icons.block, color: Colors.red, size: 22),
-            title: const Text('이용 중지', style: TextStyle(fontSize: 15, color: Colors.red)),
-            subtitle: const Text(
-              '계정을 삭제하고 모든 데이터를 제거합니다',
-              style: TextStyle(fontSize: 11),
-            ),
-            trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.red),
-            onTap: () => _handleDeleteAccount(context),
           ),
           
           const SizedBox(height: 24),
@@ -1441,6 +1406,59 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     );
   }
 
+  Future<void> _handleAddAccount(BuildContext context) async {
+    final authService = context.read<AuthService>();
+    final currentEmail = authService.currentUserModel?.email ?? '없음';
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('계정 추가'),
+        content: Text(
+          '현재 계정에서 로그아웃하고 새로운 계정으로 로그인하시겠습니까?\n\n'
+          '현재 로그인된 계정: $currentEmail',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+            ),
+            child: const Text('계정 추가'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await context.read<AuthService>().signOut();
+        if (mounted) {
+          Navigator.pop(context); // Drawer 닫기
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('로그아웃되었습니다. 새로운 계정으로 로그인해주세요.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('오류 발생: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _handleLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1467,51 +1485,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       await context.read<AuthService>().signOut();
       if (mounted) {
         Navigator.pop(context); // Drawer 닫기
-      }
-    }
-  }
-
-  Future<void> _handleDeleteAccount(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('이용 중지'),
-        content: const Text(
-          '정말로 계정을 삭제하시겠습니까?\n\n'
-          '이 작업은 되돌릴 수 없으며, 모든 데이터가 영구적으로 삭제됩니다.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      try {
-        await context.read<AuthService>().deleteAccount();
-        if (mounted) {
-          Navigator.pop(context); // Drawer 닫기
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('계정이 삭제되었습니다')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('오류 발생: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
       }
     }
   }
