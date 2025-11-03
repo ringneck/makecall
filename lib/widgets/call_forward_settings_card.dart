@@ -57,6 +57,20 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
     super.dispose();
   }
 
+  /// 안전한 SnackBar 표시 헬퍼 (위젯이 dispose되어도 에러 없음)
+  void _safeShowSnackBar(SnackBar snackBar) {
+    if (!mounted) return;
+    
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (e) {
+      // 위젯이 이미 dispose된 경우 무시
+      if (kDebugMode) {
+        debugPrint('⚠️ CallForwardSettings: SnackBar 표시 건너뜀 (위젯 비활성화): $e');
+      }
+    }
+  }
+
   /// WebSocket 초기화 및 착신번호 조회
   Future<void> _initializeAndFetch() async {
     // 필수 설정 확인
@@ -219,7 +233,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
   Future<void> _toggleCallForward(bool value) async {
     // 활성화하려는데 착신번호가 기본값이면 번호 입력 요청
     if (value && _destination == '00000000000') {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _safeShowSnackBar(
         const SnackBar(
           content: Text('먼저 착신번호를 설정해주세요'),
           backgroundColor: Colors.orange,
@@ -252,15 +266,13 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
         // DB에 저장
         await _saveToDatabase();
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(value ? '착신전환이 활성화되었습니다' : '착신전환이 비활성화되었습니다'),
-              backgroundColor: value ? Colors.orange : Colors.grey,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
+        _safeShowSnackBar(
+          SnackBar(
+            content: Text(value ? '착신전환이 활성화되었습니다' : '착신전환이 비활성화되었습니다'),
+            backgroundColor: value ? Colors.orange : Colors.grey,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       } else {
         throw Exception('Failed to update call forward status');
       }
@@ -268,15 +280,13 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
       if (kDebugMode) {
         debugPrint('❌ CallForwardSettings: Failed to toggle - $e');
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('착신전환 설정 변경 실패'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      _safeShowSnackBar(
+        const SnackBar(
+          content: Text('착신전환 설정 변경 실패'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       setState(() {
         _isSaving = false;
@@ -357,12 +367,19 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
             onPressed: () {
               final number = controller.text.trim();
               if (number.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('착신번호를 입력하세요'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                // 다이얼로그 내부에서는 try-catch로 안전하게 처리
+                try {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('착신번호를 입력하세요'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } catch (e) {
+                  if (kDebugMode) {
+                    debugPrint('⚠️ Dialog SnackBar 건너뜀: $e');
+                  }
+                }
                 return;
               }
               Navigator.pop(context, number);
@@ -407,19 +424,17 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
         // DB에 저장
         await _saveToDatabase();
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('착신번호가 ${PhoneFormatter.format(newDestination)}로 변경되었습니다'),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+        _safeShowSnackBar(
+          SnackBar(
+            content: Text('착신번호가 ${PhoneFormatter.format(newDestination)}로 변경되었습니다'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
 
-          // 착신번호 변경 후 자동으로 활성화
-          if (!_isEnabled) {
-            await _toggleCallForward(true);
-          }
+        // 착신번호 변경 후 자동으로 활성화
+        if (!_isEnabled && mounted) {
+          await _toggleCallForward(true);
         }
       } else {
         throw Exception('Failed to update destination');
@@ -428,15 +443,13 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
       if (kDebugMode) {
         debugPrint('❌ CallForwardSettings: Failed to update destination - $e');
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('착신번호 변경 실패'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      _safeShowSnackBar(
+        const SnackBar(
+          content: Text('착신번호 변경 실패'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       setState(() {
         _isSaving = false;
