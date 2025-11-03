@@ -44,8 +44,8 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    // 기본 화면을 키패드(인덱스 4)로 설정
-    _tabController = TabController(length: 5, vsync: this, initialIndex: 4);
+    // 기본 화면을 단말번호(인덱스 0)로 설정
+    _tabController = TabController(length: 5, vsync: this, initialIndex: 0);
     
     // 로그인 후 설정 확인 및 안내
     WidgetsBinding.instance.addPostFrameCallback((_) {

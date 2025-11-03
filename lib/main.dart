@@ -52,7 +52,7 @@ class MyApp extends StatelessWidget {
         home: Consumer<AuthService>(
           builder: (context, authService, _) {
             if (authService.isAuthenticated) {
-              return const MainScreen(initialTab: 1); // 로그인 후 통화 탭(index 1)으로 이동
+              return const MainScreen(); // 로그인 후 통화 화면으로 이동
             } else {
               return const LoginScreen();
             }
