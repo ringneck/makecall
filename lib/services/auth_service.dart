@@ -20,8 +20,17 @@ class AuthService extends ChangeNotifier {
   AuthService() {
     _auth.authStateChanges().listen((User? user) {
       if (user != null) {
+        if (kDebugMode) {
+          debugPrint('🔐 Auth 상태 변경: 로그인');
+          debugPrint('   - UID: ${user.uid}');
+          debugPrint('   - Email: ${user.email}');
+        }
         _loadUserModel(user.uid);
       } else {
+        if (kDebugMode) {
+          debugPrint('🔓 Auth 상태 변경: 로그아웃');
+          debugPrint('   - currentUserModel 초기화');
+        }
         _currentUserModel = null;
       }
       notifyListeners();
@@ -164,8 +173,18 @@ class AuthService extends ChangeNotifier {
   
   // 로그아웃
   Future<void> signOut() async {
+    if (kDebugMode) {
+      debugPrint('🔓 로그아웃 시작');
+      debugPrint('   - 현재 사용자: ${_currentUserModel?.email ?? "없음"}');
+    }
+    
     await _auth.signOut();
     _currentUserModel = null;
+    
+    if (kDebugMode) {
+      debugPrint('✅ currentUserModel 초기화 완료');
+    }
+    
     notifyListeners();
   }
   
