@@ -85,7 +85,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                 backgroundColor: const Color(0xFF2196F3),
                 child: const Icon(
                   Icons.phone_in_talk,
-                  size: 20,
+                  size: 24,
                   color: Colors.white,
                 ),
               ),
