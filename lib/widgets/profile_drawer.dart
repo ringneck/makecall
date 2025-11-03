@@ -23,7 +23,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   bool _isSearching = false;
   bool _isRefreshing = false;
   String? _searchError;
-  bool _keepLoginEnabled = true; // 기본값을 true로 변경
+  bool _keepLoginEnabled = true; // 자동 로그인 기본값: true
   final _phoneNumberController = TextEditingController();
 
   @override
@@ -37,21 +37,21 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
       // 저장된 단말번호 정보 업데이트
       _updateSavedExtensions();
-      // 로그인 유지 설정 불러오기
+      // 자동 로그인 설정 불러오기
       _loadKeepLoginSetting();
     });
   }
 
-  // 로그인 유지 설정 불러오기
+  // 자동 로그인 설정 불러오기
   Future<void> _loadKeepLoginSetting() async {
     if (kDebugMode) {
-      debugPrint('📱 Loading Keep Login Setting...');
+      debugPrint('📱 Loading Auto Login Setting...');
     }
     
     final enabled = await AccountManagerService().getKeepLoginEnabled();
     
     if (kDebugMode) {
-      debugPrint('📱 Keep Login Setting loaded: $enabled');
+      debugPrint('📱 Auto Login Setting loaded: $enabled');
     }
     
     if (mounted) {
@@ -60,7 +60,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       });
       
       if (kDebugMode) {
-        debugPrint('📱 Keep Login UI updated: $_keepLoginEnabled');
+        debugPrint('📱 Auto Login UI updated: $_keepLoginEnabled');
       }
     }
   }
@@ -1126,11 +1126,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             child: Divider(height: 1),
           ),
           
-          // 로그인 유지 스위치
+          // 자동 로그인 스위치
           _buildSwitchTile(
             icon: Icons.lock_clock,
-            title: '로그인 유지',
-            subtitle: '계정 전환 시 자동으로 로그인',
+            title: '자동 로그인',
+            subtitle: '계정 전환 시 비밀번호 없이 로그인',
             value: _keepLoginEnabled,
             onChanged: (value) async {
               await AccountManagerService().setKeepLoginEnabled(value);
@@ -1142,8 +1142,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   SnackBar(
                     content: Text(
                       value 
-                          ? '로그인 유지가 활성화되었습니다. 계정 전환 시 자동으로 로그인됩니다.' 
-                          : '로그인 유지가 비활성화되었습니다.',
+                          ? '자동 로그인이 활성화되었습니다. 계정 전환 시 비밀번호 없이 로그인됩니다.' 
+                          : '자동 로그인이 비활성화되었습니다. 계정 전환 시 확인 다이얼로그가 표시됩니다.',
                     ),
                     backgroundColor: value ? Colors.green : Colors.grey,
                   ),
@@ -1798,23 +1798,23 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 
   Future<void> _handleSwitchAccount(BuildContext context, SavedAccountModel account) async {
-    // 로그인 유지 옵션 확인
-    final keepLoginEnabled = await AccountManagerService().getKeepLoginEnabled();
+    // 자동 로그인 옵션 확인
+    final autoLoginEnabled = await AccountManagerService().getKeepLoginEnabled();
     
     if (kDebugMode) {
       debugPrint('🔄 Account Switch Request:');
       debugPrint('   - Target: ${account.email}');
-      debugPrint('   - Keep Login Enabled: $keepLoginEnabled');
+      debugPrint('   - Auto Login Enabled: $autoLoginEnabled');
     }
     
     bool? confirmed;
     
-    if (keepLoginEnabled) {
-      // 로그인 유지 옵션이 활성화된 경우 - 자동으로 계정 전환
+    if (autoLoginEnabled) {
+      // 자동 로그인이 활성화된 경우 - 자동으로 계정 전환
       confirmed = true;
       
       if (kDebugMode) {
-        debugPrint('✅ Auto-switching account (Keep Login is ON)');
+        debugPrint('✅ Auto-switching account (Auto Login is ON)');
       }
       
       if (mounted) {
@@ -1831,9 +1831,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
     } else {
       if (kDebugMode) {
-        debugPrint('❓ Showing confirmation dialog (Keep Login is OFF)');
+        debugPrint('❓ Showing confirmation dialog (Auto Login is OFF)');
       }
-      // 로그인 유지 옵션이 비활성화된 경우 - 확인 다이얼로그 표시
+      // 자동 로그인이 비활성화된 경우 - 확인 다이얼로그 표시
       confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -1860,7 +1860,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     }
 
     if (confirmed == true && mounted) {
-      // 전환 대상 이메일 저장 (LoginScreen에서 자동으로 채워짐)
+      // 전환 대상 이메일 저장 (LoginScreen에서 자동으로 채워짐 + 비밀번호 자동 입력)
       await AccountManagerService().setSwitchTargetEmail(account.email);
       
       if (kDebugMode) {
@@ -1870,9 +1870,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       await context.read<AuthService>().signOut();
       if (mounted) {
         Navigator.pop(context);
+        
+        // 메시지 변경: 자동 로그인 여부에 따라 다른 메시지 표시
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('로그아웃되었습니다. ${account.email}로 다시 로그인해주세요.'),
+            content: Text(
+              autoLoginEnabled
+                  ? '로그아웃되었습니다. ${account.email}로 자동 로그인 중...'
+                  : '로그아웃되었습니다. ${account.email}로 다시 로그인해주세요.',
+            ),
             backgroundColor: Colors.blue,
           ),
         );

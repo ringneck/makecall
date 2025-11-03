@@ -28,15 +28,21 @@ class AuthService extends ChangeNotifier {
     });
   }
   
-  Future<void> _loadUserModel(String uid) async {
+  // 비밀번호를 일시적으로 저장하기 위한 변수 (로그인 시에만 사용)
+  String? _tempPassword;
+  
+  Future<void> _loadUserModel(String uid, {String? password}) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
         final data = doc.data()!;
         _currentUserModel = UserModel.fromMap(data, uid);
         
-        // 계정 저장
-        await _accountManager.saveAccount(_currentUserModel!);
+        // 계정 저장 (비밀번호 포함)
+        await _accountManager.saveAccount(_currentUserModel!, password: password ?? _tempPassword);
+        
+        // 일시 비밀번호 삭제
+        _tempPassword = null;
         
         // myExtensions 필드 디버그 로깅
         if (kDebugMode) {
@@ -119,12 +125,15 @@ class AuthService extends ChangeNotifier {
     }
   }
   
-  // 로그인
+  // 로그인 (비밀번호 저장 포함)
   Future<UserCredential?> signIn({
     required String email,
     required String password,
   }) async {
     try {
+      // 비밀번호를 일시 저장 (로그인 성공 후 saveAccount에서 사용)
+      _tempPassword = password;
+      
       final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -137,11 +146,15 @@ class AuthService extends ChangeNotifier {
             .doc(credential.user!.uid)
             .update({'lastLoginAt': DateTime.now().toIso8601String()});
         
-        await _loadUserModel(credential.user!.uid);
+        // 비밀번호를 _loadUserModel에 전달하여 자동 저장
+        await _loadUserModel(credential.user!.uid, password: password);
       }
       
       return credential;
     } on FirebaseAuthException catch (e) {
+      // 로그인 실패 시 일시 비밀번호 삭제
+      _tempPassword = null;
+      
       if (kDebugMode) {
         debugPrint('SignIn error: ${e.code} - ${e.message}');
       }

@@ -33,8 +33,8 @@ class AccountManagerService {
     }
   }
 
-  // 계정 저장 또는 업데이트
-  Future<void> saveAccount(UserModel user) async {
+  // 계정 저장 또는 업데이트 (비밀번호 포함)
+  Future<void> saveAccount(UserModel user, {String? password}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       
@@ -44,6 +44,15 @@ class AccountManagerService {
       // 같은 uid의 계정이 있으면 업데이트, 없으면 추가
       final existingIndex = accounts.indexWhere((acc) => acc.uid == user.uid);
       
+      // 비밀번호 암호화 (Base64 인코딩)
+      String? encryptedPassword;
+      if (password != null && password.isNotEmpty) {
+        encryptedPassword = base64Encode(utf8.encode(password));
+      } else if (existingIndex >= 0 && accounts[existingIndex].encryptedPassword != null) {
+        // 기존 비밀번호 유지
+        encryptedPassword = accounts[existingIndex].encryptedPassword;
+      }
+      
       final newAccount = SavedAccountModel(
         uid: user.uid,
         email: user.email,
@@ -51,6 +60,7 @@ class AccountManagerService {
         profileImageUrl: user.profileImageUrl,
         lastLoginAt: DateTime.now(),
         isCurrentAccount: true,
+        encryptedPassword: encryptedPassword,
       );
 
       if (existingIndex >= 0) {
@@ -69,7 +79,7 @@ class AccountManagerService {
       await prefs.setString(_savedAccountsKey, accountsJson);
       await prefs.setString(_currentAccountUidKey, user.uid);
 
-      print('✅ Account saved: ${user.email} (${user.organizationName ?? "no org name"})');
+      print('✅ Account saved: ${user.email} (${user.companyName ?? "no company name"})');
     } catch (e) {
       print('❌ Error saving account: $e');
     }
@@ -156,36 +166,50 @@ class AccountManagerService {
     }
   }
 
-  // 로그인 유지 설정 가져오기 (기본값: true)
+  // 자동 로그인 설정 가져오기 (기본값: true)
   Future<bool> getKeepLoginEnabled() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final bool? storedValue = prefs.getBool(_keepLoginKey);
       final bool result = storedValue ?? true; // 기본값을 true로 변경
       
-      print('🔍 Keep Login Setting: stored=$storedValue, result=$result');
+      print('🔍 Auto Login Setting: stored=$storedValue, result=$result');
       
       // 처음 사용하는 경우 (storedValue가 null) 기본값을 저장
       if (storedValue == null) {
         await prefs.setBool(_keepLoginKey, true);
-        print('✅ Keep Login Setting initialized to true');
+        print('✅ Auto Login Setting initialized to true');
       }
       
       return result;
     } catch (e) {
-      print('❌ Error getting keep login setting: $e');
+      print('❌ Error getting auto login setting: $e');
       return true; // 에러 시에도 true 반환
     }
   }
 
-  // 로그인 유지 설정 저장
+  // 자동 로그인 설정 저장
   Future<void> setKeepLoginEnabled(bool enabled) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keepLoginKey, enabled);
-      print('✅ Keep login setting updated: $enabled');
+      print('✅ Auto login setting updated: $enabled');
     } catch (e) {
-      print('❌ Error setting keep login: $e');
+      print('❌ Error setting auto login: $e');
+    }
+  }
+  
+  // 비밀번호 복호화 (Base64 디코딩)
+  String? decryptPassword(String? encryptedPassword) {
+    if (encryptedPassword == null || encryptedPassword.isEmpty) {
+      return null;
+    }
+    try {
+      final decoded = base64Decode(encryptedPassword);
+      return utf8.decode(decoded);
+    } catch (e) {
+      print('❌ Error decrypting password: $e');
+      return null;
     }
   }
 

@@ -5,6 +5,7 @@ class SavedAccountModel {
   final String? profileImageUrl;
   final DateTime lastLoginAt;
   final bool isCurrentAccount;
+  final String? encryptedPassword; // 암호화된 비밀번호 (Base64)
 
   SavedAccountModel({
     required this.uid,
@@ -13,6 +14,7 @@ class SavedAccountModel {
     this.profileImageUrl,
     required this.lastLoginAt,
     this.isCurrentAccount = false,
+    this.encryptedPassword,
   });
 
   factory SavedAccountModel.fromMap(Map<String, dynamic> map) {
@@ -23,6 +25,7 @@ class SavedAccountModel {
       profileImageUrl: map['profileImageUrl'] as String?,
       lastLoginAt: DateTime.parse(map['lastLoginAt'] as String),
       isCurrentAccount: map['isCurrentAccount'] as bool? ?? false,
+      encryptedPassword: map['encryptedPassword'] as String?,
     );
   }
 
@@ -34,6 +37,7 @@ class SavedAccountModel {
       'profileImageUrl': profileImageUrl,
       'lastLoginAt': lastLoginAt.toIso8601String(),
       'isCurrentAccount': isCurrentAccount,
+      'encryptedPassword': encryptedPassword,
     };
   }
 
@@ -44,6 +48,7 @@ class SavedAccountModel {
     String? profileImageUrl,
     DateTime? lastLoginAt,
     bool? isCurrentAccount,
+    String? encryptedPassword,
   }) {
     return SavedAccountModel(
       uid: uid ?? this.uid,
@@ -52,6 +57,7 @@ class SavedAccountModel {
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       isCurrentAccount: isCurrentAccount ?? this.isCurrentAccount,
+      encryptedPassword: encryptedPassword ?? this.encryptedPassword,
     );
   }
 
