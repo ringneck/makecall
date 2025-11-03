@@ -326,15 +326,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             ],
           ),
           const SizedBox(height: 16),
-          // 닉네임 (조직명) 표시 - 있는 경우
-          if (userModel?.organizationName != null && userModel!.organizationName!.isNotEmpty) ...[
+          // 조직명 (회사명) 표시 - 있는 경우
+          if (userModel?.companyName != null && userModel!.companyName!.isNotEmpty) ...[
             GestureDetector(
-              onTap: () => _showEditNicknameDialog(context, authService),
+              onTap: () => _showEditCompanyNameDialog(context, authService),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    userModel.organizationName!,
+                    userModel.companyName!,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 20,
@@ -346,14 +346,14 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.purple[100],
+                      color: Colors.blue[100],
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
-                      '닉네임',
+                      '조직명',
                       style: TextStyle(
                         fontSize: 10,
-                        color: Colors.purple,
+                        color: Colors.blue,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -365,27 +365,27 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             ),
             const SizedBox(height: 6),
           ],
-          // 닉네임이 없는 경우 - 추가 버튼
-          if (userModel?.organizationName == null || userModel!.organizationName!.isEmpty) ...[
+          // 조직명이 없는 경우 - 추가 버튼
+          if (userModel?.companyName == null || userModel!.companyName!.isEmpty) ...[
             GestureDetector(
-              onTap: () => _showEditNicknameDialog(context, authService),
+              onTap: () => _showEditCompanyNameDialog(context, authService),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.purple[50],
+                  color: Colors.blue[50],
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.purple[200]!),
+                  border: Border.all(color: Colors.blue[200]!),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.add, size: 14, color: Colors.purple),
+                    Icon(Icons.add, size: 14, color: Colors.blue),
                     SizedBox(width: 4),
                     Text(
-                      '닉네임 추가',
+                      '조직명 추가',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.purple,
+                        color: Colors.blue,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -400,15 +400,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             userModel?.email ?? '이메일 없음',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: userModel?.organizationName != null && userModel!.organizationName!.isNotEmpty 
-                  ? 14  // 닉네임이 있으면 이메일은 작게
-                  : 18, // 닉네임이 없으면 이메일을 크게
-              fontWeight: userModel?.organizationName != null && userModel!.organizationName!.isNotEmpty
-                  ? FontWeight.w500  // 닉네임이 있으면 보통 굵기
-                  : FontWeight.bold, // 닉네임이 없으면 굵게
-              color: userModel?.organizationName != null && userModel!.organizationName!.isNotEmpty
-                  ? Colors.grey[600]  // 닉네임이 있으면 회색
-                  : Colors.black87,   // 닉네임이 없으면 검정
+              fontSize: userModel?.companyName != null && userModel!.companyName!.isNotEmpty 
+                  ? 14  // 조직명이 있으면 이메일은 작게
+                  : 18, // 조직명이 없으면 이메일을 크게
+              fontWeight: userModel?.companyName != null && userModel!.companyName!.isNotEmpty
+                  ? FontWeight.w500  // 조직명이 있으면 보통 굵기
+                  : FontWeight.bold, // 조직명이 없으면 굵게
+              color: userModel?.companyName != null && userModel!.companyName!.isNotEmpty
+                  ? Colors.grey[600]  // 조직명이 있으면 회색
+                  : Colors.black87,   // 조직명이 없으면 검정
             ),
           ),
           const SizedBox(height: 12),
@@ -1015,19 +1015,19 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            if (account.organizationName != null && account.organizationName!.isNotEmpty)
+                            if (account.companyName != null && account.companyName!.isNotEmpty)
                               Container(
                                 margin: const EdgeInsets.only(left: 8),
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.purple[100],
+                                  color: Colors.blue[100],
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text(
-                                  '닉네임',
+                                  '조직',
                                   style: TextStyle(
                                     fontSize: 9,
-                                    color: Colors.purple,
+                                    color: Colors.blue,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -1037,7 +1037,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (account.organizationName != null && account.organizationName!.isNotEmpty)
+                            if (account.companyName != null && account.companyName!.isNotEmpty)
                               Text(
                                 account.email,
                                 style: const TextStyle(fontSize: 11, color: Colors.grey),
@@ -1881,7 +1881,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 
   Future<void> _handleEditOrganizationName(BuildContext context, SavedAccountModel account) async {
-    final controller = TextEditingController(text: account.organizationName ?? '');
+    final controller = TextEditingController(text: account.companyName ?? '');
     
     final result = await showDialog<String>(
       context: context,
@@ -1903,7 +1903,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 hintText: '예: 본사, 지사, 개인 등',
                 border: OutlineInputBorder(),
               ),
-              maxLength: 30,
+              maxLength: 50,
             ),
           ],
         ),
@@ -1924,7 +1924,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     );
 
     if (result != null && result.isNotEmpty && mounted) {
-      await AccountManagerService().updateOrganizationName(account.uid, result);
+      await AccountManagerService().updateCompanyName(account.uid, result);
       if (mounted) {
         setState(() {}); // UI 새로고침
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1974,15 +1974,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     }
   }
 
-  // 현재 로그인된 사용자의 닉네임 편집
-  Future<void> _showEditNicknameDialog(BuildContext context, AuthService authService) async {
-    final currentNickname = authService.currentUserModel?.organizationName ?? '';
-    final controller = TextEditingController(text: currentNickname);
+  // 현재 로그인된 사용자의 조직명(회사명) 편집
+  Future<void> _showEditCompanyNameDialog(BuildContext context, AuthService authService) async {
+    final currentCompanyName = authService.currentUserModel?.companyName ?? '';
+    final controller = TextEditingController(text: currentCompanyName);
     
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('닉네임 설정'),
+        title: const Text('조직명 설정'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1995,18 +1995,18 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             TextField(
               controller: controller,
               decoration: const InputDecoration(
-                labelText: '닉네임',
+                labelText: '조직명',
                 hintText: '예: 본사, 지사, 개인 등',
                 border: OutlineInputBorder(),
-                helperText: '다른 사람들에게 보여질 이름입니다',
+                helperText: '소속된 조직 이름입니다',
               ),
-              maxLength: 30,
+              maxLength: 50,
               autofocus: true,
             ),
           ],
         ),
         actions: [
-          if (currentNickname.isNotEmpty)
+          if (currentCompanyName.isNotEmpty)
             TextButton(
               onPressed: () => Navigator.pop(context, ''), // 빈 문자열로 삭제
               style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -2030,15 +2030,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     if (result != null && mounted) {
       try {
         // Firestore 업데이트
-        await authService.updateOrganizationName(result.isEmpty ? null : result);
+        await authService.updateCompanyName(result.isEmpty ? null : result);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
                 result.isEmpty 
-                    ? '닉네임이 삭제되었습니다' 
-                    : '닉네임이 업데이트되었습니다',
+                    ? '조직명이 삭제되었습니다' 
+                    : '조직명이 업데이트되었습니다',
               ),
               backgroundColor: Colors.green,
             ),

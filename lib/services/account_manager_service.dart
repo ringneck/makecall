@@ -47,7 +47,7 @@ class AccountManagerService {
       final newAccount = SavedAccountModel(
         uid: user.uid,
         email: user.email,
-        organizationName: user.organizationName,
+        companyName: user.companyName,
         profileImageUrl: user.profileImageUrl,
         lastLoginAt: DateTime.now(),
         isCurrentAccount: true,
@@ -124,23 +124,23 @@ class AccountManagerService {
     }
   }
 
-  // 조직명 업데이트
-  Future<void> updateOrganizationName(String uid, String organizationName) async {
+  // 회사명(조직명) 업데이트
+  Future<void> updateCompanyName(String uid, String companyName) async {
     try {
       List<SavedAccountModel> accounts = await getSavedAccounts();
       
       final index = accounts.indexWhere((acc) => acc.uid == uid);
       if (index >= 0) {
-        accounts[index] = accounts[index].copyWith(organizationName: organizationName);
+        accounts[index] = accounts[index].copyWith(companyName: companyName);
         
         final prefs = await SharedPreferences.getInstance();
         final accountsJson = json.encode(accounts.map((acc) => acc.toMap()).toList());
         await prefs.setString(_savedAccountsKey, accountsJson);
 
-        print('✅ Organization name updated for: $uid');
+        print('✅ Company name updated for: $uid');
       }
     } catch (e) {
-      print('❌ Error updating organization name: $e');
+      print('❌ Error updating company name: $e');
     }
   }
 

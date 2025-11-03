@@ -233,8 +233,8 @@ class AuthService extends ChangeNotifier {
     }
   }
   
-  // 조직명(닉네임) 업데이트
-  Future<void> updateOrganizationName(String? organizationName) async {
+  // 회사명(조직명) 업데이트
+  Future<void> updateCompanyName(String? companyName) async {
     if (currentUser == null) return;
     
     try {
@@ -242,18 +242,18 @@ class AuthService extends ChangeNotifier {
           .collection('users')
           .doc(currentUser!.uid)
           .update({
-        'organizationName': organizationName,
+        'companyName': companyName,
       });
       
       // 사용자 모델 다시 로드
       await _loadUserModel(currentUser!.uid);
       
       if (kDebugMode) {
-        debugPrint('✅ Organization name updated: $organizationName');
+        debugPrint('✅ Company name updated: $companyName');
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ Update organization name error: $e');
+        debugPrint('❌ Update company name error: $e');
       }
       rethrow;
     }

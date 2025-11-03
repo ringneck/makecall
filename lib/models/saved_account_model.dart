@@ -1,7 +1,7 @@
 class SavedAccountModel {
   final String uid;
   final String email;
-  final String? organizationName; // 사용자 지정 조직명/닉네임
+  final String? companyName; // 회사명/조직명
   final String? profileImageUrl;
   final DateTime lastLoginAt;
   final bool isCurrentAccount;
@@ -9,7 +9,7 @@ class SavedAccountModel {
   SavedAccountModel({
     required this.uid,
     required this.email,
-    this.organizationName,
+    this.companyName,
     this.profileImageUrl,
     required this.lastLoginAt,
     this.isCurrentAccount = false,
@@ -19,7 +19,7 @@ class SavedAccountModel {
     return SavedAccountModel(
       uid: map['uid'] as String,
       email: map['email'] as String,
-      organizationName: map['organizationName'] as String?,
+      companyName: map['companyName'] as String?,
       profileImageUrl: map['profileImageUrl'] as String?,
       lastLoginAt: DateTime.parse(map['lastLoginAt'] as String),
       isCurrentAccount: map['isCurrentAccount'] as bool? ?? false,
@@ -30,7 +30,7 @@ class SavedAccountModel {
     return {
       'uid': uid,
       'email': email,
-      'organizationName': organizationName,
+      'companyName': companyName,
       'profileImageUrl': profileImageUrl,
       'lastLoginAt': lastLoginAt.toIso8601String(),
       'isCurrentAccount': isCurrentAccount,
@@ -40,7 +40,7 @@ class SavedAccountModel {
   SavedAccountModel copyWith({
     String? uid,
     String? email,
-    String? organizationName,
+    String? companyName,
     String? profileImageUrl,
     DateTime? lastLoginAt,
     bool? isCurrentAccount,
@@ -48,7 +48,7 @@ class SavedAccountModel {
     return SavedAccountModel(
       uid: uid ?? this.uid,
       email: email ?? this.email,
-      organizationName: organizationName ?? this.organizationName,
+      companyName: companyName ?? this.companyName,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       isCurrentAccount: isCurrentAccount ?? this.isCurrentAccount,
@@ -56,5 +56,5 @@ class SavedAccountModel {
   }
 
   // 표시용 이름 (조직명 우선, 없으면 이메일)
-  String get displayName => organizationName?.isNotEmpty == true ? organizationName! : email;
+  String get displayName => companyName?.isNotEmpty == true ? companyName! : email;
 }
