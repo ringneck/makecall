@@ -61,10 +61,21 @@ class _DialpadScreenState extends State<DialpadScreen> {
       return;
     }
 
-    // 일반 번호는 발신 방법 선택 다이얼로그 표시
+    // 5자리 이하 숫자만 있는 단말번호는 자동으로 클릭투콜 실행 (다이얼로그 없음)
+    final cleanNumber = _phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleanNumber.length > 0 && cleanNumber.length <= 5 && cleanNumber == _phoneNumber) {
+      if (kDebugMode) {
+        debugPrint('🔥 5자리 이하 내선번호 감지: $_phoneNumber');
+        debugPrint('📞 자동으로 클릭투콜 실행 (다이얼로그 건너뛰기)');
+      }
+      _handleFeatureCodeCall(_phoneNumber);
+      return;
+    }
+
+    // 일반 전화번호는 발신 방법 선택 다이얼로그 표시
     showDialog(
       context: context,
-      builder: (context) => CallMethodDialog(phoneNumber: _phoneNumber),
+      builder: (context) => CallMethodDialog(phoneNumber: _phoneNumber, autoCallShortExtension: false),
     );
   }
 
