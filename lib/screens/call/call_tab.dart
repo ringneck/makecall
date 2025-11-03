@@ -111,24 +111,32 @@ class _CallTabState extends State<CallTab> {
     final userModel = authService.currentUserModel;
     final userId = authService.currentUser?.uid ?? '';
     
+    // userModel이 없으면 아직 로드 중이므로 대기
+    if (userModel == null) {
+      if (kDebugMode) {
+        debugPrint('⏳ userModel 로딩 중 - 설정 체크 건너뛰기');
+      }
+      return;
+    }
+    
     // 디버그: 사용자 정보 로깅
     if (kDebugMode) {
       debugPrint('👤 사용자 정보 확인:');
-      debugPrint('   - userModel: ${userModel != null ? "존재" : "null"}');
-      debugPrint('   - email: "${userModel?.email}" (길이: ${userModel?.email.length ?? 0})');
-      debugPrint('   - organizationName: "${userModel?.organizationName}"');
+      debugPrint('   - userModel: 존재');
+      debugPrint('   - email: "${userModel.email}" (길이: ${userModel.email.length})');
+      debugPrint('   - organizationName: "${userModel.organizationName}"');
       debugPrint('   - userId: $userId');
     }
     
     // 필수 설정 항목 확인
-    final hasWebSocketSettings = userModel?.websocketServerUrl != null && 
-                                  userModel!.websocketServerUrl!.isNotEmpty;
-    final hasApiBaseUrl = userModel?.apiBaseUrl != null && 
-                         userModel!.apiBaseUrl!.isNotEmpty;
-    final hasCompanyId = userModel?.companyId != null && 
-                        userModel!.companyId!.isNotEmpty;
-    final hasAppKey = userModel?.appKey != null && 
-                     userModel!.appKey!.isNotEmpty;
+    final hasWebSocketSettings = userModel.websocketServerUrl != null && 
+                                  userModel.websocketServerUrl!.isNotEmpty;
+    final hasApiBaseUrl = userModel.apiBaseUrl != null && 
+                         userModel.apiBaseUrl!.isNotEmpty;
+    final hasCompanyId = userModel.companyId != null && 
+                        userModel.companyId!.isNotEmpty;
+    final hasAppKey = userModel.appKey != null && 
+                     userModel.appKey!.isNotEmpty;
     
     // 저장된 단말번호 확인
     final extensionsSnapshot = await _databaseService.getMyExtensions(userId).first;
@@ -136,10 +144,10 @@ class _CallTabState extends State<CallTab> {
     
     if (kDebugMode) {
       debugPrint('🔍 설정 체크 시작');
-      debugPrint('  - WebSocket 설정: $hasWebSocketSettings (${userModel?.websocketServerUrl ?? "없음"})');
-      debugPrint('  - API BaseURL 설정: $hasApiBaseUrl (${userModel?.apiBaseUrl ?? "없음"})');
-      debugPrint('  - 회사ID 설정: $hasCompanyId (${userModel?.companyId ?? "없음"})');
-      debugPrint('  - AppKey 설정: $hasAppKey (${userModel?.appKey ?? "없음"})');
+      debugPrint('  - WebSocket 설정: $hasWebSocketSettings (${userModel.websocketServerUrl ?? "없음"})');
+      debugPrint('  - API BaseURL 설정: $hasApiBaseUrl (${userModel.apiBaseUrl ?? "없음"})');
+      debugPrint('  - 회사ID 설정: $hasCompanyId (${userModel.companyId ?? "없음"})');
+      debugPrint('  - AppKey 설정: $hasAppKey (${userModel.appKey ?? "없음"})');
       debugPrint('  - 저장된 단말번호: $hasSavedExtensions (${extensionsSnapshot.length}개)');
     }
     
@@ -187,19 +195,19 @@ class _CallTabState extends State<CallTab> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              (userModel?.organizationName?.isNotEmpty ?? false)
-                                  ? userModel!.organizationName!
-                                  : (userModel?.email.isNotEmpty ?? false)
-                                      ? userModel!.email
+                              (userModel.organizationName?.isNotEmpty ?? false)
+                                  ? userModel.organizationName!
+                                  : userModel.email.isNotEmpty
+                                      ? userModel.email
                                       : authService.currentUser?.email ?? '사용자',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (userModel?.email.isNotEmpty ?? false)
+                            if (userModel.email.isNotEmpty)
                               Text(
-                                userModel!.email,
+                                userModel.email,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
@@ -365,19 +373,19 @@ class _CallTabState extends State<CallTab> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              (userModel?.organizationName?.isNotEmpty ?? false)
-                                  ? userModel!.organizationName!
-                                  : (userModel?.email.isNotEmpty ?? false)
-                                      ? userModel!.email
+                              (userModel.organizationName?.isNotEmpty ?? false)
+                                  ? userModel.organizationName!
+                                  : userModel.email.isNotEmpty
+                                      ? userModel.email
                                       : authService.currentUser?.email ?? '사용자',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (userModel?.email.isNotEmpty ?? false)
+                            if (userModel.email.isNotEmpty)
                               Text(
-                                userModel!.email,
+                                userModel.email,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
