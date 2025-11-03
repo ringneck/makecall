@@ -300,7 +300,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   backgroundColor: Colors.transparent,
                   backgroundImage: userModel?.profileImageUrl != null
                       ? NetworkImage(userModel!.profileImageUrl!)
-                      : const AssetImage('assets/images/app_logo.png') as ImageProvider,
+                      : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
                 ),
               ),
               Positioned(
@@ -337,7 +337,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     userModel.companyName!,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -352,7 +352,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     child: const Text(
                       '조직명',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9,
                         color: Colors.blue,
                         fontWeight: FontWeight.bold,
                       ),
@@ -384,7 +384,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     Text(
                       '조직명 추가',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         color: Colors.blue,
                         fontWeight: FontWeight.w600,
                       ),
@@ -401,8 +401,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: userModel?.companyName != null && userModel!.companyName!.isNotEmpty 
-                  ? 14  // 조직명이 있으면 이메일은 작게
-                  : 18, // 조직명이 없으면 이메일을 크게
+                  ? 12  // 조직명이 있으면 이메일은 작게
+                  : 14, // 조직명이 없으면 이메일을 크게
               fontWeight: userModel?.companyName != null && userModel!.companyName!.isNotEmpty
                   ? FontWeight.w500  // 조직명이 있으면 보통 굵기
                   : FontWeight.bold, // 조직명이 없으면 굵게
@@ -417,7 +417,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             '단말번호 저장 가능: 최대 ${userModel?.maxExtensions ?? 1}개',
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: Color(0xFF2196F3),
             ),
@@ -496,13 +496,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           
           // 기본 설정
           ListTile(
-            leading: const Icon(Icons.settings, size: 22),
-            title: const Text('기본 설정', style: TextStyle(fontSize: 15)),
+            leading: const Icon(Icons.settings, size: 20),
+            title: const Text('기본 설정', style: TextStyle(fontSize: 13)),
             subtitle: const Text(
               'API 서버, WebSocket 설정',
-              style: TextStyle(fontSize: 11),
+              style: TextStyle(fontSize: 10),
             ),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(Icons.chevron_right, size: 18),
             onTap: () {
               showDialog(
                 context: context,
@@ -520,12 +520,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.phone_android, color: Color(0xFF2196F3), size: 20),
+                    Icon(Icons.phone_android, color: Color(0xFF2196F3), size: 18),
                     SizedBox(width: 8),
                     Text(
                       '내 단말번호',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -612,7 +612,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     const Text(
                       '저장된 내 단말번호',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -724,12 +724,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             color: Colors.grey[50],
             child: const Row(
               children: [
-                Icon(Icons.settings, color: Color(0xFF2196F3), size: 24),
+                Icon(Icons.settings, color: Color(0xFF2196F3), size: 20),
                 SizedBox(width: 12),
                 Text(
                   '설정',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
@@ -999,7 +999,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                           backgroundColor: Colors.transparent,
                           backgroundImage: account.profileImageUrl != null
                               ? NetworkImage(account.profileImageUrl!)
-                              : const AssetImage('assets/images/app_logo.png') as ImageProvider,
+                              : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
                         ),
                         title: Row(
                           children: [
