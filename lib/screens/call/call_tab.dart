@@ -25,7 +25,7 @@ class CallTab extends StatefulWidget {
 }
 
 class _CallTabState extends State<CallTab> {
-  int _currentTabIndex = 0; // 현재 선택된 탭 인덱스
+  int _currentTabIndex = 2; // 현재 선택된 탭 인덱스 (초기값: 키패드)
   final DatabaseService _databaseService = DatabaseService();
   final MobileContactsService _mobileContactsService = MobileContactsService();
   final TextEditingController _searchController = TextEditingController();
@@ -569,7 +569,7 @@ class _CallTabState extends State<CallTab> {
             tooltip: '계정 정보',
           ),
         ),
-        title: const Text('통화'),
+        title: const Text('MAKECALL'),
         actions: [
           Builder(
             builder: (context) => IconButton(
