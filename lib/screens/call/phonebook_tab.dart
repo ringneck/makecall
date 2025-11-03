@@ -491,18 +491,11 @@ class _PhonebookTabState extends State<PhonebookTab> {
               return FutureBuilder<List<String>>(
                 future: _databaseService.getUserRegisteredExtensions(userId),
                 builder: (context, registeredSnapshot) {
-                  // registered_extensions 로드 중에는 모든 연락처 표시
+                  // registered_extensions 로드 (등록 여부 표시용)
                   final registeredExtensions = registeredSnapshot.data ?? [];
                   
-                  // registered_extensions에 등록된 단말번호 제외
-                  if (registeredExtensions.isNotEmpty) {
-                    contacts = contacts.where((contact) {
-                      return !registeredExtensions.contains(contact.telephone);
-                    }).toList();
-                    
-                    if (kDebugMode) {
-                      debugPrint('🔒 등록된 단말번호 제외 후: ${contacts.length}개 (제외: ${registeredExtensions.length}개)');
-                    }
+                  if (kDebugMode && registeredExtensions.isNotEmpty) {
+                    debugPrint('🔒 등록된 단말번호: ${registeredExtensions.length}개');
                   }
 
                   // 검색 필터링
@@ -634,7 +627,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                           debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
                         }
                         
-                        return _buildContactListTile(contact);
+                        return _buildContactListTile(contact, registeredExtensions: registeredExtensions);
                       },
                     ),
                   );
@@ -647,7 +640,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
     );
   }
 
-  Widget _buildContactListTile(PhonebookContactModel contact) {
+  Widget _buildContactListTile(PhonebookContactModel contact, {List<String>? registeredExtensions}) {
     Color categoryColor = Colors.blue;
     IconData categoryIcon = Icons.phone;
 
@@ -661,16 +654,44 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
     // 이름 번역
     final translatedName = _translateName(contact.name);
+    
+    // 등록 여부 확인
+    final isRegistered = registeredExtensions?.contains(contact.telephone) ?? false;
 
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: contact.isFavorite
-            ? Colors.amber[100]
-            : categoryColor.withAlpha(51),
-        child: Icon(
-          contact.isFavorite ? Icons.star : categoryIcon,
-          color: contact.isFavorite ? Colors.amber[700] : categoryColor,
-        ),
+      leading: Stack(
+        children: [
+          CircleAvatar(
+            backgroundColor: contact.isFavorite
+                ? Colors.amber[100]
+                : categoryColor.withAlpha(51),
+            child: Icon(
+              contact.isFavorite ? Icons.star : categoryIcon,
+              color: contact.isFavorite ? Colors.amber[700] : categoryColor,
+            ),
+          ),
+          // 등록된 단말번호 표시 (우측 하단에 로고 배지)
+          if (isRegistered)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.green, width: 1.5),
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/app_logo.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       title: Row(
         children: [
