@@ -1182,12 +1182,36 @@ class _CallTabState extends State<CallTab> {
     );
   }
 
+  // 안전한 SnackBar 표시 헬퍼 (위젯이 dispose되어도 에러 없음)
+  void _safeShowSnackBar(SnackBar snackBar) {
+    if (!mounted) return;
+    
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    } catch (e) {
+      // 위젯이 이미 dispose된 경우 무시
+      if (kDebugMode) {
+        debugPrint('⚠️ SnackBar 표시 건너뜀 (위젯 비활성화): $e');
+      }
+    }
+  }
+  
+  // 안전한 SnackBar 클리어 헬퍼
+  void _safeClearSnackBars() {
+    if (!mounted) return;
+    
+    try {
+      ScaffoldMessenger.of(context).clearSnackBars();
+    } catch (e) {
+      // 위젯이 이미 dispose된 경우 무시
+      if (kDebugMode) {
+        debugPrint('⚠️ SnackBar 클리어 건너뜀 (위젯 비활성화): $e');
+      }
+    }
+  }
+
   // 기능번호 자동 발신 (Click to Call API 직접 호출)
   Future<void> _handleFeatureCodeCall(String phoneNumber) async {
-    // 비동기 작업 전에 BuildContext와 ScaffoldMessenger를 안전하게 캡처
-    if (!mounted) return;
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
     try {
       final authService = context.read<AuthService>();
       final userId = authService.currentUser?.uid ?? '';
@@ -1225,8 +1249,8 @@ class _CallTabState extends State<CallTab> {
         debugPrint('📞 CID Number: $cidNumber (callee 값)');
       }
 
-      // 로딩 표시 (캡처된 scaffoldMessenger 사용)
-      scaffoldMessenger.showSnackBar(
+      // 로딩 표시 (안전한 헬퍼 사용)
+      _safeShowSnackBar(
         const SnackBar(
           content: Row(
             children: [
@@ -1281,11 +1305,9 @@ class _CallTabState extends State<CallTab> {
         ),
       );
 
-      // 비동기 작업 후 mounted 체크
-      if (!mounted) return;
-      
-      scaffoldMessenger.clearSnackBars();
-      scaffoldMessenger.showSnackBar(
+      // 성공 메시지 (안전한 헬퍼 사용)
+      _safeClearSnackBars();
+      _safeShowSnackBar(
         SnackBar(
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1306,11 +1328,9 @@ class _CallTabState extends State<CallTab> {
         ),
       );
     } catch (e) {
-      // 비동기 작업 후 mounted 체크
-      if (!mounted) return;
-      
-      scaffoldMessenger.clearSnackBars();
-      scaffoldMessenger.showSnackBar(
+      // 에러 메시지 (안전한 헬퍼 사용)
+      _safeClearSnackBars();
+      _safeShowSnackBar(
         SnackBar(
           content: Text('기능번호 발신 실패: $e'),
           backgroundColor: Colors.red,
@@ -1325,20 +1345,14 @@ class _CallTabState extends State<CallTab> {
   }
 
   Future<void> _toggleFavorite(ContactModel contact) async {
-    // 비동기 작업 전에 ScaffoldMessenger를 안전하게 캡처
-    if (!mounted) return;
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
     try {
       await _databaseService.updateContact(
         contact.id,
         {'isFavorite': !contact.isFavorite},
       );
 
-      // 비동기 작업 후 mounted 체크
-      if (!mounted) return;
-      
-      scaffoldMessenger.showSnackBar(
+      // 성공 메시지 (안전한 헬퍼 사용)
+      _safeShowSnackBar(
         SnackBar(
           content: Row(
             children: [
@@ -1361,10 +1375,8 @@ class _CallTabState extends State<CallTab> {
         ),
       );
     } catch (e) {
-      // 비동기 작업 후 mounted 체크
-      if (!mounted) return;
-      
-      scaffoldMessenger.showSnackBar(
+      // 에러 메시지 (안전한 헬퍼 사용)
+      _safeShowSnackBar(
         SnackBar(content: Text('오류 발생: $e')),
       );
     }
