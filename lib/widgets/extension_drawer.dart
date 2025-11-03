@@ -34,49 +34,22 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
     final userId = authService.currentUser?.uid ?? '';
 
     return Drawer(
+      backgroundColor: const Color(0xFF263238), // 어두운 배경색
       child: SafeArea(
         child: Column(
           children: [
-            // Drawer 헤더
+            // Drawer 헤더 (닫기 버튼만)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    const Color(0xFF2196F3),
-                    const Color(0xFF1976D2),
-                  ],
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              color: const Color(0xFF263238),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.phone_in_talk,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        '내 단말정보',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                        tooltip: '닫기',
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                    onPressed: () => Navigator.pop(context),
+                    tooltip: '닫기',
                   ),
                 ],
               ),
@@ -84,11 +57,15 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
             
             // 내용
             Expanded(
-              child: StreamBuilder<List<MyExtensionModel>>(
-                stream: _databaseService.getMyExtensions(userId),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+              child: Container(
+                color: const Color(0xFF263238),
+                child: StreamBuilder<List<MyExtensionModel>>(
+                  stream: _databaseService.getMyExtensions(userId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.white70),
+                      );
                   }
 
                   if (snapshot.hasError) {
@@ -96,11 +73,12 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.error_outline, size: 56, color: Colors.red),
+                          const Icon(Icons.error_outline, size: 56, color: Colors.redAccent),
                           const SizedBox(height: 16),
                           Text(
                             '오류가 발생했습니다: ${snapshot.error}',
                             textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white70),
                           ),
                         ],
                       ),
@@ -161,10 +139,10 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(
+                                    const Icon(
                                       Icons.phone_disabled,
                                       size: 64,
-                                      color: Colors.grey[400],
+                                      color: Colors.white54,
                                     ),
                                     const SizedBox(height: 24),
                                     const Text(
@@ -172,16 +150,16 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.grey,
+                                        color: Colors.white70,
                                       ),
                                     ),
                                     const SizedBox(height: 12),
-                                    Text(
+                                    const Text(
                                       '내 정보 탭에서 단말번호를 조회하고 저장해주세요.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: Colors.grey[600],
+                                        color: Colors.white60,
                                       ),
                                     ),
                                   ],
@@ -212,29 +190,23 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 16),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: const Color(0xFF37474F),
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
-                                          color: const Color(0xFF2196F3).withAlpha(77),
+                                          color: const Color(0xFF2196F3).withAlpha(128),
                                           width: 2,
                                         ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withAlpha(13),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
                                       ),
                                       child: DropdownButtonHideUnderline(
                                         child: DropdownButton<int>(
                                           value: _currentPage,
                                           isExpanded: true,
+                                          dropdownColor: const Color(0xFF37474F),
                                           icon: const Icon(Icons.arrow_drop_down, size: 24, color: Color(0xFF2196F3)),
                                           style: const TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
+                                            color: Colors.white,
                                           ),
                                           onChanged: (int? newValue) {
                                             if (newValue != null) {
@@ -303,7 +275,8 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                       );
                     },
                   );
-                },
+                  },
+                ),
               ),
             ),
           ],
