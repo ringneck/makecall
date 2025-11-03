@@ -34,6 +34,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
   bool _isLoadingDeviceContacts = false;
   bool _showDeviceContacts = false;
   List<ContactModel> _deviceContacts = [];
+  bool _hasCheckedSettings = false; // 설정 체크 완료 플래그
 
   // 영어 이름을 한글로 번역하는 매핑 테이블
   final Map<String, String> _nameTranslations = {
@@ -56,6 +57,14 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
   
   // 설정 확인 및 안내 다이얼로그 표시
   Future<void> _checkSettingsAndShowGuide() async {
+    // 이미 체크를 완료했으면 다시 하지 않음
+    if (_hasCheckedSettings) {
+      if (kDebugMode) {
+        debugPrint('✅ 설정 체크 이미 완료됨 - 건너뛰기');
+      }
+      return;
+    }
+    
     final authService = context.read<AuthService>();
     final userModel = authService.currentUserModel;
     final userId = authService.currentUser?.uid ?? '';
@@ -69,6 +78,22 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     // 저장된 단말번호 확인
     final extensionsSnapshot = await _databaseService.getMyExtensions(userId).first;
     final hasSavedExtensions = extensionsSnapshot.isNotEmpty;
+    
+    if (kDebugMode) {
+      debugPrint('🔍 설정 체크 시작');
+      debugPrint('  - WebSocket 설정: $hasWebSocketSettings');
+      debugPrint('  - 회사ID 설정: $hasCompanyId');
+      debugPrint('  - 저장된 단말번호: $hasSavedExtensions (${extensionsSnapshot.length}개)');
+    }
+    
+    // 모든 설정이 완료되었으면 체크 플래그 설정
+    if (hasWebSocketSettings && hasCompanyId && hasSavedExtensions) {
+      _hasCheckedSettings = true;
+      if (kDebugMode) {
+        debugPrint('✅ 모든 설정 완료 - 더 이상 팝업 표시 안 함');
+      }
+      return;
+    }
     
     // 1. WebSocket/회사ID 설정이 없는 경우
     if (!hasWebSocketSettings || !hasCompanyId) {
@@ -143,11 +168,15 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  _hasCheckedSettings = true; // 나중에 버튼 누르면 더 이상 표시 안 함
+                  Navigator.pop(context);
+                },
                 child: const Text('나중에'),
               ),
               ElevatedButton.icon(
                 onPressed: () async {
+                  _hasCheckedSettings = true; // 설정하기 누르면 더 이상 표시 안 함
                   Navigator.pop(context);
                   // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
                   await Future.delayed(const Duration(milliseconds: 300));
@@ -166,7 +195,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
           ),
         );
       }
-      return; // 첫 번째 설정 완료 후 다시 체크하도록
+      return;
     }
     
     // 2. 저장된 단말번호가 없는 경우
@@ -236,11 +265,15 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  _hasCheckedSettings = true; // 나중에 버튼 누르면 더 이상 표시 안 함
+                  Navigator.pop(context);
+                },
                 child: const Text('나중에'),
               ),
               ElevatedButton.icon(
                 onPressed: () async {
+                  _hasCheckedSettings = true; // 설정하기 누르면 더 이상 표시 안 함
                   Navigator.pop(context);
                   // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
                   await Future.delayed(const Duration(milliseconds: 300));

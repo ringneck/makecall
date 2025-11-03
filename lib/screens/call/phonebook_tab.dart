@@ -8,6 +8,7 @@ import '../../services/api_service.dart';
 import '../../services/database_service.dart';
 import '../../models/phonebook_model.dart';
 import '../../models/call_history_model.dart';
+import '../../models/my_extension_model.dart';
 import '../../providers/selected_extension_provider.dart';
 import '../../widgets/call_method_dialog.dart';
 
@@ -488,148 +489,168 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 debugPrint('📋 Firestore에서 가져온 총 연락처 수: ${contacts.length}');
               }
 
-              return FutureBuilder<List<String>>(
-                future: _databaseService.getUserRegisteredExtensions(userId),
-                builder: (context, registeredSnapshot) {
-                  // registered_extensions 로드 (등록 여부 표시용)
-                  final registeredExtensions = registeredSnapshot.data ?? [];
+              return StreamBuilder<List<MyExtensionModel>>(
+                stream: _databaseService.getMyExtensions(userId),
+                builder: (context, myExtensionsSnapshot) {
+                  // 내가 저장한 단말번호 목록 가져오기
+                  final myExtensions = myExtensionsSnapshot.data ?? [];
+                  final myExtensionNumbers = myExtensions.map((e) => e.extension).toList();
                   
-                  if (kDebugMode && registeredExtensions.isNotEmpty) {
-                    debugPrint('🔒 등록된 단말번호: ${registeredExtensions.length}개');
+                  if (kDebugMode && myExtensionNumbers.isNotEmpty) {
+                    debugPrint('📝 내가 저장한 단말번호: ${myExtensionNumbers.length}개 - $myExtensionNumbers');
                   }
-
-                  // 검색 필터링
-                  if (_searchController.text.isNotEmpty) {
-                    final query = _searchController.text.toLowerCase();
-                    contacts = contacts.where((contact) {
-                      final translatedName = _translateName(contact.name);
-                      return contact.name.toLowerCase().contains(query) ||
-                          translatedName.toLowerCase().contains(query) ||
-                          contact.telephone.contains(query);
-                    }).toList();
-                    
-                    if (kDebugMode) {
-                      debugPrint('🔍 검색 후 연락처 수: ${contacts.length}');
-                    }
-                  }
-
-                  // telephone 중복 제거 (같은 번호는 하나만 표시)
-                  final seenTelephones = <String>{};
-                  final uniqueContacts = <PhonebookContactModel>[];
                   
-                  for (final contact in contacts) {
-                    if (!seenTelephones.contains(contact.telephone)) {
-                      seenTelephones.add(contact.telephone);
-                      uniqueContacts.add(contact);
-                    } else {
+                  return FutureBuilder<List<String>>(
+                    future: _databaseService.getUserRegisteredExtensions(userId),
+                    builder: (context, registeredSnapshot) {
+                      // 모든 사용자의 등록된 단말번호
+                      final allRegisteredExtensions = registeredSnapshot.data ?? [];
+                      
+                      // 다른 사람이 등록한 단말번호 = 전체 등록 번호 - 내 단말번호
+                      final otherUsersExtensions = allRegisteredExtensions
+                          .where((ext) => !myExtensionNumbers.contains(ext))
+                          .toList();
+                      
                       if (kDebugMode) {
-                        debugPrint('🔁 중복 제거: ${contact.telephone} (${contact.name})');
+                        debugPrint('🔒 전체 등록된 단말번호: ${allRegisteredExtensions.length}개');
+                        debugPrint('👥 다른 사람이 등록한 단말번호: ${otherUsersExtensions.length}개 - $otherUsersExtensions');
                       }
-                    }
-                  }
-                  
-                  contacts = uniqueContacts;
-                  
-                  if (kDebugMode) {
-                    debugPrint('🎯 중복 제거 후: ${contacts.length}개 (고유 telephone 개수)');
-                  }
 
-                  // 정렬: 에코테스트 최우선, 그 다음 기능번호(Feature Codes), 마지막 단말번호(Extensions)
-                  contacts.sort((a, b) {
-                    // 에코테스트 이름 확인 (영어/한글 모두 고려)
-                    final aIsEchoTest = a.name.toLowerCase().contains('echo test') || 
-                                       a.name.contains('에코테스트');
-                    final bIsEchoTest = b.name.toLowerCase().contains('echo test') || 
-                                       b.name.contains('에코테스트');
-                    
-                    // 에코테스트를 최우선 정렬
-                    if (aIsEchoTest && !bIsEchoTest) {
-                      return -1; // a를 맨 앞으로
-                    }
-                    if (!aIsEchoTest && bIsEchoTest) {
-                      return 1; // b를 맨 앞으로
-                    }
-                    
-                    // 둘 다 에코테스트가 아닌 경우, Feature Codes 우선 정렬
-                    if (a.category == 'Feature Codes' && b.category != 'Feature Codes') {
-                      return -1; // a를 앞으로
-                    }
-                    if (a.category != 'Feature Codes' && b.category == 'Feature Codes') {
-                      return 1; // b를 앞으로
-                    }
-                    
-                    // 같은 카테고리 내에서는 이름순 정렬
-                    return a.name.compareTo(b.name);
-                  });
-
-                  if (kDebugMode) {
-                    debugPrint('✅ 정렬 완료 - 표시할 연락처 수: ${contacts.length}');
-                    if (contacts.isNotEmpty) {
-                      debugPrint('📌 첫 번째 연락처: ${contacts.first.name} (${contacts.first.category})');
-                      debugPrint('📌 마지막 연락처: ${contacts.last.name} (${contacts.last.category})');
-                    }
-                  }
-
-                  if (contacts.isEmpty) {
-                return RefreshIndicator(
-                  onRefresh: _loadPhonebooks,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.6,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.contact_phone, size: 80, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(
-                              _searchController.text.isNotEmpty
-                                  ? '검색 결과가 없습니다'
-                                  : '단말번호 목록이 없습니다',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '아래로 당겨서 새로고침하거나\n새로고침 버튼을 눌러 목록을 불러오세요',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              if (kDebugMode) {
-                debugPrint('🎨 ListView.builder 렌더링 시작 - itemCount: ${contacts.length}');
-              }
-
-              // RefreshIndicator로 당겨서 새로고침 기능 추가
-                  return RefreshIndicator(
-                    onRefresh: _loadPhonebooks,
-                    child: ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(), // 항목이 적어도 스크롤 가능
-                      itemCount: contacts.length,
-                      itemBuilder: (context, index) {
-                        final contact = contacts[index];
+                      // 검색 필터링
+                      if (_searchController.text.isNotEmpty) {
+                        final query = _searchController.text.toLowerCase();
+                        contacts = contacts.where((contact) {
+                          final translatedName = _translateName(contact.name);
+                          return contact.name.toLowerCase().contains(query) ||
+                              translatedName.toLowerCase().contains(query) ||
+                              contact.telephone.contains(query);
+                        }).toList();
                         
-                        if (kDebugMode && index < 5) {
-                          debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
+                        if (kDebugMode) {
+                          debugPrint('🔍 검색 후 연락처 수: ${contacts.length}');
+                        }
+                      }
+
+                      // telephone 중복 제거 (같은 번호는 하나만 표시)
+                      final seenTelephones = <String>{};
+                      final uniqueContacts = <PhonebookContactModel>[];
+                      
+                      for (final contact in contacts) {
+                        if (!seenTelephones.contains(contact.telephone)) {
+                          seenTelephones.add(contact.telephone);
+                          uniqueContacts.add(contact);
+                        } else {
+                          if (kDebugMode) {
+                            debugPrint('🔁 중복 제거: ${contact.telephone} (${contact.name})');
+                          }
+                        }
+                      }
+                      
+                      contacts = uniqueContacts;
+                      
+                      if (kDebugMode) {
+                        debugPrint('🎯 중복 제거 후: ${contacts.length}개 (고유 telephone 개수)');
+                      }
+
+                      // 정렬: 에코테스트 최우선, 그 다음 기능번호(Feature Codes), 마지막 단말번호(Extensions)
+                      contacts.sort((a, b) {
+                        // 에코테스트 이름 확인 (영어/한글 모두 고려)
+                        final aIsEchoTest = a.name.toLowerCase().contains('echo test') || 
+                                           a.name.contains('에코테스트');
+                        final bIsEchoTest = b.name.toLowerCase().contains('echo test') || 
+                                           b.name.contains('에코테스트');
+                        
+                        // 에코테스트를 최우선 정렬
+                        if (aIsEchoTest && !bIsEchoTest) {
+                          return -1; // a를 맨 앞으로
+                        }
+                        if (!aIsEchoTest && bIsEchoTest) {
+                          return 1; // b를 맨 앞으로
                         }
                         
-                        return _buildContactListTile(contact, registeredExtensions: registeredExtensions);
-                      },
-                    ),
+                        // 둘 다 에코테스트가 아닌 경우, Feature Codes 우선 정렬
+                        if (a.category == 'Feature Codes' && b.category != 'Feature Codes') {
+                          return -1; // a를 앞으로
+                        }
+                        if (a.category != 'Feature Codes' && b.category == 'Feature Codes') {
+                          return 1; // b를 앞으로
+                        }
+                        
+                        // 같은 카테고리 내에서는 이름순 정렬
+                        return a.name.compareTo(b.name);
+                      });
+
+                      if (kDebugMode) {
+                        debugPrint('✅ 정렬 완료 - 표시할 연락처 수: ${contacts.length}');
+                        if (contacts.isNotEmpty) {
+                          debugPrint('📌 첫 번째 연락처: ${contacts.first.name} (${contacts.first.category})');
+                          debugPrint('📌 마지막 연락처: ${contacts.last.name} (${contacts.last.category})');
+                        }
+                      }
+
+                      if (contacts.isEmpty) {
+                        return RefreshIndicator(
+                          onRefresh: _loadPhonebooks,
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.6,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.contact_phone, size: 80, color: Colors.grey[400]),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      _searchController.text.isNotEmpty
+                                          ? '검색 결과가 없습니다'
+                                          : '단말번호 목록이 없습니다',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      '아래로 당겨서 새로고침하거나\n새로고침 버튼을 눌러 목록을 불러오세요',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      if (kDebugMode) {
+                        debugPrint('🎨 ListView.builder 렌더링 시작 - itemCount: ${contacts.length}');
+                      }
+
+                      // RefreshIndicator로 당겨서 새로고침 기능 추가
+                      return RefreshIndicator(
+                        onRefresh: _loadPhonebooks,
+                        child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(), // 항목이 적어도 스크롤 가능
+                          itemCount: contacts.length,
+                          itemBuilder: (context, index) {
+                            final contact = contacts[index];
+                            
+                            if (kDebugMode && index < 5) {
+                              debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
+                            }
+                            
+                            // 다른 사람이 등록한 단말번호 리스트를 전달
+                            return _buildContactListTile(contact, registeredExtensions: otherUsersExtensions);
+                          },
+                        ),
+                      );
+                    },
                   );
                 },
               );
