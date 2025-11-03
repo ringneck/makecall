@@ -110,7 +110,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                       Icon(Icons.business, size: 20, color: Colors.orange),
                       SizedBox(width: 8),
                       Expanded(
-                        child: Text('회사 ID (Tenant ID) 설정'),
+                        child: Text('REST API 설정'),
                       ),
                     ],
                   ),
@@ -131,7 +131,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '왼쪽 상단 프로필 아이콘을 눌러\n설정 메뉴에서 입력해주세요.',
+                          '왼쪽 상단 프로필 아이콘을 눌러\n설정 정보를 입력해주세요.',
                           style: TextStyle(fontSize: 13, color: Color(0xFF1976D2)),
                         ),
                       ),
