@@ -326,12 +326,92 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             ],
           ),
           const SizedBox(height: 16),
+          // 닉네임 (조직명) 표시 - 있는 경우
+          if (userModel?.organizationName != null && userModel!.organizationName!.isNotEmpty) ...[
+            GestureDetector(
+              onTap: () => _showEditNicknameDialog(context, authService),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    userModel.organizationName!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.purple[100],
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      '닉네임',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.purple,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.edit, size: 16, color: Colors.grey),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
+          // 닉네임이 없는 경우 - 추가 버튼
+          if (userModel?.organizationName == null || userModel!.organizationName!.isEmpty) ...[
+            GestureDetector(
+              onTap: () => _showEditNicknameDialog(context, authService),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.purple[50],
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.purple[200]!),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, size: 14, color: Colors.purple),
+                    SizedBox(width: 4),
+                    Text(
+                      '닉네임 추가',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.purple,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          // 이메일 표시
           Text(
             userModel?.email ?? '이메일 없음',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: userModel?.organizationName != null && userModel!.organizationName!.isNotEmpty 
+                  ? 14  // 닉네임이 있으면 이메일은 작게
+                  : 18, // 닉네임이 없으면 이메일을 크게
+              fontWeight: userModel?.organizationName != null && userModel!.organizationName!.isNotEmpty
+                  ? FontWeight.w500  // 닉네임이 있으면 보통 굵기
+                  : FontWeight.bold, // 닉네임이 없으면 굵게
+              color: userModel?.organizationName != null && userModel!.organizationName!.isNotEmpty
+                  ? Colors.grey[600]  // 닉네임이 있으면 회색
+                  : Colors.black87,   // 닉네임이 없으면 검정
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           // 단말번호 제한 안내
           Text(
             '단말번호 저장 가능: 최대 ${userModel?.maxExtensions ?? 1}개',
@@ -1890,6 +1970,89 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             backgroundColor: Colors.orange,
           ),
         );
+      }
+    }
+  }
+
+  // 현재 로그인된 사용자의 닉네임 편집
+  Future<void> _showEditNicknameDialog(BuildContext context, AuthService authService) async {
+    final currentNickname = authService.currentUserModel?.organizationName ?? '';
+    final controller = TextEditingController(text: currentNickname);
+    
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('닉네임 설정'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '계정: ${authService.currentUserModel?.email ?? ""}',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: '닉네임',
+                hintText: '예: 본사, 지사, 개인 등',
+                border: OutlineInputBorder(),
+                helperText: '다른 사람들에게 보여질 이름입니다',
+              ),
+              maxLength: 30,
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          if (currentNickname.isNotEmpty)
+            TextButton(
+              onPressed: () => Navigator.pop(context, ''), // 빈 문자열로 삭제
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('삭제'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
+            ),
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && mounted) {
+      try {
+        // Firestore 업데이트
+        await authService.updateOrganizationName(result.isEmpty ? null : result);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result.isEmpty 
+                    ? '닉네임이 삭제되었습니다' 
+                    : '닉네임이 업데이트되었습니다',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('오류 발생: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }

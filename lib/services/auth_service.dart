@@ -233,6 +233,32 @@ class AuthService extends ChangeNotifier {
     }
   }
   
+  // 조직명(닉네임) 업데이트
+  Future<void> updateOrganizationName(String? organizationName) async {
+    if (currentUser == null) return;
+    
+    try {
+      await _firestore
+          .collection('users')
+          .doc(currentUser!.uid)
+          .update({
+        'organizationName': organizationName,
+      });
+      
+      // 사용자 모델 다시 로드
+      await _loadUserModel(currentUser!.uid);
+      
+      if (kDebugMode) {
+        debugPrint('✅ Organization name updated: $organizationName');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Update organization name error: $e');
+      }
+      rethrow;
+    }
+  }
+  
   // 프로필 사진 업로드 (Firebase Storage)
   Future<String?> uploadProfileImage(File imageFile) async {
     if (currentUser == null) {
