@@ -222,8 +222,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                       SizedBox(height: 8),
                       Text(
                         '1. 왼쪽 상단 프로필 아이콘 클릭\n'
-                        '2. "전화번호" 입력 후 조회\n'
-                        '3. 단말번호 목록에서 선택 후 저장',
+                        '2. 단말번호 조회 및 등록\n',
                         style: TextStyle(fontSize: 12, color: Colors.black87),
                       ),
                     ],
