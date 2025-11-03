@@ -35,9 +35,6 @@ class _CallTabState extends State<CallTab> {
   bool _showDeviceContacts = false;
   List<ContactModel> _deviceContacts = [];
   bool _hasCheckedSettings = false; // 설정 체크 완료 플래그
-  
-  // ScaffoldMessenger를 안전하게 사용하기 위한 참조 저장
-  ScaffoldMessengerState? _scaffoldMessenger;
 
   // 영어 이름을 한글로 번역하는 매핑 테이블
   final Map<String, String> _nameTranslations = {
@@ -62,13 +59,6 @@ class _CallTabState extends State<CallTab> {
       final authService = context.read<AuthService>();
       authService.addListener(_onUserModelChanged);
     });
-  }
-  
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // ScaffoldMessenger 참조를 미리 저장 (비동기 작업에서 안전하게 사용)
-    _scaffoldMessenger = ScaffoldMessenger.of(context);
   }
   
   @override
@@ -1194,8 +1184,9 @@ class _CallTabState extends State<CallTab> {
 
   // 기능번호 자동 발신 (Click to Call API 직접 호출)
   Future<void> _handleFeatureCodeCall(String phoneNumber) async {
-    // 비동기 작업 전에 ScaffoldMessenger 참조 저장
-    final messenger = _scaffoldMessenger;
+    // 비동기 작업 전에 BuildContext와 ScaffoldMessenger를 안전하게 캡처
+    if (!mounted) return;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     
     try {
       final authService = context.read<AuthService>();
@@ -1234,8 +1225,8 @@ class _CallTabState extends State<CallTab> {
         debugPrint('📞 CID Number: $cidNumber (callee 값)');
       }
 
-      // 로딩 표시 (저장된 messenger 참조 사용)
-      messenger?.showSnackBar(
+      // 로딩 표시 (캡처된 scaffoldMessenger 사용)
+      scaffoldMessenger.showSnackBar(
         const SnackBar(
           content: Row(
             children: [
@@ -1290,40 +1281,42 @@ class _CallTabState extends State<CallTab> {
         ),
       );
 
-      if (mounted) {
-        messenger?.clearSnackBars();
-        messenger?.showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '🌟 기능번호 발신 완료',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text('단말: ${selectedExtension.name.isEmpty ? selectedExtension.extension : selectedExtension.name}'),
-                Text('기능번호: $phoneNumber'),
-              ],
-            ),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
+      // 비동기 작업 후 mounted 체크
+      if (!mounted) return;
+      
+      scaffoldMessenger.clearSnackBars();
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '🌟 기능번호 발신 완료',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text('단말: ${selectedExtension.name.isEmpty ? selectedExtension.extension : selectedExtension.name}'),
+              Text('기능번호: $phoneNumber'),
+            ],
           ),
-        );
-      }
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        messenger?.clearSnackBars();
-        messenger?.showSnackBar(
-          SnackBar(
-            content: Text('기능번호 발신 실패: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
+      // 비동기 작업 후 mounted 체크
+      if (!mounted) return;
+      
+      scaffoldMessenger.clearSnackBars();
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('기능번호 발신 실패: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
       
       if (kDebugMode) {
         debugPrint('❌ 즐곊/최근통화 기능번호 발신 오류: $e');
@@ -1332,8 +1325,9 @@ class _CallTabState extends State<CallTab> {
   }
 
   Future<void> _toggleFavorite(ContactModel contact) async {
-    // 비동기 작업 전에 ScaffoldMessenger 참조 저장
-    final messenger = _scaffoldMessenger;
+    // 비동기 작업 전에 ScaffoldMessenger를 안전하게 캡처
+    if (!mounted) return;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     
     try {
       await _databaseService.updateContact(
@@ -1341,36 +1335,38 @@ class _CallTabState extends State<CallTab> {
         {'isFavorite': !contact.isFavorite},
       );
 
-      if (mounted) {
-        messenger?.showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  contact.isFavorite ? Icons.star_border : Icons.star,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  contact.isFavorite
-                      ? '즐겨찾기에서 제거되었습니다'
-                      : '즐겨찾기에 추가되었습니다',
-                ),
-              ],
-            ),
-            backgroundColor: contact.isFavorite ? Colors.grey[700] : Colors.amber[700],
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
+      // 비동기 작업 후 mounted 체크
+      if (!mounted) return;
+      
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                contact.isFavorite ? Icons.star_border : Icons.star,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                contact.isFavorite
+                    ? '즐겨찾기에서 제거되었습니다'
+                    : '즐겨찾기에 추가되었습니다',
+              ),
+            ],
           ),
-        );
-      }
+          backgroundColor: contact.isFavorite ? Colors.grey[700] : Colors.amber[700],
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        messenger?.showSnackBar(
-          SnackBar(content: Text('오류 발생: $e')),
-        );
-      }
+      // 비동기 작업 후 mounted 체크
+      if (!mounted) return;
+      
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('오류 발생: $e')),
+      );
     }
   }
 
