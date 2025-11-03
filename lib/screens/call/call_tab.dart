@@ -146,10 +146,15 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                 child: const Text('나중에'),
               ),
               ElevatedButton.icon(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(context);
-                  // ProfileDrawer 열기
-                  Scaffold.of(context).openDrawer();
+                  // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  if (mounted) {
+                    // mounted 상태인 경우에만 Drawer 열기
+                    final scaffoldContext = this.context;
+                    Scaffold.of(scaffoldContext).openDrawer();
+                  }
                 },
                 icon: const Icon(Icons.settings, size: 18),
                 label: const Text('설정하기'),
@@ -236,10 +241,15 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                 child: const Text('나중에'),
               ),
               ElevatedButton.icon(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(context);
-                  // ProfileDrawer 열기
-                  Scaffold.of(context).openDrawer();
+                  // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  if (mounted) {
+                    // mounted 상태인 경우에만 Drawer 열기
+                    final scaffoldContext = this.context;
+                    Scaffold.of(scaffoldContext).openDrawer();
+                  }
                 },
                 icon: const Icon(Icons.phone_in_talk, size: 18),
                 label: const Text('설정하기'),
