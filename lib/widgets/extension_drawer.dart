@@ -183,7 +183,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                           dropdownColor: const Color(0xFF37474F),
                                           icon: const Icon(Icons.arrow_drop_down, size: 24, color: Color(0xFF2196F3)),
                                           style: const TextStyle(
-                                            fontSize: 15,
+                                            fontSize: 13,
                                             fontWeight: FontWeight.w600,
                                             color: Colors.white,
                                           ),
@@ -358,7 +358,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                     Text(
                                       '외부발신 표시정보',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w600,
                                         color: const Color(0xFF4CAF50),
                                         letterSpacing: 0.5,
@@ -373,7 +373,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                   Text(
                                     extension.externalCidName!,
                                     style: const TextStyle(
-                                      fontSize: 15,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
                                     ),
@@ -393,10 +393,10 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                   Text(
                                     PhoneFormatter.format(extension.externalCidNumber!),
                                     style: const TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF4CAF50),
-                                      letterSpacing: 1.0,
+                                      letterSpacing: 0.8,
                                     ),
                                     textAlign: TextAlign.center,
                                     maxLines: 1,
@@ -438,7 +438,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                   Text(
                                     '단말발신 표시정보',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                       color: const Color(0xFF2196F3),
                                       letterSpacing: 0.5,
@@ -453,7 +453,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                 Text(
                                   extension.name,
                                   style: const TextStyle(
-                                    fontSize: 15,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
                                   ),
@@ -469,10 +469,10 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                               Text(
                                 PhoneFormatter.format(extension.extension),
                                 style: const TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF2196F3),
-                                  letterSpacing: 1.0,
+                                  letterSpacing: 0.8,
                                 ),
                                 textAlign: TextAlign.center,
                                 maxLines: 1,

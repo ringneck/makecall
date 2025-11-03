@@ -307,7 +307,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
             const Text(
               '전화를 받을 번호를 입력하세요',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 color: Colors.grey,
               ),
             ),
@@ -591,7 +591,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
               Text(
                 '착신전환 설정',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: displayColor,
                   letterSpacing: 0.5,
@@ -636,7 +636,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                           Text(
                             _isEnabled && !isDefaultNumber ? '활성화' : '비활성화',
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 13,
                               fontWeight: FontWeight.bold,
                               color: displayColor,
                             ),
@@ -648,7 +648,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                       GestureDetector(
                         onTap: _isSaving ? null : _onDestinationTap,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
                           decoration: BoxDecoration(
                             color: Colors.grey.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
@@ -662,25 +662,25 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                             children: [
                               Icon(
                                 Icons.phone,
-                                size: 14,
+                                size: 12,
                                 color: isDefaultNumber ? Colors.grey : Colors.blue,
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
                                   PhoneFormatter.format(_destination),
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: isDefaultNumber ? Colors.grey : Colors.black87,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 3),
                               Icon(
                                 Icons.edit,
-                                size: 14,
+                                size: 12,
                                 color: Colors.grey[600],
                               ),
                             ],
@@ -706,7 +706,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                   Text(
                     '착신전환',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 11,
                       fontWeight: FontWeight.w500,
                       color: Colors.grey[700],
                     ),
@@ -725,7 +725,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
               TextButton.icon(
                 onPressed: _isSaving ? null : _fetchCallForwardInfo,
                 icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('새로고침', style: TextStyle(fontSize: 12)),
+                label: const Text('새로고침', style: TextStyle(fontSize: 11)),
                 style: TextButton.styleFrom(
                   foregroundColor: displayColor,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
