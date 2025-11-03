@@ -53,6 +53,44 @@ class _CallTabState extends State<CallTab> {
       _initializeExtensions();
       _checkSettingsAndShowGuide();
     });
+    
+    // AuthService 리스너 추가 - userModel 변경 시 설정 체크
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authService = context.read<AuthService>();
+      authService.addListener(_onUserModelChanged);
+    });
+  }
+  
+  @override
+  void dispose() {
+    // AuthService 리스너 제거
+    final authService = context.read<AuthService>();
+    authService.removeListener(_onUserModelChanged);
+    
+    _searchController.dispose();
+    super.dispose();
+  }
+  
+  // userModel 변경 감지 콜백
+  void _onUserModelChanged() {
+    if (kDebugMode) {
+      debugPrint('🔔 AuthService 리스너 트리거: userModel 변경 감지');
+    }
+    
+    // userModel이 로드되면 설정 체크 재실행
+    final authService = context.read<AuthService>();
+    if (authService.currentUserModel != null && !_hasCheckedSettings) {
+      if (kDebugMode) {
+        debugPrint('✅ userModel 로드 완료 - 설정 체크 재실행');
+      }
+      
+      // 다음 프레임에서 실행 (비동기 안전)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _checkSettingsAndShowGuide();
+        }
+      });
+    }
   }
   
   // 단말번호 초기화 (클릭투콜을 위해)
@@ -99,6 +137,11 @@ class _CallTabState extends State<CallTab> {
   
   // 설정 확인 및 안내 다이얼로그 표시
   Future<void> _checkSettingsAndShowGuide() async {
+    if (kDebugMode) {
+      debugPrint('🔍 _checkSettingsAndShowGuide() 호출됨');
+      debugPrint('   - _hasCheckedSettings: $_hasCheckedSettings');
+    }
+    
     // 이미 체크를 완료했으면 다시 하지 않음
     if (_hasCheckedSettings) {
       if (kDebugMode) {
@@ -111,10 +154,17 @@ class _CallTabState extends State<CallTab> {
     final userModel = authService.currentUserModel;
     final userId = authService.currentUser?.uid ?? '';
     
+    if (kDebugMode) {
+      debugPrint('👤 현재 상태 확인:');
+      debugPrint('   - userModel: ${userModel != null ? "존재" : "null"}');
+      debugPrint('   - userId: $userId');
+    }
+    
     // userModel이 없으면 아직 로드 중이므로 대기
     if (userModel == null) {
       if (kDebugMode) {
         debugPrint('⏳ userModel 로딩 중 - 설정 체크 건너뛰기');
+        debugPrint('💡 userModel 로드 완료 시 AuthService 리스너가 자동으로 재시도합니다');
       }
       return;
     }
@@ -485,11 +535,7 @@ class _CallTabState extends State<CallTab> {
     }
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+
 
   @override
   Widget build(BuildContext context) {
