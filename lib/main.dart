@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'providers/selected_extension_provider.dart';
@@ -10,9 +11,15 @@ import 'screens/home/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Firebase 초기화
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // Hive 초기화 (로컬 데이터 저장소)
+  await Hive.initFlutter();
+  
   runApp(const MyApp());
 }
 

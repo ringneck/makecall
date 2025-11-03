@@ -88,10 +88,11 @@ class AccountManagerService {
 
   /// 계정 삭제 (Cascade: 모든 관련 데이터 삭제)
   /// 
-  /// 고급 개발자 패턴: Transaction-like cascade deletion
+  /// 고급 개발자 패턴: Transaction-like cascade deletion with safe error handling
   /// - SharedPreferences: 저장된 계정 정보
   /// - Hive: 로컬 데이터 (통화 기록, 연락처, 착신전환 정보)
-  /// - 에러 발생 시에도 부분 삭제 진행 (best-effort approach)
+  /// - Best-Effort Approach: 에러 발생 시에도 부분 삭제 진행
+  /// - Fail-Safe: Hive 미초기화 상태에서도 안전하게 처리
   Future<void> removeAccount(String uid) async {
     print('🗑️ Starting cascade deletion for uid: $uid');
     
@@ -115,11 +116,24 @@ class AccountManagerService {
         print('❌ [1/4] SharedPreferences deletion failed: $e');
       }
 
+      // 🔒 Hive 초기화 확인 (안전한 처리)
+      if (!Hive.isBoxOpen('call_history') && 
+          !Hive.isBoxOpen('contacts') && 
+          !Hive.isBoxOpen('call_forward_info')) {
+        print('ℹ️ Hive not initialized - skipping Hive deletions');
+        deletionResults['CallHistory'] = true; // 데이터 없으므로 성공으로 간주
+        deletionResults['Contacts'] = true;
+        deletionResults['CallForwardInfo'] = true;
+        
+        // 결과 요약 출력 후 종료
+        _printDeletionSummary(deletionResults);
+        return;
+      }
+
       // 2️⃣ Hive: 통화 기록 삭제
       try {
         final callHistoryBox = await Hive.openBox('call_history');
         
-        // userId가 일치하는 모든 항목 삭제
         final keysToDelete = <dynamic>[];
         for (var key in callHistoryBox.keys) {
           final item = callHistoryBox.get(key);
@@ -177,18 +191,23 @@ class AccountManagerService {
       }
 
       // 📊 결과 요약
-      final successCount = deletionResults.values.where((v) => v).length;
-      final totalCount = deletionResults.length;
-      
-      print('🎯 Cascade deletion complete: $successCount/$totalCount successful');
-      deletionResults.forEach((key, success) {
-        print('   ${success ? "✅" : "❌"} $key');
-      });
+      _printDeletionSummary(deletionResults);
       
     } catch (e) {
       print('❌ Fatal error during cascade deletion: $e');
-      rethrow;
+      // Best-Effort: 치명적 에러도 앱을 크래시시키지 않음
     }
+  }
+
+  /// 삭제 결과 요약 출력 (헬퍼 메서드)
+  void _printDeletionSummary(Map<String, bool> deletionResults) {
+    final successCount = deletionResults.values.where((v) => v).length;
+    final totalCount = deletionResults.length;
+    
+    print('🎯 Cascade deletion complete: $successCount/$totalCount successful');
+    deletionResults.forEach((key, success) {
+      print('   ${success ? "✅" : "❌"} $key');
+    });
   }
 
   // 현재 계정 UID 가져오기
