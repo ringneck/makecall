@@ -29,6 +29,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
   final DatabaseService _databaseService = DatabaseService();
   final MobileContactsService _mobileContactsService = MobileContactsService();
   final TextEditingController _searchController = TextEditingController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
   bool _isLoadingDeviceContacts = false;
   bool _showDeviceContacts = false;
@@ -150,10 +151,8 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                   Navigator.pop(context);
                   // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
                   await Future.delayed(const Duration(milliseconds: 300));
-                  if (mounted) {
-                    // mounted 상태인 경우에만 Drawer 열기
-                    final scaffoldContext = this.context;
-                    Scaffold.of(scaffoldContext).openDrawer();
+                  if (mounted && _scaffoldKey.currentState != null) {
+                    _scaffoldKey.currentState!.openDrawer();
                   }
                 },
                 icon: const Icon(Icons.settings, size: 18),
@@ -245,10 +244,8 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                   Navigator.pop(context);
                   // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
                   await Future.delayed(const Duration(milliseconds: 300));
-                  if (mounted) {
-                    // mounted 상태인 경우에만 Drawer 열기
-                    final scaffoldContext = this.context;
-                    Scaffold.of(scaffoldContext).openDrawer();
+                  if (mounted && _scaffoldKey.currentState != null) {
+                    _scaffoldKey.currentState!.openDrawer();
                   }
                 },
                 icon: const Icon(Icons.phone_in_talk, size: 18),
@@ -277,6 +274,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     final authService = context.watch<AuthService>();
     
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         leading: Builder(
           builder: (context) => IconButton(
