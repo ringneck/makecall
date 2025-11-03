@@ -1780,6 +1780,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     }
 
     if (confirmed == true && mounted) {
+      // 전환 대상 이메일 저장 (LoginScreen에서 자동으로 채워짐)
+      await AccountManagerService().setSwitchTargetEmail(account.email);
+      
+      if (kDebugMode) {
+        debugPrint('💾 Switch target email saved: ${account.email}');
+      }
+      
       await context.read<AuthService>().signOut();
       if (mounted) {
         Navigator.pop(context);

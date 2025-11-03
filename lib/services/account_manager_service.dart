@@ -7,6 +7,7 @@ class AccountManagerService {
   static const String _savedAccountsKey = 'saved_accounts';
   static const String _currentAccountUidKey = 'current_account_uid';
   static const String _keepLoginKey = 'keep_login_enabled';
+  static const String _switchTargetEmailKey = 'switch_target_email'; // 계정 전환 대상 이메일
 
   // 저장된 모든 계정 가져오기
   Future<List<SavedAccountModel>> getSavedAccounts() async {
@@ -185,6 +186,36 @@ class AccountManagerService {
       print('✅ Keep login setting updated: $enabled');
     } catch (e) {
       print('❌ Error setting keep login: $e');
+    }
+  }
+
+  // 계정 전환 대상 이메일 저장
+  Future<void> setSwitchTargetEmail(String email) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_switchTargetEmailKey, email);
+      print('✅ Switch target email set: $email');
+    } catch (e) {
+      print('❌ Error setting switch target email: $e');
+    }
+  }
+
+  // 계정 전환 대상 이메일 가져오기 (가져온 후 삭제)
+  Future<String?> getSwitchTargetEmail() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString(_switchTargetEmailKey);
+      
+      // 읽은 후 바로 삭제 (일회용)
+      if (email != null) {
+        await prefs.remove(_switchTargetEmailKey);
+        print('✅ Switch target email retrieved and cleared: $email');
+      }
+      
+      return email;
+    } catch (e) {
+      print('❌ Error getting switch target email: $e');
+      return null;
     }
   }
 }

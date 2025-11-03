@@ -3,10 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
+import '../../services/account_manager_service.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? prefilledEmail; // 계정 전환 시 자동으로 채울 이메일
+  
+  const LoginScreen({super.key, this.prefilledEmail});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -45,10 +48,20 @@ class _LoginScreenState extends State<LoginScreen> {
     final savedEmail = prefs.getString(_keySavedEmail) ?? '';
     final autoLogin = prefs.getBool(_keyAutoLogin) ?? false;
     
+    // 계정 전환 대상 이메일 확인 (우선순위 1)
+    final switchTargetEmail = await AccountManagerService().getSwitchTargetEmail();
+    
     setState(() {
       _rememberEmail = rememberEmail;
       _autoLogin = autoLogin;
-      if (rememberEmail && savedEmail.isNotEmpty) {
+      
+      // 우선순위: 1. 계정 전환 이메일 2. prefilledEmail 3. 저장된 이메일
+      if (switchTargetEmail != null && switchTargetEmail.isNotEmpty) {
+        _emailController.text = switchTargetEmail;
+        print('✅ Login screen auto-filled with switch target: $switchTargetEmail');
+      } else if (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty) {
+        _emailController.text = widget.prefilledEmail!;
+      } else if (rememberEmail && savedEmail.isNotEmpty) {
         _emailController.text = savedEmail;
       }
     });
