@@ -69,6 +69,15 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     final userModel = authService.currentUserModel;
     final userId = authService.currentUser?.uid ?? '';
     
+    // 디버그: 사용자 정보 로깅
+    if (kDebugMode) {
+      debugPrint('👤 사용자 정보 확인:');
+      debugPrint('   - userModel: ${userModel != null ? "존재" : "null"}');
+      debugPrint('   - email: "${userModel?.email}" (길이: ${userModel?.email.length ?? 0})');
+      debugPrint('   - organizationName: "${userModel?.organizationName}"');
+      debugPrint('   - userId: $userId');
+    }
+    
     // 필수 설정 항목 확인
     final hasWebSocketSettings = userModel?.websocketServerUrl != null && 
                                   userModel!.websocketServerUrl!.isNotEmpty;
@@ -136,15 +145,27 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              userModel?.organizationName ?? userModel?.email ?? '사용자',
+                              (userModel?.organizationName?.isNotEmpty ?? false)
+                                  ? userModel!.organizationName!
+                                  : (userModel?.email.isNotEmpty ?? false)
+                                      ? userModel!.email
+                                      : authService.currentUser?.email ?? '사용자',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (userModel?.email != null)
+                            if (userModel?.email.isNotEmpty ?? false)
                               Text(
-                                userModel!.email!,
+                                userModel!.email,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              )
+                            else if (authService.currentUser?.email != null)
+                              Text(
+                                authService.currentUser!.email!,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
@@ -302,15 +323,27 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              userModel?.organizationName ?? userModel?.email ?? '사용자',
+                              (userModel?.organizationName?.isNotEmpty ?? false)
+                                  ? userModel!.organizationName!
+                                  : (userModel?.email.isNotEmpty ?? false)
+                                      ? userModel!.email
+                                      : authService.currentUser?.email ?? '사용자',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (userModel?.email != null)
+                            if (userModel?.email.isNotEmpty ?? false)
                               Text(
-                                userModel!.email!,
+                                userModel!.email,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              )
+                            else if (authService.currentUser?.email != null)
+                              Text(
+                                authService.currentUser!.email!,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
