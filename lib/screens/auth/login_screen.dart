@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,10 +20,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
+  bool _isLoading = true; // 초기값을 true로 변경 (자동 로그인 체크 중)
   bool _obscurePassword = true;
   bool _rememberEmail = false;
   bool _autoLogin = false;
+  bool _isAutoLoginAttempting = false; // 자동 로그인 시도 중 플래그
   
   static const String _keyRememberEmail = 'remember_email';
   static const String _keySavedEmail = 'saved_email';
@@ -31,7 +33,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSavedCredentials();
+    // 즉시 자동 로그인 체크 및 시도
+    _checkAndAutoLogin();
   }
 
   @override
@@ -41,45 +44,79 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
   
-  // 저장된 이메일 불러오기 및 자동 로그인 처리
-  Future<void> _loadSavedCredentials() async {
-    final prefs = await SharedPreferences.getInstance();
-    final rememberEmail = prefs.getBool(_keyRememberEmail) ?? false;
-    final savedEmail = prefs.getString(_keySavedEmail) ?? '';
-    final autoLogin = prefs.getBool(_keyAutoLogin) ?? false;
-    
-    // 계정 전환 대상 이메일 확인 (우선순위 1)
-    final switchTargetEmail = await AccountManagerService().getSwitchTargetEmail();
-    
-    setState(() {
-      _rememberEmail = rememberEmail;
-      _autoLogin = autoLogin;
+  // 자동 로그인 체크 및 시도 (LoginScreen 표시 전)
+  Future<void> _checkAndAutoLogin() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rememberEmail = prefs.getBool(_keyRememberEmail) ?? false;
+      final savedEmail = prefs.getString(_keySavedEmail) ?? '';
+      final autoLogin = prefs.getBool(_keyAutoLogin) ?? false;
       
-      // 우선순위: 1. 계정 전환 이메일 2. prefilledEmail 3. 저장된 이메일
-      if (switchTargetEmail != null && switchTargetEmail.isNotEmpty) {
-        _emailController.text = switchTargetEmail;
-        print('✅ Login screen auto-filled with switch target: $switchTargetEmail');
-      } else if (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty) {
-        _emailController.text = widget.prefilledEmail!;
-      } else if (rememberEmail && savedEmail.isNotEmpty) {
-        _emailController.text = savedEmail;
+      // 계정 전환 대상 이메일 확인
+      final switchTargetEmail = await AccountManagerService().getSwitchTargetEmail();
+      
+      if (kDebugMode) {
+        debugPrint('🔍 Auto-login check:');
+        debugPrint('   - Switch target: $switchTargetEmail');
+        debugPrint('   - Auto login enabled: $autoLogin');
       }
-    });
-    
-    // 자동 로그인 처리: 계정 전환 시도일 때만
-    if (switchTargetEmail != null && switchTargetEmail.isNotEmpty) {
-      await _tryAutoLogin(switchTargetEmail);
+      
+      // 자동 로그인 시도 (계정 전환 시)
+      if (switchTargetEmail != null && switchTargetEmail.isNotEmpty) {
+        setState(() => _isAutoLoginAttempting = true);
+        
+        final success = await _tryAutoLogin(switchTargetEmail);
+        
+        if (success) {
+          // 자동 로그인 성공 - LoginScreen을 보여주지 않음
+          if (kDebugMode) {
+            debugPrint('✅ Auto-login successful, skipping login screen');
+          }
+          return; // LoginScreen을 표시하지 않고 종료
+        }
+      }
+      
+      // 자동 로그인 실패 또는 시도하지 않음 - LoginScreen 표시
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isAutoLoginAttempting = false;
+          _rememberEmail = rememberEmail;
+          _autoLogin = autoLogin;
+          
+          // 우선순위: 1. 계정 전환 이메일 2. prefilledEmail 3. 저장된 이메일
+          if (switchTargetEmail != null && switchTargetEmail.isNotEmpty) {
+            _emailController.text = switchTargetEmail;
+          } else if (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty) {
+            _emailController.text = widget.prefilledEmail!;
+          } else if (rememberEmail && savedEmail.isNotEmpty) {
+            _emailController.text = savedEmail;
+          }
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Auto-login check error: $e');
+      }
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isAutoLoginAttempting = false;
+        });
+      }
     }
   }
   
-  // 자동 로그인 시도
-  Future<void> _tryAutoLogin(String email) async {
+  // 자동 로그인 시도 (성공 여부 반환)
+  Future<bool> _tryAutoLogin(String email) async {
     try {
       // 자동 로그인 설정 확인
       final autoLoginEnabled = await AccountManagerService().getKeepLoginEnabled();
       if (!autoLoginEnabled) {
-        print('⚠️ Auto login disabled, manual login required');
-        return;
+        if (kDebugMode) {
+          debugPrint('⚠️ Auto login disabled, manual login required');
+        }
+        return false;
       }
       
       // 저장된 계정 목록에서 해당 계정 찾기
@@ -91,33 +128,42 @@ class _LoginScreenState extends State<LoginScreen> {
       
       // 저장된 비밀번호 확인
       if (targetAccount.encryptedPassword == null) {
-        print('⚠️ No saved password, manual login required');
-        return;
+        if (kDebugMode) {
+          debugPrint('⚠️ No saved password, manual login required');
+        }
+        return false;
       }
       
       // 비밀번호 복호화
       final password = AccountManagerService().decryptPassword(targetAccount.encryptedPassword);
       if (password == null) {
-        print('❌ Password decryption failed');
-        return;
+        if (kDebugMode) {
+          debugPrint('❌ Password decryption failed');
+        }
+        return false;
       }
       
-      print('🔑 Attempting auto-login for: $email');
+      if (kDebugMode) {
+        debugPrint('🔑 Attempting auto-login for: $email');
+      }
       
       // 자동 로그인 실행
-      setState(() => _isLoading = true);
-      
       final authService = context.read<AuthService>();
       await authService.signIn(
         email: email,
         password: password,
       );
       
-      print('✅ Auto-login successful!');
+      if (kDebugMode) {
+        debugPrint('✅ Auto-login successful!');
+      }
+      
+      return true; // 성공
       
     } catch (e) {
-      print('❌ Auto-login failed: $e');
-      setState(() => _isLoading = false);
+      if (kDebugMode) {
+        debugPrint('❌ Auto-login failed: $e');
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -127,6 +173,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       }
+      
+      return false; // 실패
     }
   }
   
@@ -250,6 +298,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 자동 로그인 시도 중일 때는 로딩 화면만 표시
+    if (_isAutoLoginAttempting) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(
+                '자동 로그인 중...',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
     return Scaffold(
       body: SafeArea(
         child: Center(
