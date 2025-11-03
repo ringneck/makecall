@@ -325,14 +325,14 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
     
     return Card(
       key: key,
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        elevation: 8,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        elevation: 6,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -349,7 +349,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
               children: [
               // 중앙 단말번호 정보
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -358,13 +358,13 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                             (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty)) ...[
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: const Color(0xFF4CAF50).withAlpha(26),
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: const Color(0xFF4CAF50).withAlpha(77),
-                                width: 2,
+                                width: 1.5,
                               ),
                             ),
                             child: Column(
@@ -375,14 +375,14 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                   children: [
                                     Icon(
                                       Icons.call_made,
-                                      size: 16,
+                                      size: 14,
                                       color: const Color(0xFF4CAF50),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     Text(
                                       '외부발신 표시정보',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 11,
                                         fontWeight: FontWeight.w600,
                                         color: const Color(0xFF4CAF50),
                                         letterSpacing: 0.5,
@@ -390,42 +390,46 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 6),
                                 
                                 // 외부발신 이름
                                 if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty)
                                   Text(
                                     extension.externalCidName!,
                                     style: const TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
                                     ),
                                     textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 
                                 if (extension.externalCidName != null && 
                                     extension.externalCidName!.isNotEmpty &&
                                     extension.externalCidNumber != null &&
                                     extension.externalCidNumber!.isNotEmpty)
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: 4),
                                 
                                 // 외부발신 번호
                                 if (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty)
                                   Text(
                                     PhoneFormatter.format(extension.externalCidNumber!),
                                     style: const TextStyle(
-                                      fontSize: 24,
+                                      fontSize: 18,
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF4CAF50),
-                                      letterSpacing: 1.5,
+                                      letterSpacing: 1.0,
                                     ),
                                     textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                         ],
                         
                         // 통화 상태 표시 (실시간)
@@ -434,13 +438,13 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                         // 단말 정보 카드
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: const Color(0xFF2196F3).withAlpha(26),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: const Color(0xFF2196F3).withAlpha(77),
-                              width: 2,
+                              width: 1.5,
                             ),
                           ),
                           child: Column(
@@ -451,14 +455,14 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                 children: [
                                   Icon(
                                     Icons.phone_in_talk,
-                                    size: 16,
+                                    size: 14,
                                     color: const Color(0xFF2196F3),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 6),
                                   Text(
                                     '단말발신 표시정보',
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                       color: const Color(0xFF2196F3),
                                       letterSpacing: 0.5,
@@ -466,38 +470,42 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               
                               // 단말 이름
                               if (extension.name.isNotEmpty)
                                 Text(
                                   extension.name,
                                   style: const TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
                                   ),
                                   textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               
                               if (extension.name.isNotEmpty)
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 4),
                               
                               // 단말번호
                               Text(
                                 PhoneFormatter.format(extension.extension),
                                 style: const TextStyle(
-                                  fontSize: 24,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF2196F3),
-                                  letterSpacing: 1.5,
+                                  letterSpacing: 1.0,
                                 ),
                                 textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         
                         // 착신전환 설정 카드 (사용자 전역 WebSocket 설정이 있는 경우 표시)
                         if (userWsServerUrl != null && 
