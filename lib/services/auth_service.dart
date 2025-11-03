@@ -62,10 +62,44 @@ class AuthService extends ChangeNotifier {
         }
         
         notifyListeners();
+      } else {
+        // Firestore에 사용자 문서가 없는 경우
+        if (kDebugMode) {
+          debugPrint('⚠️ Firestore에 사용자 문서 없음');
+          debugPrint('   - UID: $uid');
+          debugPrint('   - Email: ${_auth.currentUser?.email}');
+          debugPrint('   - 사용자 문서 자동 생성 중...');
+        }
+        
+        // 기본 사용자 문서 자동 생성
+        final newUserData = {
+          'email': _auth.currentUser?.email ?? '',
+          'createdAt': DateTime.now().toIso8601String(),
+          'isActive': true,
+          'isPremium': false,
+          'maxExtensions': 1,
+        };
+        
+        await _firestore.collection('users').doc(uid).set(newUserData);
+        
+        if (kDebugMode) {
+          debugPrint('✅ 사용자 문서 생성 완료');
+        }
+        
+        // 생성된 문서로 UserModel 로드
+        _currentUserModel = UserModel.fromMap(newUserData, uid);
+        
+        // 계정 저장 (비밀번호 포함)
+        await _accountManager.saveAccount(_currentUserModel!, password: password ?? _tempPassword);
+        
+        // 일시 비밀번호 삭제
+        _tempPassword = null;
+        
+        notifyListeners();
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('Failed to load user model: $e');
+        debugPrint('❌ Failed to load user model: $e');
       }
     }
   }
