@@ -7,7 +7,9 @@ import 'dart:io';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../services/database_service.dart';
+import '../services/account_manager_service.dart';
 import '../models/my_extension_model.dart';
+import '../models/saved_account_model.dart';
 import '../screens/profile/api_settings_dialog.dart';
 
 class ProfileDrawer extends StatefulWidget {
@@ -811,9 +813,187 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   '계정 및 조직',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text('계정 추가, 로그아웃', style: TextStyle(fontSize: 12)),
+                subtitle: Text('저장된 계정, 계정 추가', style: TextStyle(fontSize: 12)),
               ),
             ),
+          ),
+          
+          // 저장된 계정 목록
+          FutureBuilder<List<SavedAccountModel>>(
+            future: AccountManagerService().getSavedAccounts(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              
+              final accounts = snapshot.data ?? [];
+              
+              if (accounts.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        '저장된 계정이 없습니다',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              
+              return Column(
+                children: [
+                  // 저장된 계정 제목
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.people, size: 16, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        Text(
+                          '저장된 계정 (${accounts.length}개)',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // 계정 목록
+                  ...accounts.map((account) {
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: account.isCurrentAccount ? Colors.blue[50] : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: account.isCurrentAccount 
+                              ? const Color(0xFF2196F3) 
+                              : Colors.grey[300]!,
+                          width: account.isCurrentAccount ? 2 : 1,
+                        ),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Colors.transparent,
+                          backgroundImage: account.profileImageUrl != null
+                              ? NetworkImage(account.profileImageUrl!)
+                              : const AssetImage('assets/images/app_logo.png') as ImageProvider,
+                        ),
+                        title: Text(
+                          account.displayName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: account.isCurrentAccount 
+                                ? FontWeight.bold 
+                                : FontWeight.w500,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (account.organizationName != null)
+                              Text(
+                                account.email,
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            if (account.isCurrentAccount)
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2196F3),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  '현재 계정',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        trailing: account.isCurrentAccount
+                            ? const Icon(Icons.check_circle, color: Color(0xFF2196F3), size: 20)
+                            : PopupMenuButton(
+                                icon: const Icon(Icons.more_vert, size: 20),
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'switch',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.swap_horiz, size: 18),
+                                        SizedBox(width: 8),
+                                        Text('계정 전환', style: TextStyle(fontSize: 13)),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit, size: 18),
+                                        SizedBox(width: 8),
+                                        Text('조직명 수정', style: TextStyle(fontSize: 13)),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'remove',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete, size: 18, color: Colors.red),
+                                        SizedBox(width: 8),
+                                        Text('삭제', style: TextStyle(fontSize: 13, color: Colors.red)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                onSelected: (value) {
+                                  if (value == 'switch') {
+                                    _handleSwitchAccount(context, account);
+                                  } else if (value == 'edit') {
+                                    _handleEditOrganizationName(context, account);
+                                  } else if (value == 'remove') {
+                                    _handleRemoveAccount(context, account);
+                                  }
+                                },
+                              ),
+                        onTap: account.isCurrentAccount 
+                            ? null 
+                            : () => _handleSwitchAccount(context, account),
+                      ),
+                    );
+                  }),
+                  
+                  const SizedBox(height: 8),
+                ],
+              );
+            },
+          ),
+          
+          // 구분선
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Divider(height: 1),
           ),
           
           ListTile(
@@ -1455,6 +1635,141 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             ),
           );
         }
+      }
+    }
+  }
+
+  Future<void> _handleSwitchAccount(BuildContext context, SavedAccountModel account) async {
+    // TODO: Firebase Auth에서 해당 계정으로 전환하는 로직 구현
+    // 현재는 로그아웃 후 재로그인 필요
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('계정 전환'),
+        content: Text(
+          '${account.displayName} 계정으로 전환하려면 현재 계정에서 로그아웃 후 다시 로그인해야 합니다.\n\n'
+          '로그아웃 하시겠습니까?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
+            ),
+            child: const Text('로그아웃'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await context.read<AuthService>().signOut();
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('로그아웃되었습니다. ${account.email}로 다시 로그인해주세요.'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleEditOrganizationName(BuildContext context, SavedAccountModel account) async {
+    final controller = TextEditingController(text: account.organizationName ?? '');
+    
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('조직명 수정'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '계정: ${account.email}',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: '조직명',
+                hintText: '예: 본사, 지사, 개인 등',
+                border: OutlineInputBorder(),
+              ),
+              maxLength: 30,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
+            ),
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty && mounted) {
+      await AccountManagerService().updateOrganizationName(account.uid, result);
+      if (mounted) {
+        setState(() {}); // UI 새로고침
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('조직명이 업데이트되었습니다'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleRemoveAccount(BuildContext context, SavedAccountModel account) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('계정 삭제'),
+        content: Text(
+          '저장된 계정 "${account.displayName}"을(를) 삭제하시겠습니까?\n\n'
+          '이 작업은 저장된 계정 정보만 삭제하며, 실제 계정은 삭제되지 않습니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await AccountManagerService().removeAccount(account.uid);
+      if (mounted) {
+        setState(() {}); // UI 새로고침
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('계정이 삭제되었습니다'),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     }
   }

@@ -4,10 +4,12 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
 import '../models/user_model.dart';
+import 'account_manager_service.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AccountManagerService _accountManager = AccountManagerService();
   
   User? get currentUser => _auth.currentUser;
   bool get isAuthenticated => currentUser != null;
@@ -32,6 +34,9 @@ class AuthService extends ChangeNotifier {
       if (doc.exists) {
         final data = doc.data()!;
         _currentUserModel = UserModel.fromMap(data, uid);
+        
+        // 계정 저장
+        await _accountManager.saveAccount(_currentUserModel!);
         
         // myExtensions 필드 디버그 로깅
         if (kDebugMode) {

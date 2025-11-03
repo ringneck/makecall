@@ -1,6 +1,7 @@
 class UserModel {
   final String uid;
   final String email;
+  final String? organizationName; // 조직명/닉네임 (사용자 지정 이름)
   final String? phoneNumberName;  // 전화번호 이름 (예: 내 휴대폰, 사무실 전화)
   final String? phoneNumber;      // 전화번호
   final String? profileImageUrl;  // 프로필 사진 URL (Firebase Storage)
@@ -25,6 +26,7 @@ class UserModel {
   UserModel({
     required this.uid,
     required this.email,
+    this.organizationName,
     this.phoneNumberName,
     this.phoneNumber,
     this.profileImageUrl,
@@ -51,6 +53,7 @@ class UserModel {
     return UserModel(
       uid: uid,
       email: map['email'] as String? ?? '',
+      organizationName: map['organizationName'] as String?,
       phoneNumberName: map['phoneNumberName'] as String?,
       phoneNumber: map['phoneNumber'] as String?,
       profileImageUrl: map['profileImageUrl'] as String?,
@@ -83,6 +86,7 @@ class UserModel {
   Map<String, dynamic> toMap() {
     return {
       'email': email,
+      'organizationName': organizationName,
       'phoneNumberName': phoneNumberName,
       'phoneNumber': phoneNumber,
       'profileImageUrl': profileImageUrl,
@@ -108,6 +112,7 @@ class UserModel {
   
   UserModel copyWith({
     String? email,
+    String? organizationName,
     String? phoneNumberName,
     String? phoneNumber,
     String? profileImageUrl,
@@ -132,6 +137,7 @@ class UserModel {
     return UserModel(
       uid: uid,
       email: email ?? this.email,
+      organizationName: organizationName ?? this.organizationName,
       phoneNumberName: phoneNumberName ?? this.phoneNumberName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
