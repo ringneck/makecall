@@ -105,14 +105,25 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               TextFormField(
                 controller: _apiBaseUrlController,
                 style: const TextStyle(fontSize: 13),
-                decoration: const InputDecoration(
+                enableInteractiveSelection: true,
+                decoration: InputDecoration(
                   labelText: 'API Base URL',
                   hintText: '예: api.example.com',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  labelStyle: TextStyle(fontSize: 12),
-                  hintStyle: TextStyle(fontSize: 12),
-                  errorStyle: TextStyle(fontSize: 10),
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  labelStyle: const TextStyle(fontSize: 12),
+                  hintStyle: const TextStyle(fontSize: 12),
+                  errorStyle: const TextStyle(fontSize: 10),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.content_paste, size: 18),
+                    onPressed: () async {
+                      final data = await Clipboard.getData(Clipboard.kTextPlain);
+                      if (data?.text != null) {
+                        _apiBaseUrlController.text = data!.text!;
+                      }
+                    },
+                    tooltip: '클립보드에서 붙여넣기',
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -136,14 +147,25 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               TextFormField(
                 controller: _companyIdController,
                 style: const TextStyle(fontSize: 13),
-                decoration: const InputDecoration(
+                enableInteractiveSelection: true,
+                decoration: InputDecoration(
                   labelText: 'Company ID',
                   hintText: 'REST API Company ID',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  labelStyle: TextStyle(fontSize: 12),
-                  hintStyle: TextStyle(fontSize: 12),
-                  errorStyle: TextStyle(fontSize: 10),
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  labelStyle: const TextStyle(fontSize: 12),
+                  hintStyle: const TextStyle(fontSize: 12),
+                  errorStyle: const TextStyle(fontSize: 10),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.content_paste, size: 18),
+                    onPressed: () async {
+                      final data = await Clipboard.getData(Clipboard.kTextPlain);
+                      if (data?.text != null) {
+                        _companyIdController.text = data!.text!;
+                      }
+                    },
+                    tooltip: '클립보드에서 붙여넣기',
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -156,14 +178,25 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               TextFormField(
                 controller: _appKeyController,
                 style: const TextStyle(fontSize: 13),
-                decoration: const InputDecoration(
+                enableInteractiveSelection: true,
+                decoration: InputDecoration(
                   labelText: 'App-Key',
                   hintText: 'REST API App-Key',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  labelStyle: TextStyle(fontSize: 12),
-                  hintStyle: TextStyle(fontSize: 12),
-                  errorStyle: TextStyle(fontSize: 10),
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  labelStyle: const TextStyle(fontSize: 12),
+                  hintStyle: const TextStyle(fontSize: 12),
+                  errorStyle: const TextStyle(fontSize: 10),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.content_paste, size: 18),
+                    onPressed: () async {
+                      final data = await Clipboard.getData(Clipboard.kTextPlain);
+                      if (data?.text != null) {
+                        _appKeyController.text = data!.text!;
+                      }
+                    },
+                    tooltip: '클립보드에서 붙여넣기',
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -188,14 +221,25 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                     child: TextFormField(
                       controller: _websocketServerUrlController,
                       style: const TextStyle(fontSize: 13),
-                      decoration: const InputDecoration(
+                      enableInteractiveSelection: true,
+                      decoration: InputDecoration(
                         labelText: 'WebSocket 서버 주소',
                         hintText: '예: ws.example.com',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        labelStyle: TextStyle(fontSize: 12),
-                        hintStyle: TextStyle(fontSize: 12),
-                        errorStyle: TextStyle(fontSize: 10),
+                        border: const OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        labelStyle: const TextStyle(fontSize: 12),
+                        hintStyle: const TextStyle(fontSize: 12),
+                        errorStyle: const TextStyle(fontSize: 10),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.content_paste, size: 18),
+                          onPressed: () async {
+                            final data = await Clipboard.getData(Clipboard.kTextPlain);
+                            if (data?.text != null) {
+                              _websocketServerUrlController.text = data!.text!;
+                            }
+                          },
+                          tooltip: '클립보드에서 붙여넣기',
+                        ),
                       ),
                       validator: (value) {
                         if (value != null && value.trim().isNotEmpty) {
