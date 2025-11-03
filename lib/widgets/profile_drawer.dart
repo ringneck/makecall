@@ -23,6 +23,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   bool _isSearching = false;
   bool _isRefreshing = false;
   String? _searchError;
+  bool _keepLoginEnabled = true; // 기본값을 true로 변경
   final _phoneNumberController = TextEditingController();
 
   @override
@@ -36,7 +37,32 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
       // 저장된 단말번호 정보 업데이트
       _updateSavedExtensions();
+      // 로그인 유지 설정 불러오기
+      _loadKeepLoginSetting();
     });
+  }
+
+  // 로그인 유지 설정 불러오기
+  Future<void> _loadKeepLoginSetting() async {
+    if (kDebugMode) {
+      debugPrint('📱 Loading Keep Login Setting...');
+    }
+    
+    final enabled = await AccountManagerService().getKeepLoginEnabled();
+    
+    if (kDebugMode) {
+      debugPrint('📱 Keep Login Setting loaded: $enabled');
+    }
+    
+    if (mounted) {
+      setState(() {
+        _keepLoginEnabled = enabled;
+      });
+      
+      if (kDebugMode) {
+        debugPrint('📱 Keep Login UI updated: $_keepLoginEnabled');
+      }
+    }
   }
 
   @override
@@ -895,22 +921,46 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                               ? NetworkImage(account.profileImageUrl!)
                               : const AssetImage('assets/images/app_logo.png') as ImageProvider,
                         ),
-                        title: Text(
-                          account.displayName,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: account.isCurrentAccount 
-                                ? FontWeight.bold 
-                                : FontWeight.w500,
-                          ),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                account.displayName,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: account.isCurrentAccount 
+                                      ? FontWeight.bold 
+                                      : FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (account.organizationName != null && account.organizationName!.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple[100],
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  '닉네임',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: Colors.purple,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (account.organizationName != null)
+                            if (account.organizationName != null && account.organizationName!.isNotEmpty)
                               Text(
                                 account.email,
-                                style: const TextStyle(fontSize: 11),
+                                style: const TextStyle(fontSize: 11, color: Colors.grey),
                               ),
                             if (account.isCurrentAccount)
                               Container(
@@ -995,6 +1045,34 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Divider(height: 1),
           ),
+          
+          // 로그인 유지 스위치
+          _buildSwitchTile(
+            icon: Icons.lock_clock,
+            title: '로그인 유지',
+            subtitle: '계정 전환 시 자동으로 로그인',
+            value: _keepLoginEnabled,
+            onChanged: (value) async {
+              await AccountManagerService().setKeepLoginEnabled(value);
+              setState(() {
+                _keepLoginEnabled = value;
+              });
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      value 
+                          ? '로그인 유지가 활성화되었습니다. 계정 전환 시 자동으로 로그인됩니다.' 
+                          : '로그인 유지가 비활성화되었습니다.',
+                    ),
+                    backgroundColor: value ? Colors.green : Colors.grey,
+                  ),
+                );
+              }
+            },
+          ),
+          
+          const SizedBox(height: 8),
           
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
@@ -1640,31 +1718,66 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 
   Future<void> _handleSwitchAccount(BuildContext context, SavedAccountModel account) async {
-    // TODO: Firebase Auth에서 해당 계정으로 전환하는 로직 구현
-    // 현재는 로그아웃 후 재로그인 필요
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('계정 전환'),
-        content: Text(
-          '${account.displayName} 계정으로 전환하려면 현재 계정에서 로그아웃 후 다시 로그인해야 합니다.\n\n'
-          '로그아웃 하시겠습니까?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2196F3),
+    // 로그인 유지 옵션 확인
+    final keepLoginEnabled = await AccountManagerService().getKeepLoginEnabled();
+    
+    if (kDebugMode) {
+      debugPrint('🔄 Account Switch Request:');
+      debugPrint('   - Target: ${account.email}');
+      debugPrint('   - Keep Login Enabled: $keepLoginEnabled');
+    }
+    
+    bool? confirmed;
+    
+    if (keepLoginEnabled) {
+      // 로그인 유지 옵션이 활성화된 경우 - 자동으로 계정 전환
+      confirmed = true;
+      
+      if (kDebugMode) {
+        debugPrint('✅ Auto-switching account (Keep Login is ON)');
+      }
+      
+      if (mounted) {
+        // 안내 메시지만 표시 (확인 불필요)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${account.displayName} 계정으로 자동 전환합니다...',
             ),
-            child: const Text('로그아웃'),
+            backgroundColor: Colors.blue,
+            duration: const Duration(seconds: 2),
           ),
-        ],
-      ),
-    );
+        );
+      }
+    } else {
+      if (kDebugMode) {
+        debugPrint('❓ Showing confirmation dialog (Keep Login is OFF)');
+      }
+      // 로그인 유지 옵션이 비활성화된 경우 - 확인 다이얼로그 표시
+      confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('계정 전환'),
+          content: Text(
+            '${account.displayName} 계정으로 전환하려면 현재 계정에서 로그아웃 후 다시 로그인해야 합니다.\n\n'
+            '로그아웃 하시겠습니까?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2196F3),
+              ),
+              child: const Text('로그아웃'),
+            ),
+          ],
+        ),
+      );
+    }
 
     if (confirmed == true && mounted) {
       await context.read<AuthService>().signOut();

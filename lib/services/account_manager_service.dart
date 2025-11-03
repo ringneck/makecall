@@ -6,6 +6,7 @@ import '../models/user_model.dart';
 class AccountManagerService {
   static const String _savedAccountsKey = 'saved_accounts';
   static const String _currentAccountUidKey = 'current_account_uid';
+  static const String _keepLoginKey = 'keep_login_enabled';
 
   // 저장된 모든 계정 가져오기
   Future<List<SavedAccountModel>> getSavedAccounts() async {
@@ -151,6 +152,39 @@ class AccountManagerService {
       print('✅ All accounts cleared');
     } catch (e) {
       print('❌ Error clearing accounts: $e');
+    }
+  }
+
+  // 로그인 유지 설정 가져오기 (기본값: true)
+  Future<bool> getKeepLoginEnabled() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final bool? storedValue = prefs.getBool(_keepLoginKey);
+      final bool result = storedValue ?? true; // 기본값을 true로 변경
+      
+      print('🔍 Keep Login Setting: stored=$storedValue, result=$result');
+      
+      // 처음 사용하는 경우 (storedValue가 null) 기본값을 저장
+      if (storedValue == null) {
+        await prefs.setBool(_keepLoginKey, true);
+        print('✅ Keep Login Setting initialized to true');
+      }
+      
+      return result;
+    } catch (e) {
+      print('❌ Error getting keep login setting: $e');
+      return true; // 에러 시에도 true 반환
+    }
+  }
+
+  // 로그인 유지 설정 저장
+  Future<void> setKeepLoginEnabled(bool enabled) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keepLoginKey, enabled);
+      print('✅ Keep login setting updated: $enabled');
+    } catch (e) {
+      print('❌ Error setting keep login: $e');
     }
   }
 }
