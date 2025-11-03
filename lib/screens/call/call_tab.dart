@@ -57,6 +57,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
   Future<void> _checkSettingsAndShowGuide() async {
     final authService = context.read<AuthService>();
     final userModel = authService.currentUserModel;
+    final userId = authService.currentUser?.uid ?? '';
     
     // 필수 설정 항목 확인
     final hasWebSocketSettings = userModel?.websocketServerUrl != null && 
@@ -64,7 +65,11 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     final hasCompanyId = userModel?.companyId != null && 
                         userModel!.companyId!.isNotEmpty;
     
-    // 설정이 없는 경우 안내 다이얼로그 표시
+    // 저장된 단말번호 확인
+    final extensionsSnapshot = await _databaseService.getMyExtensions(userId).first;
+    final hasSavedExtensions = extensionsSnapshot.isNotEmpty;
+    
+    // 1. WebSocket/회사ID 설정이 없는 경우
     if (!hasWebSocketSettings || !hasCompanyId) {
       if (mounted) {
         await showDialog(
@@ -150,6 +155,97 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                 label: const Text('설정하기'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2196F3),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+      return; // 첫 번째 설정 완료 후 다시 체크하도록
+    }
+    
+    // 2. 저장된 단말번호가 없는 경우
+    if (!hasSavedExtensions) {
+      if (mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: const [
+                Icon(Icons.phone_disabled, color: Colors.orange, size: 28),
+                SizedBox(width: 12),
+                Text('단말번호 설정 필요'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '저장된 단말번호가 없습니다.',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '통화 기능을 사용하려면 단말번호를 조회하고 저장해야 합니다.',
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 20, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text(
+                            '설정 방법:',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '1. 왼쪽 상단 프로필 아이콘 클릭\n'
+                        '2. "전화번호" 입력 후 조회\n'
+                        '3. 단말번호 목록에서 선택 후 저장',
+                        style: TextStyle(fontSize: 12, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('나중에'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // ProfileDrawer 열기
+                  Scaffold.of(context).openDrawer();
+                },
+                icon: const Icon(Icons.phone_in_talk, size: 18),
+                label: const Text('설정하기'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
                 ),
               ),
