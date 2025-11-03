@@ -529,13 +529,45 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
         ],
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: true,
+          isScrollable: false,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.normal,
+          ),
           tabs: const [
-            Tab(text: '단말번호'),
-            Tab(text: '즐겨찾기'),
-            Tab(text: '최근통화'),
-            Tab(text: '연락처'),
-            Tab(text: '키패드'),
+            Tab(
+              icon: Icon(Icons.phone_android, size: 20),
+              text: '단말번호',
+              iconMargin: EdgeInsets.only(bottom: 4),
+            ),
+            Tab(
+              icon: Icon(Icons.star, size: 20),
+              text: '즐겨찾기',
+              iconMargin: EdgeInsets.only(bottom: 4),
+            ),
+            Tab(
+              icon: Icon(Icons.history, size: 20),
+              text: '최근통화',
+              iconMargin: EdgeInsets.only(bottom: 4),
+            ),
+            Tab(
+              icon: Icon(Icons.contacts, size: 20),
+              text: '연락처',
+              iconMargin: EdgeInsets.only(bottom: 4),
+            ),
+            Tab(
+              icon: Icon(Icons.dialpad, size: 20),
+              text: '키패드',
+              iconMargin: EdgeInsets.only(bottom: 4),
+            ),
           ],
         ),
       ),
