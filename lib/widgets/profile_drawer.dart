@@ -287,212 +287,74 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // 상단 여백 (상태바 영역)
-          SizedBox(height: MediaQuery.of(context).padding.top + 16),
-          // 사용자 정보
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              GestureDetector(
-                onTap: () => _showProfileImageOptions(context, authService),
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.transparent,
-                  backgroundImage: userModel?.profileImageUrl != null
-                      ? NetworkImage(userModel!.profileImageUrl!)
-                      : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: GestureDetector(
-                  onTap: () => _showProfileImageOptions(context, authService),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2196F3),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      size: 20,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // 조직명 (회사명) 표시 - 있는 경우
-          if (userModel?.companyName != null && userModel!.companyName!.isNotEmpty) ...[
-            GestureDetector(
-              onTap: () => _showEditCompanyNameDialog(context, authService),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    userModel.companyName!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[100],
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      '조직명',
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.edit, size: 16, color: Colors.grey),
-                ],
+          // 🎯 간결한 프로필 헤더 (한 줄)
+          Container(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 12,
+              left: 16,
+              right: 16,
+              bottom: 12,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                bottom: BorderSide(color: Colors.grey[200]!, width: 1),
               ),
             ),
-            const SizedBox(height: 6),
-          ],
-          // 조직명이 없는 경우 - 추가 버튼
-          if (userModel?.companyName == null || userModel!.companyName!.isEmpty) ...[
-            GestureDetector(
-              onTap: () => _showEditCompanyNameDialog(context, authService),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.blue[200]!),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
+            child: InkWell(
+              onTap: () => _showProfileDetailDialog(context, authService),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
                   children: [
-                    Icon(Icons.add, size: 14, color: Colors.blue),
-                    SizedBox(width: 4),
-                    Text(
-                      '조직명 추가',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w600,
+                    // 작은 썸네일
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.transparent,
+                      backgroundImage: userModel?.profileImageUrl != null
+                          ? NetworkImage(userModel!.profileImageUrl!)
+                          : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
+                    ),
+                    const SizedBox(width: 12),
+                    // 조직명 + 이메일 ID
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 조직명 (있는 경우)
+                          if (userModel?.companyName != null && userModel!.companyName!.isNotEmpty)
+                            Text(
+                              userModel.companyName!,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          // 이메일 ID
+                          Text(
+                            userModel?.email ?? '이메일 없음',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
+                    // 상세보기 아이콘
+                    Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-          ],
-          // 이메일 표시
-          Text(
-            userModel?.email ?? '이메일 없음',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: userModel?.companyName != null && userModel!.companyName!.isNotEmpty 
-                  ? 12  // 조직명이 있으면 이메일은 작게
-                  : 14, // 조직명이 없으면 이메일을 크게
-              fontWeight: userModel?.companyName != null && userModel!.companyName!.isNotEmpty
-                  ? FontWeight.w500  // 조직명이 있으면 보통 굵기
-                  : FontWeight.bold, // 조직명이 없으면 굵게
-              color: userModel?.companyName != null && userModel!.companyName!.isNotEmpty
-                  ? Colors.grey[600]  // 조직명이 있으면 회색
-                  : Colors.black87,   // 조직명이 없으면 검정
-            ),
           ),
-          const SizedBox(height: 12),
-          // 단말번호 제한 안내
-          Text(
-            '단말번호 저장 가능: 최대 ${userModel?.maxExtensions ?? 1}개',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF2196F3),
-            ),
-          ),
-          const SizedBox(height: 4),
-          // 마지막 업데이트 타임스탬프 표시 및 수동 업데이트 버튼
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (userModel?.lastMaxExtensionsUpdate != null)
-                Text(
-                  _formatUpdateTimestamp(userModel!.lastMaxExtensionsUpdate!),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              const SizedBox(width: 8),
-              // 수동 업데이트 버튼
-              InkWell(
-                onTap: _isRefreshing ? null : _handleManualRefresh,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _isRefreshing 
-                        ? Colors.grey[300] 
-                        : const Color(0xFF2196F3).withAlpha(26),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: _isRefreshing 
-                          ? Colors.grey[400]! 
-                          : const Color(0xFF2196F3).withAlpha(77),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _isRefreshing
-                          ? SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.grey[600]!,
-                                ),
-                              ),
-                            )
-                          : const Icon(
-                              Icons.refresh,
-                              size: 14,
-                              color: Color(0xFF2196F3),
-                            ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _isRefreshing ? '업데이트 중...' : '새로고침',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: _isRefreshing 
-                              ? Colors.grey[600] 
-                              : const Color(0xFF2196F3),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const Divider(),
           
           // 기본 설정
           ListTile(
@@ -2133,5 +1995,223 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         Navigator.pop(context); // Drawer 닫기
       }
     }
+  }
+
+  /// 📋 프로필 상세 정보 다이얼로그
+  void _showProfileDetailDialog(BuildContext context, AuthService authService) {
+    final userModel = authService.currentUserModel;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 헤더
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '프로필 상세 정보',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // 프로필 이미지 (편집 가능)
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showProfileImageOptions(context, authService);
+                      },
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.transparent,
+                        backgroundImage: userModel?.profileImageUrl != null
+                            ? NetworkImage(userModel!.profileImageUrl!)
+                            : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showProfileImageOptions(context, authService);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2196F3),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // 조직명
+                _buildDetailRow(
+                  icon: Icons.business,
+                  label: '조직명',
+                  value: userModel?.companyName?.isNotEmpty == true 
+                      ? userModel!.companyName!
+                      : '미설정',
+                  onEdit: () {
+                    Navigator.pop(context);
+                    _showEditCompanyNameDialog(context, authService);
+                  },
+                ),
+                const Divider(height: 24),
+                
+                // 이메일
+                _buildDetailRow(
+                  icon: Icons.email,
+                  label: '이메일',
+                  value: userModel?.email ?? '이메일 없음',
+                ),
+                const Divider(height: 24),
+                
+                // 단말번호 저장 가능 개수
+                _buildDetailRow(
+                  icon: Icons.phone_android,
+                  label: '단말번호 저장 가능',
+                  value: '최대 ${userModel?.maxExtensions ?? 1}개',
+                  valueColor: const Color(0xFF2196F3),
+                ),
+                
+                // 마지막 업데이트 시간
+                if (userModel?.lastMaxExtensionsUpdate != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.update, size: 14, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatUpdateTimestamp(userModel!.lastMaxExtensionsUpdate!),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 24),
+                
+                // 새로고침 버튼
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isRefreshing ? null : () async {
+                      await _handleManualRefresh();
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    icon: _isRefreshing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.refresh, size: 18),
+                    label: Text(_isRefreshing ? '업데이트 중...' : '정보 새로고침'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2196F3),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 상세 정보 행 빌더
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    VoidCallback? onEdit,
+    Color? valueColor,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.grey[600]),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: valueColor ?? Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (onEdit != null)
+          IconButton(
+            icon: const Icon(Icons.edit, size: 18),
+            onPressed: onEdit,
+            color: Colors.grey[600],
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+      ],
+    );
   }
 }
