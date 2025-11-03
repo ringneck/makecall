@@ -8,7 +8,6 @@ import '../../providers/selected_extension_provider.dart';
 import '../../widgets/call_forward_settings_card.dart';
 import '../../widgets/call_state_indicator.dart';
 import '../../utils/phone_formatter.dart';
-import '../../widgets/profile_drawer.dart';
 
 class HomeTab extends StatefulWidget {
   final VoidCallback? onNavigateToProfile;
@@ -39,23 +38,7 @@ class _HomeTabState extends State<HomeTab> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('홈'),
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.transparent,
-              backgroundImage: authService.currentUserModel?.profileImageUrl != null
-                  ? NetworkImage(authService.currentUserModel!.profileImageUrl!)
-                  : const AssetImage('assets/images/app_logo.png') as ImageProvider,
-            ),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-            tooltip: '단말 정보',
-          ),
-        ),
       ),
-      drawer: const ProfileDrawer(),
       body: SafeArea(
         bottom: true,
         child: StreamBuilder<List<MyExtensionModel>>(
