@@ -10,10 +10,12 @@ import '../providers/selected_extension_provider.dart';
 
 class CallMethodDialog extends StatefulWidget {
   final String phoneNumber;
+  final bool autoCallShortExtension; // 5자리 이하 자동 발신 옵션
 
   const CallMethodDialog({
     super.key,
     required this.phoneNumber,
+    this.autoCallShortExtension = true, // 기본값: 자동 발신
   });
 
   @override
@@ -24,6 +26,33 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
   final DatabaseService _databaseService = DatabaseService();
   final CallService _callService = CallService();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 5자리 이하 숫자인 경우 자동으로 클릭투콜 실행
+    if (widget.autoCallShortExtension) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkAndAutoCall();
+      });
+    }
+  }
+
+  // 5자리 이하 숫자인지 확인하고 자동 발신
+  Future<void> _checkAndAutoCall() async {
+    final phoneNumber = widget.phoneNumber.replaceAll(RegExp(r'[^0-9]'), ''); // 숫자만 추출
+    
+    // 5자리 이하 숫자이고, 숫자로만 구성된 경우
+    if (phoneNumber.length > 0 && phoneNumber.length <= 5 && phoneNumber == widget.phoneNumber) {
+      if (kDebugMode) {
+        debugPrint('🔥 5자리 이하 내선번호 감지: $phoneNumber');
+        debugPrint('📞 자동으로 클릭투콜 실행');
+      }
+      
+      // 자동으로 단말 통화 실행
+      await _handleExtensionCall();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
