@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
@@ -637,7 +638,274 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               ],
             ),
           ),
+          
+          // ============================================
+          // 설정 섹션 시작
+          // ============================================
+          const SizedBox(height: 32),
+          const Divider(thickness: 2, height: 2),
+          
+          // 설정 섹션 헤더
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+            color: Colors.grey[50],
+            child: const Row(
+              children: [
+                Icon(Icons.settings, color: Color(0xFF2196F3), size: 24),
+                SizedBox(width: 12),
+                Text(
+                  '설정',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const Divider(height: 1),
+          const SizedBox(height: 8),
+          
+          // 푸시 알림 설정
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue[100]!),
+              ),
+              child: const Column(
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.notifications, color: Color(0xFF2196F3)),
+                    title: Text(
+                      '푸시 알림',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text('알림 수신 설정', style: TextStyle(fontSize: 12)),
+                  ),
+                  Divider(height: 1, indent: 72),
+                ],
+              ),
+            ),
+          ),
+          
+          _buildSwitchTile(
+            icon: Icons.notifications_active,
+            title: '푸시 알림 표시',
+            subtitle: '새로운 통화 및 메시지 알림',
+            value: true,
+            onChanged: (value) {
+              // 푸시 알림 설정 변경
+            },
+          ),
+          
+          _buildSwitchTile(
+            icon: Icons.volume_up,
+            title: '알림음',
+            subtitle: '알림 수신 시 소리',
+            value: true,
+            onChanged: (value) {
+              // 알림음 설정 변경
+            },
+          ),
+          
+          _buildSwitchTile(
+            icon: Icons.vibration,
+            title: '진동',
+            subtitle: '알림 수신 시 진동',
+            value: true,
+            onChanged: (value) {
+              // 진동 설정 변경
+            },
+          ),
+          
+          const SizedBox(height: 16),
+          const Divider(thickness: 1),
+          const SizedBox(height: 8),
+          
+          // 약관 및 정책
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.purple[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.purple[100]!),
+              ),
+              child: const ListTile(
+                leading: Icon(Icons.description, color: Colors.purple),
+                title: Text(
+                  '약관 및 정책',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text('이용약관, 개인정보처리방침', style: TextStyle(fontSize: 12)),
+              ),
+            ),
+          ),
+          
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+            leading: const Icon(Icons.description, size: 22),
+            title: const Text('이용 약관', style: TextStyle(fontSize: 15)),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: () {
+              _showTextDialog(
+                context,
+                '이용 약관',
+                '여기에 이용 약관 내용이 표시됩니다.\n\n'
+                '1. 서비스 이용 약관\n'
+                '2. 개인정보 수집 및 이용 동의\n'
+                '3. 위치기반서비스 이용약관\n'
+                '...',
+              );
+            },
+          ),
+          
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+            leading: const Icon(Icons.privacy_tip, size: 22),
+            title: const Text('개인정보 처리방침', style: TextStyle(fontSize: 15)),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: () {
+              _showTextDialog(
+                context,
+                '개인정보 처리방침',
+                '여기에 개인정보 처리방침 내용이 표시됩니다.\n\n'
+                '1. 개인정보의 수집 및 이용 목적\n'
+                '2. 수집하는 개인정보의 항목\n'
+                '3. 개인정보의 보유 및 이용 기간\n'
+                '...',
+              );
+            },
+          ),
+          
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+            leading: const Icon(Icons.code, size: 22),
+            title: const Text('오픈소스 라이선스', style: TextStyle(fontSize: 15)),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: () {
+              _showLicensePage(context);
+            },
+          ),
+          
+          const SizedBox(height: 16),
+          const Divider(thickness: 1),
+          const SizedBox(height: 8),
+          
+          // 앱 정보
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green[100]!),
+              ),
+              child: FutureBuilder<PackageInfo>(
+                future: PackageInfo.fromPlatform(),
+                builder: (context, snapshot) {
+                  final version = snapshot.data?.version ?? '1.0.0';
+                  final buildNumber = snapshot.data?.buildNumber ?? '1';
+                  return ListTile(
+                    leading: const Icon(Icons.info, color: Colors.green),
+                    title: const Text(
+                      '앱 버전',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      '$version ($buildNumber)',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          const Divider(thickness: 1),
+          const SizedBox(height: 8),
+          
+          // 계정 관리
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange[100]!),
+              ),
+              child: const ListTile(
+                leading: Icon(Icons.account_circle, color: Colors.orange),
+                title: Text(
+                  '계정 관리',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text('로그아웃, 계정 삭제', style: TextStyle(fontSize: 12)),
+              ),
+            ),
+          ),
+          
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+            leading: const Icon(Icons.logout, color: Colors.orange, size: 22),
+            title: const Text('로그아웃', style: TextStyle(fontSize: 15)),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: () => _handleLogout(context),
+          ),
+          
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+            leading: const Icon(Icons.block, color: Colors.red, size: 22),
+            title: const Text('이용 중지', style: TextStyle(fontSize: 15, color: Colors.red)),
+            subtitle: const Text(
+              '계정을 삭제하고 모든 데이터를 제거합니다',
+              style: TextStyle(fontSize: 11),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.red),
+            onTap: () => _handleDeleteAccount(context),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // 하단 여백
+          const SizedBox(height: 16),
         ],
+      ),
+    );
+  }
+  
+  // 스위치 타일 빌더 (가독성 향상)
+  Widget _buildSwitchTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: SwitchListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          secondary: Icon(icon, color: const Color(0xFF2196F3), size: 22),
+          title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
+          value: value,
+          onChanged: onChanged,
+          activeTrackColor: const Color(0xFF2196F3).withAlpha(128),
+          activeThumbColor: const Color(0xFF2196F3),
+        ),
       ),
     );
   }
@@ -1140,5 +1408,111 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         ],
       ),
     );
+  }
+  
+  // ============================================
+  // 설정 섹션 메서드들
+  // ============================================
+  
+  void _showTextDialog(BuildContext context, String title, String content) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(
+          child: Text(content),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLicensePage(BuildContext context) {
+    showLicensePage(
+      context: context,
+      applicationName: 'MAKECALL',
+      applicationVersion: '1.0.0',
+      applicationIcon: const Icon(Icons.phone_in_talk, size: 48),
+    );
+  }
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('로그아웃 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
+            ),
+            child: const Text('로그아웃'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await context.read<AuthService>().signOut();
+      if (mounted) {
+        Navigator.pop(context); // Drawer 닫기
+      }
+    }
+  }
+
+  Future<void> _handleDeleteAccount(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('이용 중지'),
+        content: const Text(
+          '정말로 계정을 삭제하시겠습니까?\n\n'
+          '이 작업은 되돌릴 수 없으며, 모든 데이터가 영구적으로 삭제됩니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await context.read<AuthService>().deleteAccount();
+        if (mounted) {
+          Navigator.pop(context); // Drawer 닫기
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('계정이 삭제되었습니다')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('오류 발생: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }
