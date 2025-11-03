@@ -134,7 +134,7 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              '내 정보 탭에서 단말번호를 조회하고 저장해주세요.',
+                              '내 정보 탭에서 단말번호를 조회하고 등록해주세요.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
