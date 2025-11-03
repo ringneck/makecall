@@ -72,8 +72,12 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     // 필수 설정 항목 확인
     final hasWebSocketSettings = userModel?.websocketServerUrl != null && 
                                   userModel!.websocketServerUrl!.isNotEmpty;
+    final hasApiBaseUrl = userModel?.apiBaseUrl != null && 
+                         userModel!.apiBaseUrl!.isNotEmpty;
     final hasCompanyId = userModel?.companyId != null && 
                         userModel!.companyId!.isNotEmpty;
+    final hasAppKey = userModel?.appKey != null && 
+                     userModel!.appKey!.isNotEmpty;
     
     // 저장된 단말번호 확인
     final extensionsSnapshot = await _databaseService.getMyExtensions(userId).first;
@@ -81,13 +85,15 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     
     if (kDebugMode) {
       debugPrint('🔍 설정 체크 시작');
-      debugPrint('  - WebSocket 설정: $hasWebSocketSettings');
-      debugPrint('  - 회사ID 설정: $hasCompanyId');
+      debugPrint('  - WebSocket 설정: $hasWebSocketSettings (${userModel?.websocketServerUrl ?? "없음"})');
+      debugPrint('  - API BaseURL 설정: $hasApiBaseUrl (${userModel?.apiBaseUrl ?? "없음"})');
+      debugPrint('  - 회사ID 설정: $hasCompanyId (${userModel?.companyId ?? "없음"})');
+      debugPrint('  - AppKey 설정: $hasAppKey (${userModel?.appKey ?? "없음"})');
       debugPrint('  - 저장된 단말번호: $hasSavedExtensions (${extensionsSnapshot.length}개)');
     }
     
     // 모든 설정이 완료되었으면 체크 플래그 설정
-    if (hasWebSocketSettings && hasCompanyId && hasSavedExtensions) {
+    if (hasWebSocketSettings && hasApiBaseUrl && hasCompanyId && hasAppKey && hasSavedExtensions) {
       _hasCheckedSettings = true;
       if (kDebugMode) {
         debugPrint('✅ 모든 설정 완료 - 더 이상 팝업 표시 안 함');
@@ -95,8 +101,8 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
       return;
     }
     
-    // 1. WebSocket/회사ID 설정이 없는 경우
-    if (!hasWebSocketSettings || !hasCompanyId) {
+    // 1. WebSocket/REST API 설정이 없는 경우
+    if (!hasWebSocketSettings || !hasApiBaseUrl || !hasCompanyId || !hasAppKey) {
       if (mounted) {
         await showDialog(
           context: context,
@@ -124,7 +130,19 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                       Icon(Icons.cloud_outlined, size: 20, color: Colors.orange),
                       SizedBox(width: 8),
                       Expanded(
-                        child: Text('WebSocket 서버 설정'),
+                        child: Text('WebSocket 서버 주소'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (!hasApiBaseUrl) ...[
+                  Row(
+                    children: const [
+                      Icon(Icons.http, size: 20, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text('REST API 서버 주소'),
                       ),
                     ],
                   ),
@@ -136,10 +154,23 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
                       Icon(Icons.business, size: 20, color: Colors.orange),
                       SizedBox(width: 8),
                       Expanded(
-                        child: Text('REST API 설정'),
+                        child: Text('회사 ID (Company ID)'),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                ],
+                if (!hasAppKey) ...[
+                  Row(
+                    children: const [
+                      Icon(Icons.key, size: 20, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text('앱 키 (App Key)'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                 ],
                 const SizedBox(height: 16),
                 Container(
