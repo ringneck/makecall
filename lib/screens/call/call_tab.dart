@@ -15,6 +15,7 @@ import 'phonebook_tab.dart';
 import '../../widgets/call_method_dialog.dart';
 import '../../widgets/add_contact_dialog.dart';
 import '../../widgets/profile_drawer.dart';
+import '../../widgets/extension_drawer.dart';
 
 class CallTab extends StatefulWidget {
   const CallTab({super.key});
@@ -60,7 +61,6 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('통화'),
         leading: Builder(
           builder: (context) => IconButton(
             icon: CircleAvatar(
@@ -76,6 +76,18 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
             tooltip: '계정 정보',
           ),
         ),
+        title: const Text('통화'),
+        actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.phone_in_talk),
+              onPressed: () {
+                Scaffold.of(context).openEndDrawer();
+              },
+              tooltip: '내 단말정보',
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -89,6 +101,7 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
         ),
       ),
       drawer: const ProfileDrawer(),
+      endDrawer: const ExtensionDrawer(),
       body: TabBarView(
         controller: _tabController,
         children: [
