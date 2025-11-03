@@ -46,6 +46,118 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     super.initState();
     // 기본 화면을 키패드(인덱스 4)로 설정
     _tabController = TabController(length: 5, vsync: this, initialIndex: 4);
+    
+    // 로그인 후 설정 확인 및 안내
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkSettingsAndShowGuide();
+    });
+  }
+  
+  // 설정 확인 및 안내 다이얼로그 표시
+  Future<void> _checkSettingsAndShowGuide() async {
+    final authService = context.read<AuthService>();
+    final userModel = authService.currentUserModel;
+    
+    // 필수 설정 항목 확인
+    final hasWebSocketSettings = userModel?.websocketServerUrl != null && 
+                                  userModel!.websocketServerUrl!.isNotEmpty;
+    final hasCompanyId = userModel?.companyId != null && 
+                        userModel!.companyId!.isNotEmpty;
+    
+    // 설정이 없는 경우 안내 다이얼로그 표시
+    if (!hasWebSocketSettings || !hasCompanyId) {
+      if (mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: const [
+                Icon(Icons.info_outline, color: Color(0xFF2196F3), size: 28),
+                SizedBox(width: 12),
+                Text('초기 설정 필요'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '통화 기능을 사용하기 위해서는\n다음 설정이 필요합니다:',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 16),
+                if (!hasWebSocketSettings) ...[
+                  Row(
+                    children: const [
+                      Icon(Icons.cloud_outlined, size: 20, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text('WebSocket 서버 설정'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (!hasCompanyId) ...[
+                  Row(
+                    children: const [
+                      Icon(Icons.business, size: 20, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text('회사 ID (Tenant ID) 설정'),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFF2196F3).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.touch_app, size: 20, color: Color(0xFF2196F3)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '왼쪽 상단 프로필 아이콘을 눌러\n설정 메뉴에서 입력해주세요.',
+                          style: TextStyle(fontSize: 13, color: Color(0xFF1976D2)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('나중에'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // ProfileDrawer 열기
+                  Scaffold.of(context).openDrawer();
+                },
+                icon: const Icon(Icons.settings, size: 18),
+                label: const Text('설정하기'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2196F3),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 
   @override

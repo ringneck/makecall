@@ -5,14 +5,16 @@ import '../profile/profile_tab.dart';
 import '../settings/settings_tab.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int initialTab; // 초기 탭 인덱스 (0: 홈, 1: 통화, 2: 단말, 3: 설정)
+  
+  const MainScreen({super.key, this.initialTab = 1});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
 
   void _changeTab(int index) {
     setState(() {
@@ -25,6 +27,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialTab; // 전달된 초기 탭으로 설정
     _tabs = [
       HomeTab(onNavigateToProfile: () => _changeTab(2)),
       const CallTab(),
