@@ -106,6 +106,10 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 controller: _apiBaseUrlController,
                 style: const TextStyle(fontSize: 13),
                 enableInteractiveSelection: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: 'API Base URL',
                   hintText: '예: api.example.com',
@@ -117,9 +121,42 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.content_paste, size: 18),
                     onPressed: () async {
-                      final data = await Clipboard.getData(Clipboard.kTextPlain);
-                      if (data?.text != null) {
-                        _apiBaseUrlController.text = data!.text!;
+                      try {
+                        final data = await Clipboard.getData(Clipboard.kTextPlain);
+                        if (data?.text != null && data!.text!.isNotEmpty) {
+                          setState(() {
+                            _apiBaseUrlController.text = data.text!;
+                          });
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('붙여넣기 완료: ${data.text!.length}자'),
+                                duration: const Duration(seconds: 1),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('클립보드가 비어있습니다'),
+                                duration: Duration(seconds: 2),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('붙여넣기 실패: $e'),
+                              duration: const Duration(seconds: 2),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
                     tooltip: '클립보드에서 붙여넣기',
@@ -148,6 +185,10 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 controller: _companyIdController,
                 style: const TextStyle(fontSize: 13),
                 enableInteractiveSelection: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: 'Company ID',
                   hintText: 'REST API Company ID',
@@ -159,9 +200,42 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.content_paste, size: 18),
                     onPressed: () async {
-                      final data = await Clipboard.getData(Clipboard.kTextPlain);
-                      if (data?.text != null) {
-                        _companyIdController.text = data!.text!;
+                      try {
+                        final data = await Clipboard.getData(Clipboard.kTextPlain);
+                        if (data?.text != null && data!.text!.isNotEmpty) {
+                          setState(() {
+                            _companyIdController.text = data.text!;
+                          });
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('붙여넣기 완료: ${data.text!.length}자'),
+                                duration: const Duration(seconds: 1),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('클립보드가 비어있습니다'),
+                                duration: Duration(seconds: 2),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('붙여넣기 실패: $e'),
+                              duration: const Duration(seconds: 2),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
                     tooltip: '클립보드에서 붙여넣기',
@@ -179,6 +253,10 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 controller: _appKeyController,
                 style: const TextStyle(fontSize: 13),
                 enableInteractiveSelection: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: 'App-Key',
                   hintText: 'REST API App-Key',
@@ -190,12 +268,45 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.content_paste, size: 18),
                     onPressed: () async {
-                      final data = await Clipboard.getData(Clipboard.kTextPlain);
-                      if (data?.text != null) {
-                        _appKeyController.text = data!.text!;
+                      try {
+                        final data = await Clipboard.getData(Clipboard.kTextPlain);
+                        if (data?.text != null && data!.text!.isNotEmpty) {
+                          setState(() {
+                            _appKeyController.text = data.text!;
+                          });
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('붙여넣기 완료: ${data.text!.length}자'),
+                                duration: const Duration(seconds: 1),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('클립보드가 비어있습니다'),
+                                duration: Duration(seconds: 2),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('붙여넣기 실패: $e'),
+                              duration: const Duration(seconds: 2),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
-                    tooltip: '클립보드에서 붙여넣기',
+                    tooltip: '클립보���에서 붙여넣기',
                   ),
                 ),
                 validator: (value) {
@@ -222,6 +333,10 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                       controller: _websocketServerUrlController,
                       style: const TextStyle(fontSize: 13),
                       enableInteractiveSelection: true,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      keyboardType: TextInputType.text,
+                      textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         labelText: 'WebSocket 서버 주소',
                         hintText: '예: ws.example.com',
@@ -233,9 +348,42 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.content_paste, size: 18),
                           onPressed: () async {
-                            final data = await Clipboard.getData(Clipboard.kTextPlain);
-                            if (data?.text != null) {
-                              _websocketServerUrlController.text = data!.text!;
+                            try {
+                              final data = await Clipboard.getData(Clipboard.kTextPlain);
+                              if (data?.text != null && data!.text!.isNotEmpty) {
+                                setState(() {
+                                  _websocketServerUrlController.text = data.text!;
+                                });
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('붙여넣기 완료: ${data.text!.length}자'),
+                                      duration: const Duration(seconds: 1),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } else {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('클립보드가 비어있습니다'),
+                                      duration: Duration(seconds: 2),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('붙여넣기 실패: $e'),
+                                    duration: const Duration(seconds: 2),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             }
                           },
                           tooltip: '클립보드에서 붙여넣기',
