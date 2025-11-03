@@ -64,10 +64,8 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
     try {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     } catch (e) {
-      // 위젯이 이미 dispose된 경우 무시
-      if (kDebugMode) {
-        debugPrint('⚠️ CallForwardSettings: SnackBar 표시 건너뜀 (위젯 비활성화): $e');
-      }
+      // 위젯이 이미 dispose된 경우 조용히 무시 (에러 로그 출력 안 함)
+      // 'Looking up a deactivated widget's ancestor' 에러는 정상적인 상황
     }
   }
 
