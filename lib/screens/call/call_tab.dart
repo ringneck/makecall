@@ -80,7 +80,15 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
         actions: [
           Builder(
             builder: (context) => IconButton(
-              icon: const Icon(Icons.phone_in_talk),
+              icon: CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFF2196F3),
+                child: const Icon(
+                  Icons.phone_in_talk,
+                  size: 20,
+                  color: Colors.white,
+                ),
+              ),
               onPressed: () {
                 Scaffold.of(context).openEndDrawer();
               },
