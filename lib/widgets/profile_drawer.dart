@@ -1133,14 +1133,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             onTap: () => _handleAddAccount(context),
           ),
           
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-            leading: const Icon(Icons.logout, color: Colors.orange, size: 22),
-            title: const Text('로그아웃', style: TextStyle(fontSize: 15)),
-            trailing: const Icon(Icons.chevron_right, size: 20),
-            onTap: () => _handleLogout(context),
-          ),
-          
           const SizedBox(height: 24),
           
           // 하단 여백

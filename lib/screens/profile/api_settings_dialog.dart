@@ -12,7 +12,6 @@ class ApiSettingsDialog extends StatefulWidget {
 
 class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _companyNameController;
   late final TextEditingController _apiBaseUrlController;
   late final TextEditingController _companyIdController;
   late final TextEditingController _appKeyController;
@@ -25,7 +24,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   void initState() {
     super.initState();
     final userModel = context.read<AuthService>().currentUserModel;
-    _companyNameController = TextEditingController(text: userModel?.companyName ?? '');
     _apiBaseUrlController = TextEditingController(text: userModel?.apiBaseUrl ?? '');
     _companyIdController = TextEditingController(text: userModel?.companyId ?? '');
     _appKeyController = TextEditingController(text: userModel?.appKey ?? '');
@@ -36,7 +34,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
 
   @override
   void dispose() {
-    _companyNameController.dispose();
     _apiBaseUrlController.dispose();
     _companyIdController.dispose();
     _appKeyController.dispose();
@@ -52,7 +49,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
 
     try {
       await context.read<AuthService>().updateUserInfo(
-            companyName: _companyNameController.text.trim(),
             apiBaseUrl: _apiBaseUrlController.text.trim(),
             apiHttpPort: 3500,
             apiHttpsPort: 3501,
@@ -100,35 +96,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              // 닉네임
-              const Text(
-                '닉네임',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _companyNameController,
-                style: const TextStyle(fontSize: 14),
-                decoration: const InputDecoration(
-                  labelText: '닉네임',
-                  hintText: '예: 홍길동',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  labelStyle: TextStyle(fontSize: 13),
-                  hintStyle: TextStyle(fontSize: 13),
-                  errorStyle: TextStyle(fontSize: 11),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '닉네임을 입력해주세요';
-                  }
-                  return null;
-                },
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-              ),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
               // API 베이스 URL
               const Text(
                 'API 서버 주소',
