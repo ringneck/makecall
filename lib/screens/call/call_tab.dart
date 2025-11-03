@@ -24,8 +24,8 @@ class CallTab extends StatefulWidget {
   State<CallTab> createState() => _CallTabState();
 }
 
-class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+class _CallTabState extends State<CallTab> {
+  int _currentTabIndex = 0; // 현재 선택된 탭 인덱스
   final DatabaseService _databaseService = DatabaseService();
   final MobileContactsService _mobileContactsService = MobileContactsService();
   final TextEditingController _searchController = TextEditingController();
@@ -47,7 +47,6 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     // 기본 화면을 단말번호(인덱스 0)로 설정
-    _tabController = TabController(length: 5, vsync: this, initialIndex: 0);
     
     // 로그인 후 설정 확인 및 안내 + 단말번호 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -480,7 +479,6 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -527,60 +525,60 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
             ),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: false,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.normal,
-          ),
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.phone_android, size: 20),
-              text: '단말번호',
-              iconMargin: EdgeInsets.only(bottom: 4),
-            ),
-            Tab(
-              icon: Icon(Icons.star, size: 20),
-              text: '즐겨찾기',
-              iconMargin: EdgeInsets.only(bottom: 4),
-            ),
-            Tab(
-              icon: Icon(Icons.history, size: 20),
-              text: '최근통화',
-              iconMargin: EdgeInsets.only(bottom: 4),
-            ),
-            Tab(
-              icon: Icon(Icons.contacts, size: 20),
-              text: '연락처',
-              iconMargin: EdgeInsets.only(bottom: 4),
-            ),
-            Tab(
-              icon: Icon(Icons.dialpad, size: 20),
-              text: '키패드',
-              iconMargin: EdgeInsets.only(bottom: 4),
-            ),
-          ],
-        ),
       ),
       drawer: const ProfileDrawer(),
       endDrawer: const ExtensionDrawer(),
-      body: TabBarView(
-        controller: _tabController,
+      body: IndexedStack(
+        index: _currentTabIndex,
         children: [
           const PhonebookTab(),
           _buildFavoritesTab(),
           _buildCallHistoryTab(),
           _buildContactsTab(),
           const DialpadScreen(),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentTabIndex,
+        onTap: (index) {
+          setState(() {
+            _currentTabIndex = index;
+          });
+        },
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFF2196F3),
+        unselectedItemColor: Colors.grey,
+        selectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.normal,
+        ),
+        selectedFontSize: 11,
+        unselectedFontSize: 11,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.phone_android, size: 24),
+            label: '단말번호',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.star, size: 24),
+            label: '즐겨찾기',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history, size: 24),
+            label: '최근통화',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.contacts, size: 24),
+            label: '연락처',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dialpad, size: 24),
+            label: '키패드',
+          ),
         ],
       ),
     );
@@ -1573,7 +1571,9 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
               label: '보기',
               textColor: Colors.white,
               onPressed: () {
-                _tabController.animateTo(0); // 즐겨찾기 탭으로 이동
+                setState(() {
+                  _currentTabIndex = 1; // 즐겨찾기 탭으로 이동
+                });
               },
             ),
           ),
