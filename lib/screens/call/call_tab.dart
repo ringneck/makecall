@@ -35,6 +35,9 @@ class _CallTabState extends State<CallTab> {
   bool _showDeviceContacts = false;
   List<ContactModel> _deviceContacts = [];
   bool _hasCheckedSettings = false; // 설정 체크 완료 플래그
+  
+  // ScaffoldMessenger를 안전하게 사용하기 위한 참조 저장
+  ScaffoldMessengerState? _scaffoldMessenger;
 
   // 영어 이름을 한글로 번역하는 매핑 테이블
   final Map<String, String> _nameTranslations = {
@@ -59,6 +62,13 @@ class _CallTabState extends State<CallTab> {
       final authService = context.read<AuthService>();
       authService.addListener(_onUserModelChanged);
     });
+  }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // ScaffoldMessenger 참조를 미리 저장 (비동기 작업에서 안전하게 사용)
+    _scaffoldMessenger = ScaffoldMessenger.of(context);
   }
   
   @override
@@ -1184,6 +1194,9 @@ class _CallTabState extends State<CallTab> {
 
   // 기능번호 자동 발신 (Click to Call API 직접 호출)
   Future<void> _handleFeatureCodeCall(String phoneNumber) async {
+    // 비동기 작업 전에 ScaffoldMessenger 참조 저장
+    final messenger = _scaffoldMessenger;
+    
     try {
       final authService = context.read<AuthService>();
       final userId = authService.currentUser?.uid ?? '';
@@ -1221,28 +1234,26 @@ class _CallTabState extends State<CallTab> {
         debugPrint('📞 CID Number: $cidNumber (callee 값)');
       }
 
-      // 로딩 표시
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
+      // 로딩 표시 (저장된 messenger 참조 사용)
+      messenger?.showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
-                SizedBox(width: 16),
-                Text('기능번호 발신 중...'),
-              ],
-            ),
-            duration: Duration(seconds: 2),
+              ),
+              SizedBox(width: 16),
+              Text('기능번호 발신 중...'),
+            ],
           ),
-        );
-      }
+          duration: Duration(seconds: 2),
+        ),
+      );
 
       // API 서비스 생성 (동적 API URL 사용)
       final apiService = ApiService(
@@ -1280,8 +1291,8 @@ class _CallTabState extends State<CallTab> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger?.clearSnackBars();
+        messenger?.showSnackBar(
           SnackBar(
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1304,8 +1315,8 @@ class _CallTabState extends State<CallTab> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger?.clearSnackBars();
+        messenger?.showSnackBar(
           SnackBar(
             content: Text('기능번호 발신 실패: $e'),
             backgroundColor: Colors.red,
@@ -1321,6 +1332,9 @@ class _CallTabState extends State<CallTab> {
   }
 
   Future<void> _toggleFavorite(ContactModel contact) async {
+    // 비동기 작업 전에 ScaffoldMessenger 참조 저장
+    final messenger = _scaffoldMessenger;
+    
     try {
       await _databaseService.updateContact(
         contact.id,
@@ -1328,7 +1342,7 @@ class _CallTabState extends State<CallTab> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger?.showSnackBar(
           SnackBar(
             content: Row(
               children: [
@@ -1353,7 +1367,7 @@ class _CallTabState extends State<CallTab> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger?.showSnackBar(
           SnackBar(content: Text('오류 발생: $e')),
         );
       }
