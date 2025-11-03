@@ -1073,7 +1073,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                   minimumSize: const Size(0, 32),
                                 ),
                               )
-                            : null,
+                            : IconButton(
+                                onPressed: () => _handleDeleteAccount(context, account),
+                                icon: const Icon(Icons.delete_outline, size: 20),
+                                color: Colors.red,
+                                tooltip: '계정 삭제',
+                              ),
                         onTap: account.isCurrentAccount 
                             ? null 
                             : () => _handleSwitchAccount(context, account),
@@ -1926,6 +1931,150 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             ),
           );
         }
+      }
+    }
+  }
+
+  // 저장된 계정 삭제 (로그인하지 않은 계정만)
+  Future<void> _handleDeleteAccount(BuildContext context, SavedAccountModel account) async {
+    // 현재 로그인된 계정인지 다시 확인 (안전장치)
+    if (account.isCurrentAccount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('현재 로그인된 계정은 삭제할 수 없습니다. 로그아웃 후 삭제해주세요.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    
+    // 삭제 확인 다이얼로그
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 12),
+            Text('계정 삭제'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '다음 계정을 목록에서 삭제하시겠습니까?',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.transparent,
+                    backgroundImage: account.profileImageUrl != null
+                        ? NetworkImage(account.profileImageUrl!)
+                        : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          account.displayName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          account.email,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red[200]!),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, size: 20, color: Colors.red),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '저장된 로그인 정보가 삭제됩니다.\n계정 자체는 삭제되지 않습니다.',
+                      style: TextStyle(fontSize: 12, color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed != true) return;
+    
+    // 계정 삭제 처리
+    try {
+      await AccountManagerService().removeAccount(account.uid);
+      
+      if (mounted) {
+        // UI 새로고침을 위해 setState 호출
+        setState(() {});
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${account.displayName} 계정이 목록에서 삭제되었습니다'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('계정 삭제 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
