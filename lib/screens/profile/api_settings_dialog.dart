@@ -19,6 +19,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   late final TextEditingController _websocketServerPortController;
   bool _isLoading = false;
   bool _websocketUseSSL = false;
+  
+  // ScaffoldMessenger를 안전하게 사용하기 위한 참조 저장
+  ScaffoldMessengerState? _scaffoldMessenger;
 
   @override
   void initState() {
@@ -31,6 +34,13 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     _websocketServerPortController = TextEditingController(text: (userModel?.websocketServerPort ?? 6600).toString());
     _websocketUseSSL = userModel?.websocketUseSSL ?? false;
   }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // ScaffoldMessenger 참조를 미리 저장 (비동기 작업에서 안전하게 사용)
+    _scaffoldMessenger = ScaffoldMessenger.of(context);
+  }
 
   @override
   void dispose() {
@@ -42,13 +52,22 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     super.dispose();
   }
 
-  // 클립보드 붙여넣기 헬퍼 메서드
+  // 클립보드 붙여넣기 헬퍼 메서드 (안전한 비동기 처리)
   Future<void> _pasteFromClipboard(TextEditingController controller, String fieldName) async {
+    // 비동기 작업 전에 ScaffoldMessenger 참조 저장
+    final messenger = _scaffoldMessenger;
+    
     // iOS에서는 포커스를 먼저 설정
-    FocusScope.of(context).requestFocus(FocusNode());
+    if (mounted) {
+      FocusScope.of(context).requestFocus(FocusNode());
+    }
     
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
+      
+      // 비동기 작업 후 mounted 체크
+      if (!mounted) return;
+      
       if (data?.text != null && data!.text!.isNotEmpty) {
         // iOS에서는 직접 컨트롤러에 설정
         controller.value = TextEditingValue(
@@ -56,29 +75,28 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
           selection: TextSelection.collapsed(offset: data.text!.length),
         );
         
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$fieldName 붙여넣기 완료: ${data.text!.length}자'),
-              duration: const Duration(seconds: 1),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+        // 저장된 messenger 참조 사용 (context 대신)
+        messenger?.showSnackBar(
+          SnackBar(
+            content: Text('$fieldName 붙여넣기 완료: ${data.text!.length}자'),
+            duration: const Duration(seconds: 1),
+            backgroundColor: Colors.green,
+          ),
+        );
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('클립보드가 비어있습니다\n\n💡 iOS Tip: 입력 필드를 길게 눌러\n"붙여넣기" 메뉴를 사용하세요'),
-              duration: Duration(seconds: 3),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
+        // 저장된 messenger 참조 사용
+        messenger?.showSnackBar(
+          const SnackBar(
+            content: Text('클립보드가 비어있습니다\n\n💡 iOS Tip: 입력 필드를 길게 눌러\n"붙여넣기" 메뉴를 사용하세요'),
+            duration: Duration(seconds: 3),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     } catch (e) {
+      // 저장된 messenger 참조 사용
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger?.showSnackBar(
           SnackBar(
             content: Text('iOS에서는 입력 필드를 길게 눌러\n"붙여넣기" 메뉴를 사용하세요\n\n오류: $e'),
             duration: const Duration(seconds: 3),
@@ -93,6 +111,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
+    
+    // 비동기 작업 전에 ScaffoldMessenger 참조 저장
+    final messenger = _scaffoldMessenger;
 
     try {
       await context.read<AuthService>().updateUserInfo(
@@ -109,13 +130,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
+        // 저장된 messenger 참조 사용
+        messenger?.showSnackBar(
           const SnackBar(content: Text('기본 설정이 저장되었습니다')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        // 저장된 messenger 참조 사용
+        messenger?.showSnackBar(
           SnackBar(content: Text('오류 발생: $e'), backgroundColor: Colors.red),
         );
       }
