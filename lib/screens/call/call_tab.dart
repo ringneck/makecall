@@ -49,10 +49,53 @@ class _CallTabState extends State<CallTab> with SingleTickerProviderStateMixin {
     // 기본 화면을 단말번호(인덱스 0)로 설정
     _tabController = TabController(length: 5, vsync: this, initialIndex: 0);
     
-    // 로그인 후 설정 확인 및 안내
+    // 로그인 후 설정 확인 및 안내 + 단말번호 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeExtensions();
       _checkSettingsAndShowGuide();
     });
+  }
+  
+  // 단말번호 초기화 (클릭투콜을 위해)
+  Future<void> _initializeExtensions() async {
+    final authService = context.read<AuthService>();
+    final userId = authService.currentUser?.uid ?? '';
+    
+    if (userId.isEmpty) {
+      if (kDebugMode) {
+        debugPrint('⚠️ 사용자 ID 없음 - 단말번호 초기화 건너뛰기');
+      }
+      return;
+    }
+    
+    try {
+      // my_extensions 컬렉션에서 사용자의 단말번호 목록 가져오기
+      final extensionsSnapshot = await _databaseService.getMyExtensions(userId).first;
+      
+      if (extensionsSnapshot.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('ℹ️ 저장된 단말번호 없음');
+        }
+        return;
+      }
+      
+      // Provider에 첫 번째 단말번호 설정 (선택된 단말번호가 없는 경우만)
+      if (!mounted) return;
+      
+      final provider = context.read<SelectedExtensionProvider>();
+      if (provider.selectedExtension == null && extensionsSnapshot.isNotEmpty) {
+        provider.setSelectedExtension(extensionsSnapshot.first);
+        if (kDebugMode) {
+          debugPrint('✅ 통합 탭: 단말번호 초기화 완료');
+          debugPrint('   - Extension: ${extensionsSnapshot.first.extension}');
+          debugPrint('   - Name: ${extensionsSnapshot.first.name}');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 단말번호 초기화 실패: $e');
+      }
+    }
   }
   
   // 설정 확인 및 안내 다이얼로그 표시
