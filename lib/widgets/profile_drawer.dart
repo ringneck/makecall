@@ -1062,51 +1062,18 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                           ],
                         ),
                         trailing: account.isCurrentAccount
-                            ? const Icon(Icons.check_circle, color: Color(0xFF2196F3), size: 20)
-                            : PopupMenuButton(
-                                icon: const Icon(Icons.more_vert, size: 20),
-                                itemBuilder: (context) => [
-                                  const PopupMenuItem(
-                                    value: 'switch',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.swap_horiz, size: 18),
-                                        SizedBox(width: 8),
-                                        Text('계정 전환', style: TextStyle(fontSize: 13)),
-                                      ],
-                                    ),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'edit',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.edit, size: 18),
-                                        SizedBox(width: 8),
-                                        Text('조직명 수정', style: TextStyle(fontSize: 13)),
-                                      ],
-                                    ),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'remove',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.delete, size: 18, color: Colors.red),
-                                        SizedBox(width: 8),
-                                        Text('삭제', style: TextStyle(fontSize: 13, color: Colors.red)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                                onSelected: (value) {
-                                  if (value == 'switch') {
-                                    _handleSwitchAccount(context, account);
-                                  } else if (value == 'edit') {
-                                    _handleEditOrganizationName(context, account);
-                                  } else if (value == 'remove') {
-                                    _handleRemoveAccount(context, account);
-                                  }
-                                },
-                              ),
+                            ? ElevatedButton.icon(
+                                onPressed: () => _handleLogoutFromList(context),
+                                icon: const Icon(Icons.logout, size: 16),
+                                label: const Text('로그아웃', style: TextStyle(fontSize: 12)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  minimumSize: const Size(0, 32),
+                                ),
+                              )
+                            : null,
                         onTap: account.isCurrentAccount 
                             ? null 
                             : () => _handleSwitchAccount(context, account),
@@ -1886,99 +1853,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     }
   }
 
-  Future<void> _handleEditOrganizationName(BuildContext context, SavedAccountModel account) async {
-    final controller = TextEditingController(text: account.companyName ?? '');
-    
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('조직명 수정'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '계정: ${account.email}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: '조직명',
-                hintText: '예: 본사, 지사, 개인 등',
-                border: OutlineInputBorder(),
-              ),
-              maxLength: 50,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2196F3),
-            ),
-            child: const Text('저장'),
-          ),
-        ],
-      ),
-    );
 
-    if (result != null && result.isNotEmpty && mounted) {
-      await AccountManagerService().updateCompanyName(account.uid, result);
-      if (mounted) {
-        setState(() {}); // UI 새로고침
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('조직명이 업데이트되었습니다'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _handleRemoveAccount(BuildContext context, SavedAccountModel account) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('계정 삭제'),
-        content: Text(
-          '저장된 계정 "${account.displayName}"을(를) 삭제하시겠습니까?\n\n'
-          '이 작업은 저장된 계정 정보만 삭제하며, 실제 계정은 삭제되지 않습니다.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      await AccountManagerService().removeAccount(account.uid);
-      if (mounted) {
-        setState(() {}); // UI 새로고침
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('계정이 삭제되었습니다'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    }
-  }
 
   // 현재 로그인된 사용자의 조직명(회사명) 편집
   Future<void> _showEditCompanyNameDialog(BuildContext context, AuthService authService) async {
@@ -2059,6 +1934,32 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             ),
           );
         }
+      }
+    }
+  }
+
+  // 저장된 계정 목록에서 로그아웃 (다이얼로그 없이 바로 로그아웃)
+  Future<void> _handleLogoutFromList(BuildContext context) async {
+    try {
+      await context.read<AuthService>().signOut();
+      if (mounted) {
+        Navigator.pop(context); // Drawer 닫기
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('로그아웃되었습니다'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('로그아웃 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
