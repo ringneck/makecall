@@ -157,16 +157,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 autocorrect: false,
                 keyboardType: TextInputType.url,
                 textInputAction: TextInputAction.next,
-                contextMenuBuilder: (context, editableTextState) {
-                  return AdaptiveTextSelectionToolbar.editable(
-                    clipboardStatus: ClipboardStatus.pasteable,
-                    onCopy: () => editableTextState.copySelection(SelectionChangedCause.toolbar),
-                    onCut: () => editableTextState.cutSelection(SelectionChangedCause.toolbar),
-                    onPaste: () => editableTextState.pasteText(SelectionChangedCause.toolbar),
-                    onSelectAll: () => editableTextState.selectAll(SelectionChangedCause.toolbar),
-                    anchors: editableTextState.contextMenuAnchors,
-                  );
-                },
+                // iOS에서 기본 컨텍스트 메뉴 사용 (길게 누르기 + 붙여넣기)
                 decoration: InputDecoration(
                   labelText: 'API Base URL',
                   hintText: '예: api.example.com',
@@ -208,16 +199,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 autocorrect: false,
                 keyboardType: TextInputType.text,
                 textInputAction: TextInputAction.next,
-                contextMenuBuilder: (context, editableTextState) {
-                  return AdaptiveTextSelectionToolbar.editable(
-                    clipboardStatus: ClipboardStatus.pasteable,
-                    onCopy: () => editableTextState.copySelection(SelectionChangedCause.toolbar),
-                    onCut: () => editableTextState.cutSelection(SelectionChangedCause.toolbar),
-                    onPaste: () => editableTextState.pasteText(SelectionChangedCause.toolbar),
-                    onSelectAll: () => editableTextState.selectAll(SelectionChangedCause.toolbar),
-                    anchors: editableTextState.contextMenuAnchors,
-                  );
-                },
+                // iOS에서 기본 컨텍스트 메뉴 사용 (길게 누르기 + 붙여넣기)
                 decoration: InputDecoration(
                   labelText: 'Company ID',
                   hintText: 'REST API Company ID',
@@ -248,16 +230,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 autocorrect: false,
                 keyboardType: TextInputType.visiblePassword,
                 textInputAction: TextInputAction.next,
-                contextMenuBuilder: (context, editableTextState) {
-                  return AdaptiveTextSelectionToolbar.editable(
-                    clipboardStatus: ClipboardStatus.pasteable,
-                    onCopy: () => editableTextState.copySelection(SelectionChangedCause.toolbar),
-                    onCut: () => editableTextState.cutSelection(SelectionChangedCause.toolbar),
-                    onPaste: () => editableTextState.pasteText(SelectionChangedCause.toolbar),
-                    onSelectAll: () => editableTextState.selectAll(SelectionChangedCause.toolbar),
-                    anchors: editableTextState.contextMenuAnchors,
-                  );
-                },
+                // iOS에서 기본 컨텍스트 메뉴 사용 (길게 누르기 + 붙여넣기)
                 decoration: InputDecoration(
                   labelText: 'App-Key',
                   hintText: 'REST API App-Key',
@@ -300,16 +273,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                       autocorrect: false,
                       keyboardType: TextInputType.url,
                       textInputAction: TextInputAction.next,
-                      contextMenuBuilder: (context, editableTextState) {
-                        return AdaptiveTextSelectionToolbar.editable(
-                          clipboardStatus: ClipboardStatus.pasteable,
-                          onCopy: () => editableTextState.copySelection(SelectionChangedCause.toolbar),
-                          onCut: () => editableTextState.cutSelection(SelectionChangedCause.toolbar),
-                          onPaste: () => editableTextState.pasteText(SelectionChangedCause.toolbar),
-                          onSelectAll: () => editableTextState.selectAll(SelectionChangedCause.toolbar),
-                          anchors: editableTextState.contextMenuAnchors,
-                        );
-                      },
+                      // iOS에서 기본 컨텍스트 메뉴 사용 (길게 누르기 + 붙여넣기)
                       decoration: InputDecoration(
                         labelText: 'WebSocket 서버 주소',
                         hintText: '예: ws.example.com',
