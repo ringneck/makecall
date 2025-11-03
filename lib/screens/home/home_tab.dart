@@ -43,13 +43,10 @@ class _HomeTabState extends State<HomeTab> {
           builder: (context) => IconButton(
             icon: CircleAvatar(
               radius: 18,
-              backgroundColor: const Color(0xFF2196F3).withAlpha(51),
+              backgroundColor: Colors.transparent,
               backgroundImage: authService.currentUserModel?.profileImageUrl != null
                   ? NetworkImage(authService.currentUserModel!.profileImageUrl!)
-                  : null,
-              child: authService.currentUserModel?.profileImageUrl == null
-                  ? const Icon(Icons.person, size: 20, color: Color(0xFF2196F3))
-                  : null,
+                  : const AssetImage('assets/images/app_logo.png') as ImageProvider,
             ),
             onPressed: () {
               Scaffold.of(context).openDrawer();

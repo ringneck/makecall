@@ -303,13 +303,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 onTap: () => _showProfileImageOptions(context, authService),
                 child: CircleAvatar(
                   radius: 50,
-                  backgroundColor: const Color(0xFF2196F3).withAlpha(51),
+                  backgroundColor: Colors.transparent,
                   backgroundImage: userModel?.profileImageUrl != null
                       ? NetworkImage(userModel!.profileImageUrl!)
-                      : null,
-                  child: userModel?.profileImageUrl == null
-                      ? const Icon(Icons.person, size: 50, color: Color(0xFF2196F3))
-                      : null,
+                      : const AssetImage('assets/images/app_logo.png') as ImageProvider,
                 ),
               ),
               Positioned(
