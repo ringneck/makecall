@@ -104,9 +104,7 @@ case $PLATFORM in
     echo -e "${GREEN}🔨 Web 빌드 중 (최적화)...${NC}"
     flutter build web --release \
       --dart-define=flutter.inspector.structuredErrors=false \
-      --dart-define=debugShowCheckedModeBanner=false \
-      --web-renderer canvaskit \
-      --source-maps
+      --dart-define=debugShowCheckedModeBanner=false
     
     # 빌드 결과 확인
     if [ -d "build/web" ]; then
