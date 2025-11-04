@@ -1154,7 +1154,7 @@ class _CallTabState extends State<CallTab> {
       final selectedExtension = context.read<SelectedExtensionProvider>().selectedExtension;
       
       if (selectedExtension == null) {
-        throw Exception('선택된 단말번호가 없습니다.\n홈 탭에서 단말번호를 확인해주세요.');
+        throw Exception('선택된 단말번호가 없습니다.\n왼쪽 상단 프로필에서 단말번호를 등록해주세요.');
       }
 
       if (kDebugMode) {
