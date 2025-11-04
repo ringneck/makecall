@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/user_session_manager.dart';
 import 'services/dcmiws_service.dart';
+import 'services/dcmiws_connection_manager.dart';
 import 'providers/selected_extension_provider.dart';
 import 'providers/dcmiws_event_provider.dart';
 import 'screens/auth/login_screen.dart';
@@ -62,12 +63,28 @@ class _MyAppState extends State<MyApp> {
   bool _isSessionCheckScheduled = false;
   String? _lastCheckedUserId;
   bool _providersRegistered = false; // Provider 등록 플래그
+  
+  // 🚀 WebSocket 연결 관리자
+  final DCMIWSConnectionManager _connectionManager = DCMIWSConnectionManager();
 
   @override
   void initState() {
     super.initState();
+    
     // 🔑 NavigatorKey를 DCMIWSService에 등록
     DCMIWSService.setNavigatorKey(navigatorKey);
+    
+    // 🚀 WebSocket 연결 관리자 시작
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _connectionManager.start();
+    });
+  }
+  
+  @override
+  void dispose() {
+    // 🛑 WebSocket 연결 관리자 중지
+    _connectionManager.stop();
+    super.dispose();
   }
 
   @override
