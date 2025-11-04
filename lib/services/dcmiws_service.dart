@@ -345,8 +345,8 @@ class DCMIWSService {
     final eventData = callEventData['data'] as Map<String, dynamic>;
     String? callerName = eventData['CallerIDName'] as String?;
     
-    // 2️⃣ CallerIDName이 없거나 비어있으면 연락처에서 조회
-    if (callerName == null || callerName.isEmpty) {
+    // 2️⃣ CallerIDName이 없거나 비어있거나 <unknown>이면 연락처에서 조회
+    if (callerName == null || callerName.isEmpty || callerName == '<unknown>') {
       if (kDebugMode) {
         debugPrint('🔍 CallerIDName 없음, 기기 연락처에서 조회 중...');
       }
@@ -382,6 +382,51 @@ class DCMIWSService {
     // 4️⃣ 최종 callerName 보장 (null 방지)
     final finalCallerName = callerName ?? callerNumber;
     
+    // 5️⃣ 내 단말번호 정보 가져오기 (companyName, 외부발신 표시번호)
+    String? myCompanyName;
+    String? myOutboundCid;
+    
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        // receiverNumber로 my_extensions에서 정보 조회
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('my_extensions')
+            .where('userId', isEqualTo: userId)
+            .where('extension', isEqualTo: receiverNumber)
+            .limit(1)
+            .get();
+        
+        if (querySnapshot.docs.isNotEmpty) {
+          final extensionData = querySnapshot.docs.first.data();
+          myOutboundCid = extensionData['outboundCID'] as String?;
+          
+          if (kDebugMode) {
+            debugPrint('✅ 내 단말번호 정보 조회 성공: $receiverNumber');
+            debugPrint('  외부발신 표시번호: $myOutboundCid');
+          }
+        }
+        
+        // users 컬렉션에서 companyName 가져오기
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .get();
+        
+        if (userDoc.exists) {
+          myCompanyName = userDoc.data()?['companyName'] as String?;
+          
+          if (kDebugMode) {
+            debugPrint('  조직명: $myCompanyName');
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ 내 단말번호 정보 조회 실패: $e');
+      }
+    }
+    
     if (kDebugMode) {
       debugPrint('📞 수신 전화 화면 표시:');
       debugPrint('  발신자: $finalCallerName');
@@ -401,6 +446,8 @@ class DCMIWSService {
           channel: channel,
           linkedid: linkedid,
           receiverNumber: receiverNumber,
+          myCompanyName: myCompanyName,
+          myOutboundCid: myOutboundCid,
           onAccept: () {
             Navigator.of(context).pop();
             // TODO: 전화 수락 로직 (SIP 연결 등)

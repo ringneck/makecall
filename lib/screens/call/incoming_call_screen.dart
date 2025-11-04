@@ -9,6 +9,8 @@ class IncomingCallScreen extends StatefulWidget {
   final String channel;
   final String linkedid;
   final String receiverNumber;
+  final String? myCompanyName;
+  final String? myOutboundCid;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
@@ -20,6 +22,8 @@ class IncomingCallScreen extends StatefulWidget {
     required this.channel,
     required this.linkedid,
     required this.receiverNumber,
+    this.myCompanyName,
+    this.myOutboundCid,
     required this.onAccept,
     required this.onReject,
   });
@@ -118,7 +122,12 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 // 📱 메인 콘텐츠
                 Column(
                   children: [
-                    const SizedBox(height: 60),
+                    const SizedBox(height: 40),
+
+                    // 🏢 내 단말번호 정보 (상단)
+                    _buildMyExtensionInfo(),
+
+                    const SizedBox(height: 30),
 
                     // 📞 "수신 전화" 텍스트
                     _buildHeaderText(),
@@ -133,8 +142,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
                     const Spacer(flex: 3),
 
-                    // 🎯 수락/거절 버튼
-                    _buildActionButtons(),
+                    // 🎯 수락/거절 버튼 (간소화)
+                    _buildSimpleActionButtons(),
 
                     const SizedBox(height: 80),
                   ],
@@ -214,6 +223,74 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           ),
         );
       },
+    );
+  }
+
+  /// 🏢 내 단말번호 정보 (상단)
+  Widget _buildMyExtensionInfo() {
+    // companyName과 myOutboundCid가 모두 없으면 표시하지 않음
+    if ((widget.myCompanyName == null || widget.myCompanyName!.isEmpty) &&
+        (widget.myOutboundCid == null || widget.myOutboundCid!.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 40),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          // 조직명 (첫 번째 줄)
+          if (widget.myCompanyName != null && widget.myCompanyName!.isNotEmpty)
+            Text(
+              widget.myCompanyName!,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.95),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          
+          // 간격 (조직명이 있을 때만)
+          if (widget.myCompanyName != null && 
+              widget.myCompanyName!.isNotEmpty &&
+              widget.myOutboundCid != null &&
+              widget.myOutboundCid!.isNotEmpty)
+            const SizedBox(height: 6),
+          
+          // 외부발신 표시번호 (두 번째 줄)
+          if (widget.myOutboundCid != null && widget.myOutboundCid!.isNotEmpty)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.phone_forwarded,
+                  color: Colors.white.withOpacity(0.8),
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  widget.myOutboundCid!,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 
@@ -379,7 +456,79 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     );
   }
 
-  /// 🎯 수락/거절 버튼
+  /// 🎯 간소화된 수락/거절 버튼 (텍스트만)
+  Widget _buildSimpleActionButtons() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          // ❌ 거절 버튼
+          _buildSimpleActionButton(
+            label: '거절',
+            color: Colors.red,
+            onTap: _rejectCall,
+          ),
+
+          // ✅ 수락 버튼
+          _buildSimpleActionButton(
+            label: '수락',
+            color: Colors.green,
+            onTap: _acceptCall,
+            isPrimary: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 간소화된 액션 버튼 (텍스트만 표시)
+  Widget _buildSimpleActionButton({
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+    bool isPrimary = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedBuilder(
+        animation: _glowController,
+        builder: (context, child) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 2,
+              ),
+              boxShadow: isPrimary
+                  ? [
+                      BoxShadow(
+                        color: color.withOpacity(0.5 * _glowController.value),
+                        blurRadius: 30 * _glowController.value,
+                        spreadRadius: 5 * _glowController.value,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 🎯 수락/거절 버튼 (기존 아이콘 버전 - 유지)
   Widget _buildActionButtons() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),
