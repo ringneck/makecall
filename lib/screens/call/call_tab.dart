@@ -472,7 +472,7 @@ class _CallTabState extends State<CallTab> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  '통화 기능을 사용하려면 단말번호를 조회하고 저장해야 합니다.',
+                  '통화 기능을 사용하려면 단말번호를 조회하고 등록해야 합니다.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
                 const SizedBox(height: 16),
