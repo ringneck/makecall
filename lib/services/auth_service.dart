@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:io';
 import '../models/user_model.dart';
 import 'account_manager_service.dart';
+import 'fcm_service.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -191,6 +192,20 @@ class AuthService extends ChangeNotifier {
         
         // 비밀번호를 _loadUserModel에 전달하여 자동 저장
         await _loadUserModel(credential.user!.uid, password: password);
+        
+        // FCM 초기화 (로그인 성공 후)
+        try {
+          if (kDebugMode) {
+            debugPrint('');
+            debugPrint('🔔 로그인 성공 - FCM 초기화 시작...');
+          }
+          final fcmService = FCMService();
+          await fcmService.initialize(credential.user!.uid);
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️  FCM 초기화 오류 (로그인은 정상): $e');
+          }
+        }
       }
       
       return credential;
@@ -210,6 +225,19 @@ class AuthService extends ChangeNotifier {
     if (kDebugMode) {
       debugPrint('🔓 로그아웃 시작');
       debugPrint('   - 현재 사용자: ${_currentUserModel?.email ?? "없음"}');
+    }
+    
+    // FCM 토큰 비활성화
+    try {
+      final fcmService = FCMService();
+      await fcmService.deactivateToken();
+      if (kDebugMode) {
+        debugPrint('✅ FCM 토큰 비활성화 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️  FCM 토큰 비활성화 오류: $e');
+      }
     }
     
     await _auth.signOut();

@@ -43,7 +43,24 @@ class FCMService {
         
         if (_fcmToken != null) {
           if (kDebugMode) {
-            debugPrint('✅ FCM 토큰 획득: ${_fcmToken!.substring(0, 20)}...');
+            debugPrint('');
+            debugPrint('='*60);
+            debugPrint('🔔 FCM 토큰 정보');
+            debugPrint('='*60);
+            debugPrint('📱 전체 토큰:');
+            debugPrint(_fcmToken!);
+            debugPrint('');
+            debugPrint('📋 요약 정보:');
+            debugPrint('  - 토큰 길이: ${_fcmToken!.length} 문자');
+            debugPrint('  - 사용자 ID: $userId');
+            debugPrint('  - 플랫폼: ${_getPlatformName()}');
+            debugPrint('  - 기기 이름: ${await _getDeviceName()}');
+            debugPrint('');
+            debugPrint('💡 복사해서 테스트에 사용하세요:');
+            debugPrint('   Firebase Console → Messaging → Send test message');
+            debugPrint('   또는: python3 docs/fcm_testing/send_fcm_test_message.py');
+            debugPrint('='*60);
+            debugPrint('');
           }
           
           // Firestore에 토큰 저장
@@ -52,7 +69,16 @@ class FCMService {
           // 토큰 갱신 리스너 등록
           _messaging.onTokenRefresh.listen((newToken) {
             if (kDebugMode) {
-              debugPrint('🔄 FCM 토큰 갱신: ${newToken.substring(0, 20)}...');
+              debugPrint('');
+              debugPrint('🔄 FCM 토큰 갱신됨!');
+              debugPrint('='*60);
+              debugPrint('📱 새 토큰:');
+              debugPrint(newToken);
+              debugPrint('');
+              debugPrint('⚠️  이전 토큰은 더 이상 유효하지 않습니다.');
+              debugPrint('   새 토큰을 테스트에 사용하세요.');
+              debugPrint('='*60);
+              debugPrint('');
             }
             _fcmToken = newToken;
             _saveFCMToken(userId, newToken);
@@ -84,13 +110,14 @@ class FCMService {
   Future<void> _saveFCMToken(String userId, String token) async {
     try {
       final deviceId = await _getDeviceId();
+      final deviceName = await _getDeviceName();
       final platform = _getPlatformName();
       
       await _firestore.collection('fcm_tokens').doc(token).set({
         'userId': userId,
         'token': token,
         'deviceId': deviceId,
-        'deviceName': await _getDeviceName(),
+        'deviceName': deviceName,
         'platform': platform,
         'appVersion': '1.0.0', // TODO: 실제 앱 버전으로 변경
         'isActive': true,
@@ -101,6 +128,10 @@ class FCMService {
       
       if (kDebugMode) {
         debugPrint('✅ FCM 토큰 Firestore 저장 완료');
+        debugPrint('   컬렉션: fcm_tokens');
+        debugPrint('   문서 ID: ${token.substring(0, 30)}...');
+        debugPrint('   사용자 ID: $userId');
+        debugPrint('   기기: $deviceName ($platform)');
       }
     } catch (e) {
       if (kDebugMode) {
