@@ -45,11 +45,13 @@ def send_test_notification(token, message_type='basic'):
                 }
             },
             'incoming_call': {
-                'title': '📞 수신 전화',
-                'body': '010-1234-5678에서 전화가 왔습니다',
+                'title': '김철수',
+                'body': '010-1234-5678',
                 'data': {
                     'type': 'incoming_call',
-                    'phoneNumber': '010-1234-5678',
+                    'caller_name': '김철수',
+                    'caller_number': '010-1234-5678',
+                    'caller_avatar': '',  # 옵션: 아바타 이미지 URL
                     'callId': f'call_{datetime.now().timestamp()}',
                 }
             },

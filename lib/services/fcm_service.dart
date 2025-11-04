@@ -1,7 +1,9 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
+import '../screens/call/incoming_call_screen.dart';
 
 /// FCM(Firebase Cloud Messaging) 서비스
 class FCMService {
@@ -9,9 +11,15 @@ class FCMService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
   String? _fcmToken;
+  static BuildContext? _context; // 전역 BuildContext 저장
   
   /// FCM 토큰 가져오기
   String? get fcmToken => _fcmToken;
+  
+  /// BuildContext 설정 (main.dart에서 호출)
+  static void setContext(BuildContext context) {
+    _context = context;
+  }
   
   /// FCM 초기화
   Future<void> initialize(String userId) async {
@@ -149,7 +157,53 @@ class FCMService {
       debugPrint('  데이터: ${message.data}');
     }
     
-    // TODO: 로컬 알림 표시 (flutter_local_notifications 패키지 사용)
+    // 수신 전화 타입인 경우 풀스크린 표시
+    if (message.data['type'] == 'incoming_call') {
+      _showIncomingCallScreen(message);
+    }
+  }
+  
+  /// 수신 전화 풀스크린 표시
+  void _showIncomingCallScreen(RemoteMessage message) {
+    if (_context == null) {
+      debugPrint('❌ BuildContext가 설정되지 않았습니다');
+      return;
+    }
+    
+    final callerName = message.data['caller_name'] ?? message.notification?.title ?? '알 수 없음';
+    final callerNumber = message.data['caller_number'] ?? message.notification?.body ?? '';
+    final callerAvatar = message.data['caller_avatar'];
+    
+    if (kDebugMode) {
+      debugPrint('📞 수신 전화 화면 표시:');
+      debugPrint('  발신자: $callerName');
+      debugPrint('  번호: $callerNumber');
+    }
+    
+    Navigator.of(_context!).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => IncomingCallScreen(
+          callerName: callerName,
+          callerNumber: callerNumber,
+          callerAvatar: callerAvatar,
+          onAccept: () {
+            Navigator.of(context).pop();
+            // TODO: 전화 수락 로직 (SIP 연결 등)
+            if (kDebugMode) {
+              debugPrint('✅ 전화 수락됨: $callerNumber');
+            }
+          },
+          onReject: () {
+            Navigator.of(context).pop();
+            // TODO: 전화 거절 로직 (서버 통신 등)
+            if (kDebugMode) {
+              debugPrint('❌ 전화 거절됨: $callerNumber');
+            }
+          },
+        ),
+      ),
+    );
   }
   
   /// 사용자 알림 설정 가져오기

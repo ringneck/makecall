@@ -1,14 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/user_session_manager.dart';
+import 'services/fcm_service.dart';
 import 'providers/selected_extension_provider.dart';
 import 'providers/dcmiws_event_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/main_screen.dart';
+
+/// 백그라운드 FCM 메시지 핸들러 (Top-level function)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  debugPrint('🔔 백그라운드 메시지 수신:');
+  debugPrint('  제목: ${message.notification?.title}');
+  debugPrint('  내용: ${message.notification?.body}');
+  debugPrint('  데이터: ${message.data}');
+  
+  // 백그라운드에서는 로컬 알림만 표시
+  // 풀스크린은 앱이 포그라운드로 돌아왔을 때 표시
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +33,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // 🔔 FCM 백그라운드 핸들러 등록
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   
   // 🗄️ Hive 초기화 (로컬 데이터 저장소)
   await Hive.initFlutter();
@@ -66,6 +85,13 @@ class _MyAppState extends State<MyApp> {
               }
             });
           }
+          
+          // 🎯 FCMService에 BuildContext 등록 (한 번만 실행)
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              FCMService.setContext(context);
+            }
+          });
           
           return MaterialApp(
             title: 'MAKECALL',
