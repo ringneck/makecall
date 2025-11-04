@@ -11,7 +11,7 @@ WebSocket Newchannel 이벤트를 통한 **실시간 수신 전화 감지** 및 
 ### 🌊 **WebSocket 이벤트 감지**
 - **type: 3** (Call Event) 메시지 자동 감지
 - **Event: "Newchannel"** 이벤트 필터링
-- **Context: "trk-*"** (트렁크 수신) 이벤트만 처리
+- **my_extensions 검증**: `Exten` 필드가 사용자의 등록된 내선번호(`extension` 또는 `accountCode`)와 일치해야 처리
 
 ### 📞 **자동 수신 전화 표시**
 - CallerIDNum (발신번호) 자동 추출
@@ -172,9 +172,10 @@ wscat -c ws://서버주소:7099
 |------|------|------|----------|
 | `type` | 루트 | 3 (Call Event) | ✅ 필수 |
 | `Event` | data | "Newchannel" | ✅ 필수 |
-| `Context` | data | "trk-*" (트렁크로 시작) | ✅ 필수 |
 | `CallerIDNum` | data | 발신 전화번호 | ✅ 필수 |
-| `Exten` | data | 수신 전화번호 | ✅ 필수 |
+| `Exten` | data | 수신 전화번호 (my_extensions와 일치 필요) | ✅ 필수 |
+| `Channel` | data | 채널 정보 (모바일 수신용) | ✅ 필수 |
+| `Linkedid` | data | 통화 연결 ID (통화 기록 추적용) | ✅ 필수 |
 | `CallerIDName` | data | 발신자 이름 | ⭕ 옵션 |
 
 ### ❌ **처리되지 않는 이벤트**
@@ -186,8 +187,8 @@ wscat -c ws://서버주소:7099
 // Event가 Newchannel이 아닌 경우
 {"type": 3, "data": {"Event": "Hangup", ...}}
 
-// Context가 trk로 시작하지 않는 경우
-{"type": 3, "data": {"Event": "Newchannel", "Context": "from-internal", ...}}
+// Exten이 등록된 내선번호가 아닌 경우 (my_extensions에 없음)
+{"type": 3, "data": {"Event": "Newchannel", "Exten": "01099999999", ...}}
 ```
 
 ---
@@ -208,7 +209,7 @@ void _handleMessage(dynamic message) {
 ### **2. Newchannel 이벤트 감지**
 
 ```dart
-void _checkIncomingCall(Map<String, dynamic> data) {
+Future<void> _checkIncomingCall(Map<String, dynamic> data) async {
   // type이 3인지 확인 (Call Event)
   if (data['type'] != 3) return;
   
@@ -216,16 +217,50 @@ void _checkIncomingCall(Map<String, dynamic> data) {
   final event = data['data']['Event'];
   if (event != 'Newchannel') return;
   
-  // Context가 "trk"로 시작하는지 확인
-  final context = data['data']['Context'];
-  if (!context.startsWith('trk')) return;
-  
-  // CallerIDNum, Exten 추출
+  // CallerIDNum, Exten, Channel, Linkedid 추출
   final callerIdNum = data['data']['CallerIDNum'];
   final exten = data['data']['Exten'];
+  final channel = data['data']['Channel'];
+  final linkedid = data['data']['Linkedid'];
+  
+  // 🔐 my_extensions 유효성 검사 (등록된 내선번호인지 확인)
+  final isValidExtension = await _validateMyExtension(exten);
+  if (!isValidExtension) {
+    debugPrint('⚠️ 등록되지 않은 내선번호: $exten');
+    return;
+  }
   
   // 풀스크린 표시
-  _showIncomingCallScreen(callerIdNum, exten, data);
+  _showIncomingCallScreen(callerIdNum, exten, channel, linkedid, data);
+}
+```
+
+### **2-1. my_extensions 유효성 검사**
+
+```dart
+Future<bool> _validateMyExtension(String exten) async {
+  final userId = FirebaseAuth.instance.currentUser?.uid;
+  if (userId == null) return false;
+  
+  // 1️⃣ extension 필드와 일치하는지 확인
+  final extensionQuery = await FirebaseFirestore.instance
+      .collection('my_extensions')
+      .where('userId', isEqualTo: userId)
+      .where('extension', isEqualTo: exten)
+      .limit(1)
+      .get();
+  
+  if (extensionQuery.docs.isNotEmpty) return true;
+  
+  // 2️⃣ accountCode 필드와 일치하는지 확인
+  final accountCodeQuery = await FirebaseFirestore.instance
+      .collection('my_extensions')
+      .where('userId', isEqualTo: userId)
+      .where('accountCode', isEqualTo: exten)
+      .limit(1)
+      .get();
+  
+  return accountCodeQuery.docs.isNotEmpty;
 }
 ```
 
@@ -299,11 +334,20 @@ DCMIWSService.setContext(context);  // ✅ 이 코드가 있어야 함
 ✅ DCMIWS: Connected successfully  # ← 이 메시지가 있어야 함
 ```
 
-**원인 3: Context 필터 불일치**
-```json
-// Context가 "trk"로 시작하는지 확인
-{"Context": "trk-11-in"}  // ✅ OK
-{"Context": "from-internal"}  // ❌ NG
+**원인 3: my_extensions 미등록**
+```bash
+# Firestore 확인: users/{userId}/my_extensions
+# Exten 필드가 extension 또는 accountCode와 일치해야 함
+
+# ✅ 올바른 예시
+{
+  "userId": "abc123",
+  "extension": "07045144801",
+  "accountCode": "DKCT"
+}
+
+# ❌ Exten이 등록되지 않은 경우
+Exten: "01099999999"  # my_extensions에 없음
 ```
 
 ---
@@ -338,12 +382,102 @@ debugPrint('type: ${data['type']}');  // 3이어야 함
 // 2. Event 확인
 debugPrint('Event: ${data['data']['Event']}');  // "Newchannel"이어야 함
 
-// 3. Context 확인
-debugPrint('Context: ${data['data']['Context']}');  // "trk"로 시작해야 함
-
-// 4. 필수 필드 확인
+// 3. 필수 필드 확인
 debugPrint('CallerIDNum: ${data['data']['CallerIDNum']}');  // null이 아니어야 함
 debugPrint('Exten: ${data['data']['Exten']}');  // null이 아니어야 함
+debugPrint('Channel: ${data['data']['Channel']}');  // null이 아니어야 함
+debugPrint('Linkedid: ${data['data']['Linkedid']}');  // null이 아니어야 함
+
+// 4. my_extensions 검증 확인
+// 콘솔 로그에서 다음 메시지 확인:
+// ✅ my_extensions 검증 성공 (extension 필드 일치)
+// ✅ my_extensions 검증 성공 (accountCode 필드 일치)
+// ⚠️ 등록되지 않은 내선번호: {exten}
+```
+
+---
+
+## 🔐 my_extensions 검증 흐름
+
+### **목적**
+- 사용자가 등록한 내선번호로만 수신 전화 알림을 받도록 보안 필터링
+- 타인의 내선번호로 오는 전화는 무시
+
+### **검증 과정**
+
+```
+1. Newchannel 이벤트 수신
+   ↓
+2. Exten 필드 추출 (예: "07045144801")
+   ↓
+3. Firestore my_extensions 컬렉션 조회
+   - where('userId', isEqualTo: currentUserId)
+   - where('extension', isEqualTo: exten)
+   ↓
+4-1. 일치하는 문서 있음 → ✅ 검증 성공
+   ↓
+4-2. 일치하는 문서 없음 → accountCode로 재검증
+   - where('userId', isEqualTo: currentUserId)
+   - where('accountCode', isEqualTo: exten)
+   ↓
+5-1. accountCode 일치 → ✅ 검증 성공
+   ↓
+5-2. accountCode도 불일치 → ❌ 검증 실패 (이벤트 무시)
+```
+
+### **my_extensions 컬렉션 구조**
+
+```json
+{
+  "userId": "abc123",
+  "extension": "07045144801",
+  "accountCode": "DKCT",
+  "name": "내 대표번호",
+  "createdAt": "2024-11-03T10:00:00Z"
+}
+```
+
+### **등록 방법**
+1. 앱의 **프로필 탭** → **내선번호 관리** 접속
+2. **+ 추가** 버튼 클릭
+3. **내선번호** 입력 (예: "07045144801")
+4. **계정 코드** 입력 (예: "DKCT")
+5. **저장** → my_extensions 컬렉션에 자동 추가
+
+### **검증 실패 시 동작**
+```
+📨 WebSocket 메시지 수신
+📞 수신 전화 감지!
+  발신번호: 01026132471
+  수신번호: 01099999999
+  Channel: PJSIP/DKCT-000001b1
+  Linkedid: 1762257300.677
+❌ my_extensions 검증 실패
+  userId: abc123
+  exten: 01099999999
+  등록된 내선번호가 아닙니다
+⚠️ 등록되지 않은 내선번호: 01099999999
+  해당 이벤트는 무시됩니다.
+```
+
+### **검증 성공 시 동작**
+```
+📨 WebSocket 메시지 수신
+📞 수신 전화 감지!
+  발신번호: 01026132471
+  수신번호: 07045144801
+  Channel: PJSIP/DKCT-000001b1
+  Linkedid: 1762257300.677
+✅ my_extensions 검증 성공 (extension 필드 일치)
+  userId: abc123
+  extension: 07045144801
+✅ 등록된 내선번호 확인됨: 07045144801
+📞 수신 전화 화면 표시:
+  발신자: 김철수
+  발신번호: 01026132471
+  수신번호: 07045144801
+  Channel: PJSIP/DKCT-000001b1
+  Linkedid: 1762257300.677
 ```
 
 ---
@@ -434,5 +568,18 @@ python3 test_websocket_newchannel.py
 
 ---
 
-**작성일**: 2024-11-03  
-**버전**: 1.0.0
+## 🔄 변경 이력
+
+### **v1.1.0** (2024-11-04)
+- ✅ **my_extensions 검증 기능 추가**: 등록된 내선번호만 수신 전화 알림
+- ✅ **Channel, Linkedid 필드 추가**: 통화 기록 추적 및 모바일 수신 지원
+- ⚠️ **Context 필터 제거**: 모든 Newchannel 이벤트 처리 (my_extensions 검증으로 대체)
+
+### **v1.0.0** (2024-11-03)
+- 🎉 **초기 릴리스**: WebSocket Newchannel 이벤트 감지 및 풀스크린 표시
+- ✅ FCM Push + WebSocket 재연결 기능
+
+---
+
+**최종 업데이트**: 2024-11-04  
+**버전**: 1.1.0
