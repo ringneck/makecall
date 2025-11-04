@@ -142,10 +142,15 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
                     const Spacer(flex: 3),
 
-                    // 🎯 수락/거절 버튼 (간소화)
-                    _buildSimpleActionButtons(),
+                    // 🎯 수락/거절 버튼 (아이콘+레이블)
+                    _buildActionButtons(),
 
-                    const SizedBox(height: 80),
+                    const SizedBox(height: 30),
+
+                    // 📝 확인 버튼 (넓은 텍스트 버튼)
+                    _buildConfirmButton(),
+
+                    const SizedBox(height: 40),
                   ],
                 ),
               ],
@@ -456,74 +461,37 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     );
   }
 
-  /// 🎯 간소화된 수락/거절 버튼 (텍스트만)
-  Widget _buildSimpleActionButtons() {
+  /// 📝 확인 버튼 (넓은 텍스트 버튼)
+  Widget _buildConfirmButton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          // ❌ 거절 버튼
-          _buildSimpleActionButton(
-            label: '거절',
-            color: Colors.red,
-            onTap: _rejectCall,
-          ),
-
-          // ✅ 수락 버튼
-          _buildSimpleActionButton(
-            label: '수락',
-            color: Colors.green,
-            onTap: _acceptCall,
-            isPrimary: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 간소화된 액션 버튼 (텍스트만 표시)
-  Widget _buildSimpleActionButton({
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-    bool isPrimary = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedBuilder(
-        animation: _glowController,
-        builder: (context, child) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.3),
-                width: 2,
-              ),
-              boxShadow: isPrimary
-                  ? [
-                      BoxShadow(
-                        color: color.withOpacity(0.5 * _glowController.value),
-                        blurRadius: 30 * _glowController.value,
-                        spreadRadius: 5 * _glowController.value,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
-            ),
-          );
+      child: GestureDetector(
+        onTap: () {
+          // TODO: 확인 버튼 동작 정의 (현재는 화면 닫기)
+          Navigator.of(context).pop();
         },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.4),
+              width: 2,
+            ),
+          ),
+          child: const Text(
+            '확인',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
       ),
     );
   }
