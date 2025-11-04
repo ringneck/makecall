@@ -41,6 +41,8 @@ class _CallTabState extends State<CallTab> {
     'Echo Test': '에코테스트',
     'Call Forward Immediately - Toggle': '즉시 착신 전환 토글',
     'Set CF Immediately Number': '즉시 착신 전환 번호 설정',
+    'Ring Groups': '링그룹',
+    'Conferences': '음성회의',
   };
 
   @override
@@ -493,7 +495,7 @@ class _CallTabState extends State<CallTab> {
                           Icon(Icons.info_outline, size: 20, color: Colors.orange),
                           SizedBox(width: 8),
                           Text(
-                            '설정 방법:',
+                            '등록 방법:',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -532,7 +534,7 @@ class _CallTabState extends State<CallTab> {
                   }
                 },
                 icon: const Icon(Icons.phone_in_talk, size: 18),
-                label: const Text('설정하기'),
+                label: const Text('등록하기'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
