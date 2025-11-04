@@ -36,13 +36,11 @@ class _CallTabState extends State<CallTab> {
   List<ContactModel> _deviceContacts = [];
   bool _hasCheckedSettings = false; // 설정 체크 완료 플래그
 
-  // 영어 이름을 한글로 번역하는 매핑 테이블
+  // 영어 이름을 한글로 번역하는 매핑 테이블 (Feature Codes 이름 번역용)
   final Map<String, String> _nameTranslations = {
     'Echo Test': '에코테스트',
     'Call Forward Immediately - Toggle': '즉시 착신 전환 토글',
     'Set CF Immediately Number': '즉시 착신 전환 번호 설정',
-    'Ring Groups': '링그룹',
-    'Conferences': '음성회의',
   };
 
   @override
@@ -1697,21 +1695,11 @@ class _CallTabState extends State<CallTab> {
       categoryIcon = Icons.star;
     }
 
-    // 이름 번역
+    // 이름 번역 (Feature Codes 이름만)
     final translatedName = _translateName(contact.name);
     
-    // 카테고리 번역 (영어면 한글로 변환)
-    final translatedCategory = _translateName(contact.categoryDisplay);
-    
-    // 🔍 디버그: 카테고리 번역 확인
-    if (kDebugMode) {
-      debugPrint('🔍 Original Name: "${contact.name}"');
-      debugPrint('🔍 Translated Name: "$translatedName"');
-      debugPrint('🔍 Category Display: "${contact.categoryDisplay}"');
-      debugPrint('🔍 Translated Category: "$translatedCategory"');
-      debugPrint('🔍 Contains in map: ${_nameTranslations.containsKey(contact.categoryDisplay)}');
-      debugPrint('🔍 Category (base): "${contact.category}"');
-    }
+    // categoryDisplay는 이미 DB에 한글로 저장되어 있음 (fromApi에서 변환됨)
+    final categoryDisplay = contact.categoryDisplay;
 
     return ListTile(
       leading: CircleAvatar(
@@ -1734,7 +1722,7 @@ class _CallTabState extends State<CallTab> {
               border: Border.all(color: categoryColor.withAlpha(77)),
             ),
             child: Text(
-              translatedCategory,
+              categoryDisplay,
               style: TextStyle(
                 fontSize: 11,
                 color: categoryColor,

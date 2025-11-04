@@ -153,6 +153,12 @@ class PhonebookContactModel {
       categoryDisplay = '단말번호';
     } else if (category == 'Feature Codes') {
       categoryDisplay = '기능번호';
+    } else if (category == 'Ring Groups') {
+      categoryDisplay = '링그룹';
+    } else if (category == 'Conferences') {
+      categoryDisplay = '음성회의';
+    } else if (category == 'Speed Dialing') {
+      categoryDisplay = '단축발신';
     }
 
     // contactId 생성: API id가 있으면 사용, 없으면 전화번호 기반으로 생성

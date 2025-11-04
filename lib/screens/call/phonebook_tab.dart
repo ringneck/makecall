@@ -28,13 +28,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
   // 영어 이름을 한글로 번역하는 매핑 테이블
   final Map<String, String> _nameTranslations = {
-    // 기능 코드 (Feature Codes)
+    // 기능 코드 (Feature Codes) 이름 번역
     'Echo Test': '에코테스트',
     'Call Forward Immediately - Toggle': '즉시 착신 전환 토글',
     'Set CF Immediately Number': '즉시 착신 전환 번호 설정',
-    'Ring Groups': '링그룹',
-    'Conferences': '음성회의',
-    'Speed Dialing': '단축번호',
 
     // 일반 직책 및 부서
     'CEO': '대표이사',
