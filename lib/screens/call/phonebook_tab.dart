@@ -32,7 +32,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
     'Echo Test': '에코테스트',
     'Call Forward Immediately - Toggle': '즉시 착신 전환 토글',
     'Set CF Immediately Number': '즉시 착신 전환 번호 설정',
-    
+    'Ring Groups': '링그룹',
+    'Conferences': '음성회의',
+    'Speed Dialing': '단축번호',
+
     // 일반 직책 및 부서
     'CEO': '대표이사',
     'CTO': '기술이사',
