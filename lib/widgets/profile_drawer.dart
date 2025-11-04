@@ -1262,12 +1262,35 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
   Future<void> _saveExtension(Map<String, dynamic> apiData, String userId) async {
     try {
+      final authService = context.read<AuthService>();
+      final dbService = DatabaseService();
+      
+      final extension = apiData['extension']?.toString() ?? '';
+      final name = apiData['name']?.toString() ?? '';
+      final userEmail = authService.currentUser?.email ?? '';
+      final userName = authService.currentUserModel?.phoneNumberName ?? '';
+      
+      // 1. registered_extensions 컬렉션에 등록 (중복 방지 및 다른 사용자 표시용)
+      await dbService.registerExtension(
+        extension: extension,
+        userId: userId,
+        userEmail: userEmail,
+        userName: userName,
+      );
+      
+      // 2. my_extensions 컬렉션에 추가 (UI 표시용)
       final myExtension = MyExtensionModel.fromApi(
         userId: userId,
         apiData: apiData,
       );
 
-      await DatabaseService().addMyExtension(myExtension);
+      await dbService.addMyExtension(myExtension);
+
+      if (kDebugMode) {
+        debugPrint('✅ ProfileDrawer - 단말번호 등록 완료: $extension');
+        debugPrint('   - registered_extensions 등록');
+        debugPrint('   - my_extensions 컬렉션 추가');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1278,6 +1301,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         );
       }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ ProfileDrawer - 단말번호 등록 실패: $e');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('등록 실패: $e')),
@@ -1308,13 +1334,29 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
     if (confirmed == true) {
       try {
-        await DatabaseService().deleteMyExtension(extension.id);
+        final dbService = DatabaseService();
+        
+        // 1. my_extensions 컬렉션에서 삭제
+        await dbService.deleteMyExtension(extension.id);
+        
+        // 2. registered_extensions 컬렉션에서 등록 해제
+        await dbService.unregisterExtension(extension.extension);
+        
+        if (kDebugMode) {
+          debugPrint('✅ ProfileDrawer - 단말번호 삭제 완료: ${extension.extension}');
+          debugPrint('   - my_extensions 컬렉션 삭제');
+          debugPrint('   - registered_extensions 등록 해제');
+        }
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('단말번호가 삭제되었습니다')),
           );
         }
       } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ ProfileDrawer - 단말번호 삭제 실패: $e');
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('삭제 실패: $e')),
@@ -1325,11 +1367,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 
   Future<void> _deleteAllExtensions(BuildContext context, String userId) async {
+    // 현재 등록된 단말번호 목록 가져오기
+    final snapshot = await DatabaseService().getMyExtensions(userId).first;
+    final extensionNumbers = snapshot.map((e) => e.extension).toList();
+    
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('전체 삭제'),
-        content: const Text('모든 단말번호를 삭제하시겠습니까?'),
+        content: Text('모든 단말번호(${extensionNumbers.length}개)를 삭제하시겠습니까?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -1346,13 +1392,31 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
     if (confirmed == true) {
       try {
-        await DatabaseService().deleteAllMyExtensions(userId);
+        final dbService = DatabaseService();
+        
+        // 1. my_extensions 컬렉션에서 전체 삭제
+        await dbService.deleteAllMyExtensions(userId);
+        
+        // 2. registered_extensions에서 각 단말번호 등록 해제
+        for (final extension in extensionNumbers) {
+          await dbService.unregisterExtension(extension);
+        }
+        
+        if (kDebugMode) {
+          debugPrint('✅ ProfileDrawer - 모든 단말번호 삭제 완료 (${extensionNumbers.length}개)');
+          debugPrint('   - my_extensions 컬렉션 전체 삭제');
+          debugPrint('   - registered_extensions 등록 해제: $extensionNumbers');
+        }
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('모든 단말번호가 삭제되었습니다')),
           );
         }
       } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ ProfileDrawer - 전체 삭제 실패: $e');
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('삭제 실패: $e')),
