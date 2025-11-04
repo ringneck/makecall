@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 import '../screens/call/incoming_call_screen.dart';
+import 'dcmiws_service.dart';
+import 'auth_service.dart';
+import 'package:provider/provider.dart';
 
 /// FCM(Firebase Cloud Messaging) 서비스
 class FCMService {
@@ -157,9 +160,82 @@ class FCMService {
       debugPrint('  데이터: ${message.data}');
     }
     
-    // 수신 전화 타입인 경우 풀스크린 표시
+    // 수신 전화 타입인 경우
     if (message.data['type'] == 'incoming_call') {
+      // WebSocket 연결 상태 확인 및 재연결
+      _ensureWebSocketConnection();
+      
+      // 풀스크린 표시
       _showIncomingCallScreen(message);
+    }
+  }
+  
+  /// WebSocket 연결 상태 확인 및 재연결
+  Future<void> _ensureWebSocketConnection() async {
+    try {
+      final dcmiwsService = DCMIWSService();
+      
+      // 이미 연결되어 있으면 스킵
+      if (dcmiwsService.isConnected) {
+        if (kDebugMode) {
+          debugPrint('✅ WebSocket이 이미 연결되어 있습니다');
+        }
+        return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('🔌 WebSocket 재연결 시도...');
+      }
+      
+      // Firestore에서 사용자의 서버 설정 가져오기
+      if (_context == null) return;
+      
+      final authService = Provider.of<AuthService>(_context!, listen: false);
+      final userId = authService.currentUser?.uid;
+      
+      if (userId == null) {
+        if (kDebugMode) {
+          debugPrint('❌ 로그인 정보가 없습니다');
+        }
+        return;
+      }
+      
+      // user_model에서 serverAddress 가져오기
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      final userData = userDoc.data();
+      
+      if (userData == null) return;
+      
+      final serverAddress = userData['serverAddress'] as String?;
+      final serverPort = userData['serverPort'] as int? ?? 7099;
+      final useSSL = userData['serverSSL'] as bool? ?? false;
+      
+      if (serverAddress == null || serverAddress.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('⚠️  서버 주소가 설정되지 않았습니다');
+        }
+        return;
+      }
+      
+      // WebSocket 재연결
+      final success = await dcmiwsService.connect(
+        serverAddress: serverAddress,
+        port: serverPort,
+        useSSL: useSSL,
+      );
+      
+      if (kDebugMode) {
+        if (success) {
+          debugPrint('✅ WebSocket 재연결 성공');
+        } else {
+          debugPrint('❌ WebSocket 재연결 실패');
+        }
+      }
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ WebSocket 재연결 오류: $e');
+      }
     }
   }
   

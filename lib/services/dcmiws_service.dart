@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import '../screens/call/incoming_call_screen.dart';
 
 /// DCMIWS WebSocket 서비스
 /// 
@@ -41,6 +43,14 @@ class DCMIWSService {
   final StreamController<Map<String, dynamic>> _eventController = 
       StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get events => _eventController.stream;
+  
+  // BuildContext 저장 (수신 전화 화면 표시용)
+  static BuildContext? _context;
+  
+  /// BuildContext 설정 (main.dart에서 호출)
+  static void setContext(BuildContext context) {
+    _context = context;
+  }
 
   /// WebSocket 연결
   /// 
@@ -169,6 +179,9 @@ class DCMIWSService {
         debugPrint('📨 DCMIWS: Received message: $data');
       }
 
+      // 🔔 수신 전화 이벤트 감지 (Newchannel)
+      _checkIncomingCall(data);
+
       // ActionID로 대기 중인 요청 찾기
       final actionId = data['data']?['ActionID'] as String?;
       if (actionId != null && _pendingRequests.containsKey(actionId)) {
@@ -185,6 +198,98 @@ class DCMIWSService {
         debugPrint('❌ DCMIWS: Failed to parse message: $e');
       }
     }
+  }
+  
+  /// 수신 전화 이벤트 체크 및 처리
+  void _checkIncomingCall(Map<String, dynamic> data) {
+    try {
+      // type이 3인지 확인 (Call Event)
+      if (data['type'] != 3) return;
+      
+      final eventData = data['data'] as Map<String, dynamic>?;
+      if (eventData == null) return;
+      
+      // Event가 "Newchannel"인지 확인
+      final event = eventData['Event'] as String?;
+      if (event != 'Newchannel') return;
+      
+      // Context가 "trk"로 시작하는지 확인
+      final context = eventData['Context'] as String?;
+      if (context == null || !context.startsWith('trk')) return;
+      
+      // CallerIDNum과 Exten 추출
+      final callerIdNum = eventData['CallerIDNum'] as String?;
+      final exten = eventData['Exten'] as String?;
+      
+      if (callerIdNum == null || exten == null) return;
+      
+      if (kDebugMode) {
+        debugPrint('📞 수신 전화 감지!');
+        debugPrint('  발신번호: $callerIdNum');
+        debugPrint('  수신번호: $exten');
+        debugPrint('  Context: $context');
+      }
+      
+      // 수신 전화 화면 표시
+      _showIncomingCallScreen(callerIdNum, exten, data);
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 수신 전화 체크 오류: $e');
+      }
+    }
+  }
+  
+  /// 수신 전화 풀스크린 표시
+  void _showIncomingCallScreen(
+    String callerNumber,
+    String receiverNumber,
+    Map<String, dynamic> callEventData,
+  ) {
+    if (_context == null) {
+      if (kDebugMode) {
+        debugPrint('❌ BuildContext가 설정되지 않았습니다');
+      }
+      return;
+    }
+    
+    // CallerIDName이 있으면 사용, 없으면 번호 사용
+    final eventData = callEventData['data'] as Map<String, dynamic>;
+    final callerName = (eventData['CallerIDName'] as String?)?.isNotEmpty == true
+        ? eventData['CallerIDName'] as String
+        : callerNumber;
+    
+    if (kDebugMode) {
+      debugPrint('📞 수신 전화 화면 표시:');
+      debugPrint('  발신자: $callerName');
+      debugPrint('  발신번호: $callerNumber');
+      debugPrint('  수신번호: $receiverNumber');
+    }
+    
+    Navigator.of(_context!).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => IncomingCallScreen(
+          callerName: callerName,
+          callerNumber: callerNumber,
+          callerAvatar: null,
+          onAccept: () {
+            Navigator.of(context).pop();
+            // TODO: 전화 수락 로직 (SIP 연결 등)
+            if (kDebugMode) {
+              debugPrint('✅ 전화 수락됨: $callerNumber → $receiverNumber');
+            }
+          },
+          onReject: () {
+            Navigator.of(context).pop();
+            // TODO: 전화 거절 로직 (서버 통신 등)
+            if (kDebugMode) {
+              debugPrint('❌ 전화 거절됨: $callerNumber → $receiverNumber');
+            }
+          },
+        ),
+      ),
+    );
   }
 
   /// 에러 핸들러

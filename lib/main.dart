@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/user_session_manager.dart';
 import 'services/fcm_service.dart';
+import 'services/dcmiws_service.dart';
 import 'providers/selected_extension_provider.dart';
 import 'providers/dcmiws_event_provider.dart';
 import 'screens/auth/login_screen.dart';
@@ -86,10 +87,11 @@ class _MyAppState extends State<MyApp> {
             });
           }
           
-          // 🎯 FCMService에 BuildContext 등록 (한 번만 실행)
+          // 🎯 FCMService 및 DCMIWSService에 BuildContext 등록 (한 번만 실행)
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.mounted) {
               FCMService.setContext(context);
+              DCMIWSService.setContext(context);
             }
           });
           
