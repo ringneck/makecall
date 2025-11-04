@@ -2278,71 +2278,50 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        // 이름
-                                        Text(
-                                          ext.name,
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black87,
-                                          ),
+                                        // 이름과 단말번호를 한 줄에
+                                        Row(
+                                          children: [
+                                            Text(
+                                              ext.name,
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              '(${ext.extension})',
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF2196F3),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         const SizedBox(height: 8),
                                         
-                                        // 단말번호
-                                        _buildCopyableInfoRow(
-                                          label: '단말번호',
-                                          value: ext.extension,
-                                          onCopy: () {
-                                            Clipboard.setData(ClipboardData(text: ext.extension));
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('단말번호가 복사되었습니다'),
-                                                duration: Duration(seconds: 1),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                        
-                                        // 계정코드
+                                        // 계정코드 (복사 버튼 없음)
                                         if (ext.accountCode != null && ext.accountCode!.isNotEmpty) ...[
-                                          const SizedBox(height: 6),
-                                          _buildCopyableInfoRow(
+                                          _buildSimpleInfoRow(
                                             label: '계정코드',
                                             value: ext.accountCode!,
-                                            onCopy: () {
-                                              Clipboard.setData(ClipboardData(text: ext.accountCode!));
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('계정코드가 복사되었습니다'),
-                                                  duration: Duration(seconds: 1),
-                                                ),
-                                              );
-                                            },
                                           ),
+                                          const SizedBox(height: 6),
                                         ],
                                         
-                                        // SIP UserId
+                                        // SIP UserId (복사 버튼 없음)
                                         if (ext.sipUserId != null && ext.sipUserId!.isNotEmpty) ...[
-                                          const SizedBox(height: 6),
-                                          _buildCopyableInfoRow(
+                                          _buildSimpleInfoRow(
                                             label: 'SIP UserId',
                                             value: ext.sipUserId!,
-                                            onCopy: () {
-                                              Clipboard.setData(ClipboardData(text: ext.sipUserId!));
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('SIP UserId가 복사되었습니다'),
-                                                  duration: Duration(seconds: 1),
-                                                ),
-                                              );
-                                            },
                                           ),
+                                          const SizedBox(height: 6),
                                         ],
                                         
-                                        // SIP Secret
+                                        // SIP Secret (복사 버튼 있음, 최대 너비)
                                         if (ext.sipSecret != null && ext.sipSecret!.isNotEmpty) ...[
-                                          const SizedBox(height: 6),
                                           _buildCopyableInfoRow(
                                             label: 'SIP Secret',
                                             value: ext.sipSecret!,
@@ -2389,7 +2368,51 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     );
   }
 
-  /// 정보 행 빌더 (라벨과 값을 별도 줄로 표시)
+  /// 정보 행 빌더 (복사 버튼 없음)
+  Widget _buildSimpleInfoRow({
+    required String label,
+    required String value,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 라벨
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[600],
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 2),
+        // 값만 표시 (복사 버튼 없음)
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+              fontFamily: 'monospace',
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 정보 행 빌더 (라벨과 값을 별도 줄로 표시, 복사 버튼 포함)
   Widget _buildCopyableInfoRow({
     required String label,
     required String value,
@@ -2409,7 +2432,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           ),
         ),
         const SizedBox(height: 2),
-        // 값 + 복사 버튼
+        // 값 + 복사 버튼 (최대 너비)
         Row(
           children: [
             Expanded(
