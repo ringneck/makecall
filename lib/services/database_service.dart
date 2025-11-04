@@ -402,6 +402,26 @@ class DatabaseService {
     }
   }
   
+  // 사용자의 등록된 단말번호 목록 가져오기 (전화번호만)
+  Future<List<String>> getMyExtensionNumbers(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('my_extensions')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      return snapshot.docs
+          .map((doc) => doc.data()['extension'] as String? ?? '')
+          .where((ext) => ext.isNotEmpty)
+          .toList();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Get my extension numbers error: $e');
+      }
+      return [];
+    }
+  }
+  
   // ===== Phonebook 관리 =====
   
   // Phonebook 추가 또는 업데이트

@@ -203,6 +203,25 @@ class _PhonebookTabState extends State<PhonebookTab> {
         throw Exception('API 서버 설정이 필요합니다.\nProfile 탭에서 API 서버를 설정해주세요.');
       }
 
+      // 0. my_extensions 등록된 단말번호 확인
+      final myExtensionNumbers = await _databaseService.getMyExtensionNumbers(userId);
+      
+      if (kDebugMode) {
+        debugPrint('📱 등록된 단말번호 개수: ${myExtensionNumbers.length}');
+        debugPrint('📱 등록된 단말번호 목록: $myExtensionNumbers');
+      }
+
+      if (myExtensionNumbers.isEmpty) {
+        throw Exception(
+          '⚠️ 등록된 단말번호가 없습니다\n\n'
+          '📋 단말번호 등록 방법:\n'
+          '1. 우측 상단 프로필 아이콘 클릭\n'
+          '2. "설정 및 단말 등록" 섹션에서 단말번호 등록\n'
+          '3. Phonebook 새로고침 버튼 클릭\n\n'
+          '💡 단말번호를 먼저 등록해야 Phonebook을 사용할 수 있습니다.'
+        );
+      }
+
       final apiService = ApiService(
         baseUrl: userModel!.getApiUrl(useHttps: false),
         companyId: userModel.companyId,
@@ -240,11 +259,12 @@ class _PhonebookTabState extends State<PhonebookTab> {
           debugPrint('📚 Phonebook 저장: ${phonebook.name} (ID: ${phonebook.phonebookId})');
         }
 
-        // 4. 각 phonebook의 연락처 불러오기
+        // 4. 각 phonebook의 연락처 불러오기 (등록된 단말번호 제외)
         final contactCount = await _loadPhonebookContacts(
           phonebook.phonebookId,
           userId,
           apiService,
+          myExtensionNumbers, // 등록된 단말번호 목록 전달
         );
         totalContactsSaved += contactCount;
       }
@@ -294,6 +314,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
     String phonebookId,
     String userId,
     ApiService apiService,
+    List<String> myExtensionNumbers, // 등록된 단말번호 목록
   ) async {
     try {
       if (kDebugMode) {
@@ -307,8 +328,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
         debugPrint('📋 API 전체 응답: ${contacts.toString()}');
       }
 
-      // Firestore에 저장
+      // Firestore에 저장 (my_extensions 단말번호 제외)
       int savedCount = 0;
+      int filteredCount = 0;
+      
       for (final contactData in contacts) {
         if (kDebugMode) {
           debugPrint('  🔍 API 원본 데이터 [$savedCount]: ${contactData.toString()}');
@@ -320,6 +343,15 @@ class _PhonebookTabState extends State<PhonebookTab> {
           phonebookId,
         );
 
+        // my_extensions에 등록된 단말번호는 제외
+        if (myExtensionNumbers.contains(contact.telephone)) {
+          filteredCount++;
+          if (kDebugMode) {
+            debugPrint('  ⏭️  제외됨 (등록된 단말번호): ${contact.name} (${contact.telephone})');
+          }
+          continue;
+        }
+
         if (kDebugMode) {
           debugPrint('  📦 변환된 Contact: contactId=${contact.contactId}, name=${contact.name}, tel=${contact.telephone}');
         }
@@ -328,12 +360,12 @@ class _PhonebookTabState extends State<PhonebookTab> {
         savedCount++;
         
         if (kDebugMode) {
-          debugPrint('  ✅ [$savedCount/${contacts.length}] Firestore docId=$docId - ${contact.name} (${contact.telephone}) - ${contact.categoryDisplay}');
+          debugPrint('  ✅ [$savedCount/${contacts.length - filteredCount}] Firestore docId=$docId - ${contact.name} (${contact.telephone}) - ${contact.categoryDisplay}');
         }
       }
 
       if (kDebugMode) {
-        debugPrint('✅ Phonebook $phonebookId: 총 $savedCount개 연락처 저장 완료');
+        debugPrint('✅ Phonebook $phonebookId: 총 $savedCount개 연락처 저장, ${filteredCount}개 제외됨 (등록된 단말번호)');
       }
 
       return savedCount;
