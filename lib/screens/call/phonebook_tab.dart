@@ -746,6 +746,9 @@ class _PhonebookTabState extends State<PhonebookTab> {
     
     // 등록 여부 확인
     final isRegistered = registeredExtensions?.contains(contact.telephone) ?? false;
+    
+    // 다른 사용자의 단말번호 여부 (Extensions 카테고리이면서 본인이 등록하지 않은 경우)
+    final isOtherUserExtension = contact.category == 'Extensions' && !isRegistered;
 
     return ListTile(
       leading: Stack(
@@ -759,7 +762,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
               color: contact.isFavorite ? Colors.amber[700] : categoryColor,
             ),
           ),
-          // 등록된 단말번호 표시 (우측 하단에 로고 배지)
+          // 등록된 단말번호 표시 (우측 하단에 초록색 로고 배지)
           if (isRegistered)
             Positioned(
               right: 0,
@@ -777,6 +780,26 @@ class _PhonebookTabState extends State<PhonebookTab> {
                     'assets/images/app_logo.png',
                     fit: BoxFit.cover,
                   ),
+                ),
+              ),
+            ),
+          // 다른 사용자의 단말번호 표시 (우측 하단에 회색 아이콘 배지)
+          if (isOtherUserExtension)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey[500]!, width: 1),
+                ),
+                child: Icon(
+                  Icons.person,
+                  size: 12,
+                  color: Colors.grey[700],
                 ),
               ),
             ),
