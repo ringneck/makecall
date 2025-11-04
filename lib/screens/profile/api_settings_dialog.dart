@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
@@ -27,12 +28,35 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   void initState() {
     super.initState();
     final userModel = context.read<AuthService>().currentUserModel;
-    _apiBaseUrlController = TextEditingController(text: userModel?.apiBaseUrl ?? '');
-    _companyIdController = TextEditingController(text: userModel?.companyId ?? '');
-    _appKeyController = TextEditingController(text: userModel?.appKey ?? '');
-    _websocketServerUrlController = TextEditingController(text: userModel?.websocketServerUrl ?? '');
-    _websocketServerPortController = TextEditingController(text: (userModel?.websocketServerPort ?? 6600).toString());
+    
+    // 🔧 DB에서 기존 값 로드 (있으면 채워넣기)
+    _apiBaseUrlController = TextEditingController(
+      text: userModel?.apiBaseUrl?.isNotEmpty == true ? userModel!.apiBaseUrl! : ''
+    );
+    _companyIdController = TextEditingController(
+      text: userModel?.companyId?.isNotEmpty == true ? userModel!.companyId! : ''
+    );
+    _appKeyController = TextEditingController(
+      text: userModel?.appKey?.isNotEmpty == true ? userModel!.appKey! : ''
+    );
+    _websocketServerUrlController = TextEditingController(
+      text: userModel?.websocketServerUrl?.isNotEmpty == true ? userModel!.websocketServerUrl! : ''
+    );
+    _websocketServerPortController = TextEditingController(
+      text: (userModel?.websocketServerPort ?? 6600).toString()
+    );
     _websocketUseSSL = userModel?.websocketUseSSL ?? false;
+    
+    // 디버그 로그: DB 값 로드 확인
+    if (kDebugMode) {
+      debugPrint('📋 기본설정 다이얼로그 - DB 값 로드:');
+      debugPrint('   - API Base URL: ${userModel?.apiBaseUrl ?? "(없음)"}');
+      debugPrint('   - Company ID: ${userModel?.companyId ?? "(없음)"}');
+      debugPrint('   - App Key: ${userModel?.appKey != null && userModel!.appKey!.isNotEmpty ? "[설정됨]" : "(없음)"}');
+      debugPrint('   - WebSocket URL: ${userModel?.websocketServerUrl ?? "(없음)"}');
+      debugPrint('   - WebSocket Port: ${userModel?.websocketServerPort ?? 6600}');
+      debugPrint('   - WebSocket SSL: ${userModel?.websocketUseSSL ?? false}');
+    }
   }
   
   @override
