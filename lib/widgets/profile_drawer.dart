@@ -2302,38 +2302,32 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                         ),
                                         const SizedBox(height: 8),
                                         
-                                        // 계정코드 (복사 버튼 없음)
+                                        // 계정코드 (길게 누르면 복사)
                                         if (ext.accountCode != null && ext.accountCode!.isNotEmpty) ...[
-                                          _buildSimpleInfoRow(
+                                          _buildLongPressCopyRow(
+                                            context: context,
                                             label: '계정코드',
                                             value: ext.accountCode!,
                                           ),
                                           const SizedBox(height: 6),
                                         ],
                                         
-                                        // SIP UserId (복사 버튼 없음)
+                                        // SIP UserId (길게 누르면 복사)
                                         if (ext.sipUserId != null && ext.sipUserId!.isNotEmpty) ...[
-                                          _buildSimpleInfoRow(
+                                          _buildLongPressCopyRow(
+                                            context: context,
                                             label: 'SIP UserId',
                                             value: ext.sipUserId!,
                                           ),
                                           const SizedBox(height: 6),
                                         ],
                                         
-                                        // SIP Secret (복사 버튼 있음, 최대 너비)
+                                        // SIP Secret (길게 누르면 복사)
                                         if (ext.sipSecret != null && ext.sipSecret!.isNotEmpty) ...[
-                                          _buildCopyableInfoRow(
+                                          _buildLongPressCopyRow(
+                                            context: context,
                                             label: 'SIP Secret',
                                             value: ext.sipSecret!,
-                                            onCopy: () {
-                                              Clipboard.setData(ClipboardData(text: ext.sipSecret!));
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('SIP Secret이 복사되었습니다'),
-                                                  duration: Duration(seconds: 1),
-                                                ),
-                                              );
-                                            },
                                           ),
                                         ],
                                       ],
@@ -2368,110 +2362,57 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     );
   }
 
-  /// 정보 행 빌더 (복사 버튼 없음)
-  Widget _buildSimpleInfoRow({
+  /// 길게 누르면 복사되는 정보 행 빌더 (박스 없이 텍스트만 표시)
+  Widget _buildLongPressCopyRow({
+    required BuildContext context,
     required String label,
     required String value,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 라벨
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[600],
-            letterSpacing: 0.3,
+    return GestureDetector(
+      onLongPress: () {
+        // 클립보드에 복사
+        Clipboard.setData(ClipboardData(text: value));
+        // 피드백 메시지 표시
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$label이(가) 복사되었습니다'),
+            duration: const Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
           ),
-        ),
-        const SizedBox(height: 2),
-        // 값만 표시 (복사 버튼 없음)
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-              fontFamily: 'monospace',
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 라벨
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
+              letterSpacing: 0.3,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-        ),
-      ],
-    );
-  }
-
-  /// 정보 행 빌더 (라벨과 값을 별도 줄로 표시, 복사 버튼 포함)
-  Widget _buildCopyableInfoRow({
-    required String label,
-    required String value,
-    required VoidCallback onCopy,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 라벨
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[600],
-            letterSpacing: 0.3,
-          ),
-        ),
-        const SizedBox(height: 2),
-        // 값 + 복사 버튼 (최대 너비)
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                    fontFamily: 'monospace',
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+          const SizedBox(height: 2),
+          // 값 (박스 없이 텍스트만 표시, 길게 눌러서 복사 가능)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+                fontFamily: 'monospace',
               ),
+              // 긴 텍스트도 여러 줄로 표시 가능
+              softWrap: true,
             ),
-            const SizedBox(width: 4),
-            InkWell(
-              onTap: onCopy,
-              borderRadius: BorderRadius.circular(4),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                child: Icon(
-                  Icons.content_copy,
-                  size: 16,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
