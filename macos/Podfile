@@ -1,4 +1,5 @@
-platform :osx, '10.15'
+# macOS 플랫폼 최소 버전 설정 (Firebase 호환성)
+platform :osx, '11.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -38,5 +39,16 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_macos_build_settings(target)
+    
+    # macOS 11.0 최소 버전 강제 적용
+    target.build_configurations.each do |config|
+      config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '11.0'
+      
+      # 🚀 빌드 성능 최적화
+      config.build_settings['COMPILER_INDEX_STORE_ENABLE'] = 'NO'
+      
+      # 🔒 보안 최적화
+      config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+    end
   end
 end
