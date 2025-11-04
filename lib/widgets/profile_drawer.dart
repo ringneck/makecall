@@ -29,7 +29,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   @override
   void initState() {
     super.initState();
-    // 저장된 전화번호 불러오기 및 단말번호 업데이트
+    // 등록된 전화번호 불러오기 및 단말번호 업데이트
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authService = context.read<AuthService>();
       if (authService.currentUserModel?.phoneNumber != null) {
@@ -246,7 +246,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       // API에서 전체 단말번호 목록 가져오기
       final dataList = await apiService.getExtensions();
 
-      // 저장된 각 단말번호에 대해 업데이트
+      // 등록된 각 단말번호에 대해 업데이트
       for (final savedExtension in allSavedExtensions) {
         // API 데이터에서 매칭되는 단말번호 찾기
         final matchedData = dataList.firstWhere(
@@ -632,12 +632,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   '계정 및 조직',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text('저장된 계정, 계정 추가', style: TextStyle(fontSize: 12)),
+                subtitle: Text('등록된 계정, 계정 추가', style: TextStyle(fontSize: 12)),
               ),
             ),
           ),
           
-          // 저장된 계정 목록
+          // 등록된 계정 목록
           FutureBuilder<List<SavedAccountModel>>(
             future: AccountManagerService().getSavedAccounts(),
             builder: (context, snapshot) {
@@ -662,7 +662,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     ),
                     child: const Center(
                       child: Text(
-                        '저장된 계정이 없습니다',
+                        '등록된 계정이 없습니다',
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ),
@@ -672,7 +672,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               
               return Column(
                 children: [
-                  // 저장된 계정 제목
+                  // 등록된 계정 제목
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                     child: Row(
@@ -680,7 +680,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         const Icon(Icons.people, size: 16, color: Colors.grey),
                         const SizedBox(width: 8),
                         Text(
-                          '저장된 계정 (${accounts.length}개)',
+                          '등록된 계정 (${accounts.length}개)',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -987,7 +987,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     // 기본 정보
                     _buildInfoRow(
                       Icons.access_time,
-                      '저장 시간',
+                      '등록 시간',
                       ext.createdAt.toString().substring(0, 19),
                     ),
                   ],
@@ -1276,7 +1276,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('단말번호가 저장되었습니다'),
+            content: Text('단말번호가 등록되었습니다'),
             backgroundColor: Colors.green,
           ),
         );
@@ -1284,7 +1284,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('저장 실패: $e')),
+          SnackBar(content: Text('등록 실패: $e')),
         );
       }
     }
@@ -1377,7 +1377,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           children: [
             if (extension.name.isNotEmpty)
               Text('이름: ${extension.name}'),
-            Text('저장 시간: ${extension.createdAt.toString().substring(0, 19)}'),
+            Text('등록 시간: ${extension.createdAt.toString().substring(0, 19)}'),
           ],
         ),
         actions: [
@@ -1537,7 +1537,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     }
 
     if (confirmed == true && mounted) {
-      // 전환 대상 이메일 저장 (LoginScreen에서 자동으로 채워짐 + 비밀번호 자동 입력)
+      // 전환 대상 이메일 설정 (LoginScreen에서 자동으로 채워짐 + 비밀번호 자동 입력)
       await AccountManagerService().setSwitchTargetEmail(account.email);
       
       if (kDebugMode) {
@@ -1612,7 +1612,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2196F3),
             ),
-            child: const Text('저장'),
+            child: const Text('확인'),
           ),
         ],
       ),
@@ -1648,7 +1648,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     }
   }
 
-  // 저장된 계정 삭제 (로그인하지 않은 계정만)
+  // 등록된 계정 삭제 (로그인하지 않은 계정만)
   Future<void> _handleDeleteAccount(BuildContext context, SavedAccountModel account) async {
     // 현재 로그인된 계정인지 다시 확인 (안전장치)
     if (account.isCurrentAccount) {
@@ -1736,7 +1736,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '저장된 로그인 정보가 삭제됩니다.\n계정 자체는 삭제되지 않습니다.',
+                      '등록된 로그인 정보가 삭제됩니다.\n계정 자체는 삭제되지 않습니다.',
                       style: TextStyle(fontSize: 12, color: Colors.red),
                     ),
                   ),
@@ -1792,7 +1792,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     }
   }
 
-  // 저장된 계정 목록에서 로그아웃 (다이얼로그 없이 바로 로그아웃)
+  // 등록된 계정 목록에서 로그아웃 (다이얼로그 없이 바로 로그아웃)
   Future<void> _handleLogoutFromList(BuildContext context) async {
     try {
       await context.read<AuthService>().signOut();
@@ -1951,10 +1951,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 ),
                 const Divider(height: 24),
                 
-                // 단말번호 저장 가능 개수
+                // 단말번호 등록 가능 개수
                 _buildDetailRow(
                   icon: Icons.phone_android,
-                  label: '단말번호 저장 가능',
+                  label: '단말번호 등록 가능',
                   value: '최대 ${userModel?.maxExtensions ?? 1}개',
                   valueColor: const Color(0xFF2196F3),
                 ),
