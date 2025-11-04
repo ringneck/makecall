@@ -374,205 +374,56 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           ),
           const Divider(),
           
-          // 내 단말번호 조회 및 관리 (통합 UI)
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.phone_android, color: Color(0xFF2196F3), size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      '내 단말번호',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+          // 🎯 간결한 내 단말번호 (한 줄)
+          if (userId.isNotEmpty)
+            StreamBuilder<List<MyExtensionModel>>(
+              stream: DatabaseService().getMyExtensions(userId),
+              builder: (context, snapshot) {
+                final extensions = snapshot.data ?? [];
+                final extensionCount = extensions.length;
                 
-                // 단말번호 조회 버튼
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue[200]!),
+                return ListTile(
+                  leading: const Icon(Icons.phone_android, size: 20, color: Color(0xFF2196F3)),
+                  title: const Text('내 단말번호', style: TextStyle(fontSize: 13)),
+                  subtitle: Text(
+                    extensionCount > 0 
+                        ? '등록됨: ${extensions.map((e) => e.extension).join(", ")}'
+                        : '등록된 단말번호가 없습니다',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: extensionCount > 0 ? Colors.grey[700] : Colors.grey[500],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _isSearching || userModel?.apiBaseUrl == null
-                              ? null
-                              : () => _searchMyExtensions(context),
-                          icon: _isSearching
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.search),
-                          label: Text(_isSearching ? '조회 중...' : '단말번호 조회 및 등록'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2196F3),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                      if (extensionCount > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2196F3).withAlpha(26),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$extensionCount개',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2196F3),
                             ),
                           ),
                         ),
-                      ),
-                      
-                      // 에러 메시지 표시
-                      if (_searchError != null) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red[200]!),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.error_outline, color: Colors.red, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _searchError!,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      const SizedBox(width: 8),
+                      const Icon(Icons.chevron_right, size: 18),
                     ],
                   ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // 저장된 내 단말번호 목록
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      '저장된 내 단말번호',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (userId.isNotEmpty)
-                      TextButton.icon(
-                        onPressed: () => _deleteAllExtensions(context, userId),
-                        icon: const Icon(Icons.delete_sweep, size: 18),
-                        label: const Text('전체 삭제'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
-                // StreamBuilder로 실시간 목록 표시
-                if (userId.isNotEmpty)
-                  StreamBuilder<List<MyExtensionModel>>(
-                    stream: DatabaseService().getMyExtensions(userId),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-                      
-                      if (snapshot.hasError) {
-                        return Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.red[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red[200]!),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.error_outline, color: Colors.red),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  '오류: ${snapshot.error}',
-                                  style: const TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                      
-                      final extensions = snapshot.data ?? [];
-                      
-                      if (extensions.isEmpty) {
-                        return Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: const Center(
-                            child: Column(
-                              children: [
-                                Icon(Icons.inbox_outlined, size: 44, color: Colors.grey),
-                                SizedBox(height: 10),
-                                Text(
-                                  '저장된 단말번호가 없습니다.',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  '위의 조회 버튼을 눌러주세요.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                      
-                      // 단말번호 목록 표시
-                      return _buildExtensionsList(extensions);
-                    },
-                  ),
-              ],
+                  onTap: () => _showExtensionsManagementDialog(context, extensions),
+                );
+              },
             ),
-          ),
+          const Divider(),
           
           // ============================================
           // 설정 섹션 시작
@@ -2212,6 +2063,240 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             constraints: const BoxConstraints(),
           ),
       ],
+    );
+  }
+
+  /// 📋 단말번호 관리 상세 다이얼로그
+  void _showExtensionsManagementDialog(BuildContext context, List<MyExtensionModel> extensions) {
+    final authService = context.read<AuthService>();
+    final userModel = authService.currentUserModel;
+    final userId = authService.currentUser?.uid ?? '';
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxHeight: 600),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 헤더
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    const Icon(Icons.phone_android, color: Color(0xFF2196F3)),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        '내 단말번호 관리',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(dialogContext),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              
+              // 단말번호 조회 버튼
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSearching || userModel?.apiBaseUrl == null
+                        ? null
+                        : () {
+                            Navigator.pop(dialogContext);
+                            _searchMyExtensions(context);
+                          },
+                    icon: _isSearching
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.search, size: 20),
+                    label: Text(_isSearching ? '조회 중...' : '단말번호 조회 및 등록'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2196F3),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              
+              // 에러 메시지
+              if (_searchError != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _searchError!,
+                            style: const TextStyle(fontSize: 12, color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              
+              const Divider(height: 24),
+              
+              // 저장된 단말번호 목록 헤더
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '저장된 단말번호',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (extensions.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          _deleteAllExtensions(context, userId);
+                        },
+                        icon: const Icon(Icons.delete_sweep, size: 16),
+                        label: const Text('전체 삭제', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              
+              // 단말번호 목록
+              Flexible(
+                child: extensions.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            Text(
+                              '저장된 단말번호가 없습니다',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '위의 조회 버튼을 눌러주세요',
+                              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        itemCount: extensions.length,
+                        separatorBuilder: (context, index) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final ext = extensions[index];
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFF2196F3).withAlpha(26),
+                              child: Text(
+                                '${index + 1}',
+                                style: const TextStyle(
+                                  color: Color(0xFF2196F3),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              ext.name,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 2),
+                                Text(
+                                  '단말번호: ${ext.extension}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                if (ext.accountCode != null && ext.accountCode!.isNotEmpty)
+                                  Text(
+                                    '계정코드: ${ext.accountCode}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[600],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 20),
+                              color: Colors.red,
+                              onPressed: () {
+                                Navigator.pop(dialogContext);
+                                _deleteExtension(context, ext);
+                              },
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
