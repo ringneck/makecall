@@ -6,6 +6,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../screens/call/incoming_call_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../utils/contact_helper.dart';
 
 /// DCMIWS WebSocket 서비스
 /// 
@@ -326,13 +327,13 @@ class DCMIWSService {
   }
   
   /// 수신 전화 풀스크린 표시
-  void _showIncomingCallScreen(
+  Future<void> _showIncomingCallScreen(
     String callerNumber,
     String receiverNumber,
     String channel,
     String linkedid,
     Map<String, dynamic> callEventData,
-  ) {
+  ) async {
     if (_navigatorKey?.currentState == null) {
       if (kDebugMode) {
         debugPrint('❌ NavigatorKey가 설정되지 않았거나 Navigator가 준비되지 않았습니다');
@@ -340,15 +341,50 @@ class DCMIWSService {
       return;
     }
     
-    // CallerIDName이 있으면 사용, 없으면 번호 사용
+    // 1️⃣ CallerIDName 추출
     final eventData = callEventData['data'] as Map<String, dynamic>;
-    final callerName = (eventData['CallerIDName'] as String?)?.isNotEmpty == true
-        ? eventData['CallerIDName'] as String
-        : callerNumber;
+    String? callerName = eventData['CallerIDName'] as String?;
+    
+    // 2️⃣ CallerIDName이 없거나 비어있으면 연락처에서 조회
+    if (callerName == null || callerName.isEmpty) {
+      if (kDebugMode) {
+        debugPrint('🔍 CallerIDName 없음, 기기 연락처에서 조회 중...');
+      }
+      
+      try {
+        final contactName = await ContactHelper().getContactNameByPhone(callerNumber);
+        
+        if (contactName != null && contactName.isNotEmpty) {
+          callerName = contactName;
+          if (kDebugMode) {
+            debugPrint('✅ 연락처에서 이름 찾음: $callerName');
+          }
+        } else {
+          // 3️⃣ 연락처에도 없으면 전화번호 사용
+          callerName = callerNumber;
+          if (kDebugMode) {
+            debugPrint('📞 연락처에 없음, 전화번호 사용: $callerName');
+          }
+        }
+      } catch (e) {
+        // 연락처 조회 실패 시 전화번호 사용
+        callerName = callerNumber;
+        if (kDebugMode) {
+          debugPrint('❌ 연락처 조회 실패, 전화번호 사용: $e');
+        }
+      }
+    } else {
+      if (kDebugMode) {
+        debugPrint('✅ CallerIDName 존재: $callerName');
+      }
+    }
+    
+    // 4️⃣ 최종 callerName 보장 (null 방지)
+    final finalCallerName = callerName ?? callerNumber;
     
     if (kDebugMode) {
       debugPrint('📞 수신 전화 화면 표시:');
-      debugPrint('  발신자: $callerName');
+      debugPrint('  발신자: $finalCallerName');
       debugPrint('  발신번호: $callerNumber');
       debugPrint('  수신번호: $receiverNumber');
       debugPrint('  Channel: $channel');
@@ -359,7 +395,7 @@ class DCMIWSService {
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (context) => IncomingCallScreen(
-          callerName: callerName,
+          callerName: finalCallerName,
           callerNumber: callerNumber,
           callerAvatar: null,
           channel: channel,
@@ -376,7 +412,7 @@ class DCMIWSService {
             // 통화 기록 저장
             _saveCallHistory(
               callerNumber: callerNumber,
-              callerName: callerName,
+              callerName: finalCallerName,
               receiverNumber: receiverNumber,
               channel: channel,
               linkedid: linkedid,
@@ -395,7 +431,7 @@ class DCMIWSService {
             // 통화 기록 저장
             _saveCallHistory(
               callerNumber: callerNumber,
-              callerName: callerName,
+              callerName: finalCallerName,
               receiverNumber: receiverNumber,
               channel: channel,
               linkedid: linkedid,
