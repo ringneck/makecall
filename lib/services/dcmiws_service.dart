@@ -181,7 +181,7 @@ class DCMIWSService {
         debugPrint('📨 DCMIWS: Received message: $data');
       }
 
-      // 🔔 수신 전화 이벤트 감지 (Newchannel)
+      // 🔔 수신 전화 이벤트 감지 (Newchannel) - 비동기 처리
       _checkIncomingCall(data);
 
       // ActionID로 대기 중인 요청 찾기
@@ -203,7 +203,7 @@ class DCMIWSService {
   }
   
   /// 수신 전화 이벤트 체크 및 처리
-  void _checkIncomingCall(Map<String, dynamic> data) {
+  Future<void> _checkIncomingCall(Map<String, dynamic> data) async {
     try {
       // type이 3인지 확인 (Call Event)
       if (data['type'] != 3) return;
@@ -232,6 +232,20 @@ class DCMIWSService {
         debugPrint('  Linkedid: $linkedid');
       }
       
+      // 🔐 my_extensions 유효성 검사 (등록된 내선번호인지 확인)
+      final isValidExtension = await _validateMyExtension(exten);
+      if (!isValidExtension) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 등록되지 않은 내선번호: $exten');
+          debugPrint('  해당 이벤트는 무시됩니다.');
+        }
+        return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ 등록된 내선번호 확인됨: $exten');
+      }
+      
       // 수신 전화 화면 표시
       _showIncomingCallScreen(callerIdNum, exten, channel, linkedid, data);
       
@@ -239,6 +253,75 @@ class DCMIWSService {
       if (kDebugMode) {
         debugPrint('❌ 수신 전화 체크 오류: $e');
       }
+    }
+  }
+  
+  /// my_extensions 컬렉션에서 내선번호 유효성 검사
+  /// 
+  /// [exten] - 확인할 내선번호 (Newchannel 이벤트의 Exten 필드)
+  /// Returns: true = 등록된 내선번호, false = 미등록 내선번호
+  Future<bool> _validateMyExtension(String exten) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final auth = FirebaseAuth.instance;
+      final userId = auth.currentUser?.uid;
+      
+      // 로그인하지 않은 경우 검증 실패
+      if (userId == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 로그인 정보가 없어 내선번호 검증을 수행할 수 없습니다');
+        }
+        return false;
+      }
+      
+      // 1️⃣ extension 필드와 일치하는지 확인
+      final extensionQuery = await firestore
+          .collection('my_extensions')
+          .where('userId', isEqualTo: userId)
+          .where('extension', isEqualTo: exten)
+          .limit(1)
+          .get();
+      
+      if (extensionQuery.docs.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint('✅ my_extensions 검증 성공 (extension 필드 일치)');
+          debugPrint('  userId: $userId');
+          debugPrint('  extension: $exten');
+        }
+        return true;
+      }
+      
+      // 2️⃣ accountCode 필드와 일치하는지 확인
+      final accountCodeQuery = await firestore
+          .collection('my_extensions')
+          .where('userId', isEqualTo: userId)
+          .where('accountCode', isEqualTo: exten)
+          .limit(1)
+          .get();
+      
+      if (accountCodeQuery.docs.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint('✅ my_extensions 검증 성공 (accountCode 필드 일치)');
+          debugPrint('  userId: $userId');
+          debugPrint('  accountCode: $exten');
+        }
+        return true;
+      }
+      
+      // 일치하는 내선번호 없음
+      if (kDebugMode) {
+        debugPrint('❌ my_extensions 검증 실패');
+        debugPrint('  userId: $userId');
+        debugPrint('  exten: $exten');
+        debugPrint('  등록된 내선번호가 아닙니다');
+      }
+      return false;
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ my_extensions 검증 중 오류 발생: $e');
+      }
+      return false;
     }
   }
   
