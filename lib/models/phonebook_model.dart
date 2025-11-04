@@ -154,7 +154,7 @@ class PhonebookContactModel {
     } else if (category == 'Feature Codes') {
       categoryDisplay = '기능번호';
     } else if (category == 'Ring Groups') {
-      categoryDisplay = '링그룹';
+      categoryDisplay = '그룹번호';
     } else if (category == 'Conferences') {
       categoryDisplay = '음성회의';
     } else if (category == 'Speed Dialing') {
