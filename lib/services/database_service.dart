@@ -695,6 +695,28 @@ class DatabaseService {
     }
   }
 
+  // 모든 사용자의 등록된 단말번호 가져오기 (registered_extensions 컬렉션 전체)
+  Future<List<String>> getAllRegisteredExtensions() async {
+    try {
+      final snapshot = await _firestore
+          .collection('registered_extensions')
+          .get();
+      
+      final extensions = snapshot.docs.map((doc) => doc.id).toList();
+      
+      if (kDebugMode) {
+        debugPrint('📱 전체 등록된 단말번호: ${extensions.length}개');
+      }
+      
+      return extensions;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Get all registered extensions error: $e');
+      }
+      rethrow;
+    }
+  }
+
   // 사용자 문서 조회 (users 컬렉션)
   Future<UserModel?> getUserById(String userId) async {
     try {

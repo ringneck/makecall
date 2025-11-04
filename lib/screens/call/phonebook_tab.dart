@@ -567,9 +567,9 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       }
                       
                       return FutureBuilder<List<String>>(
-                        future: _databaseService.getUserRegisteredExtensions(userId),
+                        future: _databaseService.getAllRegisteredExtensions(),
                         builder: (context, registeredSnapshot) {
-                          // 모든 사용자의 등록된 단말번호
+                          // 모든 사용자의 등록된 단말번호 (registered_extensions 컬렉션 전체)
                           final allRegisteredExtensions = registeredSnapshot.data ?? [];
                           
                           // 다른 사람이 등록한 단말번호 = 전체 등록 번호 - 내 단말번호
@@ -578,7 +578,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
                               .toList();
                           
                           if (kDebugMode) {
-                            debugPrint('🔒 전체 등록된 단말번호: ${allRegisteredExtensions.length}개');
+                            debugPrint('🔒 전체 등록된 단말번호 (모든 사용자): ${allRegisteredExtensions.length}개');
+                            debugPrint('📱 내 단말번호: ${allMyExtensions.length}개 - $allMyExtensions');
                             debugPrint('👥 다른 사람이 등록한 단말번호: ${otherUsersExtensions.length}개 - $otherUsersExtensions');
                           }
 
