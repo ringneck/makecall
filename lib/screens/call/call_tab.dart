@@ -72,23 +72,14 @@ class _CallTabState extends State<CallTab> {
   Future<void> _initializeSequentially() async {
     if (!mounted) return;
     
-    // 1️⃣ STEP 1: 설정 확인 (최우선)
-    await _checkSettingsAndShowGuide();
+    // 🎯 STEP 1: 단말번호 자동 초기화 (최우선)
+    // 클릭투콜 기능을 위해 로그인 즉시 단말번호 설정
+    await _initializeExtensions();
     
     if (!mounted) return;
     
-    // 2️⃣ STEP 2: 설정이 완료된 경우에만 단말번호 조회
-    final authService = context.read<AuthService>();
-    final userModel = authService.currentUserModel;
-    
-    // Early Return: 설정 미완료 시 단말번호 조회 스킵
-    if (userModel == null) return;
-    if (userModel.apiBaseUrl == null || userModel.apiBaseUrl!.isEmpty) return;
-    if (userModel.companyId == null || userModel.companyId!.isEmpty) return;
-    if (userModel.appKey == null || userModel.appKey!.isEmpty) return;
-    
-    // 설정 완료 → 단말번호 초기화 실행
-    await _initializeExtensions();
+    // 🎯 STEP 2: 설정 확인 (선택적 안내)
+    await _checkSettingsAndShowGuide();
   }
   
   @override
@@ -131,113 +122,119 @@ class _CallTabState extends State<CallTab> {
     }
   }
   
-  /// 🎯 단말번호 초기화 (고급 개발자 패턴: 간결성 + 가독성)
+  /// 🎯 단말번호 자동 초기화 (로그인 직후 실행)
   /// 
-  /// Click to Call 기능을 위해 사용자의 첫 번째 단말번호를 Provider에 설정
+  /// **핵심 기능**: 클릭투콜을 위한 단말번호 자동 설정
+  /// - 로그인 즉시 첫 번째 단말번호를 SelectedExtensionProvider에 설정
+  /// - ExtensionDrawer 열기 전에도 클릭투콜 사용 가능
+  /// 
+  /// **최적화 전략**:
   /// - Early Return: 조건 미충족 시 즉시 반환
-  /// - Single Responsibility: 단말번호 로드 및 Provider 설정만 담당
-  /// - Fail Silent: 에러 발생 시 조용히 처리 (사용자 경험 저해 방지)
+  /// - Idempotent: 이미 설정된 경우 재설정하지 않음
+  /// - Fail Silent: 에러 시 조용히 처리 (사용자 경험 저해 방지)
   Future<void> _initializeExtensions() async {
-    // Early Return: userId 검증
-    final userId = context.read<AuthService>().currentUser?.uid;
-    if (userId == null || userId.isEmpty) return;
+    // 🔒 Early Return: userId 검증
+    final userId = _authService?.currentUser?.uid;
+    if (userId == null || userId.isEmpty) {
+      if (kDebugMode) debugPrint('⚠️ 단말번호 초기화 스킵: userId 없음');
+      return;
+    }
     
     try {
-      // 단말번호 조회
-      final extensions = await _databaseService.getMyExtensions(userId).first;
-      if (extensions.isEmpty || !mounted) return;
+      if (kDebugMode) debugPrint('🔄 단말번호 자동 초기화 시작...');
       
-      // Provider 상태 업데이트 (선택된 단말번호가 없는 경우만)
+      // 🔒 단말번호 조회 (Firestore Stream)
+      final extensions = await _databaseService.getMyExtensions(userId).first;
+      
+      if (extensions.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('ℹ️ 등록된 단말번호 없음 - 설정에서 단말번호를 조회하세요');
+        }
+        return;
+      }
+      
+      if (!mounted) return;
+      
+      // 🔒 Provider 상태 업데이트 (Idempotent)
       final provider = context.read<SelectedExtensionProvider>();
+      
+      // 이미 설정된 경우 재설정하지 않음 (성능 최적화)
       if (provider.selectedExtension == null) {
         provider.setSelectedExtension(extensions.first);
         if (kDebugMode) {
-          debugPrint('✅ 단말번호 초기화: ${extensions.first.extension}');
+          debugPrint('✅ 단말번호 자동 초기화 완료: ${extensions.first.extension}');
+          debugPrint('   - 이름: ${extensions.first.name}');
+          debugPrint('   - 총 ${extensions.length}개 단말번호 중 첫 번째 선택');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('ℹ️ 단말번호 이미 설정됨: ${provider.selectedExtension!.extension}');
         }
       }
     } catch (e) {
-      // Fail Silent: 단말번호 초기화 실패는 치명적이지 않음
-      if (kDebugMode) debugPrint('⚠️ 단말번호 초기화 실패: $e');
+      // 🔒 Fail Silent: 단말번호 초기화 실패는 치명적이지 않음
+      // ExtensionDrawer에서 수동으로 선택 가능
+      if (kDebugMode) {
+        debugPrint('⚠️ 단말번호 자동 초기화 실패: $e');
+        debugPrint('   → ExtensionDrawer에서 수동 선택 필요');
+      }
     }
   }
   
-  // 설정 확인 및 안내 다이얼로그 표시
+  /// 🔍 설정 확인 및 안내 (선택적 실행)
+  /// 
+  /// **기능**: API/WebSocket 설정 및 단말번호 등록 상태 확인
+  /// - 최초 1회만 실행 (중복 팝업 방지)
+  /// - 설정 미완료 시 안내 다이얼로그 표시
+  /// 
+  /// **최적화**:
+  /// - Idempotent: _hasCheckedSettings 플래그로 중복 실행 방지
+  /// - Lazy Loading: userModel 로드 전에는 실행하지 않음
   Future<void> _checkSettingsAndShowGuide() async {
-    if (kDebugMode) {
-      debugPrint('🔍 _checkSettingsAndShowGuide() 호출됨');
-      debugPrint('   - _hasCheckedSettings: $_hasCheckedSettings');
-    }
-    
-    // 이미 체크를 완료했으면 다시 하지 않음
+    // 🔒 중복 실행 방지
     if (_hasCheckedSettings) {
-      if (kDebugMode) {
-        debugPrint('✅ 설정 체크 이미 완료됨 - 건너뛰기');
-      }
+      if (kDebugMode) debugPrint('✅ 설정 체크 이미 완료됨');
       return;
     }
     
-    final authService = context.read<AuthService>();
-    final userModel = authService.currentUserModel;
-    final userId = authService.currentUser?.uid ?? '';
-    
-    if (kDebugMode) {
-      debugPrint('👤 현재 상태 확인:');
-      debugPrint('   - userModel: ${userModel != null ? "존재" : "null"}');
-      debugPrint('   - userId: $userId');
-    }
-    
-    // userModel이 없으면 아직 로드 중이므로 대기
+    // 🔒 userModel 로드 대기
+    final userModel = _authService?.currentUserModel;
     if (userModel == null) {
-      if (kDebugMode) {
-        debugPrint('⏳ userModel 로딩 중 - 설정 체크 건너뛰기');
-        debugPrint('💡 userModel 로드 완료 시 AuthService 리스너가 자동으로 재시도합니다');
-      }
+      if (kDebugMode) debugPrint('⏳ userModel 로딩 중 - 설정 체크 대기');
       return;
     }
     
-    // 디버그: 사용자 정보 로깅
-    if (kDebugMode) {
-      debugPrint('👤 사용자 정보 확인:');
-      debugPrint('   - userModel: 존재');
-      debugPrint('   - email: "${userModel.email}" (길이: ${userModel.email.length})');
-      debugPrint('   - organizationName: "${userModel.organizationName}"');
-      debugPrint('   - userId: $userId');
-    }
+    final userId = _authService?.currentUser?.uid ?? '';
     
-    // 필수 설정 항목 확인
-    final hasWebSocketSettings = userModel.websocketServerUrl != null && 
-                                  userModel.websocketServerUrl!.isNotEmpty;
-    final hasApiBaseUrl = userModel.apiBaseUrl != null && 
-                         userModel.apiBaseUrl!.isNotEmpty;
-    final hasCompanyId = userModel.companyId != null && 
-                        userModel.companyId!.isNotEmpty;
-    final hasAppKey = userModel.appKey != null && 
-                     userModel.appKey!.isNotEmpty;
+    // 🔒 필수 설정 확인
+    final hasApiSettings = (userModel.apiBaseUrl?.isNotEmpty ?? false) &&
+                          (userModel.companyId?.isNotEmpty ?? false) &&
+                          (userModel.appKey?.isNotEmpty ?? false);
     
-    // 등록된 단말번호 확인
-    final extensionsSnapshot = await _databaseService.getMyExtensions(userId).first;
-    final hasSavedExtensions = extensionsSnapshot.isNotEmpty;
+    final hasWebSocketSettings = userModel.websocketServerUrl?.isNotEmpty ?? false;
+    
+    // 🔒 등록된 단말번호 확인
+    final extensions = await _databaseService.getMyExtensions(userId).first;
+    final hasExtensions = extensions.isNotEmpty;
     
     if (kDebugMode) {
-      debugPrint('🔍 설정 체크 시작');
-      debugPrint('  - WebSocket 설정: $hasWebSocketSettings (${userModel.websocketServerUrl ?? "없음"})');
-      debugPrint('  - API BaseURL 설정: $hasApiBaseUrl (${userModel.apiBaseUrl ?? "없음"})');
-      debugPrint('  - 회사ID 설정: $hasCompanyId (${userModel.companyId ?? "없음"})');
-      debugPrint('  - AppKey 설정: $hasAppKey (${userModel.appKey ?? "없음"})');
-      debugPrint('  - 등록된 단말번호: $hasSavedExtensions (${extensionsSnapshot.length}개)');
+      debugPrint('🔍 설정 체크:');
+      debugPrint('   - API 설정: $hasApiSettings');
+      debugPrint('   - WebSocket: $hasWebSocketSettings');
+      debugPrint('   - 단말번호: $hasExtensions (${extensions.length}개)');
     }
     
-    // 모든 설정이 완료되었으면 체크 플래그 설정
-    if (hasWebSocketSettings && hasApiBaseUrl && hasCompanyId && hasAppKey && hasSavedExtensions) {
+    // 🔒 모든 설정 완료 시 체크 종료
+    if (hasApiSettings && hasWebSocketSettings && hasExtensions) {
       _hasCheckedSettings = true;
-      if (kDebugMode) {
-        debugPrint('✅ 모든 설정 완료 - 더 이상 팝업 표시 안 함');
-      }
+      if (kDebugMode) debugPrint('✅ 모든 설정 완료');
       return;
     }
     
-    // 1. WebSocket/REST API 설정이 없는 경우
-    if (!hasWebSocketSettings || !hasApiBaseUrl || !hasCompanyId || !hasAppKey) {
+    // 🔒 설정 미완료 시 안내 다이얼로그
+    if (!hasApiSettings || !hasWebSocketSettings) {
+      _hasCheckedSettings = true; // 1회만 표시
+      
       if (mounted) {
         await showDialog(
           context: context,
@@ -267,37 +264,12 @@ class _CallTabState extends State<CallTab> {
                       Icon(Icons.account_circle, size: 24, color: Colors.grey[700]),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              (userModel.organizationName?.isNotEmpty ?? false)
-                                  ? userModel.organizationName!
-                                  : userModel.email.isNotEmpty
-                                      ? userModel.email
-                                      : authService.currentUser?.email ?? '사용자',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (userModel.email.isNotEmpty)
-                              Text(
-                                userModel.email,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              )
-                            else if (authService.currentUser?.email != null)
-                              Text(
-                                authService.currentUser!.email!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                          ],
+                        child: Text(
+                          userModel.email.isNotEmpty ? userModel.email : (_authService?.currentUser?.email ?? '사용자'),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -305,58 +277,9 @@ class _CallTabState extends State<CallTab> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  '통화 기능을 사용하기 위해서는\n다음 설정이 필요합니다:',
+                  '통화 기능을 사용하기 위해서는\nAPI 서버 및 WebSocket 설정이 필요합니다.',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                 ),
-                const SizedBox(height: 16),
-                if (!hasWebSocketSettings) ...[
-                  Row(
-                    children: const [
-                      Icon(Icons.cloud_outlined, size: 20, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text('WebSocket 서버 주소'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                if (!hasApiBaseUrl) ...[
-                  Row(
-                    children: const [
-                      Icon(Icons.http, size: 20, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text('REST API 서버 주소'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                if (!hasCompanyId) ...[
-                  Row(
-                    children: const [
-                      Icon(Icons.business, size: 20, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text('회사 ID (Company ID)'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                if (!hasAppKey) ...[
-                  Row(
-                    children: const [
-                      Icon(Icons.key, size: 20, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text('앱 키 (App Key)'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -367,8 +290,8 @@ class _CallTabState extends State<CallTab> {
                       color: const Color(0xFF2196F3).withValues(alpha: 0.3),
                     ),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(Icons.touch_app, size: 20, color: Color(0xFF2196F3)),
                       SizedBox(width: 8),
                       Expanded(
@@ -414,8 +337,9 @@ class _CallTabState extends State<CallTab> {
       return;
     }
     
-    // 2. 등록된 단말번호가 없는 경우
-    if (!hasSavedExtensions) {
+    // 🔒 단말번호 미등록 시 안내 다이얼로그
+    if (!hasExtensions) {
+      _hasCheckedSettings = true; // 1회만 표시
       if (mounted) {
         await showDialog(
           context: context,
@@ -445,37 +369,12 @@ class _CallTabState extends State<CallTab> {
                       Icon(Icons.account_circle, size: 24, color: Colors.grey[700]),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              (userModel.organizationName?.isNotEmpty ?? false)
-                                  ? userModel.organizationName!
-                                  : userModel.email.isNotEmpty
-                                      ? userModel.email
-                                      : authService.currentUser?.email ?? '사용자',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (userModel.email.isNotEmpty)
-                              Text(
-                                userModel.email,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              )
-                            else if (authService.currentUser?.email != null)
-                              Text(
-                                authService.currentUser!.email!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                          ],
+                        child: Text(
+                          userModel.email.isNotEmpty ? userModel.email : (_authService?.currentUser?.email ?? '사용자'),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -1720,7 +1619,7 @@ class _CallTabState extends State<CallTab> {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: Colors.amber[100],
-        child: Icon(Icons.star, color: Colors.amber[700]),
+        child: Icon(categoryIcon, color: Colors.amber[700]),
       ),
       title: Row(
         children: [
