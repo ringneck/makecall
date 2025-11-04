@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -2264,14 +2265,100 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                   ),
                                 ),
                                 if (ext.accountCode != null && ext.accountCode!.isNotEmpty)
-                                  Text(
-                                    '계정코드: ${ext.accountCode}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey[600],
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '계정코드: ${ext.accountCode}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey[600],
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.content_copy, size: 14),
+                                        color: Colors.grey[600],
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () {
+                                          Clipboard.setData(ClipboardData(text: ext.accountCode!));
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('계정코드가 복사되었습니다'),
+                                              duration: Duration(seconds: 1),
+                                            ),
+                                          );
+                                        },
+                                        tooltip: '복사',
+                                      ),
+                                    ],
+                                  ),
+                                if (ext.sipUserId != null && ext.sipUserId!.isNotEmpty)
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'SIP UserId: ${ext.sipUserId}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey[600],
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.content_copy, size: 14),
+                                        color: Colors.grey[600],
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () {
+                                          Clipboard.setData(ClipboardData(text: ext.sipUserId!));
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('SIP UserId가 복사되었습니다'),
+                                              duration: Duration(seconds: 1),
+                                            ),
+                                          );
+                                        },
+                                        tooltip: '복사',
+                                      ),
+                                    ],
+                                  ),
+                                if (ext.sipSecret != null && ext.sipSecret!.isNotEmpty)
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'SIP Secret: ${ext.sipSecret}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey[600],
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.content_copy, size: 14),
+                                        color: Colors.grey[600],
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () {
+                                          Clipboard.setData(ClipboardData(text: ext.sipSecret!));
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('SIP Secret이 복사되었습니다'),
+                                              duration: Duration(seconds: 1),
+                                            ),
+                                          );
+                                        },
+                                        tooltip: '복사',
+                                      ),
+                                    ],
                                   ),
                               ],
                             ),
