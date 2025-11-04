@@ -524,29 +524,62 @@ class _PhonebookTabState extends State<PhonebookTab> {
               return StreamBuilder<List<MyExtensionModel>>(
                 stream: _databaseService.getMyExtensions(userId),
                 builder: (context, myExtensionsSnapshot) {
-                  // 내가 저장한 단말번호 목록 가져오기
+                  // 내가 저장한 단말번호 목록 가져오기 (my_extensions 컬렉션)
                   final myExtensions = myExtensionsSnapshot.data ?? [];
                   final myExtensionNumbers = myExtensions.map((e) => e.extension).toList();
                   
                   if (kDebugMode && myExtensionNumbers.isNotEmpty) {
-                    debugPrint('📝 내가 저장한 단말번호: ${myExtensionNumbers.length}개 - $myExtensionNumbers');
+                    debugPrint('📝 my_extensions 컬렉션에서 가져온 단말번호: ${myExtensionNumbers.length}개 - $myExtensionNumbers');
                   }
                   
-                  return FutureBuilder<List<String>>(
-                    future: _databaseService.getUserRegisteredExtensions(userId),
-                    builder: (context, registeredSnapshot) {
-                      // 모든 사용자의 등록된 단말번호
-                      final allRegisteredExtensions = registeredSnapshot.data ?? [];
+                  return FutureBuilder<UserModel?>(
+                    future: _databaseService.getUserById(userId),
+                    builder: (context, userSnapshot) {
+                      // users 문서에서 myExtensions 필드 가져오기
+                      final userMyExtensions = userSnapshot.data?.myExtensions ?? [];
                       
-                      // 다른 사람이 등록한 단말번호 = 전체 등록 번호 - 내 단말번호
-                      final otherUsersExtensions = allRegisteredExtensions
-                          .where((ext) => !myExtensionNumbers.contains(ext))
-                          .toList();
+                      if (kDebugMode && userMyExtensions.isNotEmpty) {
+                        debugPrint('👤 users.myExtensions에서 가져온 단말번호: ${userMyExtensions.length}개 - $userMyExtensions');
+                      }
+                      
+                      // 내 단말번호 = my_extensions 컬렉션 + users.myExtensions (합집합)
+                      final allMyExtensions = <String>{
+                        ...myExtensionNumbers,
+                        ...userMyExtensions,
+                      }.toList();
                       
                       if (kDebugMode) {
-                        debugPrint('🔒 전체 등록된 단말번호: ${allRegisteredExtensions.length}개');
-                        debugPrint('👥 다른 사람이 등록한 단말번호: ${otherUsersExtensions.length}개 - $otherUsersExtensions');
+                        debugPrint('🎯 필터링할 내 단말번호 전체: ${allMyExtensions.length}개 - $allMyExtensions');
                       }
+                      
+                      // Phonebook 연락처에서 내 단말번호 제외
+                      contacts = contacts.where((contact) {
+                        final shouldExclude = allMyExtensions.contains(contact.telephone);
+                        if (shouldExclude && kDebugMode) {
+                          debugPrint('⏭️  Phonebook에서 제외: ${contact.name} (${contact.telephone}) - 내 단말번호');
+                        }
+                        return !shouldExclude;
+                      }).toList();
+                      
+                      if (kDebugMode) {
+                        debugPrint('✅ 내 단말번호 제외 후 연락처 수: ${contacts.length}');
+                      }
+                      
+                      return FutureBuilder<List<String>>(
+                        future: _databaseService.getUserRegisteredExtensions(userId),
+                        builder: (context, registeredSnapshot) {
+                          // 모든 사용자의 등록된 단말번호
+                          final allRegisteredExtensions = registeredSnapshot.data ?? [];
+                          
+                          // 다른 사람이 등록한 단말번호 = 전체 등록 번호 - 내 단말번호
+                          final otherUsersExtensions = allRegisteredExtensions
+                              .where((ext) => !allMyExtensions.contains(ext))
+                              .toList();
+                          
+                          if (kDebugMode) {
+                            debugPrint('🔒 전체 등록된 단말번호: ${allRegisteredExtensions.length}개');
+                            debugPrint('👥 다른 사람이 등록한 단말번호: ${otherUsersExtensions.length}개 - $otherUsersExtensions');
+                          }
 
                       // 검색 필터링
                       if (_searchController.text.isNotEmpty) {
@@ -684,6 +717,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       );
                     },
                   );
+                      },
+                    );
                 },
               );
             },
