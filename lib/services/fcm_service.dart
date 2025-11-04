@@ -256,6 +256,11 @@ class FCMService {
       debugPrint('  번호: $callerNumber');
     }
     
+    // FCM에서는 channel과 linkedid가 없으므로 기본값 사용
+    final channel = message.data['channel'] ?? 'FCM-PUSH';
+    final linkedid = message.data['linkedid'] ?? 'fcm_${DateTime.now().millisecondsSinceEpoch}';
+    final receiverNumber = message.data['receiver_number'] ?? '';
+    
     Navigator.of(_context!).push(
       MaterialPageRoute(
         fullscreenDialog: true,
@@ -263,6 +268,9 @@ class FCMService {
           callerName: callerName,
           callerNumber: callerNumber,
           callerAvatar: callerAvatar,
+          channel: channel,
+          linkedid: linkedid,
+          receiverNumber: receiverNumber,
           onAccept: () {
             Navigator.of(context).pop();
             // TODO: 전화 수락 로직 (SIP 연결 등)
