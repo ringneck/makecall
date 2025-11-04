@@ -198,7 +198,7 @@ class _CallTabState extends State<CallTab> {
     final hasAppKey = userModel.appKey != null && 
                      userModel.appKey!.isNotEmpty;
     
-    // 저장된 단말번호 확인
+    // 등록된 단말번호 확인
     final extensionsSnapshot = await _databaseService.getMyExtensions(userId).first;
     final hasSavedExtensions = extensionsSnapshot.isNotEmpty;
     
@@ -208,7 +208,7 @@ class _CallTabState extends State<CallTab> {
       debugPrint('  - API BaseURL 설정: $hasApiBaseUrl (${userModel.apiBaseUrl ?? "없음"})');
       debugPrint('  - 회사ID 설정: $hasCompanyId (${userModel.companyId ?? "없음"})');
       debugPrint('  - AppKey 설정: $hasAppKey (${userModel.appKey ?? "없음"})');
-      debugPrint('  - 저장된 단말번호: $hasSavedExtensions (${extensionsSnapshot.length}개)');
+      debugPrint('  - 등록된 단말번호: $hasSavedExtensions (${extensionsSnapshot.length}개)');
     }
     
     // 모든 설정이 완료되었으면 체크 플래그 설정
@@ -398,7 +398,7 @@ class _CallTabState extends State<CallTab> {
       return;
     }
     
-    // 2. 저장된 단말번호가 없는 경우
+    // 2. 등록된 단말번호가 없는 경우
     if (!hasSavedExtensions) {
       if (mounted) {
         await showDialog(
@@ -467,7 +467,7 @@ class _CallTabState extends State<CallTab> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  '저장된 단말번호가 없습니다.',
+                  '등록된 단말번호가 없습니다.',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 16),

@@ -32,7 +32,7 @@ class _ProfileTabState extends State<ProfileTab> {
       if (authService.currentUserModel?.phoneNumber != null) {
         _phoneNumberController.text = authService.currentUserModel!.phoneNumber!;
       }
-      // 저장된 단말번호 정보 업데이트
+      // 등록된 단말번호 정보 업데이트
       _updateSavedExtensions();
     });
   }
@@ -145,7 +145,7 @@ class _ProfileTabState extends State<ProfileTab> {
     }
   }
 
-  // 저장된 단말번호 정보 업데이트
+  // 등록된 단말번호 정보 업데이트
   Future<void> _updateSavedExtensions() async {
     final authService = context.read<AuthService>();
     final userModel = authService.currentUserModel;
@@ -201,7 +201,7 @@ class _ProfileTabState extends State<ProfileTab> {
         }
       }
       
-      // 5. 저장된 단말번호 가져오기 (마이그레이션 후)
+      // 5. 등록된 단말번호 가져오기 (마이그레이션 후)
       final allSavedExtensions = await dbService.getMyExtensions(userId).first;
 
       if (allSavedExtensions.isEmpty) {
@@ -238,7 +238,7 @@ class _ProfileTabState extends State<ProfileTab> {
         }
       }
 
-      print('✅ 저장된 단말번호 정보 업데이트 완료 (${savedExtensions.length}개)');
+      print('✅ 등록된 단말번호 정보 업데이트 완료 (${savedExtensions.length}개)');
     } catch (e) {
       print('⚠️ 단말번호 업데이트 실패: $e');
       // 에러가 발생해도 UI는 정상적으로 표시되도록 무시
@@ -574,7 +574,7 @@ class _ProfileTabState extends State<ProfileTab> {
                                 Icon(Icons.inbox_outlined, size: 44, color: Colors.grey),
                                 SizedBox(height: 10),
                                 Text(
-                                  '저장된 단말번호가 없습니다.',
+                                  '등록된 단말번호가 없습니다.',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,

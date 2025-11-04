@@ -35,7 +35,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       if (authService.currentUserModel?.phoneNumber != null) {
         _phoneNumberController.text = authService.currentUserModel!.phoneNumber!;
       }
-      // 저장된 단말번호 정보 업데이트
+      // 등록된 단말번호 정보 업데이트
       _updateSavedExtensions();
       // 자동 로그인 설정 불러오기
       _loadKeepLoginSetting();
@@ -173,7 +173,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     }
   }
 
-  // 저장된 단말번호 정보 업데이트
+  // 등록된 단말번호 정보 업데이트
   Future<void> _updateSavedExtensions() async {
     final authService = context.read<AuthService>();
     final userModel = authService.currentUserModel;
@@ -229,7 +229,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         }
       }
       
-      // 5. 저장된 단말번호 가져오기 (마이그레이션 후)
+      // 5. 등록된 단말번호 가져오기 (마이그레이션 후)
       final allSavedExtensions = await dbService.getMyExtensions(userId).first;
 
       if (allSavedExtensions.isEmpty) {
@@ -267,7 +267,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
 
       if (kDebugMode) {
-        debugPrint('✅ 저장된 단말번호 정보 업데이트 완료 (${savedExtensions.length}개)');
+        debugPrint('✅ 등록된 단말번호 정보 업데이트 완료 (${savedExtensions.length}개)');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -2173,14 +2173,14 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               
               const Divider(height: 24),
               
-              // 저장된 단말번호 목록 헤더
+              // 등록된 단말번호 목록 헤더
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      '저장된 단말번호',
+                      '등록된 단말번호',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -2214,7 +2214,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                             Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
                             const SizedBox(height: 16),
                             Text(
-                              '저장된 단말번호가 없습니다',
+                              '등록된 단말번호가 없습니다',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,

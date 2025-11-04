@@ -125,7 +125,7 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                             const SizedBox(height: 24),
                             const Text(
-                              '저장된 단말번호가 없습니다',
+                              '등록된 단말번호가 없습니다',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
