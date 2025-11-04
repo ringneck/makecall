@@ -632,7 +632,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   '계정 및 조직',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text('등록된 계정, 계정 추가', style: TextStyle(fontSize: 12)),
+                subtitle: Text('등록된 계정, 사용자 계정 추가', style: TextStyle(fontSize: 12)),
               ),
             ),
           ),
@@ -775,16 +775,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                           ],
                         ),
                         trailing: account.isCurrentAccount
-                            ? ElevatedButton.icon(
+                            ? IconButton(
                                 onPressed: () => _handleLogoutFromList(context),
-                                icon: const Icon(Icons.logout, size: 16),
-                                label: const Text('로그아웃', style: TextStyle(fontSize: 12)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  minimumSize: const Size(0, 32),
-                                ),
+                                icon: const Icon(Icons.logout),
+                                color: Colors.orange,
+                                tooltip: '로그아웃',
+                                iconSize: 24,
                               )
                             : IconButton(
                                 onPressed: () => _handleDeleteAccount(context, account),
@@ -842,7 +838,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
             leading: const Icon(Icons.person_add, color: Colors.green, size: 22),
-            title: const Text('계정 추가', style: TextStyle(fontSize: 15)),
+            title: const Text('사용자 계정 추가', style: TextStyle(fontSize: 15)),
             subtitle: const Text(
               '새로운 계정으로 로그인',
               style: TextStyle(fontSize: 11),
