@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import '../models/saved_account_model.dart';
 import '../models/user_model.dart';
@@ -94,7 +95,8 @@ class AccountManagerService {
   /// - Best-Effort Approach: 에러 발생 시에도 부분 삭제 진행
   /// - Fail-Safe: Hive 미초기화 상태에서도 안전하게 처리
   Future<void> removeAccount(String uid) async {
-    print('🗑️ Starting cascade deletion for uid: $uid');
+    print('🗑️ Starting complete cascade deletion for uid: $uid');
+    print('🔍 Deleting from: SharedPreferences, Hive, and Firestore (users, call_forward_info, call_history, my_extensions, phonebook_contacts, phonebooks)');
     
     final deletionResults = <String, bool>{};
     
@@ -110,84 +112,192 @@ class AccountManagerService {
         await prefs.setString(_savedAccountsKey, accountsJson);
         
         deletionResults['SharedPreferences'] = true;
-        print('✅ [1/4] SharedPreferences account removed');
+        print('✅ [1/10] SharedPreferences account removed');
       } catch (e) {
         deletionResults['SharedPreferences'] = false;
-        print('❌ [1/4] SharedPreferences deletion failed: $e');
+        print('❌ [1/10] SharedPreferences deletion failed: $e');
       }
 
       // 🔒 Hive 초기화 확인 (안전한 처리)
-      if (!Hive.isBoxOpen('call_history') && 
-          !Hive.isBoxOpen('contacts') && 
-          !Hive.isBoxOpen('call_forward_info')) {
+      bool hiveInitialized = Hive.isBoxOpen('call_history') || 
+                            Hive.isBoxOpen('contacts') || 
+                            Hive.isBoxOpen('call_forward_info');
+
+      if (!hiveInitialized) {
         print('ℹ️ Hive not initialized - skipping Hive deletions');
-        deletionResults['CallHistory'] = true; // 데이터 없으므로 성공으로 간주
-        deletionResults['Contacts'] = true;
-        deletionResults['CallForwardInfo'] = true;
-        
-        // 결과 요약 출력 후 종료
-        _printDeletionSummary(deletionResults);
-        return;
+        deletionResults['Hive_CallHistory'] = true; // 데이터 없으므로 성공으로 간주
+        deletionResults['Hive_Contacts'] = true;
+        deletionResults['Hive_CallForwardInfo'] = true;
+      } else {
+        // 2️⃣ Hive: 통화 기록 삭제
+        try {
+          final callHistoryBox = await Hive.openBox('call_history');
+          
+          final keysToDelete = <dynamic>[];
+          for (var key in callHistoryBox.keys) {
+            final item = callHistoryBox.get(key);
+            if (item is Map && item['userId'] == uid) {
+              keysToDelete.add(key);
+            }
+          }
+          
+          await callHistoryBox.deleteAll(keysToDelete);
+          deletionResults['Hive_CallHistory'] = true;
+          print('✅ [2/10] Hive call history deleted: ${keysToDelete.length} items');
+        } catch (e) {
+          deletionResults['Hive_CallHistory'] = false;
+          print('❌ [2/10] Hive call history deletion failed: $e');
+        }
+
+        // 3️⃣ Hive: 연락처 삭제
+        try {
+          final contactsBox = await Hive.openBox('contacts');
+          
+          final keysToDelete = <dynamic>[];
+          for (var key in contactsBox.keys) {
+            final item = contactsBox.get(key);
+            if (item is Map && item['userId'] == uid) {
+              keysToDelete.add(key);
+            }
+          }
+          
+          await contactsBox.deleteAll(keysToDelete);
+          deletionResults['Hive_Contacts'] = true;
+          print('✅ [3/10] Hive contacts deleted: ${keysToDelete.length} items');
+        } catch (e) {
+          deletionResults['Hive_Contacts'] = false;
+          print('❌ [3/10] Hive contacts deletion failed: $e');
+        }
+
+        // 4️⃣ Hive: 착신전환 정보 삭제
+        try {
+          final cfBox = await Hive.openBox('call_forward_info');
+          
+          final keysToDelete = <dynamic>[];
+          for (var key in cfBox.keys) {
+            final item = cfBox.get(key);
+            if (item is Map && item['userId'] == uid) {
+              keysToDelete.add(key);
+            }
+          }
+          
+          await cfBox.deleteAll(keysToDelete);
+          deletionResults['Hive_CallForwardInfo'] = true;
+          print('✅ [4/10] Hive call forward info deleted: ${keysToDelete.length} items');
+        } catch (e) {
+          deletionResults['Hive_CallForwardInfo'] = false;
+          print('❌ [4/10] Hive call forward info deletion failed: $e');
+        }
       }
 
-      // 2️⃣ Hive: 통화 기록 삭제
+      // 5️⃣ Firestore: users 컬렉션에서 사용자 문서 삭제
       try {
-        final callHistoryBox = await Hive.openBox('call_history');
-        
-        final keysToDelete = <dynamic>[];
-        for (var key in callHistoryBox.keys) {
-          final item = callHistoryBox.get(key);
-          if (item is Map && item['userId'] == uid) {
-            keysToDelete.add(key);
-          }
-        }
-        
-        await callHistoryBox.deleteAll(keysToDelete);
-        deletionResults['CallHistory'] = true;
-        print('✅ [2/4] Call history deleted: ${keysToDelete.length} items');
+        await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+        deletionResults['Firestore_Users'] = true;
+        print('✅ [5/10] Firestore users document deleted');
       } catch (e) {
-        deletionResults['CallHistory'] = false;
-        print('❌ [2/4] Call history deletion failed: $e');
+        deletionResults['Firestore_Users'] = false;
+        print('❌ [5/10] Firestore users deletion failed: $e');
       }
 
-      // 3️⃣ Hive: 연락처 삭제
+      // 6️⃣ Firestore: call_forward_info 컬렉션 삭제
       try {
-        final contactsBox = await Hive.openBox('contacts');
+        final cfSnapshot = await FirebaseFirestore.instance
+            .collection('call_forward_info')
+            .where('userId', isEqualTo: uid)
+            .get();
         
-        final keysToDelete = <dynamic>[];
-        for (var key in contactsBox.keys) {
-          final item = contactsBox.get(key);
-          if (item is Map && item['userId'] == uid) {
-            keysToDelete.add(key);
-          }
+        final batch = FirebaseFirestore.instance.batch();
+        for (var doc in cfSnapshot.docs) {
+          batch.delete(doc.reference);
         }
+        await batch.commit();
         
-        await contactsBox.deleteAll(keysToDelete);
-        deletionResults['Contacts'] = true;
-        print('✅ [3/4] Contacts deleted: ${keysToDelete.length} items');
+        deletionResults['Firestore_CallForwardInfo'] = true;
+        print('✅ [6/10] Firestore call_forward_info deleted: ${cfSnapshot.docs.length} items');
       } catch (e) {
-        deletionResults['Contacts'] = false;
-        print('❌ [3/4] Contacts deletion failed: $e');
+        deletionResults['Firestore_CallForwardInfo'] = false;
+        print('❌ [6/10] Firestore call_forward_info deletion failed: $e');
       }
 
-      // 4️⃣ Hive: 착신전환 정보 삭제
+      // 7️⃣ Firestore: call_history 컬렉션 삭제
       try {
-        final cfBox = await Hive.openBox('call_forward_info');
+        final historySnapshot = await FirebaseFirestore.instance
+            .collection('call_history')
+            .where('userId', isEqualTo: uid)
+            .get();
         
-        final keysToDelete = <dynamic>[];
-        for (var key in cfBox.keys) {
-          final item = cfBox.get(key);
-          if (item is Map && item['userId'] == uid) {
-            keysToDelete.add(key);
-          }
+        final batch = FirebaseFirestore.instance.batch();
+        for (var doc in historySnapshot.docs) {
+          batch.delete(doc.reference);
         }
+        await batch.commit();
         
-        await cfBox.deleteAll(keysToDelete);
-        deletionResults['CallForwardInfo'] = true;
-        print('✅ [4/4] Call forward info deleted: ${keysToDelete.length} items');
+        deletionResults['Firestore_CallHistory'] = true;
+        print('✅ [7/10] Firestore call_history deleted: ${historySnapshot.docs.length} items');
       } catch (e) {
-        deletionResults['CallForwardInfo'] = false;
-        print('❌ [4/4] Call forward info deletion failed: $e');
+        deletionResults['Firestore_CallHistory'] = false;
+        print('❌ [7/10] Firestore call_history deletion failed: $e');
+      }
+
+      // 8️⃣ Firestore: my_extensions 컬렉션 삭제
+      try {
+        final extSnapshot = await FirebaseFirestore.instance
+            .collection('my_extensions')
+            .where('userId', isEqualTo: uid)
+            .get();
+        
+        final batch = FirebaseFirestore.instance.batch();
+        for (var doc in extSnapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+        
+        deletionResults['Firestore_MyExtensions'] = true;
+        print('✅ [8/10] Firestore my_extensions deleted: ${extSnapshot.docs.length} items');
+      } catch (e) {
+        deletionResults['Firestore_MyExtensions'] = false;
+        print('❌ [8/10] Firestore my_extensions deletion failed: $e');
+      }
+
+      // 9️⃣ Firestore: phonebook_contacts 컬렉션 삭제
+      try {
+        final contactsSnapshot = await FirebaseFirestore.instance
+            .collection('phonebook_contacts')
+            .where('userId', isEqualTo: uid)
+            .get();
+        
+        final batch = FirebaseFirestore.instance.batch();
+        for (var doc in contactsSnapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+        
+        deletionResults['Firestore_PhonebookContacts'] = true;
+        print('✅ [9/10] Firestore phonebook_contacts deleted: ${contactsSnapshot.docs.length} items');
+      } catch (e) {
+        deletionResults['Firestore_PhonebookContacts'] = false;
+        print('❌ [9/10] Firestore phonebook_contacts deletion failed: $e');
+      }
+
+      // 🔟 Firestore: phonebooks 컬렉션 삭제
+      try {
+        final phonebooksSnapshot = await FirebaseFirestore.instance
+            .collection('phonebooks')
+            .where('userId', isEqualTo: uid)
+            .get();
+        
+        final batch = FirebaseFirestore.instance.batch();
+        for (var doc in phonebooksSnapshot.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+        
+        deletionResults['Firestore_Phonebooks'] = true;
+        print('✅ [10/10] Firestore phonebooks deleted: ${phonebooksSnapshot.docs.length} items');
+      } catch (e) {
+        deletionResults['Firestore_Phonebooks'] = false;
+        print('❌ [10/10] Firestore phonebooks deletion failed: $e');
       }
 
       // 📊 결과 요약
