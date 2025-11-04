@@ -46,12 +46,12 @@ class DCMIWSService {
       StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get events => _eventController.stream;
   
-  // BuildContext 저장 (수신 전화 화면 표시용)
-  static BuildContext? _context;
+  // NavigatorKey 저장 (수신 전화 화면 표시용)
+  static GlobalKey<NavigatorState>? _navigatorKey;
   
-  /// BuildContext 설정 (main.dart에서 호출)
-  static void setContext(BuildContext context) {
-    _context = context;
+  /// NavigatorKey 설정 (main.dart에서 호출)
+  static void setNavigatorKey(GlobalKey<NavigatorState> key) {
+    _navigatorKey = key;
   }
 
   /// WebSocket 연결
@@ -333,9 +333,9 @@ class DCMIWSService {
     String linkedid,
     Map<String, dynamic> callEventData,
   ) {
-    if (_context == null) {
+    if (_navigatorKey?.currentState == null) {
       if (kDebugMode) {
-        debugPrint('❌ BuildContext가 설정되지 않았습니다');
+        debugPrint('❌ NavigatorKey가 설정되지 않았거나 Navigator가 준비되지 않았습니다');
       }
       return;
     }
@@ -355,7 +355,7 @@ class DCMIWSService {
       debugPrint('  Linkedid: $linkedid');
     }
     
-    Navigator.of(_context!).push(
+    _navigatorKey!.currentState!.push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (context) => IncomingCallScreen(

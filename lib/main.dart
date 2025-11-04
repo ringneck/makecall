@@ -6,7 +6,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/user_session_manager.dart';
-import 'services/fcm_service.dart';
 import 'services/dcmiws_service.dart';
 import 'providers/selected_extension_provider.dart';
 import 'providers/dcmiws_event_provider.dart';
@@ -26,6 +25,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // 백그라운드에서는 로컬 알림만 표시
   // 풀스크린은 앱이 포그라운드로 돌아왔을 때 표시
 }
+
+// 🔑 GlobalKey for Navigator (수신 전화 풀스크린 표시용)
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +64,13 @@ class _MyAppState extends State<MyApp> {
   bool _providersRegistered = false; // Provider 등록 플래그
 
   @override
+  void initState() {
+    super.initState();
+    // 🔑 NavigatorKey를 DCMIWSService에 등록
+    DCMIWSService.setNavigatorKey(navigatorKey);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
@@ -87,16 +96,9 @@ class _MyAppState extends State<MyApp> {
             });
           }
           
-          // 🎯 FCMService 및 DCMIWSService에 BuildContext 등록 (한 번만 실행)
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              FCMService.setContext(context);
-              DCMIWSService.setContext(context);
-            }
-          });
-          
           return MaterialApp(
             title: 'MAKECALL',
+            navigatorKey: navigatorKey, // ✅ GlobalKey 등록
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
