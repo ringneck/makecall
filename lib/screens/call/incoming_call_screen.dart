@@ -142,15 +142,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
                     const Spacer(flex: 3),
 
-                    // 🎯 수락/거절 버튼 (아이콘+레이블)
-                    _buildActionButtons(),
+                    // ✅ 확인 버튼 (아이콘+레이블)
+                    _buildConfirmButtonWithIcon(),
 
-                    const SizedBox(height: 30),
-
-                    // 📝 확인 버튼 (넓은 텍스트 버튼)
-                    _buildConfirmButton(),
-
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 80),
                   ],
                 ),
               ],
@@ -461,36 +456,72 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     );
   }
 
-  /// 📝 확인 버튼 (넓은 텍스트 버튼)
-  Widget _buildConfirmButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
+  /// ✅ 확인 버튼 (아이콘+레이블)
+  Widget _buildConfirmButtonWithIcon() {
+    return Center(
       child: GestureDetector(
         onTap: () {
           // TODO: 확인 버튼 동작 정의 (현재는 화면 닫기)
           Navigator.of(context).pop();
         },
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.4),
-              width: 2,
+        child: Column(
+          children: [
+            // 버튼 (글로우 효과)
+            AnimatedBuilder(
+              animation: _glowController,
+              builder: (context, child) {
+                return Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.5 * _glowController.value),
+                        blurRadius: 30 * _glowController.value,
+                        spreadRadius: 5 * _glowController.value,
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    width: 75,
+                    height: 75,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.blue.shade400,
+                          Colors.blue.shade600,
+                        ],
+                      ),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.check_circle_rounded,
+                      color: Colors.white,
+                      size: 36,
+                    ),
+                  ),
+                );
+              },
             ),
-          ),
-          child: const Text(
-            '확인',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1,
+
+            const SizedBox(height: 12),
+
+            // 레이블
+            Text(
+              '확인',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
+          ],
         ),
       ),
     );
