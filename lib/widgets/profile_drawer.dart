@@ -2233,142 +2233,148 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         separatorBuilder: (context, index) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final ext = extensions[index];
-                          return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            leading: CircleAvatar(
-                              backgroundColor: const Color(0xFF2196F3).withAlpha(26),
-                              child: Text(
-                                '${index + 1}',
-                                style: const TextStyle(
-                                  color: Color(0xFF2196F3),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[300]!, width: 1),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withAlpha(26),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
                                 ),
-                              ),
-                            ),
-                            title: Text(
-                              ext.name,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 2),
-                                Text(
-                                  '단말번호: ${ext.extension}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                                if (ext.accountCode != null && ext.accountCode!.isNotEmpty)
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          '계정코드: ${ext.accountCode}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[600],
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.content_copy, size: 14),
-                                        color: Colors.grey[600],
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                        onPressed: () {
-                                          Clipboard.setData(ClipboardData(text: ext.accountCode!));
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('계정코드가 복사되었습니다'),
-                                              duration: Duration(seconds: 1),
-                                            ),
-                                          );
-                                        },
-                                        tooltip: '복사',
-                                      ),
-                                    ],
-                                  ),
-                                if (ext.sipUserId != null && ext.sipUserId!.isNotEmpty)
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'SIP UserId: ${ext.sipUserId}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[600],
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.content_copy, size: 14),
-                                        color: Colors.grey[600],
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                        onPressed: () {
-                                          Clipboard.setData(ClipboardData(text: ext.sipUserId!));
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('SIP UserId가 복사되었습니다'),
-                                              duration: Duration(seconds: 1),
-                                            ),
-                                          );
-                                        },
-                                        tooltip: '복사',
-                                      ),
-                                    ],
-                                  ),
-                                if (ext.sipSecret != null && ext.sipSecret!.isNotEmpty)
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'SIP Secret: ${ext.sipSecret}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[600],
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.content_copy, size: 14),
-                                        color: Colors.grey[600],
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                        onPressed: () {
-                                          Clipboard.setData(ClipboardData(text: ext.sipSecret!));
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('SIP Secret이 복사되었습니다'),
-                                              duration: Duration(seconds: 1),
-                                            ),
-                                          );
-                                        },
-                                        tooltip: '복사',
-                                      ),
-                                    ],
-                                  ),
                               ],
                             ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 20),
-                              color: Colors.red,
-                              onPressed: () {
-                                Navigator.pop(dialogContext);
-                                _deleteExtension(context, ext);
-                              },
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // 작은 숫자 아이콘
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2196F3).withAlpha(26),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '${index + 1}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF2196F3),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  
+                                  // 정보 영역
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        // 이름
+                                        Text(
+                                          ext.name,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        
+                                        // 단말번호
+                                        _buildCopyableInfoRow(
+                                          label: '단말번호',
+                                          value: ext.extension,
+                                          onCopy: () {
+                                            Clipboard.setData(ClipboardData(text: ext.extension));
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('단말번호가 복사되었습니다'),
+                                                duration: Duration(seconds: 1),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                        
+                                        // 계정코드
+                                        if (ext.accountCode != null && ext.accountCode!.isNotEmpty) ...[
+                                          const SizedBox(height: 6),
+                                          _buildCopyableInfoRow(
+                                            label: '계정코드',
+                                            value: ext.accountCode!,
+                                            onCopy: () {
+                                              Clipboard.setData(ClipboardData(text: ext.accountCode!));
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('계정코드가 복사되었습니다'),
+                                                  duration: Duration(seconds: 1),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                        
+                                        // SIP UserId
+                                        if (ext.sipUserId != null && ext.sipUserId!.isNotEmpty) ...[
+                                          const SizedBox(height: 6),
+                                          _buildCopyableInfoRow(
+                                            label: 'SIP UserId',
+                                            value: ext.sipUserId!,
+                                            onCopy: () {
+                                              Clipboard.setData(ClipboardData(text: ext.sipUserId!));
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('SIP UserId가 복사되었습니다'),
+                                                  duration: Duration(seconds: 1),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                        
+                                        // SIP Secret
+                                        if (ext.sipSecret != null && ext.sipSecret!.isNotEmpty) ...[
+                                          const SizedBox(height: 6),
+                                          _buildCopyableInfoRow(
+                                            label: 'SIP Secret',
+                                            value: ext.sipSecret!,
+                                            onCopy: () {
+                                              Clipboard.setData(ClipboardData(text: ext.sipSecret!));
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('SIP Secret이 복사되었습니다'),
+                                                  duration: Duration(seconds: 1),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  
+                                  // 삭제 버튼
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, size: 20),
+                                    color: Colors.red,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () {
+                                      Navigator.pop(dialogContext);
+                                      _deleteExtension(context, ext);
+                                    },
+                                    tooltip: '삭제',
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },
@@ -2380,6 +2386,69 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           ),
         ),
       ),
+    );
+  }
+
+  /// 정보 행 빌더 (라벨과 값을 별도 줄로 표시)
+  Widget _buildCopyableInfoRow({
+    required String label,
+    required String value,
+    required VoidCallback onCopy,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 라벨
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[600],
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 2),
+        // 값 + 복사 버튼
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                    fontFamily: 'monospace',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            InkWell(
+              onTap: onCopy,
+              borderRadius: BorderRadius.circular(4),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                child: Icon(
+                  Icons.content_copy,
+                  size: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
