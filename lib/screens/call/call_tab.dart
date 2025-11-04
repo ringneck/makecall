@@ -1702,6 +1702,16 @@ class _CallTabState extends State<CallTab> {
     
     // 카테고리 번역 (영어면 한글로 변환)
     final translatedCategory = _translateName(contact.categoryDisplay);
+    
+    // 🔍 디버그: 카테고리 번역 확인
+    if (kDebugMode) {
+      debugPrint('🔍 Original Name: "${contact.name}"');
+      debugPrint('🔍 Translated Name: "$translatedName"');
+      debugPrint('🔍 Category Display: "${contact.categoryDisplay}"');
+      debugPrint('🔍 Translated Category: "$translatedCategory"');
+      debugPrint('🔍 Contains in map: ${_nameTranslations.containsKey(contact.categoryDisplay)}');
+      debugPrint('🔍 Category (base): "${contact.category}"');
+    }
 
     return ListTile(
       leading: CircleAvatar(
