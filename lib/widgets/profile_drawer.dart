@@ -9,6 +9,7 @@ import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../services/database_service.dart';
 import '../services/account_manager_service.dart';
+import '../services/fcm_service.dart';
 import '../models/my_extension_model.dart';
 import '../models/saved_account_model.dart';
 import '../screens/profile/api_settings_dialog.dart';
@@ -26,6 +27,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   String? _searchError;
   bool _keepLoginEnabled = true; // 자동 로그인 기본값: true
   final _phoneNumberController = TextEditingController();
+  
+  // FCM 알림 설정
+  bool _pushEnabled = true;
+  bool _soundEnabled = true;
+  bool _vibrationEnabled = true;
 
   @override
   void initState() {
@@ -40,6 +46,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       _updateSavedExtensions();
       // 자동 로그인 설정 불러오기
       _loadKeepLoginSetting();
+      // FCM 알림 설정 불러오기
+      _loadNotificationSettings();
     });
   }
 
@@ -62,6 +70,74 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       
       if (kDebugMode) {
         debugPrint('📱 Auto Login UI updated: $_keepLoginEnabled');
+      }
+    }
+  }
+
+  // FCM 알림 설정 불러오기
+  Future<void> _loadNotificationSettings() async {
+    try {
+      final authService = context.read<AuthService>();
+      final userId = authService.currentUser?.uid;
+      
+      if (userId == null) return;
+      
+      final fcmService = FCMService();
+      final settings = await fcmService.getUserNotificationSettings(userId);
+      
+      if (settings != null && mounted) {
+        setState(() {
+          _pushEnabled = settings['pushEnabled'] ?? true;
+          _soundEnabled = settings['soundEnabled'] ?? true;
+          _vibrationEnabled = settings['vibrationEnabled'] ?? true;
+        });
+        
+        if (kDebugMode) {
+          debugPrint('🔔 알림 설정 불러오기 완료');
+          debugPrint('   - 푸시 알림: $_pushEnabled');
+          debugPrint('   - 알림음: $_soundEnabled');
+          debugPrint('   - 진동: $_vibrationEnabled');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 알림 설정 불러오기 오류: $e');
+      }
+    }
+  }
+
+  // FCM 알림 설정 업데이트
+  Future<void> _updateNotificationSetting(String key, bool value) async {
+    try {
+      final authService = context.read<AuthService>();
+      final userId = authService.currentUser?.uid;
+      
+      if (userId == null) return;
+      
+      final fcmService = FCMService();
+      await fcmService.updateSingleSetting(userId, key, value);
+      
+      if (kDebugMode) {
+        debugPrint('✅ 알림 설정 업데이트: $key = $value');
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('설정이 저장되었습니다'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 알림 설정 업데이트 오류: $e');
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('설정 저장 실패: $e')),
+        );
       }
     }
   }
@@ -483,9 +559,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             icon: Icons.notifications_active,
             title: '푸시 알림 표시',
             subtitle: '새로운 통화 및 메시지 알림',
-            value: true,
+            value: _pushEnabled,
             onChanged: (value) {
-              // 푸시 알림 설정 변경
+              setState(() {
+                _pushEnabled = value;
+              });
+              _updateNotificationSetting('pushEnabled', value);
             },
           ),
           
@@ -493,9 +572,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             icon: Icons.volume_up,
             title: '알림음',
             subtitle: '알림 수신 시 소리',
-            value: true,
+            value: _soundEnabled,
             onChanged: (value) {
-              // 알림음 설정 변경
+              setState(() {
+                _soundEnabled = value;
+              });
+              _updateNotificationSetting('soundEnabled', value);
             },
           ),
           
@@ -503,9 +585,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             icon: Icons.vibration,
             title: '진동',
             subtitle: '알림 수신 시 진동',
-            value: true,
+            value: _vibrationEnabled,
             onChanged: (value) {
-              // 진동 설정 변경
+              setState(() {
+                _vibrationEnabled = value;
+              });
+              _updateNotificationSetting('vibrationEnabled', value);
             },
           ),
           
