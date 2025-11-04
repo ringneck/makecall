@@ -316,7 +316,7 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
       // WebSocket 연결 시도
       final success = await _dcmiwsService.connect(
         serverAddress: _cachedServerAddress!,
-        port: _cachedServerPort ?? 7099,
+        port: _cachedServerPort ?? 6600,
         useSSL: _cachedServerSSL ?? false,
       );
       
@@ -367,9 +367,11 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
       }
       
       final userData = userDoc.data()!;
-      _cachedServerAddress = userData['serverAddress'] as String?;
-      _cachedServerPort = userData['serverPort'] as int? ?? 7099;
-      _cachedServerSSL = userData['serverSSL'] as bool? ?? false;
+      
+      // ProfileDrawer의 API Settings Dialog와 동일한 필드명 사용
+      _cachedServerAddress = userData['websocketServerUrl'] as String?;
+      _cachedServerPort = userData['websocketServerPort'] as int? ?? 6600;
+      _cachedServerSSL = userData['websocketUseSSL'] as bool? ?? false;
       
       if (kDebugMode) {
         debugPrint('✅ DCMIWSConnectionManager: Server settings loaded');
