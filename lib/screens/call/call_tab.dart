@@ -35,6 +35,10 @@ class _CallTabState extends State<CallTab> {
   bool _showDeviceContacts = false;
   List<ContactModel> _deviceContacts = [];
   bool _hasCheckedSettings = false; // 설정 체크 완료 플래그
+  
+  // 🔒 고급 개발자 패턴: AuthService 참조를 안전하게 저장
+  // dispose()에서 context 사용을 피하기 위한 전략
+  AuthService? _authService;
 
   // 영어 이름을 한글로 번역하는 매핑 테이블 (Feature Codes 이름 번역용)
   final Map<String, String> _nameTranslations = {
@@ -50,9 +54,13 @@ class _CallTabState extends State<CallTab> {
     // 🚀 고급 개발자 패턴: 순차적 초기화 체인
     // 1️⃣ 설정 확인 먼저 → 2️⃣ 설정 완료 시에만 단말번호 조회
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      
+      // 🔒 AuthService 참조를 안전하게 저장 (dispose에서 사용)
+      _authService = context.read<AuthService>();
+      
       // AuthService 리스너 등록 (사용자 전환 감지)
-      final authService = context.read<AuthService>();
-      authService.addListener(_onUserModelChanged);
+      _authService?.addListener(_onUserModelChanged);
       
       // 순차적 초기화 실행
       await _initializeSequentially();
@@ -85,23 +93,31 @@ class _CallTabState extends State<CallTab> {
   
   @override
   void dispose() {
-    // AuthService 리스너 제거
-    final authService = context.read<AuthService>();
-    authService.removeListener(_onUserModelChanged);
+    // 🔒 고급 개발자 패턴: 저장된 참조를 사용하여 안전하게 리스너 제거
+    // context.read()를 사용하지 않음 → deactivated widget 에러 방지
+    _authService?.removeListener(_onUserModelChanged);
+    _authService = null; // 메모리 누수 방지
     
     _searchController.dispose();
     super.dispose();
   }
   
-  // userModel 변경 감지 콜백
+  // 🔔 userModel 변경 감지 콜백 (고급 패턴: 안전한 비동기 처리)
   void _onUserModelChanged() {
     if (kDebugMode) {
       debugPrint('🔔 AuthService 리스너 트리거: userModel 변경 감지');
     }
     
-    // userModel이 로드되면 설정 체크 재실행
-    final authService = context.read<AuthService>();
-    if (authService.currentUserModel != null && !_hasCheckedSettings) {
+    // 🔒 mounted 체크 최우선 (Widget이 dispose되었을 수 있음)
+    if (!mounted) {
+      if (kDebugMode) {
+        debugPrint('⚠️ Widget이 이미 dispose됨 - 리스너 콜백 무시');
+      }
+      return;
+    }
+    
+    // 🔒 저장된 AuthService 참조 사용 (context 사용 안함)
+    if (_authService?.currentUserModel != null && !_hasCheckedSettings) {
       if (kDebugMode) {
         debugPrint('✅ userModel 로드 완료 - 설정 체크 재실행');
       }

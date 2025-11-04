@@ -28,8 +28,17 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // 🔒 고급 개발자 패턴: 세션 체크 중복 실행 방지
+  bool _isSessionCheckScheduled = false;
+  String? _lastCheckedUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -63,12 +72,28 @@ class MyApp extends StatelessWidget {
         ),
         home: Consumer<AuthService>(
           builder: (context, authService, _) {
-            // 🎯 고급 개발자 패턴: 사용자 세션 전환 감지 및 데이터 초기화
-            // 로그인/로그아웃/계정 전환 시 자동으로 이전 데이터 정리
-            WidgetsBinding.instance.addPostFrameCallback((_) async {
-              final currentUserId = authService.currentUser?.uid;
-              await UserSessionManager().checkAndInitializeSession(currentUserId);
-            });
+            // 🎯 고급 개발자 패턴: 최적화된 사용자 세션 전환 감지
+            // - 중복 실행 방지
+            // - 사용자 변경 시에만 실행
+            // - 비동기 안전성 보장
+            final currentUserId = authService.currentUser?.uid;
+            
+            // 사용자 변경 시에만 세션 체크 실행
+            if (!_isSessionCheckScheduled && _lastCheckedUserId != currentUserId) {
+              _isSessionCheckScheduled = true;
+              _lastCheckedUserId = currentUserId;
+              
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (mounted) {
+                  await UserSessionManager().checkAndInitializeSession(currentUserId);
+                  if (mounted) {
+                    setState(() {
+                      _isSessionCheckScheduled = false;
+                    });
+                  }
+                }
+              });
+            }
 
             if (authService.isAuthenticated) {
               return const MainScreen(); // 로그인 후 MAKECALL 메인 화면으로 이동
