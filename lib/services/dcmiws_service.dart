@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -345,38 +346,45 @@ class DCMIWSService {
     final eventData = callEventData['data'] as Map<String, dynamic>;
     String? callerName = eventData['CallerIDName'] as String?;
     
-    // 2️⃣ CallerIDName이 없거나 비어있거나 <unknown>이면 연락처에서 조회
-    if (callerName == null || callerName.isEmpty || callerName == '<unknown>') {
+    // 2️⃣ 연락처 조회 (이름 + 사진) - 항상 조회 시도
+    String? contactName;
+    Uint8List? contactPhoto;
+    
+    try {
       if (kDebugMode) {
-        debugPrint('🔍 CallerIDName 없음, 기기 연락처에서 조회 중...');
+        debugPrint('🔍 기기 연락처에서 조회 중...');
       }
       
-      try {
-        final contactName = await ContactHelper().getContactNameByPhone(callerNumber);
+      final contactInfo = await ContactHelper().getContactInfoByPhone(callerNumber);
+      
+      if (contactInfo != null) {
+        contactName = contactInfo['name'] as String?;
+        contactPhoto = contactInfo['photo'] as Uint8List?;
         
-        if (contactName != null && contactName.isNotEmpty) {
-          callerName = contactName;
-          if (kDebugMode) {
-            debugPrint('✅ 연락처에서 이름 찾음: $callerName');
-          }
-        } else {
-          // 3️⃣ 연락처에도 없으면 전화번호 사용
-          callerName = callerNumber;
-          if (kDebugMode) {
-            debugPrint('📞 연락처에 없음, 전화번호 사용: $callerName');
-          }
-        }
-      } catch (e) {
-        // 연락처 조회 실패 시 전화번호 사용
-        callerName = callerNumber;
         if (kDebugMode) {
-          debugPrint('❌ 연락처 조회 실패, 전화번호 사용: $e');
+          debugPrint('✅ 연락처 찾음!');
+          debugPrint('  이름: $contactName');
+          debugPrint('  사진: ${contactPhoto != null ? "${contactPhoto.length} bytes" : "없음"}');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('📞 연락처에 없음');
         }
       }
-    } else {
+    } catch (e) {
       if (kDebugMode) {
-        debugPrint('✅ CallerIDName 존재: $callerName');
+        debugPrint('❌ 연락처 조회 실패: $e');
       }
+    }
+    
+    // 3️⃣ CallerIDName 우선순위 결정
+    // 연락처에서 찾은 이름 > CallerIDName > 전화번호
+    if (contactName != null && contactName.isNotEmpty) {
+      // 연락처에서 찾은 이름 사용
+      callerName = contactName;
+    } else if (callerName == null || callerName.isEmpty || callerName == '<unknown>') {
+      // CallerIDName이 없으면 전화번호 사용
+      callerName = callerNumber;
     }
     
     // 4️⃣ 최종 callerName 보장 (null 방지)
@@ -443,6 +451,7 @@ class DCMIWSService {
           callerName: finalCallerName,
           callerNumber: callerNumber,
           callerAvatar: null,
+          contactPhoto: contactPhoto,
           channel: channel,
           linkedid: linkedid,
           receiverNumber: receiverNumber,

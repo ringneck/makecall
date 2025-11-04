@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 /// 수신 전화 풀스크린 (미래지향적 디자인 + 고급 애니메이션)
 class IncomingCallScreen extends StatefulWidget {
   final String callerName;
   final String callerNumber;
   final String? callerAvatar;
+  final Uint8List? contactPhoto;
   final String channel;
   final String linkedid;
   final String receiverNumber;
@@ -19,6 +21,7 @@ class IncomingCallScreen extends StatefulWidget {
     required this.callerName,
     required this.callerNumber,
     this.callerAvatar,
+    this.contactPhoto,
     required this.channel,
     required this.linkedid,
     required this.receiverNumber,
@@ -413,44 +416,77 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       height: 140,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.blue.shade400,
-            Colors.purple.shade400,
-          ],
-        ),
+        gradient: widget.contactPhoto == null
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.shade400,
+                  Colors.purple.shade400,
+                ],
+              )
+            : null,
+        color: widget.contactPhoto != null ? Colors.white : null,
         border: Border.all(
           color: Colors.white,
           width: 4,
         ),
       ),
-      child: widget.callerAvatar != null
-          ? ClipOval(
-              child: Image.network(
-                widget.callerAvatar!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
-              ),
-            )
-          : _buildDefaultAvatar(),
+      child: ClipOval(
+        child: _buildAvatarContent(),
+      ),
     );
   }
 
-  /// 기본 아바타 (이니셜)
+  /// 아바타 콘텐츠 (우선순위: 연락처 사진 > callerAvatar > app_logo)
+  Widget _buildAvatarContent() {
+    // 1순위: 연락처 사진
+    if (widget.contactPhoto != null) {
+      return Image.memory(
+        widget.contactPhoto!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildAppLogo(),
+      );
+    }
+    
+    // 2순위: callerAvatar (URL)
+    if (widget.callerAvatar != null && widget.callerAvatar!.isNotEmpty) {
+      return Image.network(
+        widget.callerAvatar!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildAppLogo(),
+      );
+    }
+    
+    // 3순위: app_logo (기본 이미지)
+    return _buildAppLogo();
+  }
+
+  /// 기본 app_logo 아이콘
+  Widget _buildAppLogo() {
+    return Image.asset(
+      'assets/icons/app_icon.png',
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
+    );
+  }
+
+  /// 최후 대안: 이니셜 아바타
   Widget _buildDefaultAvatar() {
     final initial = widget.callerName.isNotEmpty
         ? widget.callerName[0].toUpperCase()
         : '?';
 
-    return Center(
-      child: Text(
-        initial,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 56,
-          fontWeight: FontWeight.bold,
+    return Container(
+      color: Colors.blue.shade400,
+      child: Center(
+        child: Text(
+          initial,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 56,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

@@ -13,11 +13,11 @@ class ContactHelper {
   // 연락처 권한 상태 캐시
   bool? _hasPermission;
   
-  /// 전화번호로 연락처 이름 조회
+  /// 전화번호로 연락처 정보 조회 (이름 + 사진)
   /// 
   /// [phoneNumber] - 조회할 전화번호
-  /// Returns: 연락처 이름 또는 null (찾지 못한 경우)
-  Future<String?> getContactNameByPhone(String phoneNumber) async {
+  /// Returns: {name: String?, photo: Uint8List?} 또는 null
+  Future<Map<String, dynamic>?> getContactInfoByPhone(String phoneNumber) async {
     try {
       // 1. 연락처 권한 확인
       if (!await _checkPermission()) {
@@ -36,10 +36,10 @@ class ContactHelper {
         debugPrint('  정규화 번호: $normalizedPhone');
       }
       
-      // 3. 연락처 조회
+      // 3. 연락처 조회 (사진 포함)
       final contacts = await FlutterContacts.getContacts(
         withProperties: true,
-        withPhoto: false,
+        withPhoto: true,
       );
       
       if (kDebugMode) {
@@ -54,12 +54,19 @@ class ContactHelper {
           // 정규화된 번호로 비교
           if (_matchPhoneNumbers(normalizedPhone, contactPhone)) {
             final name = contact.displayName;
+            final photo = contact.photo;
+            
             if (kDebugMode) {
               debugPrint('✅ ContactHelper: 연락처 찾음!');
               debugPrint('  이름: $name');
+              debugPrint('  사진: ${photo != null ? "${photo.length} bytes" : "없음"}');
               debugPrint('  연락처 번호: ${phone.number}');
             }
-            return name;
+            
+            return {
+              'name': name,
+              'photo': photo,
+            };
           }
         }
       }
@@ -75,6 +82,15 @@ class ContactHelper {
       }
       return null;
     }
+  }
+
+  /// 전화번호로 연락처 이름 조회 (기존 메서드 유지)
+  /// 
+  /// [phoneNumber] - 조회할 전화번호
+  /// Returns: 연락처 이름 또는 null (찾지 못한 경우)
+  Future<String?> getContactNameByPhone(String phoneNumber) async {
+    final contactInfo = await getContactInfoByPhone(phoneNumber);
+    return contactInfo?['name'] as String?;
   }
   
   /// 연락처 권한 확인
