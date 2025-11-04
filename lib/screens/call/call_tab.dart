@@ -231,7 +231,7 @@ class _CallTabState extends State<CallTab> {
               children: const [
                 Icon(Icons.info_outline, color: Color(0xFF2196F3), size: 28),
                 SizedBox(width: 12),
-                Text('초기 설정 필요'),
+                Text('초기 등록 필요'),
               ],
             ),
             content: Column(
@@ -409,7 +409,7 @@ class _CallTabState extends State<CallTab> {
               children: const [
                 Icon(Icons.phone_disabled, color: Colors.orange, size: 28),
                 SizedBox(width: 12),
-                Text('단말번호 설정 필요'),
+                Text('단말번호 등록 필요'),
               ],
             ),
             content: Column(
