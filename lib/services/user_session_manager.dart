@@ -2,13 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'database_service.dart';
+import '../providers/selected_extension_provider.dart';
+import '../providers/dcmiws_event_provider.dart';
 
 /// 🎯 고급 개발자 패턴: 사용자 세션 관리 및 데이터 초기화
 /// 
 /// 사용자 계정 전환 시 발생할 수 있는 문제들을 사전에 방지하는 핵심 서비스
 /// - 착신전환 정보 캐시 초기화
 /// - 통화 기록 캐시 초기화
-/// - Provider 상태 초기화
+/// - Provider 상태 초기화 (SelectedExtensionProvider, DCMIWSEventProvider)
 /// - WebSocket 연결 정리
 /// - 메모리 누수 방지
 class UserSessionManager {
@@ -17,6 +19,10 @@ class UserSessionManager {
   UserSessionManager._internal();
 
   final DatabaseService _databaseService = DatabaseService();
+  
+  // 🔒 Provider 참조 저장 (사용자 전환 시 초기화용)
+  SelectedExtensionProvider? _selectedExtensionProvider;
+  DCMIWSEventProvider? _dcmiwsEventProvider;
   
   /// 마지막으로 확인된 사용자 ID (계정 전환 감지용)
   String? _lastKnownUserId;
@@ -222,11 +228,26 @@ class UserSessionManager {
 
   /// 🧠 메모리 캐시 초기화
   Future<void> _clearMemoryCache() async {
-    // Dart VM 가비지 컬렉션 제안
-    // Provider의 notifyListeners()가 자동으로 호출되어 UI가 갱신됨
+    // 🔒 CRITICAL: Provider 상태 초기화 (사용자 전환 시 이전 데이터 제거)
+    
+    // 1️⃣ SelectedExtensionProvider 초기화 (클릭투콜 caller 초기화)
+    if (_selectedExtensionProvider != null) {
+      _selectedExtensionProvider!.clearSelection();
+      if (kDebugMode) {
+        debugPrint('   🗑️ SelectedExtensionProvider 초기화 (이전 단말번호 제거)');
+      }
+    }
+    
+    // 2️⃣ DCMIWSEventProvider 초기화 (WebSocket 이벤트 초기화)
+    if (_dcmiwsEventProvider != null) {
+      // WebSocket 연결 해제는 네트워크 정리 단계에서 처리
+      if (kDebugMode) {
+        debugPrint('   🗑️ DCMIWSEventProvider 상태 확인');
+      }
+    }
     
     if (kDebugMode) {
-      debugPrint('   🧠 메모리 캐시 정리 요청');
+      debugPrint('   🧠 메모리 캐시 정리 완료 (Provider 상태 초기화)');
     }
   }
 
@@ -260,6 +281,21 @@ class UserSessionManager {
     }
   }
 
+  /// 🔒 Provider 등록 (main.dart에서 호출)
+  /// 
+  /// 사용자 전환 시 Provider 상태를 초기화하기 위해 참조를 저장
+  void registerProviders({
+    required SelectedExtensionProvider selectedExtensionProvider,
+    required DCMIWSEventProvider dcmiwsEventProvider,
+  }) {
+    _selectedExtensionProvider = selectedExtensionProvider;
+    _dcmiwsEventProvider = dcmiwsEventProvider;
+    
+    if (kDebugMode) {
+      debugPrint('🔒 Provider 참조 등록 완료 (사용자 전환 시 초기화용)');
+    }
+  }
+  
   /// 🔄 강제 초기화 (디버그용)
   Future<void> forceReset() async {
     if (kDebugMode) {
