@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../screens/call/incoming_call_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// DCMIWS WebSocket 서비스
 /// 
@@ -213,25 +215,25 @@ class DCMIWSService {
       final event = eventData['Event'] as String?;
       if (event != 'Newchannel') return;
       
-      // Context가 "trk"로 시작하는지 확인
-      final context = eventData['Context'] as String?;
-      if (context == null || !context.startsWith('trk')) return;
-      
-      // CallerIDNum과 Exten 추출
+      // CallerIDNum, Exten, Channel, Linkedid 추출
       final callerIdNum = eventData['CallerIDNum'] as String?;
       final exten = eventData['Exten'] as String?;
+      final channel = eventData['Channel'] as String?;
+      final linkedid = eventData['Linkedid'] as String?;
       
       if (callerIdNum == null || exten == null) return;
+      if (channel == null || linkedid == null) return;
       
       if (kDebugMode) {
         debugPrint('📞 수신 전화 감지!');
         debugPrint('  발신번호: $callerIdNum');
         debugPrint('  수신번호: $exten');
-        debugPrint('  Context: $context');
+        debugPrint('  Channel: $channel');
+        debugPrint('  Linkedid: $linkedid');
       }
       
       // 수신 전화 화면 표시
-      _showIncomingCallScreen(callerIdNum, exten, data);
+      _showIncomingCallScreen(callerIdNum, exten, channel, linkedid, data);
       
     } catch (e) {
       if (kDebugMode) {
@@ -244,6 +246,8 @@ class DCMIWSService {
   void _showIncomingCallScreen(
     String callerNumber,
     String receiverNumber,
+    String channel,
+    String linkedid,
     Map<String, dynamic> callEventData,
   ) {
     if (_context == null) {
@@ -264,6 +268,8 @@ class DCMIWSService {
       debugPrint('  발신자: $callerName');
       debugPrint('  발신번호: $callerNumber');
       debugPrint('  수신번호: $receiverNumber');
+      debugPrint('  Channel: $channel');
+      debugPrint('  Linkedid: $linkedid');
     }
     
     Navigator.of(_context!).push(
@@ -273,19 +279,46 @@ class DCMIWSService {
           callerName: callerName,
           callerNumber: callerNumber,
           callerAvatar: null,
+          channel: channel,
+          linkedid: linkedid,
+          receiverNumber: receiverNumber,
           onAccept: () {
             Navigator.of(context).pop();
             // TODO: 전화 수락 로직 (SIP 연결 등)
             if (kDebugMode) {
               debugPrint('✅ 전화 수락됨: $callerNumber → $receiverNumber');
+              debugPrint('  Channel: $channel');
+              debugPrint('  Linkedid: $linkedid');
             }
+            // 통화 기록 저장
+            _saveCallHistory(
+              callerNumber: callerNumber,
+              callerName: callerName,
+              receiverNumber: receiverNumber,
+              channel: channel,
+              linkedid: linkedid,
+              callType: 'incoming',
+              status: 'accepted',
+            );
           },
           onReject: () {
             Navigator.of(context).pop();
             // TODO: 전화 거절 로직 (서버 통신 등)
             if (kDebugMode) {
               debugPrint('❌ 전화 거절됨: $callerNumber → $receiverNumber');
+              debugPrint('  Channel: $channel');
+              debugPrint('  Linkedid: $linkedid');
             }
+            // 통화 기록 저장
+            _saveCallHistory(
+              callerNumber: callerNumber,
+              callerName: callerName,
+              receiverNumber: receiverNumber,
+              channel: channel,
+              linkedid: linkedid,
+              callType: 'incoming',
+              status: 'rejected',
+            );
           },
         ),
       ),
@@ -580,6 +613,62 @@ class DCMIWSService {
     }
   }
 
+
+  /// 통화 기록 저장 (Firestore)
+  Future<void> _saveCallHistory({
+    required String callerNumber,
+    required String callerName,
+    required String receiverNumber,
+    required String channel,
+    required String linkedid,
+    required String callType,
+    required String status,
+  }) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final auth = FirebaseAuth.instance;
+      final userId = auth.currentUser?.uid;
+      
+      if (userId == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 로그인 정보가 없어 통화 기록을 저장할 수 없습니다');
+        }
+        return;
+      }
+      
+      // 통화 기록 데이터
+      final callHistory = {
+        'userId': userId,
+        'callerNumber': callerNumber,
+        'callerName': callerName,
+        'receiverNumber': receiverNumber,
+        'channel': channel,
+        'linkedid': linkedid,
+        'callType': callType,  // 'incoming', 'outgoing', 'missed'
+        'status': status,  // 'accepted', 'rejected', 'missed', 'completed'
+        'timestamp': FieldValue.serverTimestamp(),
+        'duration': 0,  // 통화 시간 (초) - 추후 업데이트
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+      
+      // Firestore에 저장 (linkedid를 문서 ID로 사용)
+      await firestore
+          .collection('call_history')
+          .doc(linkedid)
+          .set(callHistory, SetOptions(merge: true));
+      
+      if (kDebugMode) {
+        debugPrint('✅ 통화 기록 저장 완료');
+        debugPrint('  Linkedid: $linkedid');
+        debugPrint('  발신: $callerNumber → 수신: $receiverNumber');
+        debugPrint('  상태: $status');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 통화 기록 저장 오류: $e');
+      }
+    }
+  }
   /// 서비스 정리
   void dispose() {
     disconnect();

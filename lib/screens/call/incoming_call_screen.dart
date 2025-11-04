@@ -6,6 +6,9 @@ class IncomingCallScreen extends StatefulWidget {
   final String callerName;
   final String callerNumber;
   final String? callerAvatar;
+  final String channel;
+  final String linkedid;
+  final String receiverNumber;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
@@ -14,6 +17,9 @@ class IncomingCallScreen extends StatefulWidget {
     required this.callerName,
     required this.callerNumber,
     this.callerAvatar,
+    required this.channel,
+    required this.linkedid,
+    required this.receiverNumber,
     required this.onAccept,
     required this.onReject,
   });
