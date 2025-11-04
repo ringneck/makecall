@@ -9,6 +9,7 @@ import '../../services/database_service.dart';
 import '../../models/phonebook_model.dart';
 import '../../models/call_history_model.dart';
 import '../../models/my_extension_model.dart';
+import '../../models/user_model.dart';
 import '../../providers/selected_extension_provider.dart';
 import '../../widgets/call_method_dialog.dart';
 
@@ -545,7 +546,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       // 내 단말번호 = my_extensions 컬렉션 + users.myExtensions (합집합)
                       final allMyExtensions = <String>{
                         ...myExtensionNumbers,
-                        ...userMyExtensions,
+                        if (userMyExtensions.isNotEmpty) ...userMyExtensions,
                       }.toList();
                       
                       if (kDebugMode) {
