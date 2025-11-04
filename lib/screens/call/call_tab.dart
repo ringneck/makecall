@@ -1699,6 +1699,9 @@ class _CallTabState extends State<CallTab> {
 
     // 이름 번역
     final translatedName = _translateName(contact.name);
+    
+    // 카테고리 번역 (영어면 한글로 변환)
+    final translatedCategory = _translateName(contact.categoryDisplay);
 
     return ListTile(
       leading: CircleAvatar(
@@ -1721,7 +1724,7 @@ class _CallTabState extends State<CallTab> {
               border: Border.all(color: categoryColor.withAlpha(77)),
             ),
             child: Text(
-              contact.categoryDisplay,
+              translatedCategory,
               style: TextStyle(
                 fontSize: 11,
                 color: categoryColor,
