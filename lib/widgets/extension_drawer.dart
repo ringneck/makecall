@@ -134,7 +134,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                     ),
                                     const SizedBox(height: 12),
                                     const Text(
-                                      '내 정보 탭에서 단말번호를 조회하고 저장해주세요.',
+                                      '왼쪽 상단 프로필 설정에서 단말번호를 조회하고 등록해주세요.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontSize: 13,
