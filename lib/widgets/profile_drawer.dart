@@ -2341,27 +2341,24 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        // 이름과 단말번호를 한 줄에
-                                        Row(
-                                          children: [
-                                            Text(
-                                              ext.name,
-                                              style: const TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.black87,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              '(${ext.extension})',
-                                              style: const TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF2196F3),
-                                              ),
-                                            ),
-                                          ],
+                                        // 이름 (첫 번째 줄)
+                                        Text(
+                                          ext.name,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        // 단말번호 (두 번째 줄)
+                                        Text(
+                                          ext.extension,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF2196F3),
+                                          ),
                                         ),
                                         const SizedBox(height: 8),
                                         
