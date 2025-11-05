@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -39,12 +41,15 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
 
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) {
+        debugPrint('❌ CDR API: 로그인 정보 없음');
         setState(() {
           _error = '로그인 정보가 없습니다';
           _isLoading = false;
         });
         return;
       }
+
+      debugPrint('🔍 CDR API: 서버 설정 로드 시작 (userId: $userId)');
 
       // users 컬렉션에서 API 서버 설정 가져오기
       final userDoc = await FirebaseFirestore.instance
@@ -58,26 +63,37 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         final apiHttpsPort = userData?['apiHttpsPort'] as int? ?? 3501;
         final useHttps = apiHttpsPort == 3501;
         
+        debugPrint('📋 CDR API: 서버 설정 정보');
+        debugPrint('  - apiBaseUrl: $apiBaseUrl');
+        debugPrint('  - apiHttpsPort: $apiHttpsPort');
+        debugPrint('  - useHttps: $useHttps');
+        
         if (apiBaseUrl != null && apiBaseUrl.isNotEmpty) {
           // CDR API 서버 URL 구성 (http/https + apiBaseUrl)
           final protocol = useHttps ? 'https' : 'http';
           _serverUrl = '$protocol://$apiBaseUrl';
           
+          debugPrint('✅ CDR API: 서버 URL 구성 완료');
+          debugPrint('  - _serverUrl: $_serverUrl');
+          
           // 서버 설정 로드 완료 → CDR 조회 시작
           _fetchCallDetail();
         } else {
+          debugPrint('❌ CDR API: API 서버 주소가 설정되지 않음');
           setState(() {
             _error = 'API 서버 설정이 없습니다\nProfileDrawer > 기본설정에서 API 서버 주소를 설정해주세요';
             _isLoading = false;
           });
         }
       } else {
+        debugPrint('❌ CDR API: 사용자 문서를 찾을 수 없음');
         setState(() {
           _error = '사용자 정보를 찾을 수 없습니다';
           _isLoading = false;
         });
       }
     } catch (e) {
+      debugPrint('❌ CDR API: 서버 설정 로드 실패 - $e');
       setState(() {
         _error = '서버 설정을 불러오는데 실패했습니다\n$e';
         _isLoading = false;
@@ -88,6 +104,7 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
   /// CDR API 호출
   Future<void> _fetchCallDetail() async {
     if (_serverUrl == null || _serverUrl!.isEmpty) {
+      debugPrint('❌ CDR API: 서버 URL이 null 또는 빈 문자열');
       setState(() {
         _error = '서버 URL이 설정되지 않았습니다';
         _isLoading = false;
@@ -104,6 +121,13 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
       // ProfileDrawer 서버 설정 사용
       final apiUrl = '$_serverUrl/api/v2/cdr?search=${widget.linkedid}&search_fields=linkedid';
       
+      debugPrint('🌐 CDR API: 요청 시작');
+      debugPrint('  - URL: $apiUrl');
+      debugPrint('  - Linkedid: ${widget.linkedid}');
+      debugPrint('  - Timeout: 10초');
+      
+      final startTime = DateTime.now();
+      
       final response = await http.get(
         Uri.parse(apiUrl),
         headers: {
@@ -113,19 +137,66 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         },
       ).timeout(const Duration(seconds: 10));
 
+      final duration = DateTime.now().difference(startTime);
+      
+      debugPrint('📡 CDR API: 응답 수신');
+      debugPrint('  - Status Code: ${response.statusCode}');
+      debugPrint('  - Response Time: ${duration.inMilliseconds}ms');
+      debugPrint('  - Content-Type: ${response.headers['content-type']}');
+      debugPrint('  - Body Length: ${response.body.length} bytes');
+
       if (response.statusCode == 200) {
+        debugPrint('✅ CDR API: 성공 (200 OK)');
+        
         final data = json.decode(response.body);
+        debugPrint('📦 CDR API: JSON 파싱 완료');
+        
+        // 응답 데이터 구조 로깅
+        if (data is Map) {
+          debugPrint('  - Response Type: Map');
+          debugPrint('  - Keys: ${data.keys.join(', ')}');
+          
+          // data 또는 results 배열 확인
+          final cdrList = data['data'] ?? data['results'];
+          if (cdrList is List) {
+            debugPrint('  - CDR Records: ${cdrList.length}개');
+            if (cdrList.isNotEmpty) {
+              debugPrint('  - First Record Keys: ${(cdrList[0] as Map).keys.join(', ')}');
+            }
+          }
+        } else if (data is List) {
+          debugPrint('  - Response Type: List');
+          debugPrint('  - CDR Records: ${data.length}개');
+        }
+        
         setState(() {
           _cdrData = data;
           _isLoading = false;
         });
+        
+        debugPrint('✅ CDR API: UI 업데이트 완료');
       } else {
+        debugPrint('❌ CDR API: 오류 응답');
+        debugPrint('  - Status Code: ${response.statusCode}');
+        debugPrint('  - Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
+        
         setState(() {
           _error = 'API 오류: ${response.statusCode}';
           _isLoading = false;
         });
       }
+    } on TimeoutException catch (e) {
+      debugPrint('⏱️ CDR API: 타임아웃 (10초 초과)');
+      debugPrint('  - Error: $e');
+      setState(() {
+        _error = '요청 시간 초과 (10초)\n서버가 응답하지 않습니다';
+        _isLoading = false;
+      });
     } catch (e) {
+      debugPrint('❌ CDR API: 예외 발생');
+      debugPrint('  - Error Type: ${e.runtimeType}');
+      debugPrint('  - Error Message: $e');
+      
       setState(() {
         _error = '통화 상세 정보를 불러오는데 실패했습니다\n$e';
         _isLoading = false;

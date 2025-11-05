@@ -301,6 +301,16 @@ class DCMIWSService {
       if (callerIdNum == null || exten == null) return;
       if (channel == null || linkedid == null) return;
       
+      // 🚫 Click-to-call 필터링: Channel에 "click-to-call" 포함 시 무시
+      if (channel.toLowerCase().contains('click-to-call')) {
+        if (kDebugMode) {
+          debugPrint('🚫 Click-to-call 통화 감지 - 통화 기록 저장 제외');
+          debugPrint('  Channel: $channel');
+          debugPrint('  Linkedid: $linkedid');
+        }
+        return;
+      }
+      
       if (kDebugMode) {
         debugPrint('📞 수신 전화 감지!');
         debugPrint('  발신번호 (CallerIDNum): $callerIdNum');
@@ -373,7 +383,19 @@ class DCMIWSService {
       if (activeCall == null) {
         if (kDebugMode) {
           debugPrint('⚠️ BridgeEnter: 활성 수신 전화를 찾을 수 없음 (linkedid: $linkedid)');
+          debugPrint('  → Click-to-call 통화이거나 이미 처리된 통화일 수 있습니다');
         }
+        return;
+      }
+      
+      // 🚫 Click-to-call 이중 체크 (안전장치)
+      final channel = activeCall['channel'] as String?;
+      if (channel != null && channel.toLowerCase().contains('click-to-call')) {
+        if (kDebugMode) {
+          debugPrint('🚫 BridgeEnter: Click-to-call 통화 - 저장 제외');
+          debugPrint('  Channel: $channel');
+        }
+        _activeIncomingCalls.remove(linkedid);
         return;
       }
       
