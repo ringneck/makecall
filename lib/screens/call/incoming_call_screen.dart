@@ -444,38 +444,33 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         // 📋 외부발신 정보 (externalCidName, externalCidNumber) - 먼저 표시
         if (widget.myExternalCidName != null && widget.myExternalCidName!.isNotEmpty ||
             widget.myExternalCidNumber != null && widget.myExternalCidNumber!.isNotEmpty) ...[
-          const SizedBox(height: 20),
           
-          // 외부발신 이름 (첫 번째 줄)
+          // 외부발신 이름 (첫 번째 줄) - 발신자 이름과 동일한 크기 및 스타일
           if (widget.myExternalCidName != null && widget.myExternalCidName!.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.25),
-                  width: 1,
-                ),
+            Text(
+              widget.myExternalCidName!,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                shadows: [
+                  Shadow(
+                    color: Colors.black38,
+                    offset: Offset(0, 2),
+                    blurRadius: 8,
+                  ),
+                ],
               ),
-              child: Text(
-                widget.myExternalCidName!,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.85),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
+              textAlign: TextAlign.center,
             ),
           
-          // 간격 (이름이 있을 때만)
+          // 간격 (이름과 번호 사이)
           if (widget.myExternalCidName != null && 
               widget.myExternalCidName!.isNotEmpty &&
               widget.myExternalCidNumber != null &&
               widget.myExternalCidNumber!.isNotEmpty)
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
           
           // 외부발신 번호 (두 번째 줄)
           if (widget.myExternalCidNumber != null && widget.myExternalCidNumber!.isNotEmpty)
@@ -512,10 +507,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
               ),
             ),
           
-          const SizedBox(height: 24), // 외부발신 정보와 발신자 정보 간격
+          const SizedBox(height: 32), // 외부발신 정보와 발신자 정보 간격
         ],
         
-        // 📝 발신자 이름 (두 번째 표시)
+        // 📝 실제 발신자 이름 (두 번째 표시)
         Text(
           widget.callerName,
           style: const TextStyle(

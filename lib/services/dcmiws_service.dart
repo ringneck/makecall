@@ -56,7 +56,11 @@ class DCMIWSService {
     _navigatorKey = key;
   }
 
-  /// WebSocket 연결
+  // 🔒 연결 중복 방지를 위한 Lock
+  bool _isConnecting = false;
+  String? _connectedUri; // 현재 연결된 URI 추적
+
+  /// WebSocket 연결 (중복 연결 방지 강화)
   /// 
   /// [serverAddress] - WebSocket 서버 주소 (예: 'makecall.io')
   /// [port] - WebSocket 포트 (예: 7099)
@@ -66,19 +70,64 @@ class DCMIWSService {
     required int port,
     bool useSSL = false,
   }) async {
-    if (_isConnected) {
+    final protocol = useSSL ? 'wss' : 'ws';
+    final targetUri = '$protocol://$serverAddress:$port';
+    
+    // 🔒 중복 연결 방지 체크 1: 이미 같은 서버에 연결 중인 경우
+    if (_isConnected && _connectedUri == targetUri) {
       if (kDebugMode) {
-        debugPrint('🔌 DCMIWS: Already connected');
+        debugPrint('✅ DCMIWS: Already connected to $targetUri');
       }
       return true;
     }
+    
+    // 🔒 중복 연결 방지 체크 2: 연결 시도 중인 경우 (Race condition 방지)
+    if (_isConnecting) {
+      if (kDebugMode) {
+        debugPrint('⏳ DCMIWS: Connection already in progress, waiting...');
+      }
+      
+      // 최대 15초 대기하면서 연결 완료 확인
+      for (int i = 0; i < 30; i++) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!_isConnecting) {
+          // 연결 완료됨
+          if (_isConnected && _connectedUri == targetUri) {
+            if (kDebugMode) {
+              debugPrint('✅ DCMIWS: Connection completed by another request');
+            }
+            return true;
+          }
+          break;
+        }
+      }
+      
+      // 여전히 연결 중이면 false 반환
+      if (_isConnecting) {
+        if (kDebugMode) {
+          debugPrint('⚠️ DCMIWS: Connection still in progress after timeout');
+        }
+        return false;
+      }
+    }
+    
+    // 🔒 중복 연결 방지 체크 3: 다른 서버에 연결된 경우 먼저 종료
+    if (_isConnected && _connectedUri != targetUri) {
+      if (kDebugMode) {
+        debugPrint('🔄 DCMIWS: Disconnecting from $_connectedUri to connect to $targetUri');
+      }
+      await disconnect();
+    }
 
+    // 🔐 연결 시작 Lock 설정
+    _isConnecting = true;
+    
     try {
-      final protocol = useSSL ? 'wss' : 'ws';
-      final uri = Uri.parse('$protocol://$serverAddress:$port');
+      final uri = Uri.parse(targetUri);
       
       if (kDebugMode) {
         debugPrint('🔌 DCMIWS: Connecting to $uri');
+        debugPrint('  Current state: Connected=$_isConnected, Connecting=$_isConnecting');
       }
 
       _channel = WebSocketChannel.connect(uri);
@@ -92,11 +141,12 @@ class DCMIWSService {
       );
       
       _isConnected = true;
+      _connectedUri = targetUri; // 연결된 URI 기록
       _reconnectAttempts = 0;
       _connectionStateController.add(true);
       
       if (kDebugMode) {
-        debugPrint('✅ DCMIWS: Connected successfully');
+        debugPrint('✅ DCMIWS: Connected successfully to $targetUri');
       }
 
       // 메시지 수신 리스너
@@ -113,16 +163,28 @@ class DCMIWSService {
         debugPrint('❌ DCMIWS: Connection failed: $e');
       }
       _isConnected = false;
+      _connectedUri = null;
       _connectionStateController.add(false);
       _scheduleReconnect(serverAddress, port, useSSL);
       return false;
+    } finally {
+      // 🔓 연결 시도 완료, Lock 해제
+      _isConnecting = false;
     }
   }
 
-  /// 연결 종료
+  /// 연결 종료 (중복 종료 방지)
   Future<void> disconnect() async {
+    // 🔒 이미 종료된 경우 스킵
+    if (!_isConnected && _channel == null && _subscription == null) {
+      if (kDebugMode) {
+        debugPrint('✅ DCMIWS: Already disconnected');
+      }
+      return;
+    }
+    
     if (kDebugMode) {
-      debugPrint('🔌 DCMIWS: Disconnecting');
+      debugPrint('🔌 DCMIWS: Disconnecting from $_connectedUri');
     }
 
     _reconnectTimer?.cancel();
@@ -135,6 +197,8 @@ class DCMIWSService {
     _channel = null;
     
     _isConnected = false;
+    _isConnecting = false; // Lock 해제
+    _connectedUri = null; // URI 초기화
     _connectionStateController.add(false);
     
     // 대기 중인 요청 취소
