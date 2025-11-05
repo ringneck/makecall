@@ -12,6 +12,7 @@ class CallHistoryModel {
   final int? duration; // in seconds
   final String? mainNumberUsed;
   final String? extensionUsed;
+  final String? linkedid; // 통화 상세 조회용 linkedid
   
   CallHistoryModel({
     required this.id,
@@ -24,6 +25,7 @@ class CallHistoryModel {
     this.duration,
     this.mainNumberUsed,
     this.extensionUsed,
+    this.linkedid,
   });
   
   factory CallHistoryModel.fromMap(Map<String, dynamic> map, String id) {
@@ -44,6 +46,7 @@ class CallHistoryModel {
       duration: map['duration'] as int?,
       mainNumberUsed: map['mainNumberUsed'] as String?,
       extensionUsed: map['extensionUsed'] as String?,
+      linkedid: map['linkedid'] as String?,
     );
   }
   
@@ -58,6 +61,7 @@ class CallHistoryModel {
       'duration': duration,
       'mainNumberUsed': mainNumberUsed,
       'extensionUsed': extensionUsed,
+      if (linkedid != null) 'linkedid': linkedid,
     };
   }
   

@@ -14,6 +14,7 @@ import 'dialpad_screen.dart';
 import 'phonebook_tab.dart';
 import '../../widgets/call_method_dialog.dart';
 import '../../widgets/add_contact_dialog.dart';
+import '../../widgets/call_detail_dialog.dart';
 import '../../widgets/profile_drawer.dart';
 import '../../widgets/extension_drawer.dart';
 
@@ -734,6 +735,7 @@ class _CallTabState extends State<CallTab> {
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                onTap: () => _showCallDetailDialog(call), // 통화 상세 다이얼로그
                 // 🎨 컬러풀한 아이콘 (원형 배경)
                 leading: Container(
                   width: 48,
@@ -828,12 +830,34 @@ class _CallTabState extends State<CallTab> {
                           Text(
                             _formatDateTime(call.callTime),
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 12,
                               color: Colors.grey[600],
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
+                      ),
+                      // 발신번호
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.phone,
+                              size: 14,
+                              color: Colors.grey[500],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              call.phoneNumber,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       // 단말번호 정보
                       if (call.extensionUsed != null)
@@ -1235,18 +1259,9 @@ class _CallTabState extends State<CallTab> {
   }
 
   String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inDays == 0) {
-      return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
-    } else if (difference.inDays == 1) {
-      return '어제';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}일 전';
-    } else {
-      return '${dateTime.month}/${dateTime.day}';
-    }
+    // yyyy.MM.dd HH:mm:ss 형식
+    return '${dateTime.year}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.day.toString().padLeft(2, '0')} '
+           '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
   }
 
   // 기능번호 판별 (즐겨찾기, 최근통화 전용)
@@ -1693,6 +1708,25 @@ class _CallTabState extends State<CallTab> {
   }
 
   /// 최근통화에서 연락처 추가 다이얼로그
+  /// 통화 상세 내역 다이얼로그 표시
+  Future<void> _showCallDetailDialog(CallHistoryModel call) async {
+    // linkedid가 없으면 에러 표시
+    if (call.linkedid == null || call.linkedid!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('통화 상세 정보를 불러올 수 없습니다'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => CallDetailDialog(linkedid: call.linkedid!),
+    );
+  }
+
   void _showAddContactFromCallDialog(CallHistoryModel call) {
     final userId = context.read<AuthService>().currentUser?.uid ?? '';
     
