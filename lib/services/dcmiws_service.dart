@@ -477,25 +477,58 @@ class DCMIWSService {
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId != null) {
-        // receiverNumber로 my_extensions에서 정보 조회
-        final querySnapshot = await FirebaseFirestore.instance
-            .collection('my_extensions')
-            .where('userId', isEqualTo: userId)
-            .where('extension', isEqualTo: receiverNumber)
-            .limit(1)
-            .get();
+        if (kDebugMode) {
+          debugPrint('🔍 내 단말번호 정보 조회 시작');
+          debugPrint('  receiverNumber (Exten): $receiverNumber');
+          debugPrint('  callType: $callType');
+        }
+        
+        // 통화 타입에 따라 다른 필드로 조회
+        QuerySnapshot querySnapshot;
+        
+        if (callType == 'external') {
+          // 외부 수신: accountCode로 조회
+          if (kDebugMode) {
+            debugPrint('  🌍 외부 수신 통화 → accountCode로 조회');
+          }
+          querySnapshot = await FirebaseFirestore.instance
+              .collection('my_extensions')
+              .where('userId', isEqualTo: userId)
+              .where('accountCode', isEqualTo: receiverNumber)
+              .limit(1)
+              .get();
+        } else {
+          // 내부 수신: extension으로 조회
+          if (kDebugMode) {
+            debugPrint('  🏢 내부 수신 통화 → extension으로 조회');
+          }
+          querySnapshot = await FirebaseFirestore.instance
+              .collection('my_extensions')
+              .where('userId', isEqualTo: userId)
+              .where('extension', isEqualTo: receiverNumber)
+              .limit(1)
+              .get();
+        }
         
         if (querySnapshot.docs.isNotEmpty) {
-          final extensionData = querySnapshot.docs.first.data();
+          final extensionData = querySnapshot.docs.first.data() as Map<String, dynamic>;
+          final docExten = extensionData['extension'] as String?;
           myOutboundCid = extensionData['outboundCID'] as String?;
           myExternalCidName = extensionData['externalCidName'] as String?;
           myExternalCidNumber = extensionData['externalCidNumber'] as String?;
           
           if (kDebugMode) {
-            debugPrint('✅ 내 단말번호 정보 조회 성공: $receiverNumber');
-            debugPrint('  외부발신 표시번호: $myOutboundCid');
-            debugPrint('  외부발신 이름: $myExternalCidName');
-            debugPrint('  외부발신 번호: $myExternalCidNumber');
+            debugPrint('✅ my_extensions 조회 성공!');
+            debugPrint('  문서 ID: ${querySnapshot.docs.first.id}');
+            debugPrint('  extension: $docExten');
+            debugPrint('  accountCode: ${extensionData['accountCode']}');
+            debugPrint('  outboundCID: $myOutboundCid');
+            debugPrint('  externalCidName: $myExternalCidName');
+            debugPrint('  externalCidNumber: $myExternalCidNumber');
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('❌ my_extensions 조회 실패: 일치하는 문서 없음');
           }
         }
         

@@ -167,17 +167,39 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     );
   }
 
-  /// 🎨 동적 그라데이션 배경
+  /// 🎨 동적 그라데이션 배경 (통화 타입별 색상)
   BoxDecoration _buildGradientBackground() {
+    // 통화 타입에 따른 색상 테마
+    List<Color> gradientColors;
+    
+    if (widget.callType == 'external') {
+      // 외부 수신: 따뜻한 오렌지-레드 그라데이션
+      gradientColors = [
+        const Color(0xFF1a1a2e), // 다크 네이비
+        const Color(0xFF16213e), // 미디엄 네이비
+        const Color(0xFF0f3460), // 딥 블루-퍼플
+      ];
+    } else if (widget.callType == 'internal') {
+      // 내부 수신: 차분한 그린-블루 그라데이션
+      gradientColors = [
+        const Color(0xFF0d1b2a), // 다크 블루
+        const Color(0xFF1b263b), // 미디엄 블루
+        const Color(0xFF415a77), // 라이트 블루-그레이
+      ];
+    } else {
+      // 기본: 기존 블루 그라데이션
+      gradientColors = [
+        const Color(0xFF0F2027), // 다크 블루
+        const Color(0xFF203A43), // 미디엄 블루
+        const Color(0xFF2C5364), // 라이트 블루
+      ];
+    }
+    
     return BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          const Color(0xFF0F2027), // 다크 블루
-          const Color(0xFF203A43), // 미디엄 블루
-          const Color(0xFF2C5364), // 라이트 블루
-        ],
+        colors: gradientColors,
         stops: const [0.0, 0.5, 1.0],
       ),
     );
@@ -237,12 +259,22 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     );
   }
 
-  /// 🏢 내 단말번호 정보 (상단)
+  /// 🏢 내 단말번호 정보 (상단) - 통화 타입별 색상
   Widget _buildMyExtensionInfo() {
     // companyName과 myOutboundCid가 모두 없으면 표시하지 않음
     if ((widget.myCompanyName == null || widget.myCompanyName!.isEmpty) &&
         (widget.myOutboundCid == null || widget.myOutboundCid!.isEmpty)) {
       return const SizedBox.shrink();
+    }
+
+    // 통화 타입별 색상
+    Color borderColor;
+    if (widget.callType == 'external') {
+      borderColor = const Color(0xFFe76f51).withOpacity(0.4);
+    } else if (widget.callType == 'internal') {
+      borderColor = const Color(0xFF06d6a0).withOpacity(0.4);
+    } else {
+      borderColor = Colors.white.withOpacity(0.3);
     }
 
     return Container(
@@ -252,8 +284,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-          width: 1,
+          color: borderColor,
+          width: 2,
         ),
       ),
       child: Column(
@@ -305,16 +337,25 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     );
   }
 
-  /// 📞 헤더 텍스트 (통화 타입에 따라 변경)
+  /// 📞 헤더 텍스트 (통화 타입에 따라 변경 + 색상 구분)
   Widget _buildHeaderText() {
-    // 통화 타입에 따른 헤더 텍스트 결정
+    // 통화 타입에 따른 헤더 텍스트 및 색상 결정
     String headerText;
+    Color accentColor;
+    IconData headerIcon;
+    
     if (widget.callType == 'external') {
       headerText = '외부 수신 통화';
+      accentColor = const Color(0xFFe76f51); // 따뜻한 오렌지
+      headerIcon = Icons.call_received;
     } else if (widget.callType == 'internal') {
       headerText = '내부 수신 통화';
+      accentColor = const Color(0xFF06d6a0); // 민트 그린
+      headerIcon = Icons.phone_in_talk_rounded;
     } else {
       headerText = '수신 전화';
+      accentColor = Colors.white;
+      headerIcon = Icons.phone_in_talk_rounded;
     }
     
     return AnimatedBuilder(
@@ -323,28 +364,35 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: accentColor.withOpacity(0.15),
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-              width: 1,
+              color: accentColor.withOpacity(0.4),
+              width: 2,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: accentColor.withOpacity(0.3),
+                blurRadius: 12,
+                spreadRadius: 2,
+              ),
+            ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.phone_in_talk_rounded,
-                color: Colors.white.withOpacity(0.9),
+                headerIcon,
+                color: accentColor.withOpacity(0.95),
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
                 headerText,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.95),
+                  color: accentColor.withOpacity(0.95),
                   fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,
                 ),
               ),
