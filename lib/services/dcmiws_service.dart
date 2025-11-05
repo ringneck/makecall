@@ -333,11 +333,13 @@ class DCMIWSService {
       }
       
       // 수신 전화 화면 표시 및 활성 통화 추적
+      // Note: callerName은 _showIncomingCallScreen 내부에서 결정 후 업데이트됨
       _activeIncomingCalls[linkedid] = {
         'callerNumber': callerIdNum,
         'receiverNumber': exten,
         'channel': channel,
         'callType': callType,
+        'callerName': null, // 초기값 (나중에 업데이트)
       };
       
       _showIncomingCallScreen(callerIdNum, exten, channel, linkedid, data, callType);
@@ -386,6 +388,7 @@ class DCMIWSService {
       await _saveCallHistoryOnBridgeEnter(
         linkedid: linkedid,
         callerNumber: activeCall['callerNumber'] as String,
+        callerName: activeCall['callerName'] as String? ?? activeCall['callerNumber'] as String,
         receiverNumber: activeCall['receiverNumber'] as String,
         channel: activeCall['channel'] as String,
         callType: activeCall['callType'] as String,
@@ -413,6 +416,7 @@ class DCMIWSService {
   Future<void> _saveCallHistoryOnBridgeEnter({
     required String linkedid,
     required String callerNumber,
+    required String callerName,
     required String receiverNumber,
     required String channel,
     required String callType,
@@ -454,6 +458,7 @@ class DCMIWSService {
         final callHistory = {
           'userId': userId,
           'callerNumber': callerNumber,
+          'callerName': callerName,
           'receiverNumber': receiverNumber,
           'channel': channel,
           'linkedid': linkedid,
@@ -473,7 +478,7 @@ class DCMIWSService {
         if (kDebugMode) {
           debugPrint('✅ 통화 기록 생성 완료 (단말 수신 확인)');
           debugPrint('  Linkedid: $linkedid');
-          debugPrint('  발신: $callerNumber → 수신: $receiverNumber');
+          debugPrint('  발신: $callerName ($callerNumber) → 수신: $receiverNumber');
         }
       }
     } catch (e) {
@@ -678,6 +683,15 @@ class DCMIWSService {
     
     // 4️⃣ 최종 callerName 보장 (null 방지)
     final finalCallerName = callerName ?? callerNumber;
+    
+    // 📝 활성 통화 목록에 callerName 업데이트
+    if (_activeIncomingCalls.containsKey(linkedid)) {
+      _activeIncomingCalls[linkedid]!['callerName'] = finalCallerName;
+      if (kDebugMode) {
+        debugPrint('📝 활성 통화 목록 업데이트: $linkedid');
+        debugPrint('  발신자: $finalCallerName ($callerNumber)');
+      }
+    }
     
     // 5️⃣ 내 단말번호 정보 가져오기 (companyName, 외부발신 표시번호, 외부발신 이름/번호)
     String? myCompanyName;
