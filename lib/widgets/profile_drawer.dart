@@ -598,6 +598,55 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           const Divider(thickness: 1),
           const SizedBox(height: 8),
           
+          // 🔔 알림 및 푸시 설정
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange[100]!),
+              ),
+              child: const ListTile(
+                leading: Icon(Icons.notifications_active, color: Colors.orange),
+                title: Text(
+                  '알림 설정',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text('푸시 알림 및 웹 알림 관리', style: TextStyle(fontSize: 12)),
+              ),
+            ),
+          ),
+          
+          if (kIsWeb) ...[
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+              leading: const Icon(Icons.notifications, color: Colors.orange, size: 22),
+              title: const Text('웹 푸시 알림 활성화', style: TextStyle(fontSize: 15)),
+              subtitle: const Text(
+                '브라우저 알림 권한 요청',
+                style: TextStyle(fontSize: 11),
+              ),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () => _requestWebPushPermission(context),
+            ),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+              leading: const Icon(Icons.info_outline, size: 22),
+              title: const Text('웹 푸시 정보', style: TextStyle(fontSize: 15)),
+              subtitle: const Text(
+                '웹 푸시 알림 사용 방법',
+                style: TextStyle(fontSize: 11),
+              ),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () => _showWebPushInfo(context),
+            ),
+          ],
+          
+          const SizedBox(height: 16),
+          const Divider(thickness: 1),
+          const SizedBox(height: 8),
+          
           // 약관 및 정책
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -2447,11 +2496,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                         ),
                                         const SizedBox(height: 8),
                                         
-                                        // 계정코드 (길게 누르면 복사)
+                                        // 수신번호 (길게 누르면 복사)
                                         if (ext.accountCode != null && ext.accountCode!.isNotEmpty) ...[
                                           _buildLongPressCopyRow(
                                             context: context,
-                                            label: '계정코드',
+                                            label: '수신번호',
                                             value: ext.accountCode!,
                                           ),
                                           const SizedBox(height: 6),
@@ -2555,6 +2604,308 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               // 긴 텍스트도 여러 줄로 표시 가능
               softWrap: true,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 웹 푸시 권한 요청
+  Future<void> _requestWebPushPermission(BuildContext context) async {
+    if (!kIsWeb) return;
+    
+    try {
+      // FCM 서비스 가져오기
+      final fcmService = FCMService();
+      final userId = AuthService().currentUser?.uid;
+      
+      if (userId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('로그인이 필요합니다'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
+      // 로딩 다이얼로그 표시
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('웹 푸시 알림 권한 요청 중...'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+      
+      // FCM 초기화 및 권한 요청
+      await fcmService.initialize(userId);
+      
+      // 로딩 다이얼로그 닫기
+      if (mounted) {
+        Navigator.pop(context);
+      }
+      
+      // 결과 확인
+      final token = fcmService.fcmToken;
+      if (token != null) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              icon: const Icon(Icons.check_circle, color: Colors.green, size: 48),
+              title: const Text('웹 푸시 알림 활성화 완료'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('브라우저 알림이 활성화되었습니다.'),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green[200]!),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, size: 16, color: Colors.green),
+                            SizedBox(width: 8),
+                            Text(
+                              '이제 다음 알림을 받을 수 있습니다:',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        Text('• 수신 전화 알림', style: TextStyle(fontSize: 12)),
+                        Text('• 부재중 전화 알림', style: TextStyle(fontSize: 12)),
+                        Text('• 시스템 알림', style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    '💡 브라우저를 닫아도 알림을 받을 수 있습니다.',
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('확인'),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              icon: const Icon(Icons.error, color: Colors.orange, size: 48),
+              title: const Text('알림 권한 필요'),
+              content: const Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('웹 푸시 알림을 받으려면 브라우저 알림 권한이 필요합니다.'),
+                  SizedBox(height: 16),
+                  Text(
+                    '브라우저 설정에서 알림 권한을 허용해주세요:',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(height: 8),
+                  Text('1. 브라우저 주소창 왼쪽의 자물쇠 아이콘 클릭', style: TextStyle(fontSize: 11)),
+                  Text('2. "알림" 또는 "Notifications" 찾기', style: TextStyle(fontSize: 11)),
+                  Text('3. "허용" 또는 "Allow"로 변경', style: TextStyle(fontSize: 11)),
+                  Text('4. 페이지 새로고침', style: TextStyle(fontSize: 11)),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('확인'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 웹 푸시 권한 요청 오류: $e');
+      }
+      
+      // 로딩 다이얼로그가 열려있으면 닫기
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('알림 권한 요청 중 오류 발생: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  /// 웹 푸시 정보 표시
+  void _showWebPushInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('웹 푸시 알림 안내'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '웹 푸시 알림이란?',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '웹 브라우저에서도 모바일 앱처럼 실시간 알림을 받을 수 있는 기능입니다.',
+                style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.check_circle, size: 16, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text(
+                          '주요 기능',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text('• 브라우저를 최소화해도 알림 수신', style: TextStyle(fontSize: 11)),
+                    Text('• 다른 탭에서 작업 중에도 알림 표시', style: TextStyle(fontSize: 11)),
+                    Text('• 수신 전화, 부재중 전화 즉시 알림', style: TextStyle(fontSize: 11)),
+                    Text('• 데스크톱 알림으로 놓치지 않음', style: TextStyle(fontSize: 11)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.lightbulb_outline, size: 16, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text(
+                          '사용 방법',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text('1. "웹 푸시 알림 활성화" 버튼 클릭', style: TextStyle(fontSize: 11)),
+                    Text('2. 브라우저 알림 권한 허용', style: TextStyle(fontSize: 11)),
+                    Text('3. 활성화 완료 메시지 확인', style: TextStyle(fontSize: 11)),
+                    Text('4. 이제 실시간 알림을 받을 수 있습니다!', style: TextStyle(fontSize: 11)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.computer, size: 16, color: Colors.grey),
+                        SizedBox(width: 8),
+                        Text(
+                          '지원 환경',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text('• Chrome, Edge, Firefox (최신 버전)', style: TextStyle(fontSize: 11)),
+                    Text('• Windows, macOS, Linux', style: TextStyle(fontSize: 11)),
+                    Text('• HTTPS 연결 필요 (보안 연결)', style: TextStyle(fontSize: 11)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                '💡 모바일 브라우저에서도 사용 가능합니다!',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('확인'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _requestWebPushPermission(context);
+            },
+            child: const Text('지금 활성화'),
           ),
         ],
       ),

@@ -29,6 +29,7 @@ class FCMService {
     try {
       if (kDebugMode) {
         debugPrint('🔔 FCM 서비스 초기화 시작...');
+        debugPrint('   플랫폼: ${_getPlatformName()}');
       }
       
       // 알림 권한 요청
@@ -49,8 +50,33 @@ class FCMService {
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
         
-        // FCM 토큰 가져오기
-        _fcmToken = await _messaging.getToken();
+        // FCM 토큰 가져오기 (웹 플랫폼은 VAPID 키 필요)
+        if (kIsWeb) {
+          // 웹 플랫폼: VAPID 키 사용
+          // ⚠️ VAPID 키는 Firebase Console → Project Settings → Cloud Messaging → Web Push certificates에서 생성
+          // TODO: 실제 VAPID 키로 교체 필요
+          const vapidKey = 'YOUR_VAPID_KEY_HERE'; // Firebase Console에서 생성한 Web Push certificate의 Key pair 값
+          
+          try {
+            _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
+            if (kDebugMode) {
+              debugPrint('🌐 웹 FCM 토큰 획득 성공 (VAPID)');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('⚠️ 웹 FCM 토큰 획득 실패: $e');
+              debugPrint('💡 Firebase Console에서 Web Push certificate를 생성하고 VAPID 키를 설정하세요:');
+              debugPrint('   1. Firebase Console → Project Settings → Cloud Messaging');
+              debugPrint('   2. Web Push certificates → Generate key pair');
+              debugPrint('   3. 생성된 키를 fcm_service.dart의 vapidKey 변수에 복사');
+            }
+            // VAPID 키 없이 시도 (일부 브라우저에서 작동할 수 있음)
+            _fcmToken = await _messaging.getToken();
+          }
+        } else {
+          // 모바일 플랫폼: 일반 토큰 획득
+          _fcmToken = await _messaging.getToken();
+        }
         
         if (_fcmToken != null) {
           if (kDebugMode) {
@@ -102,7 +128,11 @@ class FCMService {
           
         } else {
           if (kDebugMode) {
-            debugPrint('⚠️ FCM 토큰을 가져올 수 없습니다 (웹 플랫폼일 수 있음)');
+            debugPrint('⚠️ FCM 토큰을 가져올 수 없습니다');
+            if (kIsWeb) {
+              debugPrint('💡 웹 플랫폼: VAPID 키가 필요합니다');
+              debugPrint('   Firebase Console → Cloud Messaging → Web Push certificates');
+            }
           }
         }
       } else {
@@ -154,10 +184,22 @@ class FCMService {
   /// 포그라운드 메시지 처리
   void _handleForegroundMessage(RemoteMessage message) {
     if (kDebugMode) {
-      debugPrint('📨 포그라운드 메시지 수신:');
+      debugPrint('');
+      debugPrint('='*60);
+      debugPrint('📨 포그라운드 메시지 수신 (${_getPlatformName()})');
+      debugPrint('='*60);
       debugPrint('  제목: ${message.notification?.title}');
       debugPrint('  내용: ${message.notification?.body}');
       debugPrint('  데이터: ${message.data}');
+      debugPrint('  메시지 ID: ${message.messageId}');
+      debugPrint('  전송 시각: ${message.sentTime}');
+      debugPrint('='*60);
+      debugPrint('');
+    }
+    
+    // 웹 플랫폼: 브라우저 알림 표시
+    if (kIsWeb) {
+      _showWebNotification(message);
     }
     
     // 수신 전화 타입인 경우
@@ -167,6 +209,54 @@ class FCMService {
       
       // 풀스크린 표시
       _showIncomingCallScreen(message);
+    }
+  }
+  
+  /// 웹 플랫폼 알림 표시
+  void _showWebNotification(RemoteMessage message) {
+    if (!kIsWeb) return;
+    
+    try {
+      final title = message.notification?.title ?? message.data['title'] ?? 'MakeCall 알림';
+      final body = message.notification?.body ?? message.data['body'] ?? '새로운 알림';
+      
+      if (kDebugMode) {
+        debugPrint('🌐 웹 알림 표시: $title - $body');
+      }
+      
+      // 웹 알림은 서비스 워커에서 처리됨
+      // 여기서는 앱 내 스낵바나 다이얼로그로 표시 가능
+      if (_context != null) {
+        ScaffoldMessenger.of(_context!).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(body, style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: '확인',
+              onPressed: () {},
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 웹 알림 표시 오류: $e');
+      }
     }
   }
   

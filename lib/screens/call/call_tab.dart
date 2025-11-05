@@ -897,6 +897,51 @@ class _CallTabState extends State<CallTab> {
                             ],
                           ),
                         ),
+                      // 수신 방식 배지 (착신 통화만)
+                      if (call.callType == CallType.incoming && call.statusText.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: call.statusColor?.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: call.statusColor?.withOpacity(0.5) ?? Colors.grey,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      call.status == 'device_answered' 
+                                        ? Icons.phone_in_talk_rounded 
+                                        : Icons.notifications_active_rounded,
+                                      size: 12,
+                                      color: call.statusColor,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      call.statusText,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: call.statusColor,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),

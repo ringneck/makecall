@@ -37,10 +37,26 @@
   <link rel="manifest" href="manifest.json">
 
   <script>
-    // 🚀 Service Worker 등록 (PWA 지원)
+    // 🚀 Service Worker 등록 (PWA 지원 + FCM)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
-        navigator.serviceWorker.register('flutter_service_worker.js');
+        // Flutter Service Worker 등록
+        navigator.serviceWorker.register('flutter_service_worker.js')
+          .then((registration) => {
+            console.log('✅ Flutter Service Worker 등록 완료:', registration.scope);
+          })
+          .catch((error) => {
+            console.error('❌ Flutter Service Worker 등록 실패:', error);
+          });
+        
+        // Firebase Messaging Service Worker 등록
+        navigator.serviceWorker.register('firebase-messaging-sw.js')
+          .then((registration) => {
+            console.log('✅ Firebase Messaging Service Worker 등록 완료:', registration.scope);
+          })
+          .catch((error) => {
+            console.error('❌ Firebase Messaging Service Worker 등록 실패:', error);
+          });
       });
     }
   </script>

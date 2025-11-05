@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum CallType { incoming, outgoing, missed }
 enum CallMethod { local, localApp, extension }
 
@@ -13,6 +15,7 @@ class CallHistoryModel {
   final String? mainNumberUsed;
   final String? extensionUsed;
   final String? linkedid; // 통화 상세 조회용 linkedid
+  final String? status; // 통화 상태 (confirmed, device_answered, rejected, missed 등)
   
   CallHistoryModel({
     required this.id,
@@ -26,6 +29,7 @@ class CallHistoryModel {
     this.mainNumberUsed,
     this.extensionUsed,
     this.linkedid,
+    this.status,
   });
   
   factory CallHistoryModel.fromMap(Map<String, dynamic> map, String id) {
@@ -81,6 +85,7 @@ class CallHistoryModel {
       mainNumberUsed: map['mainNumberUsed'] as String?,
       extensionUsed: map['extensionUsed'] as String?,
       linkedid: map['linkedid'] as String?,
+      status: map['status'] as String?,
     );
   }
   
@@ -96,7 +101,44 @@ class CallHistoryModel {
       'mainNumberUsed': mainNumberUsed,
       'extensionUsed': extensionUsed,
       if (linkedid != null) 'linkedid': linkedid,
+      if (status != null) 'status': status,
     };
+  }
+  
+  /// 수신 방식 텍스트 반환
+  String get statusText {
+    if (callType != CallType.incoming) return '';
+    
+    switch (status) {
+      case 'device_answered':
+        return '단말수신';
+      case 'confirmed':
+        return '알림확인';
+      case 'rejected':
+        return '거절';
+      case 'missed':
+        return '부재중';
+      default:
+        return '';
+    }
+  }
+  
+  /// 수신 방식 색상 반환
+  Color? get statusColor {
+    if (callType != CallType.incoming) return null;
+    
+    switch (status) {
+      case 'device_answered':
+        return const Color(0xFF4CAF50); // 초록색 - 단말 수신
+      case 'confirmed':
+        return const Color(0xFF2196F3); // 파란색 - 알림 확인
+      case 'rejected':
+        return const Color(0xFFF44336); // 빨간색 - 거절
+      case 'missed':
+        return const Color(0xFFFF9800); // 주황색 - 부재중
+      default:
+        return null;
+    }
   }
   
   String get formattedDuration {
