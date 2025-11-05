@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// 수신 전화 풀스크린 (미래지향적 디자인 + 고급 애니메이션)
 class IncomingCallScreen extends StatefulWidget {
@@ -13,6 +15,8 @@ class IncomingCallScreen extends StatefulWidget {
   final String receiverNumber;
   final String? myCompanyName;
   final String? myOutboundCid;
+  final String? myExternalCidName;
+  final String? myExternalCidNumber;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
@@ -27,6 +31,8 @@ class IncomingCallScreen extends StatefulWidget {
     required this.receiverNumber,
     this.myCompanyName,
     this.myOutboundCid,
+    this.myExternalCidName,
+    this.myExternalCidNumber,
     required this.onAccept,
     required this.onReject,
   });
@@ -405,6 +411,78 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
             ),
           ),
         ),
+
+        // 📋 외부발신 정보 (externalCidName, externalCidNumber)
+        if (widget.myExternalCidName != null && widget.myExternalCidName!.isNotEmpty ||
+            widget.myExternalCidNumber != null && widget.myExternalCidNumber!.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          
+          // 외부발신 이름 (첫 번째 줄)
+          if (widget.myExternalCidName != null && widget.myExternalCidName!.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.25),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                widget.myExternalCidName!,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.85),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          
+          // 간격 (이름이 있을 때만)
+          if (widget.myExternalCidName != null && 
+              widget.myExternalCidName!.isNotEmpty &&
+              widget.myExternalCidNumber != null &&
+              widget.myExternalCidNumber!.isNotEmpty)
+            const SizedBox(height: 8),
+          
+          // 외부발신 번호 (두 번째 줄)
+          if (widget.myExternalCidNumber != null && widget.myExternalCidNumber!.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.25),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.call_made,
+                    color: Colors.white.withOpacity(0.8),
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    widget.myExternalCidNumber!,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ],
     );
   }
@@ -496,9 +574,13 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   Widget _buildConfirmButtonWithIcon() {
     return Center(
       child: GestureDetector(
-        onTap: () {
-          // TODO: 확인 버튼 동작 정의 (현재는 화면 닫기)
-          Navigator.of(context).pop();
+        onTap: () async {
+          // 통화 기록 저장
+          await _saveCallHistory();
+          // 화면 닫기
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
         },
         child: Column(
           children: [
@@ -663,5 +745,52 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         ],
       ),
     );
+  }
+
+  /// 📝 통화 기록 저장
+  Future<void> _saveCallHistory() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 사용자 ID가 없어서 통화 기록을 저장하지 않습니다');
+        }
+        return;
+      }
+
+      final callHistoryData = {
+        'userId': userId,
+        'callerNumber': widget.callerNumber,
+        'callerName': widget.callerName,
+        'receiverNumber': widget.receiverNumber,
+        'channel': widget.channel,
+        'linkedid': widget.linkedid,
+        'callType': 'incoming',
+        'status': 'confirmed',
+        'timestamp': FieldValue.serverTimestamp(),
+        'createdAt': DateTime.now(),
+        
+        // 내 단말번호 정보
+        if (widget.myCompanyName != null) 'myCompanyName': widget.myCompanyName,
+        if (widget.myOutboundCid != null) 'myOutboundCid': widget.myOutboundCid,
+        if (widget.myExternalCidName != null) 'myExternalCidName': widget.myExternalCidName,
+        if (widget.myExternalCidNumber != null) 'myExternalCidNumber': widget.myExternalCidNumber,
+      };
+
+      await FirebaseFirestore.instance
+          .collection('call_history')
+          .add(callHistoryData);
+
+      if (kDebugMode) {
+        debugPrint('✅ 통화 기록 저장 완료');
+        debugPrint('  발신자: ${widget.callerName} (${widget.callerNumber})');
+        debugPrint('  수신번호: ${widget.receiverNumber}');
+        debugPrint('  타입: incoming (confirmed)');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 통화 기록 저장 실패: $e');
+      }
+    }
   }
 }

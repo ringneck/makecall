@@ -390,9 +390,11 @@ class DCMIWSService {
     // 4️⃣ 최종 callerName 보장 (null 방지)
     final finalCallerName = callerName ?? callerNumber;
     
-    // 5️⃣ 내 단말번호 정보 가져오기 (companyName, 외부발신 표시번호)
+    // 5️⃣ 내 단말번호 정보 가져오기 (companyName, 외부발신 표시번호, 외부발신 이름/번호)
     String? myCompanyName;
     String? myOutboundCid;
+    String? myExternalCidName;
+    String? myExternalCidNumber;
     
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -408,10 +410,14 @@ class DCMIWSService {
         if (querySnapshot.docs.isNotEmpty) {
           final extensionData = querySnapshot.docs.first.data();
           myOutboundCid = extensionData['outboundCID'] as String?;
+          myExternalCidName = extensionData['externalCidName'] as String?;
+          myExternalCidNumber = extensionData['externalCidNumber'] as String?;
           
           if (kDebugMode) {
             debugPrint('✅ 내 단말번호 정보 조회 성공: $receiverNumber');
             debugPrint('  외부발신 표시번호: $myOutboundCid');
+            debugPrint('  외부발신 이름: $myExternalCidName');
+            debugPrint('  외부발신 번호: $myExternalCidNumber');
           }
         }
         
@@ -457,6 +463,8 @@ class DCMIWSService {
           receiverNumber: receiverNumber,
           myCompanyName: myCompanyName,
           myOutboundCid: myOutboundCid,
+          myExternalCidName: myExternalCidName,
+          myExternalCidNumber: myExternalCidNumber,
           onAccept: () {
             Navigator.of(context).pop();
             // TODO: 전화 수락 로직 (SIP 연결 등)
