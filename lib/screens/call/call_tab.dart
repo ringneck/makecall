@@ -678,75 +678,251 @@ class _CallTabState extends State<CallTab> {
         final callHistory = snapshot.data ?? [];
 
         if (callHistory.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.history, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text('통화 기록이 없습니다', style: TextStyle(color: Colors.grey)),
+                Icon(Icons.history, size: 80, color: Colors.grey[300]),
+                const SizedBox(height: 20),
+                const Text(
+                  '통화 기록이 없습니다',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '첫 통화를 시작해보세요',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[500],
+                  ),
+                ),
               ],
             ),
           );
         }
 
-        return ListView.builder(
+        return ListView.separated(
+          padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: callHistory.length,
+          separatorBuilder: (context, index) => Divider(
+            height: 1,
+            thickness: 0.5,
+            color: Colors.grey[200],
+            indent: 76,
+          ),
           itemBuilder: (context, index) {
             final call = callHistory[index];
-            return ListTile(
-              leading: Icon(
-                _getCallTypeIcon(call.callType),
-                color: _getCallTypeColor(call.callType),
-              ),
-              title: Text(call.contactName ?? call.phoneNumber),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${_formatDateTime(call.callTime)}${call.duration != null ? ' · ${call.formattedDuration}' : ''}',
+            final callTypeColor = _getCallTypeColor(call.callType);
+            final callTypeIcon = _getCallTypeIcon(call.callType);
+            
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
                   ),
-                  if (call.extensionUsed != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Row(
+                ],
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                // 🎨 컬러풀한 아이콘 (원형 배경)
+                leading: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        callTypeColor.withOpacity(0.8),
+                        callTypeColor,
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: callTypeColor.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    callTypeIcon,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                // 📝 발신자 정보
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        call.contactName ?? call.phoneNumber,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1a1a1a),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    // 통화 시간 배지
+                    if (call.duration != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: callTypeColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: callTypeColor.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 12,
+                              color: callTypeColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              call.formattedDuration,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: callTypeColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                // 📅 시간 및 단말번호 정보
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 통화 시간
+                      Row(
                         children: [
                           Icon(
-                            Icons.phone_android,
+                            Icons.schedule,
                             size: 14,
-                            color: Colors.grey[600],
+                            color: Colors.grey[500],
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '단말번호: ${call.extensionUsed}',
+                            _formatDateTime(call.callTime),
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 13,
                               color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
+                      // 단말번호 정보
+                      if (call.extensionUsed != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.phone_android,
+                                      size: 12,
+                                      color: Colors.blue[700],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      call.extensionUsed!,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue[700],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                // 🎯 액션 버튼
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 연락처 추가 버튼
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.person_add_rounded, size: 20),
+                        color: Colors.green[700],
+                        onPressed: () => _showAddContactFromCallDialog(call),
+                        tooltip: '연락처 추가',
+                      ),
                     ),
-                ],
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 연락처 추가 버튼
-                  IconButton(
-                    icon: const Icon(Icons.person_add, size: 20),
-                    color: Colors.green,
-                    onPressed: () => _showAddContactFromCallDialog(call),
-                    tooltip: '연락처 추가',
-                  ),
-                  // 전화 걸기 버튼
-                  IconButton(
-                    icon: const Icon(Icons.phone),
-                    color: const Color(0xFF2196F3),
-                    onPressed: () => _showCallMethodDialog(call.phoneNumber),
-                    tooltip: '전화 걸기',
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    // 전화 걸기 버튼
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFF2196F3).withOpacity(0.8),
+                            const Color(0xFF2196F3),
+                          ],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF2196F3).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.phone, size: 20),
+                        color: Colors.white,
+                        onPressed: () => _showCallMethodDialog(call.phoneNumber),
+                        tooltip: '전화 걸기',
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },

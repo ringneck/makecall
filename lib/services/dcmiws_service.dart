@@ -238,6 +238,9 @@ class DCMIWSService {
     });
   }
 
+  // 🔔 활성 수신 전화 추적 (linkedid -> 수신 정보)
+  final Map<String, Map<String, dynamic>> _activeIncomingCalls = {};
+
   /// 메시지 수신 핸들러
   void _handleMessage(dynamic message) {
     try {
@@ -249,6 +252,9 @@ class DCMIWSService {
 
       // 🔔 수신 전화 이벤트 감지 (Newchannel) - 비동기 처리
       _checkIncomingCall(data);
+      
+      // 📞 통화 연결 이벤트 감지 (BridgeEnter) - 자동 확인 처리
+      _checkBridgeEnter(data);
 
       // ActionID로 대기 중인 요청 찾기
       final actionId = data['data']?['ActionID'] as String?;
@@ -326,12 +332,153 @@ class DCMIWSService {
         debugPrint('📞 통화 타입: $callType');
       }
       
-      // 수신 전화 화면 표시
+      // 수신 전화 화면 표시 및 활성 통화 추적
+      _activeIncomingCalls[linkedid] = {
+        'callerNumber': callerIdNum,
+        'receiverNumber': exten,
+        'channel': channel,
+        'callType': callType,
+      };
+      
       _showIncomingCallScreen(callerIdNum, exten, channel, linkedid, data, callType);
       
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ 수신 전화 체크 오류: $e');
+      }
+    }
+  }
+  
+  /// BridgeEnter 이벤트 체크 (단말에서 수신 확인)
+  Future<void> _checkBridgeEnter(Map<String, dynamic> data) async {
+    try {
+      // type이 3인지 확인 (Call Event)
+      if (data['type'] != 3) return;
+      
+      final eventData = data['data'] as Map<String, dynamic>?;
+      if (eventData == null) return;
+      
+      // Event가 "BridgeEnter"인지 확인
+      final event = eventData['Event'] as String?;
+      if (event != 'BridgeEnter') return;
+      
+      // Linkedid 추출
+      final linkedid = eventData['Linkedid'] as String?;
+      if (linkedid == null) return;
+      
+      // 활성 수신 전화 목록에서 해당 linkedid 찾기
+      final activeCall = _activeIncomingCalls[linkedid];
+      if (activeCall == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ BridgeEnter: 활성 수신 전화를 찾을 수 없음 (linkedid: $linkedid)');
+        }
+        return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ BridgeEnter 감지: 단말에서 수신 확인됨');
+        debugPrint('  Linkedid: $linkedid');
+        debugPrint('  발신번호: ${activeCall['callerNumber']}');
+        debugPrint('  수신번호: ${activeCall['receiverNumber']}');
+      }
+      
+      // 통화 기록 저장 (단말 수신 확인)
+      await _saveCallHistoryOnBridgeEnter(
+        linkedid: linkedid,
+        callerNumber: activeCall['callerNumber'] as String,
+        receiverNumber: activeCall['receiverNumber'] as String,
+        channel: activeCall['channel'] as String,
+        callType: activeCall['callType'] as String,
+      );
+      
+      // 활성 통화 목록에서 제거
+      _activeIncomingCalls.remove(linkedid);
+      
+      // IncomingCallScreen 자동 닫기
+      if (_navigatorKey?.currentState != null) {
+        if (kDebugMode) {
+          debugPrint('📱 IncomingCallScreen 자동 닫기');
+        }
+        _navigatorKey!.currentState!.pop();
+      }
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ BridgeEnter 체크 오류: $e');
+      }
+    }
+  }
+  
+  /// BridgeEnter 시 통화 기록 저장
+  Future<void> _saveCallHistoryOnBridgeEnter({
+    required String linkedid,
+    required String callerNumber,
+    required String receiverNumber,
+    required String channel,
+    required String callType,
+  }) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final auth = FirebaseAuth.instance;
+      final userId = auth.currentUser?.uid;
+      
+      if (userId == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 로그인 정보가 없어 통화 기록을 저장할 수 없습니다');
+        }
+        return;
+      }
+      
+      // linkedid로 기존 통화 기록 확인
+      final existingDoc = await firestore
+          .collection('call_history')
+          .doc(linkedid)
+          .get();
+      
+      if (existingDoc.exists) {
+        // 기존 문서 업데이트 (단말 수신 확인으로 상태 변경)
+        await firestore
+            .collection('call_history')
+            .doc(linkedid)
+            .update({
+          'status': 'device_answered', // 단말 수신 확인
+          'answeredAt': FieldValue.serverTimestamp(),
+        });
+        
+        if (kDebugMode) {
+          debugPrint('✅ 통화 기록 업데이트 완료 (단말 수신 확인)');
+          debugPrint('  Linkedid: $linkedid');
+        }
+      } else {
+        // 새 통화 기록 생성 (IncomingCallScreen에서 확인 버튼 누르지 않은 경우)
+        final callHistory = {
+          'userId': userId,
+          'callerNumber': callerNumber,
+          'receiverNumber': receiverNumber,
+          'channel': channel,
+          'linkedid': linkedid,
+          'callType': 'incoming',
+          'callSubType': callType, // 'external', 'internal', 'unknown'
+          'status': 'device_answered', // 단말 수신 확인
+          'timestamp': FieldValue.serverTimestamp(),
+          'answeredAt': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+        
+        await firestore
+            .collection('call_history')
+            .doc(linkedid)
+            .set(callHistory);
+        
+        if (kDebugMode) {
+          debugPrint('✅ 통화 기록 생성 완료 (단말 수신 확인)');
+          debugPrint('  Linkedid: $linkedid');
+          debugPrint('  발신: $callerNumber → 수신: $receiverNumber');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ BridgeEnter 통화 기록 저장 오류: $e');
       }
     }
   }
