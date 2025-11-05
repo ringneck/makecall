@@ -24,6 +24,8 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
   String? _error;
   Map<String, dynamic>? _cdrData;
   String? _serverUrl; // ProfileDrawer 서버 설정
+  String? _companyId;  // API 인증 - Company ID
+  String? _appKey;     // API 인증 - App-Key
 
   @override
   void initState() {
@@ -62,19 +64,33 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         final apiBaseUrl = userData?['apiBaseUrl'] as String?;
         final apiHttpsPort = userData?['apiHttpsPort'] as int? ?? 3501;
         final useHttps = apiHttpsPort == 3501;
+        final companyId = userData?['companyId'] as String?;
+        final appKey = userData?['appKey'] as String?;
         
         debugPrint('📋 CDR API: 서버 설정 정보');
         debugPrint('  - apiBaseUrl: $apiBaseUrl');
         debugPrint('  - apiHttpsPort: $apiHttpsPort');
         debugPrint('  - useHttps: $useHttps');
+        debugPrint('  - companyId: ${companyId != null && companyId.isNotEmpty ? "[설정됨]" : "(없음)"}');
+        debugPrint('  - appKey: ${appKey != null && appKey.isNotEmpty ? "[설정됨]" : "(없음)"}');
         
         if (apiBaseUrl != null && apiBaseUrl.isNotEmpty) {
           // CDR API 서버 URL 구성 (http/https + apiBaseUrl)
           final protocol = useHttps ? 'https' : 'http';
           _serverUrl = '$protocol://$apiBaseUrl';
+          _companyId = companyId;
+          _appKey = appKey;
           
           debugPrint('✅ CDR API: 서버 URL 구성 완료');
           debugPrint('  - _serverUrl: $_serverUrl');
+          
+          // 인증 정보 검증
+          if (_companyId == null || _companyId!.isEmpty) {
+            debugPrint('⚠️ CDR API: companyId가 설정되지 않음');
+          }
+          if (_appKey == null || _appKey!.isEmpty) {
+            debugPrint('⚠️ CDR API: appKey가 설정되지 않음');
+          }
           
           // 서버 설정 로드 완료 → CDR 조회 시작
           _fetchCallDetail();
@@ -121,20 +137,37 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
       // ProfileDrawer 서버 설정 사용
       final apiUrl = '$_serverUrl/api/v2/cdr?search=${widget.linkedid}&search_fields=linkedid';
       
+      // 인증 헤더 구성
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      
+      // companyId와 appKey 추가 (설정되어 있는 경우)
+      if (_companyId != null && _companyId!.isNotEmpty) {
+        headers['Company-Id'] = _companyId!;
+      }
+      if (_appKey != null && _appKey!.isNotEmpty) {
+        headers['App-Key'] = _appKey!;
+      }
+      
       debugPrint('🌐 CDR API: 요청 시작');
       debugPrint('  - URL: $apiUrl');
       debugPrint('  - Linkedid: ${widget.linkedid}');
+      debugPrint('  - Headers:');
+      debugPrint('    * Content-Type: application/json');
+      if (_companyId != null && _companyId!.isNotEmpty) {
+        debugPrint('    * Company-Id: [설정됨]');
+      }
+      if (_appKey != null && _appKey!.isNotEmpty) {
+        debugPrint('    * App-Key: [설정됨]');
+      }
       debugPrint('  - Timeout: 10초');
       
       final startTime = DateTime.now();
       
       final response = await http.get(
         Uri.parse(apiUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          // 필요시 인증 헤더 추가
-          // 'Authorization': 'Bearer YOUR_TOKEN',
-        },
+        headers: headers,
       ).timeout(const Duration(seconds: 10));
 
       final duration = DateTime.now().difference(startTime);
