@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import http.server
 import socketserver
 
@@ -9,5 +10,5 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
 with socketserver.TCPServer(('0.0.0.0', 5060), CORSRequestHandler) as httpd:
-    print('✅ Flutter web server started on port 5060')
+    print('Flutter web server with CORS started on port 5060')
     httpd.serve_forever()

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// 통화 상세 내역 다이얼로그
 class CallDetailDialog extends StatefulWidget {
@@ -19,23 +21,87 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
   bool _isLoading = true;
   String? _error;
   Map<String, dynamic>? _cdrData;
+  String? _serverUrl; // ProfileDrawer 서버 설정
 
   @override
   void initState() {
     super.initState();
-    _fetchCallDetail();
+    _loadServerSettings();
   }
 
-  /// CDR API 호출
-  Future<void> _fetchCallDetail() async {
+  /// ProfileDrawer 서버 설정 로드
+  Future<void> _loadServerSettings() async {
     try {
       setState(() {
         _isLoading = true;
         _error = null;
       });
 
-      // API 엔드포인트 (환경에 맞게 수정 필요)
-      final apiUrl = 'https://your-api-domain.com/api/v2/cdr?search=${widget.linkedid}&search_fields=linkedid';
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        setState(() {
+          _error = '로그인 정보가 없습니다';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // users 컬렉션에서 서버 설정 가져오기
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        final websocketServerUrl = userData?['websocketServerUrl'] as String?;
+        final websocketUseSSL = userData?['websocketUseSSL'] as bool? ?? false;
+        
+        if (websocketServerUrl != null && websocketServerUrl.isNotEmpty) {
+          // 서버 URL 구성 (http/https + 서버주소)
+          final protocol = websocketUseSSL ? 'https' : 'http';
+          _serverUrl = '$protocol://$websocketServerUrl';
+          
+          // 서버 설정 로드 완료 → CDR 조회 시작
+          _fetchCallDetail();
+        } else {
+          setState(() {
+            _error = '서버 설정이 없습니다\nProfileDrawer에서 서버를 설정해주세요';
+            _isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          _error = '사용자 정보를 찾을 수 없습니다';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = '서버 설정을 불러오는데 실패했습니다\n$e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// CDR API 호출
+  Future<void> _fetchCallDetail() async {
+    if (_serverUrl == null || _serverUrl!.isEmpty) {
+      setState(() {
+        _error = '서버 URL이 설정되지 않았습니다';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      // ProfileDrawer 서버 설정 사용
+      final apiUrl = '$_serverUrl/api/v2/cdr?search=${widget.linkedid}&search_fields=linkedid';
       
       final response = await http.get(
         Uri.parse(apiUrl),
@@ -143,7 +209,7 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
                 children: [
                   if (_error != null)
                     TextButton.icon(
-                      onPressed: _fetchCallDetail,
+                      onPressed: _loadServerSettings,
                       icon: const Icon(Icons.refresh),
                       label: const Text('다시 시도'),
                       style: TextButton.styleFrom(

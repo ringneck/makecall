@@ -303,7 +303,7 @@ class DCMIWSService {
       
       if (kDebugMode) {
         debugPrint('📞 수신 전화 감지!');
-        debugPrint('  발신번호: $callerIdNum');
+        debugPrint('  발신번호 (CallerIDNum): $callerIdNum');
         debugPrint('  수신번호 (Exten): $exten');
         debugPrint('  Channel: $channel');
         debugPrint('  Linkedid: $linkedid');
@@ -766,7 +766,7 @@ class DCMIWSService {
     if (kDebugMode) {
       debugPrint('📞 수신 전화 화면 표시:');
       debugPrint('  발신자: $finalCallerName');
-      debugPrint('  발신번호: $callerNumber');
+      debugPrint('  발신번호 (CallerIDNum): $callerNumber');
       debugPrint('  수신번호: $receiverNumber');
       debugPrint('  Channel: $channel');
       debugPrint('  Linkedid: $linkedid');
@@ -777,7 +777,7 @@ class DCMIWSService {
         fullscreenDialog: true,
         builder: (context) => IncomingCallScreen(
           callerName: finalCallerName,
-          callerNumber: callerNumber,
+          callerNumber: callerNumber, // CallerIDNum 값 사용
           callerAvatar: null,
           contactPhoto: contactPhoto,
           channel: channel,
