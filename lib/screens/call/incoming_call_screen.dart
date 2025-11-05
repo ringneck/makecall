@@ -13,6 +13,7 @@ class IncomingCallScreen extends StatefulWidget {
   final String channel;
   final String linkedid;
   final String receiverNumber;
+  final String callType; // 'external' (외부 수신), 'internal' (내부 수신), 'unknown'
   final String? myCompanyName;
   final String? myOutboundCid;
   final String? myExternalCidName;
@@ -29,6 +30,7 @@ class IncomingCallScreen extends StatefulWidget {
     required this.channel,
     required this.linkedid,
     required this.receiverNumber,
+    required this.callType,
     this.myCompanyName,
     this.myOutboundCid,
     this.myExternalCidName,
@@ -303,8 +305,18 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     );
   }
 
-  /// 📞 헤더 텍스트
+  /// 📞 헤더 텍스트 (통화 타입에 따라 변경)
   Widget _buildHeaderText() {
+    // 통화 타입에 따른 헤더 텍스트 결정
+    String headerText;
+    if (widget.callType == 'external') {
+      headerText = '외부 수신 통화';
+    } else if (widget.callType == 'internal') {
+      headerText = '내부 수신 통화';
+    } else {
+      headerText = '수신 전화';
+    }
+    
     return AnimatedBuilder(
       animation: _glowController,
       builder: (context, child) {
@@ -328,7 +340,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
               ),
               const SizedBox(width: 8),
               Text(
-                '수신 전화',
+                headerText,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.95),
                   fontSize: 16,
@@ -343,8 +355,20 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     );
   }
 
-  /// 👤 발신자 정보
+  /// 👤 발신자 정보 (통화 타입에 따라 순서 변경)
   Widget _buildCallerInfo() {
+    // 외부 수신 통화: 외부발신 정보 먼저 표시 → 실제 발신자 정보
+    // 내부 수신 통화: 실제 발신자 정보만 표시
+    
+    if (widget.callType == 'external') {
+      return _buildExternalCallInfo();
+    } else {
+      return _buildInternalCallInfo();
+    }
+  }
+  
+  /// 외부 수신 통화 정보 (외부CID → 발신자)
+  Widget _buildExternalCallInfo() {
     return Column(
       children: [
         // 👤 아바타 (글로우 효과)
@@ -369,50 +393,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
         const SizedBox(height: 40),
 
-        // 📝 발신자 이름
-        Text(
-          widget.callerName,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 36,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-            shadows: [
-              Shadow(
-                color: Colors.black38,
-                offset: Offset(0, 2),
-                blurRadius: 8,
-              ),
-            ],
-          ),
-          textAlign: TextAlign.center,
-        ),
-
-        const SizedBox(height: 12),
-
-        // 📞 전화번호
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            widget.callerNumber,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 2,
-            ),
-          ),
-        ),
-
-        // 📋 외부발신 정보 (externalCidName, externalCidNumber)
+        // 📋 외부발신 정보 (externalCidName, externalCidNumber) - 먼저 표시
         if (widget.myExternalCidName != null && widget.myExternalCidName!.isNotEmpty ||
             widget.myExternalCidNumber != null && widget.myExternalCidNumber!.isNotEmpty) ...[
           const SizedBox(height: 20),
@@ -482,7 +463,124 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 ],
               ),
             ),
+          
+          const SizedBox(height: 24), // 외부발신 정보와 발신자 정보 간격
         ],
+        
+        // 📝 발신자 이름 (두 번째 표시)
+        Text(
+          widget.callerName,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+            shadows: [
+              Shadow(
+                color: Colors.black38,
+                offset: Offset(0, 2),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          textAlign: TextAlign.center,
+        ),
+
+        const SizedBox(height: 12),
+
+        // 📞 전화번호 (세 번째 표시)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            widget.callerNumber,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  /// 내부 수신 통화 정보 (발신자만)
+  Widget _buildInternalCallInfo() {
+    return Column(
+      children: [
+        // 👤 아바타 (글로우 효과)
+        AnimatedBuilder(
+          animation: _glowController,
+          builder: (context, child) {
+            return Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.3 * _glowController.value),
+                    blurRadius: 40 * _glowController.value,
+                    spreadRadius: 10 * _glowController.value,
+                  ),
+                ],
+              ),
+              child: _buildAvatar(),
+            );
+          },
+        ),
+
+        const SizedBox(height: 40),
+
+        // 📝 발신자 이름
+        Text(
+          widget.callerName,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 36,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+            shadows: [
+              Shadow(
+                color: Colors.black38,
+                offset: Offset(0, 2),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          textAlign: TextAlign.center,
+        ),
+
+        const SizedBox(height: 12),
+
+        // 📞 전화번호
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            widget.callerNumber,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -766,6 +864,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         'channel': widget.channel,
         'linkedid': widget.linkedid,
         'callType': 'incoming',
+        'callSubType': widget.callType, // 'external', 'internal', 'unknown'
         'status': 'confirmed',
         'timestamp': FieldValue.serverTimestamp(),
         'createdAt': DateTime.now(),

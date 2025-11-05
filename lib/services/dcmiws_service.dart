@@ -217,11 +217,16 @@ class DCMIWSService {
       final event = eventData['Event'] as String?;
       if (event != 'Newchannel') return;
       
-      // CallerIDNum, Exten, Channel, Linkedid 추출
+      // ChannelStateDesc가 "Ring"인지 확인 (수신 통화만 처리)
+      final channelStateDesc = eventData['ChannelStateDesc'] as String?;
+      if (channelStateDesc != 'Ring') return;
+      
+      // CallerIDNum, Exten, Channel, Linkedid, Context 추출
       final callerIdNum = eventData['CallerIDNum'] as String?;
       final exten = eventData['Exten'] as String?;
       final channel = eventData['Channel'] as String?;
       final linkedid = eventData['Linkedid'] as String?;
+      final context = eventData['Context'] as String?;
       
       if (callerIdNum == null || exten == null) return;
       if (channel == null || linkedid == null) return;
@@ -229,9 +234,11 @@ class DCMIWSService {
       if (kDebugMode) {
         debugPrint('📞 수신 전화 감지!');
         debugPrint('  발신번호: $callerIdNum');
-        debugPrint('  수신번호: $exten');
+        debugPrint('  수신번호 (Exten): $exten');
         debugPrint('  Channel: $channel');
         debugPrint('  Linkedid: $linkedid');
+        debugPrint('  Context: $context');
+        debugPrint('  ChannelStateDesc: $channelStateDesc');
       }
       
       // 🔐 my_extensions 유효성 검사 (등록된 내선번호인지 확인)
@@ -248,13 +255,83 @@ class DCMIWSService {
         debugPrint('✅ 등록된 내선번호 확인됨: $exten');
       }
       
+      // 🔍 통화 타입 감지 (외부 수신 / 내부 수신)
+      final callType = await _detectCallType(exten, context);
+      
+      if (kDebugMode) {
+        debugPrint('📞 통화 타입: $callType');
+      }
+      
       // 수신 전화 화면 표시
-      _showIncomingCallScreen(callerIdNum, exten, channel, linkedid, data);
+      _showIncomingCallScreen(callerIdNum, exten, channel, linkedid, data, callType);
       
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ 수신 전화 체크 오류: $e');
       }
+    }
+  }
+  
+  /// 통화 타입 감지 (외부 수신 / 내부 수신)
+  /// 
+  /// [exten] - Newchannel 이벤트의 Exten 필드
+  /// [context] - Newchannel 이벤트의 Context 필드
+  /// Returns: 'external' (외부 수신), 'internal' (내부 수신), 'unknown' (알 수 없음)
+  Future<String> _detectCallType(String exten, String? context) async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return 'unknown';
+      
+      final firestore = FirebaseFirestore.instance;
+      
+      // 1️⃣ 외부 수신 통화 감지
+      // Context가 "trk"로 시작하고, accountCode == exten인 경우
+      if (context != null && context.startsWith('trk')) {
+        final accountCodeQuery = await firestore
+            .collection('my_extensions')
+            .where('userId', isEqualTo: userId)
+            .where('accountCode', isEqualTo: exten)
+            .limit(1)
+            .get();
+        
+        if (accountCodeQuery.docs.isNotEmpty) {
+          if (kDebugMode) {
+            debugPrint('✅ 외부 수신 통화 감지');
+            debugPrint('  Context: $context (trk로 시작)');
+            debugPrint('  accountCode: $exten');
+          }
+          return 'external';
+        }
+      }
+      
+      // 2️⃣ 내부 수신 통화 감지
+      // extension == exten인 경우
+      final extensionQuery = await firestore
+          .collection('my_extensions')
+          .where('userId', isEqualTo: userId)
+          .where('extension', isEqualTo: exten)
+          .limit(1)
+          .get();
+      
+      if (extensionQuery.docs.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint('✅ 내부 수신 통화 감지');
+          debugPrint('  extension: $exten');
+        }
+        return 'internal';
+      }
+      
+      // 일치하는 조건 없음
+      if (kDebugMode) {
+        debugPrint('⚠️ 통화 타입을 감지할 수 없습니다');
+      }
+      return 'unknown';
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 통화 타입 감지 오류: $e');
+      }
+      return 'unknown';
     }
   }
   
@@ -334,6 +411,7 @@ class DCMIWSService {
     String channel,
     String linkedid,
     Map<String, dynamic> callEventData,
+    String callType,
   ) async {
     if (_navigatorKey?.currentState == null) {
       if (kDebugMode) {
@@ -461,6 +539,7 @@ class DCMIWSService {
           channel: channel,
           linkedid: linkedid,
           receiverNumber: receiverNumber,
+          callType: callType,
           myCompanyName: myCompanyName,
           myOutboundCid: myOutboundCid,
           myExternalCidName: myExternalCidName,

@@ -271,6 +271,7 @@ class FCMService {
           channel: channel,
           linkedid: linkedid,
           receiverNumber: receiverNumber,
+          callType: 'unknown', // FCM 푸시는 통화 타입 감지 불가
           onAccept: () {
             Navigator.of(context).pop();
             // TODO: 전화 수락 로직 (SIP 연결 등)
