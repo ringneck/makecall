@@ -19,6 +19,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   late final TextEditingController _websocketServerUrlController;
   late final TextEditingController _websocketServerPortController;
   bool _isLoading = false;
+  bool _apiUseSSL = false; // API SSL 사용 여부
   bool _websocketUseSSL = false;
   
   // ScaffoldMessenger를 안전하게 사용하기 위한 참조 저장
@@ -45,12 +46,14 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     _websocketServerPortController = TextEditingController(
       text: (userModel?.websocketServerPort ?? 6600).toString()
     );
+    _apiUseSSL = (userModel?.apiHttpsPort ?? 3501) == 3501; // HTTPS 포트면 SSL 사용
     _websocketUseSSL = userModel?.websocketUseSSL ?? false;
     
     // 디버그 로그: DB 값 로드 확인
     if (kDebugMode) {
       debugPrint('📋 기본설정 다이얼로그 - DB 값 로드:');
       debugPrint('   - API Base URL: ${userModel?.apiBaseUrl ?? "(없음)"}');
+      debugPrint('   - API SSL: ${(userModel?.apiHttpsPort ?? 3501) == 3501}');
       debugPrint('   - Company ID: ${userModel?.companyId ?? "(없음)"}');
       debugPrint('   - App Key: ${userModel?.appKey != null && userModel!.appKey!.isNotEmpty ? "[설정됨]" : "(없음)"}');
       debugPrint('   - WebSocket URL: ${userModel?.websocketServerUrl ?? "(없음)"}');
@@ -142,8 +145,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     try {
       await context.read<AuthService>().updateUserInfo(
             apiBaseUrl: _apiBaseUrlController.text.trim(),
-            apiHttpPort: 3500,
-            apiHttpsPort: 3501,
+            apiHttpPort: _apiUseSSL ? 3501 : 3500,
+            apiHttpsPort: _apiUseSSL ? 3501 : 3500,
             companyId: _companyIdController.text.trim(),
             appKey: _appKeyController.text.trim(),
             websocketServerUrl: _websocketServerUrlController.text.trim(),
@@ -229,6 +232,67 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   return null;
                 },
               ),
+              const SizedBox(height: 16),
+              // http/https 프로토콜 선택
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SwitchListTile(
+                  title: const Text('SSL 사용 (https)', style: TextStyle(fontSize: 13)),
+                  subtitle: Text(
+                    _apiUseSSL ? 'https:// (보안 연결)' : 'http:// (일반 연결)',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: _apiUseSSL ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                  value: _apiUseSSL,
+                  onChanged: (value) {
+                    setState(() {
+                      _apiUseSSL = value;
+                    });
+                  },
+                  secondary: Icon(
+                    _apiUseSSL ? Icons.lock : Icons.lock_open,
+                    color: _apiUseSSL ? Colors.green : Colors.orange,
+                    size: 20,
+                  ),
+                ),
+              ),
+              // API URL 미리보기
+              if (_apiBaseUrlController.text.trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'CDR API 주소:',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_apiUseSSL ? 'https' : 'http'}://${_apiBaseUrlController.text.trim()}/api/v2/cdr',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: _apiUseSSL ? Colors.green.shade700 : Colors.orange.shade700,
+                          fontFamily: 'monospace',
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 16),

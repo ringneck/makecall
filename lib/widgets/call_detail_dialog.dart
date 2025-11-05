@@ -46,7 +46,7 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         return;
       }
 
-      // users 컬렉션에서 서버 설정 가져오기
+      // users 컬렉션에서 API 서버 설정 가져오기
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -54,19 +54,20 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
 
       if (userDoc.exists) {
         final userData = userDoc.data();
-        final websocketServerUrl = userData?['websocketServerUrl'] as String?;
-        final websocketUseSSL = userData?['websocketUseSSL'] as bool? ?? false;
+        final apiBaseUrl = userData?['apiBaseUrl'] as String?;
+        final apiHttpsPort = userData?['apiHttpsPort'] as int? ?? 3501;
+        final useHttps = apiHttpsPort == 3501;
         
-        if (websocketServerUrl != null && websocketServerUrl.isNotEmpty) {
-          // 서버 URL 구성 (http/https + 서버주소)
-          final protocol = websocketUseSSL ? 'https' : 'http';
-          _serverUrl = '$protocol://$websocketServerUrl';
+        if (apiBaseUrl != null && apiBaseUrl.isNotEmpty) {
+          // CDR API 서버 URL 구성 (http/https + apiBaseUrl)
+          final protocol = useHttps ? 'https' : 'http';
+          _serverUrl = '$protocol://$apiBaseUrl';
           
           // 서버 설정 로드 완료 → CDR 조회 시작
           _fetchCallDetail();
         } else {
           setState(() {
-            _error = '서버 설정이 없습니다\nProfileDrawer에서 서버를 설정해주세요';
+            _error = 'API 서버 설정이 없습니다\nProfileDrawer > 기본설정에서 API 서버 주소를 설정해주세요';
             _isLoading = false;
           });
         }
