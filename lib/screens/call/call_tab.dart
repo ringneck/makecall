@@ -1734,7 +1734,21 @@ class _CallTabState extends State<CallTab> {
         debugPrint('✅ 즐곊/최근통화 기능번호 Click to Call 성공: $result');
       }
 
-      // 통화 기록 저장
+      // 🔥 착신전환 정보 조회 (현재 시점 기준)
+      final callForwardInfo = await _databaseService
+          .getCallForwardInfoOnce(userId, selectedExtension.extension);
+      
+      final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
+      final forwardDestination = (callForwardInfo?.destinationNumber ?? '').trim();
+      
+      // ignore: avoid_print
+      print('📞 [call_tab 기능번호] 착신전환 정보 조회 완료');
+      // ignore: avoid_print
+      print('   isEnabled: $isForwardEnabled');
+      // ignore: avoid_print
+      print('   destinationNumber: $forwardDestination');
+
+      // 통화 기록 저장 (착신전환 정보 포함)
       await _databaseService.addCallHistory(
         CallHistoryModel(
           id: '',
@@ -1745,6 +1759,8 @@ class _CallTabState extends State<CallTab> {
           callTime: DateTime.now(),
           mainNumberUsed: cidNumber,
           extensionUsed: selectedExtension.extension,
+          callForwardEnabled: isForwardEnabled,
+          callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
         ),
       );
 
@@ -1780,7 +1796,7 @@ class _CallTabState extends State<CallTab> {
           debugPrint('✅ 기능번호 발신 성공 → 최근통화 탭으로 전환');
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       // 에러 메시지 (안전한 헬퍼 사용)
       _safeClearSnackBars();
       _safeShowSnackBar(
@@ -1791,9 +1807,12 @@ class _CallTabState extends State<CallTab> {
         ),
       );
       
-      if (kDebugMode) {
-        debugPrint('❌ 즐곊/최근통화 기능번호 발신 오류: $e');
-      }
+      // ignore: avoid_print
+      print('❌ [call_tab 기능번호] 발신 오류 발생');
+      // ignore: avoid_print
+      print('   에러: $e');
+      // ignore: avoid_print
+      print('   스택 트레이스: $stackTrace');
     }
   }
 

@@ -104,7 +104,7 @@ class CallService {
           .getCallForwardInfoOnce(userId, extension.extensionNumber);
       
       final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
-      final forwardDestination = callForwardInfo?.destinationNumber?.trim() ?? '';
+      final forwardDestination = (callForwardInfo?.destinationNumber ?? '').trim();
       
       // ignore: avoid_print
       print('📞 [CallService] 착신전환 정보 조회 완료');
