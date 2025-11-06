@@ -680,39 +680,36 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       }
 
                       if (contacts.isEmpty) {
-                        return RefreshIndicator(
-                          onRefresh: _loadPhonebooks,
-                          child: SingleChildScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            child: SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.6,
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.contact_phone, size: 80, color: Colors.grey[400]),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      _searchController.text.isNotEmpty
-                                          ? '검색 결과가 없습니다'
-                                          : '단말번호 목록이 없습니다',
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey,
-                                      ),
+                        return SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.6,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.contact_phone, size: 80, color: Colors.grey[400]),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _searchController.text.isNotEmpty
+                                        ? '검색 결과가 없습니다'
+                                        : '단말번호 목록이 없습니다',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey,
                                     ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      '아래로 당겨서 새로고침하거나\n새로고침 버튼을 눌러 목록을 불러오세요',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '새로고침 버튼을 눌러 목록을 불러오세요',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -723,23 +720,20 @@ class _PhonebookTabState extends State<PhonebookTab> {
                         debugPrint('🎨 ListView.builder 렌더링 시작 - itemCount: ${contacts.length}');
                       }
 
-                      // RefreshIndicator로 당겨서 새로고침 기능 추가
-                      return RefreshIndicator(
-                        onRefresh: _loadPhonebooks,
-                        child: ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(), // 항목이 적어도 스크롤 가능
-                          itemCount: contacts.length,
-                          itemBuilder: (context, index) {
-                            final contact = contacts[index];
-                            
-                            if (kDebugMode && index < 5) {
-                              debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
-                            }
-                            
-                            // 다른 사람이 등록한 단말번호 리스트를 전달
-                            return _buildContactListTile(contact, registeredExtensions: otherUsersExtensions);
-                          },
-                        ),
+                      // 스크롤 새로고침 기능 제거됨
+                      return ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(), // 항목이 적어도 스크롤 가능
+                        itemCount: contacts.length,
+                        itemBuilder: (context, index) {
+                          final contact = contacts[index];
+                          
+                          if (kDebugMode && index < 5) {
+                            debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
+                          }
+                          
+                          // 다른 사람이 등록한 단말번호 리스트를 전달
+                          return _buildContactListTile(contact, registeredExtensions: otherUsersExtensions);
+                        },
                       );
                     },
                   );
