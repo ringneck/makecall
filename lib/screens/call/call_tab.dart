@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/mobile_contacts_service.dart';
@@ -612,9 +611,31 @@ class _CallTabState extends State<CallTab> {
       body: IndexedStack(
         index: _currentTabIndex,
         children: [
-          const PhonebookTab(),        // 0: 단말번호
+          PhonebookTab(                // 0: 단말번호
+            onClickToCallSuccess: () {
+              if (mounted) {
+                setState(() {
+                  _currentTabIndex = 1; // 최근통화 탭
+                });
+                if (kDebugMode) {
+                  debugPrint('✅ 단말번호 클릭투콜 성공 → 최근통화 탭으로 전환');
+                }
+              }
+            },
+          ),
           _buildCallHistoryTab(),      // 1: 최근통화
-          const DialpadScreen(),       // 2: 키패드
+          DialpadScreen(               // 2: 키패드
+            onClickToCallSuccess: () {
+              if (mounted) {
+                setState(() {
+                  _currentTabIndex = 1; // 최근통화 탭
+                });
+                if (kDebugMode) {
+                  debugPrint('✅ 키패드 클릭투콜 성공 → 최근통화 탭으로 전환');
+                }
+              }
+            },
+          ),
           _buildFavoritesTab(),        // 3: 즐겨찾기
           _buildContactsTab(),         // 4: 연락처
         ],
@@ -1440,7 +1461,21 @@ class _CallTabState extends State<CallTab> {
     // 일반 전화번호는 발신 방법 선택 다이얼로그 표시
     showDialog(
       context: context,
-      builder: (context) => CallMethodDialog(phoneNumber: phoneNumber, autoCallShortExtension: false),
+      builder: (context) => CallMethodDialog(
+        phoneNumber: phoneNumber, 
+        autoCallShortExtension: false,
+        onClickToCallSuccess: () {
+          // 🔄 클릭투콜 성공 시 최근통화 탭으로 전환
+          if (mounted) {
+            setState(() {
+              _currentTabIndex = 1; // 최근통화 탭
+            });
+            if (kDebugMode) {
+              debugPrint('✅ 클릭투콜 성공 → 최근통화 탭으로 전환');
+            }
+          }
+        },
+      ),
     );
   }
 
@@ -1592,6 +1627,16 @@ class _CallTabState extends State<CallTab> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+      
+      // 🔄 기능번호 발신 성공 시 최근통화 탭으로 전환
+      if (mounted) {
+        setState(() {
+          _currentTabIndex = 1; // 최근통화 탭
+        });
+        if (kDebugMode) {
+          debugPrint('✅ 기능번호 발신 성공 → 최근통화 탭으로 전환');
+        }
+      }
     } catch (e) {
       // 에러 메시지 (안전한 헬퍼 사용)
       _safeClearSnackBars();
@@ -1859,15 +1904,38 @@ class _CallTabState extends State<CallTab> {
   /// 최근통화에서 연락처 추가 다이얼로그
   /// 통화 상세 내역 다이얼로그 표시
   Future<void> _showCallDetailDialog(CallHistoryModel call) async {
+    // 🔍 디버그: 통화 기록 정보 확인
+    if (kDebugMode) {
+      debugPrint('');
+      debugPrint('📞 통화 상세 다이얼로그 요청');
+      debugPrint('  - 전화번호: ${call.phoneNumber}');
+      debugPrint('  - 통화 타입: ${call.callType}');
+      debugPrint('  - 통화 시간: ${call.callTime}');
+      debugPrint('  - Linkedid 존재: ${call.linkedid != null}');
+      if (call.linkedid != null) {
+        debugPrint('  - Linkedid: ${call.linkedid}');
+        debugPrint('  - Linkedid 길이: ${call.linkedid!.length}');
+      }
+    }
+    
     // linkedid가 없으면 에러 표시
     if (call.linkedid == null || call.linkedid!.isEmpty) {
+      if (kDebugMode) {
+        debugPrint('❌ Linkedid가 없어 통화 상세를 조회할 수 없음');
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('통화 상세 정보를 불러올 수 없습니다'),
+          content: Text('통화 상세 정보를 불러올 수 없습니다\n(Linkedid가 저장되지 않았습니다)'),
           backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
         ),
       );
       return;
+    }
+
+    if (kDebugMode) {
+      debugPrint('✅ CallDetailDialog 열기 시작...');
     }
 
     showDialog(

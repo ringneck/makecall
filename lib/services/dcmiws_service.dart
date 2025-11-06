@@ -526,11 +526,18 @@ class DCMIWSService {
             'updatedAt': FieldValue.serverTimestamp(),
           });
           
+          // 🔍 업데이트 후 실제 저장 확인
+          final updatedDoc = await doc.reference.get();
+          final updatedData = updatedDoc.data();
+          final savedLinkedId = updatedData?['linkedid'] as String?;
+          
           if (kDebugMode) {
             debugPrint('');
             debugPrint('✅ 클릭투콜 통화 기록에 linkedid 저장 완료!');
             debugPrint('  - 문서 ID: ${doc.id}');
-            debugPrint('  - Linkedid: $linkedid');
+            debugPrint('  - 저장한 Linkedid: $linkedid');
+            debugPrint('  - 실제 저장된 Linkedid: $savedLinkedId');
+            debugPrint('  - 저장 확인: ${savedLinkedId == linkedid ? "✅ 성공" : "❌ 불일치"}');
             debugPrint('  - 발신번호 (callee): $phoneNumber');
             debugPrint('  - 통화 시간: $callTime');
             debugPrint('');

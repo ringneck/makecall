@@ -10,7 +10,12 @@ import '../../models/call_history_model.dart';
 import '../../providers/selected_extension_provider.dart';
 
 class DialpadScreen extends StatefulWidget {
-  const DialpadScreen({super.key});
+  final VoidCallback? onClickToCallSuccess; // 클릭투콜 성공 콜백
+  
+  const DialpadScreen({
+    super.key,
+    this.onClickToCallSuccess,
+  });
 
   @override
   State<DialpadScreen> createState() => _DialpadScreenState();
@@ -75,7 +80,11 @@ class _DialpadScreenState extends State<DialpadScreen> {
     // 일반 전화번호는 발신 방법 선택 다이얼로그 표시
     showDialog(
       context: context,
-      builder: (context) => CallMethodDialog(phoneNumber: _phoneNumber, autoCallShortExtension: false),
+      builder: (context) => CallMethodDialog(
+        phoneNumber: _phoneNumber, 
+        autoCallShortExtension: false,
+        onClickToCallSuccess: widget.onClickToCallSuccess, // 부모에게 콜백 전달
+      ),
     );
   }
 
@@ -206,6 +215,13 @@ class _DialpadScreenState extends State<DialpadScreen> {
         setState(() {
           _phoneNumber = '';
         });
+        
+        // 🔄 기능번호 발신 성공 시 콜백 호출 (최근통화 탭으로 전환)
+        widget.onClickToCallSuccess?.call();
+        
+        if (kDebugMode) {
+          debugPrint('✅ 키패드 기능번호 발신 성공 → 최근통화 탭 전환 콜백 호출');
+        }
       }
     } catch (e) {
       if (mounted) {

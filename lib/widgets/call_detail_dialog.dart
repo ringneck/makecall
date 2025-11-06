@@ -30,6 +30,16 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
   @override
   void initState() {
     super.initState();
+    
+    // 🔍 디버그: linkedid 확인
+    if (kDebugMode) {
+      debugPrint('');
+      debugPrint('📱 CallDetailDialog 초기화');
+      debugPrint('  - Linkedid: ${widget.linkedid}');
+      debugPrint('  - Linkedid 길이: ${widget.linkedid.length}');
+      debugPrint('  - Linkedid null 체크: ${widget.linkedid.isEmpty ? "비어있음" : "값 존재"}');
+    }
+    
     _loadServerSettings();
   }
 

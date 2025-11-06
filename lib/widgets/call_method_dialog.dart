@@ -11,11 +11,13 @@ import '../providers/selected_extension_provider.dart';
 class CallMethodDialog extends StatefulWidget {
   final String phoneNumber;
   final bool autoCallShortExtension; // 5자리 이하 자동 발신 옵션
+  final VoidCallback? onClickToCallSuccess; // 클릭투콜 성공 콜백
 
   const CallMethodDialog({
     super.key,
     required this.phoneNumber,
     this.autoCallShortExtension = true, // 기본값: 자동 발신
+    this.onClickToCallSuccess, // 클릭투콜 성공 시 호출될 콜백
   });
 
   @override
@@ -313,6 +315,9 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+        
+        // 🔄 클릭투콜 성공 콜백 호출 (최근통화 탭으로 전환)
+        widget.onClickToCallSuccess?.call();
       }
     } catch (e) {
       _safeShowSnackBar(

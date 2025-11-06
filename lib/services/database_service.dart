@@ -126,13 +126,32 @@ class DatabaseService {
   // 통화 기록 추가
   Future<String> addCallHistory(CallHistoryModel callHistory) async {
     try {
+      // 🔍 디버그: 저장하는 통화 기록 정보
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('💾 통화 기록 저장 시작');
+        debugPrint('  - 전화번호: ${callHistory.phoneNumber}');
+        debugPrint('  - 통화 타입: ${callHistory.callType}');
+        debugPrint('  - 통화 방법: ${callHistory.callMethod}');
+        debugPrint('  - 통화 시간: ${callHistory.callTime}');
+        debugPrint('  - Linkedid (초기값): ${callHistory.linkedid ?? "(null)"}');
+        debugPrint('  - 단말번호: ${callHistory.extensionUsed ?? "(null)"}');
+        debugPrint('  - 대표번호: ${callHistory.mainNumberUsed ?? "(null)"}');
+      }
+      
       final docRef = await _firestore
           .collection('call_history')
           .add(callHistory.toMap());
+      
+      if (kDebugMode) {
+        debugPrint('✅ 통화 기록 저장 완료 (문서 ID: ${docRef.id})');
+        debugPrint('');
+      }
+      
       return docRef.id;
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('Add call history error: $e');
+        debugPrint('❌ 통화 기록 저장 실패: $e');
       }
       rethrow;
     }

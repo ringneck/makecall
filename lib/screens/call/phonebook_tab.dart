@@ -14,7 +14,12 @@ import '../../providers/selected_extension_provider.dart';
 import '../../widgets/call_method_dialog.dart';
 
 class PhonebookTab extends StatefulWidget {
-  const PhonebookTab({super.key});
+  final VoidCallback? onClickToCallSuccess; // 클릭투콜 성공 콜백
+  
+  const PhonebookTab({
+    super.key,
+    this.onClickToCallSuccess,
+  });
 
   @override
   State<PhonebookTab> createState() => _PhonebookTabState();
@@ -996,7 +1001,11 @@ class _PhonebookTabState extends State<PhonebookTab> {
     // 일반 전화번호는 발신 방법 선택 다이얼로그 표시
     showDialog(
       context: context,
-      builder: (context) => CallMethodDialog(phoneNumber: phoneNumber, autoCallShortExtension: false),
+      builder: (context) => CallMethodDialog(
+        phoneNumber: phoneNumber, 
+        autoCallShortExtension: false,
+        onClickToCallSuccess: widget.onClickToCallSuccess, // 부모에게 콜백 전달
+      ),
     );
   }
   
@@ -1122,6 +1131,13 @@ class _PhonebookTabState extends State<PhonebookTab> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+        
+        // 🔄 기능번호 발신 성공 시 콜백 호출 (최근통화 탭으로 전환)
+        widget.onClickToCallSuccess?.call();
+        
+        if (kDebugMode) {
+          debugPrint('✅ 단말번호 기능번호 발신 성공 → 최근통화 탭 전환 콜백 호출');
+        }
       }
     } catch (e) {
       if (mounted) {
