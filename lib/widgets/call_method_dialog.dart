@@ -312,17 +312,25 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
       }
       
       final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
-      final forwardDestination = callForwardInfo?.destinationNumber ?? '';
+      final forwardDestination = callForwardInfo?.destinationNumber?.trim() ?? '';
+      
+      // 🔒 착신전환 활성화이지만 착신번호가 비어있는 경우 경고
+      if (isForwardEnabled && forwardDestination.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 경고: 착신전환이 활성화되어 있지만 착신번호가 비어있습니다!');
+        }
+      }
 
       if (kDebugMode) {
         debugPrint('📞 최종 착신전환 상태: ${isForwardEnabled ? "활성화" : "비활성화"}');
         debugPrint('📞 최종 착신번호: "$forwardDestination" (길이: ${forwardDestination.length})');
         debugPrint('💾 통화 기록 저장 예정:');
         debugPrint('   callForwardEnabled: $isForwardEnabled');
-        debugPrint('   callForwardDestination: ${isForwardEnabled ? forwardDestination : null}');
+        debugPrint('   callForwardDestination: ${isForwardEnabled && forwardDestination.isNotEmpty ? forwardDestination : null}');
       }
 
       // 통화 기록 저장 (착신전환 정보 포함)
+      // 🔒 착신전환이 활성화되어 있고 착신번호가 있는 경우에만 저장
       await _databaseService.addCallHistory(
         CallHistoryModel(
           id: '',
@@ -334,7 +342,7 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
           mainNumberUsed: cidNumber,
           extensionUsed: selectedExtension.extension,
           callForwardEnabled: isForwardEnabled,
-          callForwardDestination: isForwardEnabled ? forwardDestination : null,
+          callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
         ),
       );
 
