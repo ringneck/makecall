@@ -507,8 +507,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           // ============================================
           // 설정 섹션 시작
           // ============================================
-          const SizedBox(height: 32),
-          const Divider(thickness: 2, height: 2),
           
           // 설정 섹션 헤더
           Container(
@@ -1703,12 +1701,24 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     );
   }
 
-  void _showLicensePage(BuildContext context) {
+  void _showLicensePage(BuildContext context) async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    
+    if (!context.mounted) return;
+    
     showLicensePage(
       context: context,
       applicationName: 'MAKECALL',
-      applicationVersion: '1.0.0',
-      applicationIcon: const Icon(Icons.phone_in_talk, size: 48),
+      applicationVersion: packageInfo.version,
+      applicationIcon: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Image.asset(
+          'assets/images/app_logo.png',
+          width: 64,
+          height: 64,
+        ),
+      ),
+      applicationLegalese: 'Powered by MAKECALL',
     );
   }
 
