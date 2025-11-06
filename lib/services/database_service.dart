@@ -177,6 +177,52 @@ class DatabaseService {
   // ===== 연락처 관리 =====
   
   // 연락처 추가
+  /// 🔒 고급 개발자 패턴: 전화번호 정규화 및 중복 체크
+  /// 전화번호에서 하이픈, 공백, 괄호 등을 제거하여 순수 숫자만 추출
+  String _normalizePhoneNumber(String phoneNumber) {
+    return phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+  }
+  
+  /// 🔍 전화번호 중복 체크 (정규화된 번호로 비교)
+  /// 반환: {isDuplicate: bool, existingContact: ContactModel?}
+  Future<Map<String, dynamic>> checkPhoneNumberDuplicate(String userId, String phoneNumber, {String? excludeContactId}) async {
+    try {
+      final normalizedPhone = _normalizePhoneNumber(phoneNumber);
+      
+      // 모든 사용자 연락처 가져오기
+      final snapshot = await _firestore
+          .collection('contacts')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      // 정규화된 번호로 비교
+      for (final doc in snapshot.docs) {
+        // 수정 시 자기 자신은 제외
+        if (excludeContactId != null && doc.id == excludeContactId) {
+          continue;
+        }
+        
+        final existingPhone = doc.data()['phoneNumber'] as String?;
+        if (existingPhone != null) {
+          final normalizedExisting = _normalizePhoneNumber(existingPhone);
+          if (normalizedExisting == normalizedPhone) {
+            return {
+              'isDuplicate': true,
+              'existingContact': ContactModel.fromMap(doc.data(), doc.id),
+            };
+          }
+        }
+      }
+      
+      return {'isDuplicate': false, 'existingContact': null};
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Phone number duplicate check error: $e');
+      }
+      return {'isDuplicate': false, 'existingContact': null};
+    }
+  }
+
   Future<String> addContact(ContactModel contact) async {
     try {
       final docRef = await _firestore

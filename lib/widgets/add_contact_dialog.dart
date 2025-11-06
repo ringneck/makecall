@@ -205,6 +205,106 @@ class _AddContactDialogState extends State<AddContactDialog> {
 
     try {
       final dbService = DatabaseService();
+      final phoneNumber = _phoneController.text.trim();
+
+      // 🔍 고급 개발자 패턴: 전화번호 중복 체크 (추가/수정 모두)
+      final duplicateCheck = await dbService.checkPhoneNumberDuplicate(
+        widget.userId,
+        phoneNumber,
+        excludeContactId: widget.contact?.id, // 수정 시 자기 자신 제외
+      );
+
+      if (duplicateCheck['isDuplicate'] == true) {
+        final existingContact = duplicateCheck['existingContact'] as ContactModel?;
+        
+        if (context.mounted) {
+          setState(() => _isLoading = false);
+          
+          // 🎨 사용자 친화적 중복 알림 다이얼로그
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
+              title: const Text('중복된 전화번호'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '이 전화번호는 이미 등록되어 있습니다:',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.person, size: 16, color: Colors.orange),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                existingContact?.name ?? '이름 없음',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.phone, size: 16, color: Colors.orange),
+                            const SizedBox(width: 8),
+                            Text(
+                              existingContact?.phoneNumber ?? '',
+                              style: TextStyle(color: Colors.grey[700]),
+                            ),
+                          ],
+                        ),
+                        if (existingContact?.company != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.business, size: 16, color: Colors.orange),
+                              const SizedBox(width: 8),
+                              Text(
+                                existingContact!.company!,
+                                style: TextStyle(color: Colors.grey[700]),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    '다른 전화번호를 입력해주세요.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('확인'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
 
       if (widget.contact != null) {
         // 수정
@@ -212,7 +312,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
           widget.contact!.id,
           {
             'name': _nameController.text.trim(),
-            'phoneNumber': _phoneController.text.trim(),
+            'phoneNumber': phoneNumber,
             'email': _emailController.text.trim().isEmpty
                 ? null
                 : _emailController.text.trim(),
@@ -242,7 +342,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
           id: '',
           userId: widget.userId,
           name: _nameController.text.trim(),
-          phoneNumber: _phoneController.text.trim(),
+          phoneNumber: phoneNumber,
           email: _emailController.text.trim().isEmpty
               ? null
               : _emailController.text.trim(),
