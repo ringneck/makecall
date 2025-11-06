@@ -253,8 +253,11 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
       }
 
       // API 서비스 생성 (동적 API URL 사용)
+      // apiHttpPort가 3501이면 HTTPS 사용, 3500이면 HTTP 사용
+      final useHttps = (userModel!.apiHttpPort ?? 3500) == 3501;
+      
       final apiService = ApiService(
-        baseUrl: userModel!.getApiUrl(useHttps: false), // HTTP 사용
+        baseUrl: userModel.getApiUrl(useHttps: useHttps),
         companyId: userModel.companyId,
         appKey: userModel.appKey,
       );
