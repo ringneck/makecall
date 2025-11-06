@@ -254,7 +254,8 @@ class DCMIWSService {
       _checkIncomingCall(data);
       
       // 📞 클릭투콜 linkedid 저장 (UserEvent) - 클릭투콜 통화 기록 추적
-      _checkUserEvent(data);
+      // ⚠️ 주석 처리: 통화상세 조회 기능 비활성화
+      // _checkUserEvent(data);
       
       // 📞 통화 연결 이벤트 감지 (BridgeEnter) - 자동 확인 처리
       _checkBridgeEnter(data);
