@@ -99,7 +99,21 @@ class CallService {
         debugPrint('Click to call result: $result');
       }
       
-      // 통화 기록 저장
+      // 🔥 착신전환 정보 조회 (현재 시점 기준)
+      final callForwardInfo = await _databaseService
+          .getCallForwardInfoOnce(userId, extension.extensionNumber);
+      
+      final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
+      final forwardDestination = callForwardInfo?.destinationNumber?.trim() ?? '';
+      
+      // ignore: avoid_print
+      print('📞 [CallService] 착신전환 정보 조회 완료');
+      // ignore: avoid_print
+      print('   isEnabled: $isForwardEnabled');
+      // ignore: avoid_print
+      print('   destinationNumber: $forwardDestination');
+      
+      // 통화 기록 저장 (착신전환 정보 포함)
       await _databaseService.addCallHistory(
         CallHistoryModel(
           id: '',
@@ -110,6 +124,8 @@ class CallService {
           callTime: DateTime.now(),
           mainNumberUsed: mainNumber.number,
           extensionUsed: extension.extensionNumber,
+          callForwardEnabled: isForwardEnabled,
+          callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
         ),
       );
       
