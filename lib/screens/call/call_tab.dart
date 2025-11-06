@@ -1735,6 +1735,13 @@ class _CallTabState extends State<CallTab> {
       }
 
       // 🔥 착신전환 정보 조회 (현재 시점 기준)
+      // ignore: avoid_print
+      print('📞 [call_tab] 착신전환 정보 조회 시작');
+      // ignore: avoid_print
+      print('   발신 단말(caller): ${selectedExtension.extension}');
+      // ignore: avoid_print
+      print('   발신 대상(callee): $phoneNumber');
+      
       final callForwardInfo = await _databaseService
           .getCallForwardInfoOnce(userId, selectedExtension.extension);
       
@@ -1742,7 +1749,7 @@ class _CallTabState extends State<CallTab> {
       final forwardDestination = (callForwardInfo?.destinationNumber ?? '').trim();
       
       // ignore: avoid_print
-      print('📞 [call_tab 기능번호] 착신전환 정보 조회 완료');
+      print('📞 [call_tab] 착신전환 정보 조회 완료 (발신 단말 ${selectedExtension.extension}의 착신전환)');
       // ignore: avoid_print
       print('   isEnabled: $isForwardEnabled');
       // ignore: avoid_print
