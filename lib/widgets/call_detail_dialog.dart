@@ -61,7 +61,13 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         return;
       }
 
-      debugPrint('🔍 CDR API: 서버 설정 로드 시작 (userId: $userId)');
+      debugPrint('');
+      debugPrint('='*60);
+      debugPrint('🔍 CallDetailDialog 서버 설정 로드');
+      debugPrint('='*60);
+      debugPrint('👤 User ID: $userId');
+      debugPrint('📂 Collection: users/$userId');
+      debugPrint('');
 
       // users 컬렉션에서 API 서버 설정 가져오기
       final userDoc = await FirebaseFirestore.instance
@@ -82,14 +88,15 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         final companyId = userData?['companyId'] as String?;
         final appKey = userData?['appKey'] as String?;
         
-        debugPrint('📋 CDR API: 서버 설정 정보');
-        debugPrint('  - apiBaseUrl: $apiBaseUrl');
-        debugPrint('  - apiHttpPort: $apiHttpPort');
-        debugPrint('  - apiHttpsPort: $apiHttpsPort');
-        debugPrint('  - useHttps: $useHttps');
-        debugPrint('  - 사용할 포트: $port');
-        debugPrint('  - companyId: ${companyId != null && companyId.isNotEmpty ? "[설정됨]" : "(없음)"}');
-        debugPrint('  - appKey: ${appKey != null && appKey.isNotEmpty ? "[설정됨]" : "(없음)"}');
+        debugPrint('📋 Firestore에서 로드한 설정:');
+        debugPrint('  ├─ apiBaseUrl: ${apiBaseUrl ?? "(null)"}');
+        debugPrint('  ├─ apiHttpPort: $apiHttpPort');
+        debugPrint('  ├─ apiHttpsPort: $apiHttpsPort');
+        debugPrint('  ├─ useHttps: $useHttps (${useHttps ? "HTTPS" : "HTTP"})');
+        debugPrint('  ├─ 사용할 포트: $port');
+        debugPrint('  ├─ companyId: ${companyId ?? "(null)"}');
+        debugPrint('  └─ appKey: ${appKey ?? "(null)"}');
+        debugPrint('');
         
         if (apiBaseUrl != null && apiBaseUrl.isNotEmpty) {
           // CDR API 서버 URL 구성 (http/https + apiBaseUrl + port)
@@ -98,16 +105,22 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
           _companyId = companyId;
           _appKey = appKey;
           
-          debugPrint('✅ CDR API: 서버 URL 구성 완료');
-          debugPrint('  - _serverUrl: $_serverUrl');
-          
-          // 인증 정보 검증
+          debugPrint('✅ 서버 URL 구성 완료:');
+          debugPrint('  └─ $_serverUrl');
+          debugPrint('');
+          debugPrint('🔐 인증 정보 상태:');
           if (_companyId == null || _companyId!.isEmpty) {
-            debugPrint('⚠️ CDR API: companyId가 설정되지 않음');
+            debugPrint('  ├─ Company-Id: ❌ 설정되지 않음');
+          } else {
+            debugPrint('  ├─ Company-Id: ✅ $_companyId');
           }
           if (_appKey == null || _appKey!.isEmpty) {
-            debugPrint('⚠️ CDR API: appKey가 설정되지 않음');
+            debugPrint('  └─ App-Key: ❌ 설정되지 않음');
+          } else {
+            debugPrint('  └─ App-Key: ✅ $_appKey');
           }
+          debugPrint('='*60);
+          debugPrint('');
           
           // 서버 설정 로드 완료 → CDR 조회 시작
           _fetchCallDetail();
@@ -167,18 +180,28 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         headers['App-Key'] = _appKey!;
       }
       
-      debugPrint('🌐 CDR API: 요청 시작');
-      debugPrint('  - URL: $apiUrl');
-      debugPrint('  - Linkedid: ${widget.linkedid}');
-      debugPrint('  - Headers:');
-      debugPrint('    * Content-Type: application/json');
+      debugPrint('');
+      debugPrint('='*60);
+      debugPrint('🌐 CDR API 요청');
+      debugPrint('='*60);
+      debugPrint('📍 URL: $apiUrl');
+      debugPrint('🔗 Linkedid: ${widget.linkedid}');
+      debugPrint('');
+      debugPrint('📋 요청 헤더 (Request Headers):');
+      debugPrint('  ├─ Content-Type: application/json');
       if (_companyId != null && _companyId!.isNotEmpty) {
-        debugPrint('    * Company-Id: [설정됨]');
+        debugPrint('  ├─ Company-Id: $_companyId');
+      } else {
+        debugPrint('  ├─ Company-Id: (없음)');
       }
       if (_appKey != null && _appKey!.isNotEmpty) {
-        debugPrint('    * App-Key: [설정됨]');
+        debugPrint('  └─ App-Key: $_appKey');
+      } else {
+        debugPrint('  └─ App-Key: (없음)');
       }
-      debugPrint('  - Timeout: 10초');
+      debugPrint('');
+      debugPrint('⏱️ Timeout: 10초');
+      debugPrint('='*60);
       
       final startTime = DateTime.now();
       
