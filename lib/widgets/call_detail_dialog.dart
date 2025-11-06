@@ -229,13 +229,26 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
           debugPrint('  - Response Type: Map');
           debugPrint('  - Keys: ${data.keys.join(', ')}');
           
-          // data 또는 results 배열 확인
-          final cdrList = data['data'] ?? data['results'];
+          // data.result 또는 data 또는 results 배열 확인
+          final cdrList = (data['data'] is Map)
+              ? (data['data']['result'] ?? data['data']['results'])
+              : (data['data'] ?? data['results']);
+          
+          debugPrint('  - cdrList type: ${cdrList.runtimeType}');
+          debugPrint('  - cdrList is List: ${cdrList is List}');
+          debugPrint('  - cdrList is null: ${cdrList == null}');
+          
           if (cdrList is List) {
             debugPrint('  - CDR Records: ${cdrList.length}개');
             if (cdrList.isNotEmpty) {
               debugPrint('  - First Record Keys: ${(cdrList[0] as Map).keys.join(', ')}');
+              debugPrint('  - First Record Sample: ${cdrList[0]}');
+            } else {
+              debugPrint('  - ⚠️ CDR List is empty!');
             }
+          } else {
+            debugPrint('  - ⚠️ No CDR list found in response!');
+            debugPrint('  - Full Response: $data');
           }
         } else if (data is List) {
           debugPrint('  - Response Type: List');
@@ -433,7 +446,11 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
       );
     }
 
-    if (_cdrData == null || _cdrData!.isEmpty) {
+    // CDR 데이터 존재 확인
+    if (_cdrData == null) {
+      if (kDebugMode) {
+        debugPrint('⚠️ _cdrData is null');
+      }
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -445,11 +462,55 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
             ),
             SizedBox(height: 16),
             Text(
-              '통화 상세 정보가 없습니다',
+              '통화 상세 정보가 없습니다\n(_cdrData is null)',
               style: TextStyle(
                 color: Colors.grey,
                 fontSize: 14,
               ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // CDR 리스트 추출
+    final cdrList = (_cdrData!['data'] is Map)
+        ? (_cdrData!['data']['result'] ?? _cdrData!['data']['results'] ?? [])
+        : (_cdrData!['data'] ?? _cdrData!['results'] ?? []);
+    
+    if (kDebugMode) {
+      debugPrint('🔍 _buildContent - CDR 데이터 체크');
+      debugPrint('  - _cdrData is null: ${_cdrData == null}');
+      debugPrint('  - _cdrData keys: ${_cdrData?.keys.join(', ')}');
+      debugPrint('  - cdrList type: ${cdrList.runtimeType}');
+      debugPrint('  - cdrList is List: ${cdrList is List}');
+      if (cdrList is List) {
+        debugPrint('  - cdrList.length: ${cdrList.length}');
+      }
+    }
+    
+    if (cdrList is! List || cdrList.isEmpty) {
+      if (kDebugMode) {
+        debugPrint('⚠️ CDR list is empty or not a list');
+      }
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.search_off,
+              size: 64,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '통화 상세 데이터가 없습니다\n(CDR list: ${cdrList is List ? '${cdrList.length}개' : 'not a list'})',
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -477,8 +538,10 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
   List<Widget> _buildCDRFields() {
     final List<Widget> fields = [];
     
-    // CDR 데이터 파싱 (data 또는 results 배열)
-    final cdrList = _cdrData!['data'] ?? _cdrData!['results'] ?? [];
+    // CDR 데이터 파싱 (data.result 또는 data 또는 results 배열)
+    final cdrList = (_cdrData!['data'] is Map)
+        ? (_cdrData!['data']['result'] ?? _cdrData!['data']['results'] ?? [])
+        : (_cdrData!['data'] ?? _cdrData!['results'] ?? []);
     
     if (cdrList is List && cdrList.isNotEmpty) {
       if (kDebugMode) {

@@ -253,6 +253,9 @@ class DCMIWSService {
       // 🔔 수신 전화 이벤트 감지 (Newchannel) - 비동기 처리
       _checkIncomingCall(data);
       
+      // 📞 클릭투콜 linkedid 저장 (UserEvent) - 클릭투콜 통화 기록 추적
+      _checkUserEvent(data);
+      
       // 📞 통화 연결 이벤트 감지 (BridgeEnter) - 자동 확인 처리
       _checkBridgeEnter(data);
 
@@ -361,7 +364,71 @@ class DCMIWSService {
     }
   }
   
-  /// BridgeEnter 이벤트 체크 (단말에서 수신 확인 + 클릭투콜 linkedid 저장)
+  /// UserEvent 이벤트 체크 (클릭투콜 linkedid 저장)
+  Future<void> _checkUserEvent(Map<String, dynamic> data) async {
+    try {
+      // type이 3인지 확인 (Call Event)
+      if (data['type'] != 3) return;
+      
+      final eventData = data['data'] as Map<String, dynamic>?;
+      if (eventData == null) return;
+      
+      // Event가 "UserEvent"인지 확인
+      final event = eventData['Event'] as String?;
+      if (event != 'UserEvent') return;
+      
+      // Linkedid 추출
+      final linkedid = eventData['Linkedid'] as String?;
+      if (linkedid == null) return;
+      
+      // 📞 클릭투콜 발신 linkedid 저장 로직
+      // 필터 조건:
+      // 1. CallerIDName="클릭투콜" 포함
+      // 2. Channel에 "click-to-call" 텍스트 포함
+      final callerIdName = eventData['CallerIDName'] as String?;
+      final channel = eventData['Channel'] as String?;
+      
+      if (callerIdName != null && callerIdName.contains('클릭투콜') &&
+          channel != null && channel.contains('click-to-call')) {
+        
+        // Channel에서 caller 추출: Local/{caller}@click-to-call-{sequence};{ch}
+        String? caller;
+        final channelMatch = RegExp(r'Local/(\d+)@click-to-call').firstMatch(channel);
+        if (channelMatch != null) {
+          caller = channelMatch.group(1);
+        }
+        
+        // ConnectedLineNum에서 callee 추출
+        final callee = eventData['ConnectedLineNum'] as String?;
+        
+        if (kDebugMode) {
+          debugPrint('');
+          debugPrint('='*60);
+          debugPrint('📞 클릭투콜 UserEvent 감지!');
+          debugPrint('='*60);
+          debugPrint('  Event: ${eventData['Event']}');
+          debugPrint('  CallerIDName: $callerIdName');
+          debugPrint('  Channel: $channel');
+          debugPrint('  → Caller (단말번호): ${caller ?? "(추출 실패)"}');
+          debugPrint('  → Callee (착신번호): ${callee ?? "(없음)"}');
+          debugPrint('  Linkedid: $linkedid');
+          debugPrint('  전체 이벤트 데이터: $eventData');
+          debugPrint('  → 최근 통화 기록에 linkedid 저장 시작...');
+          debugPrint('='*60);
+        }
+        
+        // 최근 클릭투콜 통화 기록에 linkedid 업데이트 (callee로 번호 매칭)
+        await _updateRecentClickToCallWithLinkedId(linkedid, callee);
+        return;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ UserEvent 체크 오류: $e');
+      }
+    }
+  }
+  
+  /// BridgeEnter 이벤트 체크 (단말에서 수신 확인)
   Future<void> _checkBridgeEnter(Map<String, dynamic> data) async {
     try {
       // type이 3인지 확인 (Call Event)
@@ -377,29 +444,6 @@ class DCMIWSService {
       // Linkedid 추출
       final linkedid = eventData['Linkedid'] as String?;
       if (linkedid == null) return;
-      
-      // 📞 클릭투콜 발신 linkedid 저장 로직
-      // 필터 조건: CallerIDName="클릭투콜" (ConnectedLineNum 조건 제거)
-      final callerIdName = eventData['CallerIDName'] as String?;
-      
-      if (callerIdName != null && callerIdName.contains('클릭투콜')) {
-        if (kDebugMode) {
-          debugPrint('');
-          debugPrint('='*60);
-          debugPrint('📞 클릭투콜 BridgeEnter 감지!');
-          debugPrint('='*60);
-          debugPrint('  Event: ${eventData['Event']}');
-          debugPrint('  CallerIDName: $callerIdName');
-          debugPrint('  Linkedid: $linkedid');
-          debugPrint('  전체 이벤트 데이터: $eventData');
-          debugPrint('  → 최근 통화 기록에 linkedid 저장 시작...');
-          debugPrint('='*60);
-        }
-        
-        // 최근 클릭투콜 통화 기록에 linkedid 업데이트 (callee 정보 없이 시간 기반 매칭)
-        await _updateRecentClickToCallWithLinkedId(linkedid, null);
-        return;
-      }
       
       // 활성 수신 전화 목록에서 해당 linkedid 찾기
       final activeCall = _activeIncomingCalls[linkedid];
