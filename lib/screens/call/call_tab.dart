@@ -197,7 +197,8 @@ class _CallTabState extends State<CallTab> {
   /// 🎉 신규 사용자 감지 및 ProfileDrawer 자동 열기
   /// 
   /// **기능**: 회원가입 직후 기본 설정이 필요한 신규 사용자를 감지하고 ProfileDrawer를 자동으로 엽니다
-  /// - serverAddress가 없거나 빈 값인 경우 신규 사용자로 판단
+  /// - API 설정, WebSocket 설정, 단말번호 모두 완료된 경우 ProfileDrawer 열지 않음
+  /// - 설정이 부족한 경우에만 ProfileDrawer 자동 열기
   /// - 안내 메시지 없이 바로 ProfileDrawer 열기
   /// - 최초 1회만 실행 (중복 열기 방지)
   Future<void> _checkAndOpenProfileDrawerForNewUser() async {
@@ -208,50 +209,72 @@ class _CallTabState extends State<CallTab> {
       final userId = _authService?.currentUser?.uid;
       if (userId == null) return;
 
-      // Firestore에서 사용자 정보 확인
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
+      // 🔒 userModel 로드 대기
+      final userModel = _authService?.currentUserModel;
+      if (userModel == null) {
+        if (kDebugMode) debugPrint('⏳ userModel 로딩 중 - 신규 사용자 체크 대기');
+        return;
+      }
+
+      // 🔒 필수 설정 확인
+      final hasApiSettings = (userModel.apiBaseUrl?.isNotEmpty ?? false) &&
+                            (userModel.companyId?.isNotEmpty ?? false) &&
+                            (userModel.appKey?.isNotEmpty ?? false);
+      
+      final hasWebSocketSettings = userModel.websocketServerUrl?.isNotEmpty ?? false;
+      
+      // 🔒 등록된 단말번호 확인
+      final extensions = await _databaseService.getMyExtensions(userId).first;
+      final hasExtensions = extensions.isNotEmpty;
+
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('='*60);
+        debugPrint('🔍 신규 사용자 체크');
+        debugPrint('='*60);
+        debugPrint('   사용자 ID: $userId');
+        debugPrint('   - API 설정: $hasApiSettings');
+        debugPrint('   - WebSocket: $hasWebSocketSettings');
+        debugPrint('   - 단말번호: $hasExtensions (${extensions.length}개)');
+        debugPrint('='*60);
+      }
 
       if (!mounted) return;
 
-      // 신규 사용자 감지 조건: serverAddress가 없거나 빈 값
-      final userData = userDoc.data();
-      final serverAddress = userData?['serverAddress'] as String?;
-
-      if (serverAddress == null || serverAddress.isEmpty) {
+      // 🔒 모든 설정 완료 시 ProfileDrawer 열지 않음
+      if (hasApiSettings && hasWebSocketSettings && hasExtensions) {
         if (kDebugMode) {
-          debugPrint('');
-          debugPrint('='*60);
-          debugPrint('🎉 신규 사용자 감지!');
-          debugPrint('='*60);
-          debugPrint('   사용자 ID: $userId');
-          debugPrint('   서버 주소: ${serverAddress ?? "(설정 안됨)"}');
-          debugPrint('   → ProfileDrawer 자동 열기 실행');
-          debugPrint('   → 초기 등록 안내 팝업 비활성화');
-          debugPrint('='*60);
-          debugPrint('');
+          debugPrint('✅ 모든 설정 완료 - ProfileDrawer 열지 않고 키패드 화면 유지');
         }
+        _hasCheckedSettings = true; // 안내 팝업도 표시하지 않음
+        return;
+      }
 
-        // 🔒 신규 사용자는 초기 등록 안내 팝업을 표시하지 않음
-        _hasCheckedSettings = true;
+      // 🔒 설정이 부족한 경우 ProfileDrawer 자동 열기
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('='*60);
+        debugPrint('⚠️ 설정 미완료 감지!');
+        debugPrint('='*60);
+        debugPrint('   → ProfileDrawer 자동 열기 실행');
+        debugPrint('   → 초기 등록 안내 팝업 비활성화');
+        debugPrint('='*60);
+        debugPrint('');
+      }
 
-        // 약간의 지연 후 ProfileDrawer 자동 열기 (UI가 완전히 로드된 후)
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        if (!mounted) return;
-        
-        // ProfileDrawer 열기
-        _scaffoldKey.currentState?.openDrawer();
-        
-        if (kDebugMode) {
-          debugPrint('✅ ProfileDrawer 자동 열기 완료');
-        }
-      } else {
-        if (kDebugMode) {
-          debugPrint('✅ 기존 사용자 - ProfileDrawer 자동 열기 건너뜀');
-        }
+      // 🔒 설정 미완료 사용자는 초기 등록 안내 팝업을 표시하지 않음
+      _hasCheckedSettings = true;
+
+      // 약간의 지연 후 ProfileDrawer 자동 열기 (UI가 완전히 로드된 후)
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (!mounted) return;
+      
+      // ProfileDrawer 열기
+      _scaffoldKey.currentState?.openDrawer();
+      
+      if (kDebugMode) {
+        debugPrint('✅ ProfileDrawer 자동 열기 완료');
       }
     } catch (e) {
       if (kDebugMode) {
