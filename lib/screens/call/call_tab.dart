@@ -1323,6 +1323,97 @@ class _CallTabState extends State<CallTab> {
     bool showActions = false,
     bool isDeviceContact = false,
   }) {
+    // 장치 연락처는 스와이프 삭제 불가
+    if (isDeviceContact) {
+      return _buildContactListTileContent(contact, showActions: showActions, isDeviceContact: isDeviceContact);
+    }
+    
+    // Firestore 연락처는 스와이프 삭제 가능
+    return Dismissible(
+      key: Key(contact.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.red.withOpacity(0.8), Colors.red],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Icon(Icons.delete, color: Colors.white, size: 28),
+            SizedBox(width: 8),
+            Text(
+              '삭제',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        // 삭제 확인 다이얼로그
+        return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('연락처 삭제'),
+            content: Text('${contact.name} 연락처를 삭제하시겠습니까?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('삭제'),
+              ),
+            ],
+          ),
+        );
+      },
+      onDismissed: (direction) async {
+        // 연락처 삭제
+        try {
+          await _databaseService.deleteContact(contact.id);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${contact.name} 연락처가 삭제되었습니다'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('연락처 삭제 실패: $e'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      },
+      child: _buildContactListTileContent(contact, showActions: showActions, isDeviceContact: isDeviceContact),
+    );
+  }
+
+  Widget _buildContactListTileContent(
+    ContactModel contact, {
+    bool showActions = false,
+    bool isDeviceContact = false,
+  }) {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: contact.isFavorite
