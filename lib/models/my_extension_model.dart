@@ -115,13 +115,14 @@ class MyExtensionModel {
     }
     
     // devices에서 SIP user와 secret 추출
+    // SIP UserId는 device_name을 사용
     String? sipUser;
     String? sipSecretValue;
     
     if (apiData['devices'] is List && (apiData['devices'] as List).isNotEmpty) {
       final firstDevice = (apiData['devices'] as List).first;
       if (firstDevice is Map<String, dynamic>) {
-        sipUser = firstDevice['user']?.toString();
+        sipUser = firstDevice['device_name']?.toString();
         sipSecretValue = firstDevice['secret']?.toString();
       }
     }
