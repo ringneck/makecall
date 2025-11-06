@@ -294,6 +294,19 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
       print('   callForwardDestination: $testDestination');
 
       // 통화 기록 저장 (테스트용 고정값 사용)
+      // ignore: avoid_print
+      print('💾 [TEST] addCallHistory 호출 시작...');
+      // ignore: avoid_print
+      print('   userId: $userId');
+      // ignore: avoid_print
+      print('   phoneNumber: ${widget.phoneNumber}');
+      // ignore: avoid_print
+      print('   extensionUsed: ${selectedExtension.extension}');
+      // ignore: avoid_print
+      print('   callForwardEnabled: $testIsEnabled');
+      // ignore: avoid_print
+      print('   callForwardDestination: $testDestination');
+      
       await _databaseService.addCallHistory(
         CallHistoryModel(
           id: '',
@@ -308,6 +321,9 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
           callForwardDestination: testDestination,  // 🔥 고정값
         ),
       );
+      
+      // ignore: avoid_print
+      print('✅ [TEST] addCallHistory 완료!');
 
       if (mounted) {
         Navigator.pop(context);

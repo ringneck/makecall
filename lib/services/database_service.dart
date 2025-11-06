@@ -126,33 +126,39 @@ class DatabaseService {
   // 통화 기록 추가
   Future<String> addCallHistory(CallHistoryModel callHistory) async {
     try {
-      // 🔍 디버그: 저장하는 통화 기록 정보
-      if (kDebugMode) {
-        debugPrint('');
-        debugPrint('💾 통화 기록 저장 시작');
-        debugPrint('  - 전화번호: ${callHistory.phoneNumber}');
-        debugPrint('  - 통화 타입: ${callHistory.callType}');
-        debugPrint('  - 통화 방법: ${callHistory.callMethod}');
-        debugPrint('  - 통화 시간: ${callHistory.callTime}');
-        debugPrint('  - Linkedid (초기값): ${callHistory.linkedid ?? "(null)"}');
-        debugPrint('  - 단말번호: ${callHistory.extensionUsed ?? "(null)"}');
-        debugPrint('  - 대표번호: ${callHistory.mainNumberUsed ?? "(null)"}');
-      }
+      // TEMP: Release 모드에서도 로그 확인
+      // ignore: avoid_print
+      print('💾 [DatabaseService] 통화 기록 저장 시작');
+      // ignore: avoid_print
+      print('  - 전화번호: ${callHistory.phoneNumber}');
+      // ignore: avoid_print
+      print('  - 통화 타입: ${callHistory.callType}');
+      // ignore: avoid_print
+      print('  - 통화 방법: ${callHistory.callMethod}');
+      // ignore: avoid_print
+      print('  - 단말번호: ${callHistory.extensionUsed}');
+      // ignore: avoid_print
+      print('  - callForwardEnabled: ${callHistory.callForwardEnabled}');
+      // ignore: avoid_print
+      print('  - callForwardDestination: ${callHistory.callForwardDestination}');
+      
+      final dataToSave = callHistory.toMap();
+      // ignore: avoid_print
+      print('  - toMap() 결과: $dataToSave');
       
       final docRef = await _firestore
           .collection('call_history')
-          .add(callHistory.toMap());
+          .add(dataToSave);
       
-      if (kDebugMode) {
-        debugPrint('✅ 통화 기록 저장 완료 (문서 ID: ${docRef.id})');
-        debugPrint('');
-      }
+      // ignore: avoid_print
+      print('✅ [DatabaseService] 통화 기록 저장 완료 (문서 ID: ${docRef.id})');
       
       return docRef.id;
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ 통화 기록 저장 실패: $e');
-      }
+    } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('❌ [DatabaseService] 통화 기록 저장 실패: $e');
+      // ignore: avoid_print
+      print('   Stack trace: $stackTrace');
       rethrow;
     }
   }
