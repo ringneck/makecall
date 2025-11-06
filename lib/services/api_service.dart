@@ -218,6 +218,55 @@ class ApiService {
     }
   }
   
+  // LinkedId로 CDR (Call Detail Record) 조회
+  Future<List<Map<String, dynamic>>> getCdrByLinkedId(String linkedId) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔄 API 요청: GET $baseUrl/cdr?search=$linkedId&search_fields=linkedid');
+        debugPrint('📋 헤더: $_headers');
+      }
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/cdr?search=$linkedId&search_fields=linkedid'),
+        headers: _headers,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('요청 시간 초과 (30초)'),
+      );
+      
+      if (kDebugMode) {
+        debugPrint('✅ 응답 상태: ${response.statusCode}');
+        debugPrint('📦 응답 본문: ${response.body}');
+      }
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        
+        // 응답 구조 확인: data 배열이 있는지 체크
+        if (responseData is Map && responseData.containsKey('data')) {
+          final dataList = responseData['data'];
+          if (dataList is List) {
+            return List<Map<String, dynamic>>.from(dataList);
+          }
+        }
+        
+        // 응답이 배열인 경우
+        if (responseData is List) {
+          return List<Map<String, dynamic>>.from(responseData);
+        }
+        
+        return [];
+      } else {
+        throw Exception('서버 오류 (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Get CDR by linkedId error: $e');
+      }
+      throw _handleError(e, 'CDR 조회');
+    }
+  }
+  
   // Phonebook 목록 조회
   Future<List<Map<String, dynamic>>> getPhonebooks() async {
     try {

@@ -444,88 +444,204 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
   List<Widget> _buildCDRFields() {
     final List<Widget> fields = [];
     
-    // CDR 데이터 파싱 (실제 API 응답 구조에 맞게 수정 필요)
+    // CDR 데이터 파싱 (data 또는 results 배열)
     final cdrList = _cdrData!['data'] ?? _cdrData!['results'] ?? [];
     
     if (cdrList is List && cdrList.isNotEmpty) {
+      if (kDebugMode) {
+        debugPrint('📊 CDR 상세: ${cdrList.length}개 레코드 표시');
+      }
+      
       for (var i = 0; i < cdrList.length; i++) {
-        final cdr = cdrList[i];
+        final cdr = cdrList[i] as Map<String, dynamic>;
         
-        fields.add(
-          _buildSectionHeader('통화 정보 ${i + 1}'),
-        );
+        // 통화 정보 헤더
+        fields.add(_buildSectionHeader('통화 #${i + 1}'));
+        fields.add(const SizedBox(height: 12));
         
-        // 주요 필드 매핑
-        final fieldMappings = {
-          'calldate': {'label': '통화 시간', 'icon': Icons.access_time, 'color': Colors.green},
-          'clid': {'label': '발신자 ID', 'icon': Icons.person, 'color': Colors.blue},
-          'src': {'label': '발신 번호', 'icon': Icons.call_made, 'color': Colors.orange},
-          'dst': {'label': '수신 번호', 'icon': Icons.call_received, 'color': Colors.purple},
-          'dcontext': {'label': '컨텍스트', 'icon': Icons.code, 'color': Colors.cyan},
-          'channel': {'label': '채널', 'icon': Icons.phone_in_talk, 'color': Colors.indigo},
-          'dstchannel': {'label': '대상 채널', 'icon': Icons.phone_forwarded, 'color': Colors.teal},
-          'lastapp': {'label': '마지막 앱', 'icon': Icons.apps, 'color': Colors.deepOrange},
-          'lastdata': {'label': '마지막 데이터', 'icon': Icons.data_usage, 'color': Colors.brown},
-          'duration': {'label': '총 시간', 'icon': Icons.timer, 'color': Colors.red},
-          'billsec': {'label': '통화 시간', 'icon': Icons.timer_outlined, 'color': Colors.pink},
-          'disposition': {'label': '통화 상태', 'icon': Icons.info, 'color': Colors.amber},
-          'amaflags': {'label': 'AMA 플래그', 'icon': Icons.flag, 'color': Colors.lightBlue},
-          'accountcode': {'label': '계정 코드', 'icon': Icons.account_box, 'color': Colors.deepPurple},
-          'uniqueid': {'label': 'Unique ID', 'icon': Icons.fingerprint, 'color': Colors.grey},
-          'userfield': {'label': '사용자 필드', 'icon': Icons.person_outline, 'color': Colors.blueGrey},
-        };
-
-        fieldMappings.forEach((key, value) {
-          if (cdr[key] != null && cdr[key].toString().isNotEmpty) {
-            fields.add(
-              _buildInfoCard(
-                title: value['label'] as String,
-                value: cdr[key].toString(),
-                icon: value['icon'] as IconData,
-                color: value['color'] as Color,
-              ),
-            );
-            fields.add(const SizedBox(height: 8));
-          }
-        });
+        // 📞 기본 정보 섹션
+        fields.add(_buildGroupHeader('기본 정보', Icons.info_outline, const Color(0xFF2196F3)));
+        if (cdr['calldate'] != null) {
+          fields.add(_buildCompactInfoRow('통화 시간', cdr['calldate'].toString(), Icons.access_time));
+        }
+        if (cdr['src'] != null) {
+          fields.add(_buildCompactInfoRow('발신 번호', cdr['src'].toString(), Icons.call_made));
+        }
+        if (cdr['dst'] != null) {
+          fields.add(_buildCompactInfoRow('수신 번호', cdr['dst'].toString(), Icons.call_received));
+        }
+        if (cdr['clid'] != null) {
+          fields.add(_buildCompactInfoRow('발신자 ID', cdr['clid'].toString(), Icons.person));
+        }
+        fields.add(const SizedBox(height: 16));
         
-        // 나머지 필드들 (매핑되지 않은 필드)
-        cdr.forEach((key, value) {
-          if (!fieldMappings.containsKey(key) && value != null && value.toString().isNotEmpty) {
-            fields.add(
-              _buildInfoCard(
-                title: key,
-                value: value.toString(),
-                icon: Icons.label,
-                color: Colors.grey,
-              ),
-            );
-            fields.add(const SizedBox(height: 8));
-          }
-        });
+        // ⏱️ 통화 시간 섹션
+        fields.add(_buildGroupHeader('통화 시간', Icons.timer, const Color(0xFF4CAF50)));
+        if (cdr['duration'] != null) {
+          final duration = _formatDuration(cdr['duration']);
+          fields.add(_buildCompactInfoRow('총 시간', duration, Icons.timelapse));
+        }
+        if (cdr['billsec'] != null) {
+          final billsec = _formatDuration(cdr['billsec']);
+          fields.add(_buildCompactInfoRow('통화 시간', billsec, Icons.timer_outlined));
+        }
+        if (cdr['disposition'] != null) {
+          final dispositionText = _getDispositionText(cdr['disposition'].toString());
+          fields.add(_buildCompactInfoRow('통화 상태', dispositionText, Icons.info));
+        }
+        fields.add(const SizedBox(height: 16));
         
+        // 📡 채널 정보 섹션
+        fields.add(_buildGroupHeader('채널 정보', Icons.phone_in_talk, const Color(0xFFFF9800)));
+        if (cdr['channel'] != null) {
+          fields.add(_buildCompactInfoRow('발신 채널', cdr['channel'].toString(), Icons.phone_forwarded));
+        }
+        if (cdr['dstchannel'] != null) {
+          fields.add(_buildCompactInfoRow('수신 채널', cdr['dstchannel'].toString(), Icons.phone_callback));
+        }
+        if (cdr['lastapp'] != null) {
+          fields.add(_buildCompactInfoRow('마지막 앱', cdr['lastapp'].toString(), Icons.apps));
+        }
+        if (cdr['lastdata'] != null) {
+          fields.add(_buildCompactInfoRow('마지막 데이터', cdr['lastdata'].toString(), Icons.data_usage));
+        }
+        fields.add(const SizedBox(height: 16));
+        
+        // 🔑 시스템 ID 섹션
+        fields.add(_buildGroupHeader('시스템 정보', Icons.fingerprint, const Color(0xFF9C27B0)));
+        if (cdr['uniqueid'] != null) {
+          fields.add(_buildCompactInfoRow('Unique ID', cdr['uniqueid'].toString(), Icons.fingerprint));
+        }
+        if (cdr['linkedid'] != null) {
+          fields.add(_buildCompactInfoRow('Linked ID', cdr['linkedid'].toString(), Icons.link));
+        }
+        if (cdr['accountcode'] != null) {
+          fields.add(_buildCompactInfoRow('계정 코드', cdr['accountcode'].toString(), Icons.account_box));
+        }
+        if (cdr['dcontext'] != null) {
+          fields.add(_buildCompactInfoRow('컨텍스트', cdr['dcontext'].toString(), Icons.code));
+        }
+        fields.add(const SizedBox(height: 16));
+        
+        // 구분선 (마지막 항목 제외)
         if (i < cdrList.length - 1) {
           fields.add(const Divider(height: 32, thickness: 2));
+          fields.add(const SizedBox(height: 16));
         }
       }
     } else {
-      // 단일 객체인 경우
-      _cdrData!.forEach((key, value) {
-        if (key != 'success' && key != 'message' && value != null) {
-          fields.add(
-            _buildInfoCard(
-              title: key,
-              value: value.toString(),
-              icon: Icons.label,
-              color: Colors.grey,
+      fields.add(
+        const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Text(
+              '통화 상세 데이터가 없습니다',
+              style: TextStyle(color: Colors.grey, fontSize: 14),
             ),
-          );
-          fields.add(const SizedBox(height: 8));
-        }
-      });
+          ),
+        ),
+      );
     }
-
+    
     return fields;
+  }
+  
+  /// 그룹 헤더 (섹션 구분)
+  Widget _buildGroupHeader(String title, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 간결한 정보 행 (라벨 + 값)
+  Widget _buildCompactInfoRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 시간 포맷팅 (초 → MM:SS)
+  String _formatDuration(dynamic seconds) {
+    try {
+      int sec = 0;
+      if (seconds is int) {
+        sec = seconds;
+      } else if (seconds is String) {
+        sec = int.tryParse(seconds) ?? 0;
+      }
+      
+      final minutes = sec ~/ 60;
+      final remainingSeconds = sec % 60;
+      return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return seconds.toString();
+    }
+  }
+  
+  /// Disposition 텍스트 변환
+  String _getDispositionText(String disposition) {
+    switch (disposition.toUpperCase()) {
+      case 'ANSWERED':
+        return '✅ 응답됨';
+      case 'NO ANSWER':
+        return '❌ 무응답';
+      case 'BUSY':
+        return '📵 통화중';
+      case 'FAILED':
+        return '⚠️ 실패';
+      case 'CONGESTION':
+        return '🚫 혼잡';
+      default:
+        return disposition;
+    }
   }
 
   Widget _buildSectionHeader(String title) {

@@ -361,7 +361,7 @@ class DCMIWSService {
     }
   }
   
-  /// BridgeEnter 이벤트 체크 (단말에서 수신 확인)
+  /// BridgeEnter 이벤트 체크 (단말에서 수신 확인 + 클릭투콜 linkedid 저장)
   Future<void> _checkBridgeEnter(Map<String, dynamic> data) async {
     try {
       // type이 3인지 확인 (Call Event)
@@ -377,6 +377,27 @@ class DCMIWSService {
       // Linkedid 추출
       final linkedid = eventData['Linkedid'] as String?;
       if (linkedid == null) return;
+      
+      // ConnectedLineName 확인 (클릭투콜 감지)
+      final connectedLineName = eventData['ConnectedLineName'] as String?;
+      
+      // 📞 클릭투콜 발신 linkedid 저장 로직
+      if (connectedLineName != null && connectedLineName.contains('클릭투콜')) {
+        if (kDebugMode) {
+          debugPrint('');
+          debugPrint('='*60);
+          debugPrint('📞 클릭투콜 BridgeEnter 감지!');
+          debugPrint('='*60);
+          debugPrint('  Linkedid: $linkedid');
+          debugPrint('  ConnectedLineName: $connectedLineName');
+          debugPrint('  → 최근 통화 기록에 linkedid 저장 시작...');
+          debugPrint('='*60);
+        }
+        
+        // 최근 클릭투콜 통화 기록에 linkedid 업데이트
+        await _updateRecentClickToCallWithLinkedId(linkedid);
+        return;
+      }
       
       // 활성 수신 전화 목록에서 해당 linkedid 찾기
       final activeCall = _activeIncomingCalls[linkedid];
@@ -430,6 +451,67 @@ class DCMIWSService {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ BridgeEnter 체크 오류: $e');
+      }
+    }
+  }
+  
+  /// 클릭투콜 통화 기록에 linkedid 업데이트
+  Future<void> _updateRecentClickToCallWithLinkedId(String linkedid) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final auth = FirebaseAuth.instance;
+      final userId = auth.currentUser?.uid;
+      
+      if (userId == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 로그인 정보가 없어 linkedid를 업데이트할 수 없습니다');
+        }
+        return;
+      }
+      
+      // 최근 5분 이내의 클릭투콜 통화 기록 조회 (linkedid가 없는 것만)
+      final fiveMinutesAgo = DateTime.now().subtract(const Duration(minutes: 5));
+      final querySnapshot = await firestore
+          .collection('call_history')
+          .where('userId', isEqualTo: userId)
+          .where('callType', isEqualTo: 'outgoing')
+          .where('callMethod', isEqualTo: 'extension')
+          .orderBy('callTime', descending: true)
+          .limit(10)
+          .get();
+      
+      // linkedid가 없는 최근 통화 기록 찾기
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        final callTime = DateTime.parse(data['callTime'] as String);
+        final existingLinkedId = data['linkedid'] as String?;
+        
+        // 5분 이내 && linkedid가 없는 통화
+        if (callTime.isAfter(fiveMinutesAgo) && existingLinkedId == null) {
+          // linkedid 업데이트
+          await doc.reference.update({
+            'linkedid': linkedid,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          
+          if (kDebugMode) {
+            debugPrint('✅ 클릭투콜 통화 기록에 linkedid 저장 완료');
+            debugPrint('  문서 ID: ${doc.id}');
+            debugPrint('  Linkedid: $linkedid');
+            debugPrint('  발신번호: ${data['phoneNumber']}');
+            debugPrint('  통화 시간: $callTime');
+          }
+          
+          return; // 첫 번째 매칭 기록만 업데이트
+        }
+      }
+      
+      if (kDebugMode) {
+        debugPrint('⚠️ 최근 5분 이내 linkedid가 없는 클릭투콜 기록을 찾을 수 없습니다');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 클릭투콜 linkedid 업데이트 오류: $e');
       }
     }
   }
