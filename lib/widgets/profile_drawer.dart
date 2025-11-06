@@ -1810,19 +1810,75 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     
     if (!context.mounted) return;
     
-    showLicensePage(
-      context: context,
-      applicationName: 'MAKECALL',
-      applicationVersion: packageInfo.version,
-      applicationIcon: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Image.asset(
-          'assets/images/app_logo.png',
-          width: 64,
-          height: 64,
+    // 커스텀 라이선스 페이지 (Powered by Flutter 제거)
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('오픈소스 라이선스'),
+            backgroundColor: const Color(0xFF2196F3),
+            foregroundColor: Colors.white,
+          ),
+          body: ListView(
+            children: [
+              // 앱 정보 헤더
+              Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 80,
+                      height: 80,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'MAKECALL',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Version ${packageInfo.version}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Powered by MAKECALL',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              // 라이선스 목록
+              ListTile(
+                title: const Text('라이선스 보기'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  // Flutter 기본 라이선스 페이지 표시 (하지만 우리 헤더는 표시 안 됨)
+                  showLicensePage(
+                    context: context,
+                    applicationName: 'MAKECALL',
+                    applicationVersion: packageInfo.version,
+                    applicationIcon: null, // 아이콘 숨김으로 Powered by Flutter도 최소화
+                    applicationLegalese: null, // 텍스트 숨김
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
-      applicationLegalese: 'Powered by MAKECALL',
     );
   }
 
