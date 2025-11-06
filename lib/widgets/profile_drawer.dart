@@ -786,30 +786,35 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           const Divider(thickness: 1),
           const SizedBox(height: 8),
           
-          // 🎯 Premium 전용: 계정 및 조직
-          if (_isPremium)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.orange[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange[100]!),
+          // 📱 계정 관리 섹션 (모든 사용자)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange[100]!),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.account_circle, color: Colors.orange),
+                title: Text(
+                  _isPremium ? '계정 및 조직' : '내 계정',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                child: const ListTile(
-                  leading: Icon(Icons.account_circle, color: Colors.orange),
-                  title: Text(
-                    '계정 및 조직',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text('등록된 계정, 사용자 계정 추가 (Premium)', style: TextStyle(fontSize: 12)),
+                subtitle: Text(
+                  _isPremium 
+                      ? '등록된 계정, 사용자 계정 추가 (Premium)' 
+                      : '현재 로그인된 계정',
+                  style: const TextStyle(fontSize: 12),
                 ),
               ),
             ),
+          ),
           
-          // 🎯 Premium 전용: 등록된 계정 목록
-          if (_isPremium)
-            FutureBuilder<List<SavedAccountModel>>(
+          // 📱 등록된 계정 목록 (모든 사용자)
+          // Premium: 모든 계정 표시
+          // 무료: 현재 계정만 표시
+          FutureBuilder<List<SavedAccountModel>>(
             future: AccountManagerService().getSavedAccounts(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -819,7 +824,14 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 );
               }
               
-              final accounts = snapshot.data ?? [];
+              final allAccounts = snapshot.data ?? [];
+              
+              // 🎯 Premium 여부에 따라 계정 목록 필터링
+              // Premium: 모든 계정 표시
+              // 무료: 현재 계정만 표시
+              final accounts = _isPremium 
+                  ? allAccounts 
+                  : allAccounts.where((account) => account.isCurrentAccount).toList();
               
               if (accounts.isEmpty) {
                 return Padding(
@@ -848,10 +860,16 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                     child: Row(
                       children: [
-                        const Icon(Icons.people, size: 16, color: Colors.grey),
+                        Icon(
+                          _isPremium ? Icons.people : Icons.person,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
                         const SizedBox(width: 8),
                         Text(
-                          '등록된 계정 (${accounts.length}개)',
+                          _isPremium 
+                              ? '등록된 계정 (${accounts.length}개)' 
+                              : '현재 계정',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
