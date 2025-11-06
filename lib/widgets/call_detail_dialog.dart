@@ -62,22 +62,29 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
       if (userDoc.exists) {
         final userData = userDoc.data();
         final apiBaseUrl = userData?['apiBaseUrl'] as String?;
+        final apiHttpPort = userData?['apiHttpPort'] as int? ?? 3500; // 기본값: 3500 (http)
         final apiHttpsPort = userData?['apiHttpsPort'] as int? ?? 3501;
-        final useHttps = apiHttpsPort == 3501;
+        
+        // SSL 사용 여부 판단: apiHttpPort가 3501이면 HTTPS, 3500이면 HTTP
+        final useHttps = apiHttpPort == 3501;
+        final port = useHttps ? apiHttpsPort : apiHttpPort;
+        
         final companyId = userData?['companyId'] as String?;
         final appKey = userData?['appKey'] as String?;
         
         debugPrint('📋 CDR API: 서버 설정 정보');
         debugPrint('  - apiBaseUrl: $apiBaseUrl');
+        debugPrint('  - apiHttpPort: $apiHttpPort');
         debugPrint('  - apiHttpsPort: $apiHttpsPort');
         debugPrint('  - useHttps: $useHttps');
+        debugPrint('  - 사용할 포트: $port');
         debugPrint('  - companyId: ${companyId != null && companyId.isNotEmpty ? "[설정됨]" : "(없음)"}');
         debugPrint('  - appKey: ${appKey != null && appKey.isNotEmpty ? "[설정됨]" : "(없음)"}');
         
         if (apiBaseUrl != null && apiBaseUrl.isNotEmpty) {
-          // CDR API 서버 URL 구성 (http/https + apiBaseUrl)
+          // CDR API 서버 URL 구성 (http/https + apiBaseUrl + port)
           final protocol = useHttps ? 'https' : 'http';
-          _serverUrl = '$protocol://$apiBaseUrl';
+          _serverUrl = '$protocol://$apiBaseUrl:$port';
           _companyId = companyId;
           _appKey = appKey;
           

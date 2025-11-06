@@ -46,7 +46,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     _websocketServerPortController = TextEditingController(
       text: (userModel?.websocketServerPort ?? 6600).toString()
     );
-    _apiUseSSL = (userModel?.apiHttpsPort ?? 3501) == 3501; // HTTPS 포트면 SSL 사용
+    // SSL 기본값: false (체크 안함이 기본)
+    // HTTP 포트가 3500이면 SSL 사용 안함, 3501이면 SSL 사용
+    _apiUseSSL = (userModel?.apiHttpPort ?? 3500) == 3501;
     _websocketUseSSL = userModel?.websocketUseSSL ?? false;
     
     // 디버그 로그: DB 값 로드 확인
@@ -143,10 +145,13 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     final messenger = _scaffoldMessenger;
 
     try {
+      // SSL 체크에 따라 포트 설정
+      // SSL 사용 안함 (기본): apiHttpPort=3500, apiHttpsPort=3501
+      // SSL 사용: apiHttpPort=3501, apiHttpsPort=3501
       await context.read<AuthService>().updateUserInfo(
             apiBaseUrl: _apiBaseUrlController.text.trim(),
-            apiHttpPort: _apiUseSSL ? 3501 : 3500,
-            apiHttpsPort: _apiUseSSL ? 3501 : 3500,
+            apiHttpPort: _apiUseSSL ? 3501 : 3500,  // SSL 안함: 3500, SSL: 3501
+            apiHttpsPort: 3501,                      // HTTPS 포트는 항상 3501
             companyId: _companyIdController.text.trim(),
             appKey: _appKeyController.text.trim(),
             websocketServerUrl: _websocketServerUrlController.text.trim(),

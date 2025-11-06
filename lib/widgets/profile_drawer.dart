@@ -1304,8 +1304,19 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
 
       // API Service 생성
+      // apiHttpPort가 3501이면 HTTPS 사용, 3500이면 HTTP 사용
+      final useHttps = (userModel!.apiHttpPort ?? 3500) == 3501;
+      
+      if (kDebugMode) {
+        debugPrint('📋 API 호출 설정:');
+        debugPrint('  - apiHttpPort: ${userModel.apiHttpPort}');
+        debugPrint('  - apiHttpsPort: ${userModel.apiHttpsPort}');
+        debugPrint('  - useHttps: $useHttps');
+        debugPrint('  - API URL: ${userModel.getApiUrl(useHttps: useHttps)}');
+      }
+      
       final apiService = ApiService(
-        baseUrl: userModel!.getApiUrl(useHttps: false),
+        baseUrl: userModel.getApiUrl(useHttps: useHttps),
         companyId: userModel.companyId,
         appKey: userModel.appKey,
       );
@@ -1325,6 +1336,23 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           _searchError = '내 이메일과 일치하는 단말번호를 찾을 수 없습니다.';
           _isSearching = false;
         });
+        
+        // 에러 다이얼로그 표시 (자동으로 닫지 않음)
+        if (!mounted) return;
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon: const Icon(Icons.error_outline, color: Colors.orange, size: 48),
+            title: const Text('단말번호 없음'),
+            content: const Text('내 이메일과 일치하는 단말번호를 찾을 수 없습니다.\n\n관리자에게 단말번호 등록을 요청하세요.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('닫기'),
+              ),
+            ],
+          ),
+        );
         return;
       }
 
@@ -1338,8 +1366,74 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         debugPrint('❌ 단말번호 조회 실패: $e');
       }
       setState(() {
-        _searchError = '조회 실패: $e';
+        _searchError = 'API 조회 실패: $e';
+        _isSearching = false;
       });
+      
+      // API 에러 다이얼로그 표시 (자동으로 닫지 않음)
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          icon: const Icon(Icons.error, color: Colors.red, size: 48),
+          title: const Text('API 조회 실패'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '단말번호 조회 중 오류가 발생했습니다:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Text(
+                    e.toString(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '확인 사항:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                const Text('• API 서버 주소가 올바른지 확인', style: TextStyle(fontSize: 12)),
+                const Text('• SSL 설정이 올바른지 확인', style: TextStyle(fontSize: 12)),
+                const Text('• Company ID와 App-Key 확인', style: TextStyle(fontSize: 12)),
+                const Text('• 네트워크 연결 상태 확인', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('닫기'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // API 설정 다이얼로그 열기
+                showDialog(
+                  context: context,
+                  builder: (context) => const ApiSettingsDialog(),
+                );
+              },
+              child: const Text('설정 수정'),
+            ),
+          ],
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
