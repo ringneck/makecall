@@ -229,9 +229,13 @@ class _CallTabState extends State<CallTab> {
           debugPrint('   사용자 ID: $userId');
           debugPrint('   서버 주소: ${serverAddress ?? "(설정 안됨)"}');
           debugPrint('   → ProfileDrawer 자동 열기 실행');
+          debugPrint('   → 초기 등록 안내 팝업 비활성화');
           debugPrint('='*60);
           debugPrint('');
         }
+
+        // 🔒 신규 사용자는 초기 등록 안내 팝업을 표시하지 않음
+        _hasCheckedSettings = true;
 
         // 약간의 지연 후 ProfileDrawer 자동 열기 (UI가 완전히 로드된 후)
         await Future.delayed(const Duration(milliseconds: 500));
