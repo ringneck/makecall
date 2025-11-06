@@ -379,12 +379,10 @@ class DCMIWSService {
       if (linkedid == null) return;
       
       // 📞 클릭투콜 발신 linkedid 저장 로직
-      // 필터 조건: CallerIDName="클릭투콜" AND ConnectedLineNum={callee}
+      // 필터 조건: CallerIDName="클릭투콜" (ConnectedLineNum 조건 제거)
       final callerIdName = eventData['CallerIDName'] as String?;
-      final connectedLineNum = eventData['ConnectedLineNum'] as String?;
       
-      if (callerIdName != null && callerIdName.contains('클릭투콜') && 
-          connectedLineNum != null && connectedLineNum.isNotEmpty) {
+      if (callerIdName != null && callerIdName.contains('클릭투콜')) {
         if (kDebugMode) {
           debugPrint('');
           debugPrint('='*60);
@@ -392,14 +390,14 @@ class DCMIWSService {
           debugPrint('='*60);
           debugPrint('  Event: ${eventData['Event']}');
           debugPrint('  CallerIDName: $callerIdName');
-          debugPrint('  ConnectedLineNum: $connectedLineNum (callee)');
           debugPrint('  Linkedid: $linkedid');
+          debugPrint('  전체 이벤트 데이터: $eventData');
           debugPrint('  → 최근 통화 기록에 linkedid 저장 시작...');
           debugPrint('='*60);
         }
         
-        // 최근 클릭투콜 통화 기록에 linkedid 업데이트 (callee 매칭)
-        await _updateRecentClickToCallWithLinkedId(linkedid, connectedLineNum);
+        // 최근 클릭투콜 통화 기록에 linkedid 업데이트 (callee 정보 없이 시간 기반 매칭)
+        await _updateRecentClickToCallWithLinkedId(linkedid, null);
         return;
       }
       
@@ -460,7 +458,7 @@ class DCMIWSService {
   }
   
   /// 클릭투콜 통화 기록에 linkedid 업데이트 (callee 번호 매칭)
-  Future<void> _updateRecentClickToCallWithLinkedId(String linkedid, String callee) async {
+  Future<void> _updateRecentClickToCallWithLinkedId(String linkedid, String? callee) async {
     try {
       final firestore = FirebaseFirestore.instance;
       final auth = FirebaseAuth.instance;
@@ -473,13 +471,17 @@ class DCMIWSService {
         return;
       }
       
-      // callee 번호 정규화 (하이픈 제거, 국가번호 처리)
-      final normalizedCallee = _normalizePhoneNumber(callee);
+      // callee 번호 정규화 (callee가 있을 경우에만)
+      final normalizedCallee = callee != null ? _normalizePhoneNumber(callee) : null;
       
       if (kDebugMode) {
         debugPrint('🔍 클릭투콜 통화 기록 검색 시작...');
-        debugPrint('  - Callee (원본): $callee');
-        debugPrint('  - Callee (정규화): $normalizedCallee');
+        if (callee != null) {
+          debugPrint('  - Callee (원본): $callee');
+          debugPrint('  - Callee (정규화): $normalizedCallee');
+        } else {
+          debugPrint('  - Callee: (없음 - 시간 기반 매칭만 사용)');
+        }
         debugPrint('  - Linkedid: $linkedid');
       }
       
@@ -500,28 +502,36 @@ class DCMIWSService {
         debugPrint('📋 조회된 통화 기록: ${querySnapshot.docs.length}개');
       }
       
-      // linkedid가 없고, phoneNumber가 callee와 일치하는 최근 통화 기록 찾기
+      // linkedid가 없는 최근 통화 기록 찾기
+      // callee가 있으면 번호 매칭, 없으면 시간 기반으로만 매칭 (최신 기록 우선)
       for (var doc in querySnapshot.docs) {
         final data = doc.data();
         final callTime = DateTime.parse(data['callTime'] as String);
         final existingLinkedId = data['linkedid'] as String?;
         final phoneNumber = data['phoneNumber'] as String?;
         
-        if (phoneNumber == null) continue;
-        
-        // phoneNumber 정규화
-        final normalizedPhoneNumber = _normalizePhoneNumber(phoneNumber);
-        
         if (kDebugMode) {
-          debugPrint('  📞 확인 중: $phoneNumber (정규화: $normalizedPhoneNumber)');
+          debugPrint('  📞 확인 중: ${phoneNumber ?? "(번호 없음)"}');
           debugPrint('     - 통화 시간: $callTime');
           debugPrint('     - Linkedid 존재: ${existingLinkedId != null}');
         }
         
-        // 5분 이내 && linkedid가 없음 && phoneNumber가 callee와 일치
-        if (callTime.isAfter(fiveMinutesAgo) && 
-            existingLinkedId == null &&
-            normalizedPhoneNumber == normalizedCallee) {
+        // 기본 조건: 5분 이내 && linkedid가 없음
+        bool isMatch = callTime.isAfter(fiveMinutesAgo) && existingLinkedId == null;
+        
+        // callee가 있으면 추가로 번호 매칭 확인
+        if (isMatch && normalizedCallee != null && phoneNumber != null) {
+          final normalizedPhoneNumber = _normalizePhoneNumber(phoneNumber);
+          isMatch = normalizedPhoneNumber == normalizedCallee;
+          
+          if (kDebugMode) {
+            debugPrint('     - 번호 매칭: ${isMatch ? "✅" : "❌"} (정규화: $normalizedPhoneNumber vs $normalizedCallee)');
+          }
+        } else if (isMatch && kDebugMode) {
+          debugPrint('     - 번호 매칭: ⏭️ 건너뜀 (callee 정보 없음, 시간 기반 매칭만 사용)');
+        }
+        
+        if (isMatch) {
           // linkedid 업데이트
           await doc.reference.update({
             'linkedid': linkedid,
@@ -553,7 +563,11 @@ class DCMIWSService {
         debugPrint('⚠️ 조건에 맞는 클릭투콜 기록을 찾을 수 없습니다');
         debugPrint('   - 최근 5분 이내');
         debugPrint('   - linkedid가 없음');
-        debugPrint('   - phoneNumber == $normalizedCallee');
+        if (normalizedCallee != null) {
+          debugPrint('   - phoneNumber == $normalizedCallee');
+        } else {
+          debugPrint('   - phoneNumber 매칭: 건너뜀 (callee 정보 없음)');
+        }
       }
     } catch (e) {
       if (kDebugMode) {
