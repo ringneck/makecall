@@ -228,13 +228,6 @@ class _PhonebookTabState extends State<PhonebookTab> {
         );
       }
 
-      // 🗑️ 기존 Phonebook 데이터 모두 삭제 (새로고침 시)
-      await _databaseService.deleteAllPhonebookData(userId);
-      
-      if (kDebugMode) {
-        debugPrint('🔄 기존 Phonebook 데이터 삭제 완료, 새로운 데이터 로드 시작...');
-      }
-
       // API Service 생성
       // apiHttpPort가 3501이면 HTTPS 사용, 3500이면 HTTP 사용
       final useHttps = (userModel!.apiHttpPort ?? 3500) == 3501;
@@ -254,11 +247,22 @@ class _PhonebookTabState extends State<PhonebookTab> {
       );
 
       if (kDebugMode) {
-        debugPrint('🔍 Phonebook 목록 조회 시작...');
+        debugPrint('🔍 Phonebook API 연결 확인 중...');
       }
 
-      // 1. Phonebook 목록 조회
+      // 1. Phonebook 목록 조회 (API 연결 확인)
       final phonebooks = await apiService.getPhonebooks();
+
+      if (kDebugMode) {
+        debugPrint('✅ API 연결 성공! 기존 데이터 삭제 시작...');
+      }
+
+      // 🗑️ API 연결 성공 후에만 기존 Phonebook 데이터 삭제
+      await _databaseService.deleteAllPhonebookData(userId);
+      
+      if (kDebugMode) {
+        debugPrint('🔄 기존 Phonebook 데이터 삭제 완료, 새로운 데이터 저장 시작...');
+      }
 
       if (kDebugMode) {
         debugPrint('📋 총 ${phonebooks.length}개 phonebook 발견');
