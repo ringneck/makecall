@@ -11,8 +11,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: CallTab(),
-    );
+    // CallTab이 신규 사용자 감지 및 ProfileDrawer 자동 열기를 처리
+    return const CallTab(autoOpenProfileForNewUser: true);
   }
 }

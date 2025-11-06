@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/mobile_contacts_service.dart';
@@ -19,7 +20,12 @@ import '../../widgets/profile_drawer.dart';
 import '../../widgets/extension_drawer.dart';
 
 class CallTab extends StatefulWidget {
-  const CallTab({super.key});
+  final bool autoOpenProfileForNewUser; // 신규 사용자 자동 ProfileDrawer 열기
+  
+  const CallTab({
+    super.key,
+    this.autoOpenProfileForNewUser = false,
+  });
 
   @override
   State<CallTab> createState() => _CallTabState();
@@ -36,6 +42,7 @@ class _CallTabState extends State<CallTab> {
   bool _showDeviceContacts = false;
   List<ContactModel> _deviceContacts = [];
   bool _hasCheckedSettings = false; // 설정 체크 완료 플래그
+  bool _hasCheckedNewUser = false; // 신규 사용자 체크 완료 플래그
   
   // 🔒 고급 개발자 패턴: AuthService 참조를 안전하게 저장
   // dispose()에서 context 사용을 피하기 위한 전략
@@ -62,6 +69,11 @@ class _CallTabState extends State<CallTab> {
       
       // AuthService 리스너 등록 (사용자 전환 감지)
       _authService?.addListener(_onUserModelChanged);
+      
+      // 🎉 신규 사용자 체크 및 ProfileDrawer 자동 열기
+      if (widget.autoOpenProfileForNewUser) {
+        await _checkAndOpenProfileDrawerForNewUser();
+      }
       
       // 순차적 초기화 실행
       await _initializeSequentially();
@@ -178,6 +190,68 @@ class _CallTabState extends State<CallTab> {
       if (kDebugMode) {
         debugPrint('⚠️ 단말번호 자동 초기화 실패: $e');
         debugPrint('   → ExtensionDrawer에서 수동 선택 필요');
+      }
+    }
+  }
+  
+  /// 🎉 신규 사용자 감지 및 ProfileDrawer 자동 열기
+  /// 
+  /// **기능**: 회원가입 직후 기본 설정이 필요한 신규 사용자를 감지하고 ProfileDrawer를 자동으로 엽니다
+  /// - serverAddress가 없거나 빈 값인 경우 신규 사용자로 판단
+  /// - 안내 메시지 없이 바로 ProfileDrawer 열기
+  /// - 최초 1회만 실행 (중복 열기 방지)
+  Future<void> _checkAndOpenProfileDrawerForNewUser() async {
+    if (_hasCheckedNewUser) return;
+    _hasCheckedNewUser = true;
+
+    try {
+      final userId = _authService?.currentUser?.uid;
+      if (userId == null) return;
+
+      // Firestore에서 사용자 정보 확인
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (!mounted) return;
+
+      // 신규 사용자 감지 조건: serverAddress가 없거나 빈 값
+      final userData = userDoc.data();
+      final serverAddress = userData?['serverAddress'] as String?;
+
+      if (serverAddress == null || serverAddress.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('');
+          debugPrint('='*60);
+          debugPrint('🎉 신규 사용자 감지!');
+          debugPrint('='*60);
+          debugPrint('   사용자 ID: $userId');
+          debugPrint('   서버 주소: ${serverAddress ?? "(설정 안됨)"}');
+          debugPrint('   → ProfileDrawer 자동 열기 실행');
+          debugPrint('='*60);
+          debugPrint('');
+        }
+
+        // 약간의 지연 후 ProfileDrawer 자동 열기 (UI가 완전히 로드된 후)
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        if (!mounted) return;
+        
+        // ProfileDrawer 열기
+        _scaffoldKey.currentState?.openDrawer();
+        
+        if (kDebugMode) {
+          debugPrint('✅ ProfileDrawer 자동 열기 완료');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('✅ 기존 사용자 - ProfileDrawer 자동 열기 건너뜀');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 신규 사용자 체크 오류: $e');
       }
     }
   }
