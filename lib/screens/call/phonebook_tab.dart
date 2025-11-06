@@ -223,6 +223,13 @@ class _PhonebookTabState extends State<PhonebookTab> {
         );
       }
 
+      // 🗑️ 기존 Phonebook 데이터 모두 삭제 (새로고침 시)
+      await _databaseService.deleteAllPhonebookData(userId);
+      
+      if (kDebugMode) {
+        debugPrint('🔄 기존 Phonebook 데이터 삭제 완료, 새로운 데이터 로드 시작...');
+      }
+
       // API Service 생성
       // apiHttpPort가 3501이면 HTTPS 사용, 3500이면 HTTP 사용
       final useHttps = (userModel!.apiHttpPort ?? 3500) == 3501;

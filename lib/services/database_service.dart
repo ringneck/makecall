@@ -470,6 +470,53 @@ class DatabaseService {
             .toList());
   }
   
+  // 사용자의 모든 Phonebook 데이터 삭제 (새로고침 시 사용)
+  Future<void> deleteAllPhonebookData(String userId) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🗑️ 기존 Phonebook 데이터 삭제 시작...');
+      }
+      
+      // 1. phonebook_contacts 컬렉션에서 사용자의 모든 연락처 삭제
+      final contactsSnapshot = await _firestore
+          .collection('phonebook_contacts')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      int contactsDeleted = 0;
+      for (var doc in contactsSnapshot.docs) {
+        await doc.reference.delete();
+        contactsDeleted++;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ Phonebook 연락처 ${contactsDeleted}개 삭제 완료');
+      }
+      
+      // 2. phonebooks 컬렉션에서 사용자의 모든 phonebook 삭제
+      final phonebooksSnapshot = await _firestore
+          .collection('phonebooks')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      int phonebooksDeleted = 0;
+      for (var doc in phonebooksSnapshot.docs) {
+        await doc.reference.delete();
+        phonebooksDeleted++;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ Phonebook ${phonebooksDeleted}개 삭제 완료');
+        debugPrint('✅ 총 ${contactsDeleted}개 연락처, ${phonebooksDeleted}개 phonebook 삭제됨');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Delete all phonebook data error: $e');
+      }
+      rethrow;
+    }
+  }
+  
   // Phonebook 연락처 추가 또는 업데이트
   Future<String> addOrUpdatePhonebookContact(PhonebookContactModel contact) async {
     try {
