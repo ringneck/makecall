@@ -32,6 +32,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   bool _pushEnabled = true;
   bool _soundEnabled = true;
   bool _vibrationEnabled = true;
+  
+  // 🎯 Premium 상태 캐싱 (성능 최적화)
+  bool? _isPremiumCached;
 
   @override
   void initState() {
@@ -42,13 +45,44 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       if (authService.currentUserModel?.phoneNumber != null) {
         _phoneNumberController.text = authService.currentUserModel!.phoneNumber!;
       }
+      // Premium 상태 캐싱
+      _cachePremiumStatus();
       // 등록된 단말번호 정보 업데이트
       _updateSavedExtensions();
-      // 자동 로그인 설정 불러오기
-      _loadKeepLoginSetting();
+      // 자동 로그인 설정 불러오기 (Premium 전용)
+      if (_isPremium) {
+        _loadKeepLoginSetting();
+      }
       // FCM 알림 설정 불러오기
       _loadNotificationSettings();
     });
+  }
+  
+  /// 🎯 Premium 상태 캐싱 (성능 최적화)
+  /// - AuthService에서 한 번만 읽어서 캐싱
+  /// - 불필요한 반복 접근 방지
+  void _cachePremiumStatus() {
+    final authService = context.read<AuthService>();
+    _isPremiumCached = authService.currentUserModel?.isPremium ?? false;
+    
+    if (kDebugMode) {
+      debugPrint('🎯 Premium Status Cached: $_isPremiumCached');
+    }
+  }
+  
+  /// 🔒 Premium 상태 Getter (성능 최적화)
+  /// - 캐시된 값 우선 사용
+  /// - null인 경우에만 AuthService 접근
+  bool get _isPremium {
+    if (_isPremiumCached != null) {
+      return _isPremiumCached!;
+    }
+    
+    final authService = context.read<AuthService>();
+    final isPremium = authService.currentUserModel?.isPremium ?? false;
+    _isPremiumCached = isPremium; // 캐싱
+    
+    return isPremium;
   }
 
   // 자동 로그인 설정 불러오기
@@ -752,28 +786,30 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           const Divider(thickness: 1),
           const SizedBox(height: 8),
           
-          // 계정 및 조직
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.orange[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange[100]!),
-              ),
-              child: const ListTile(
-                leading: Icon(Icons.account_circle, color: Colors.orange),
-                title: Text(
-                  '계정 및 조직',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+          // 🎯 Premium 전용: 계정 및 조직
+          if (_isPremium)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange[100]!),
                 ),
-                subtitle: Text('등록된 계정, 사용자 계정 추가', style: TextStyle(fontSize: 12)),
+                child: const ListTile(
+                  leading: Icon(Icons.account_circle, color: Colors.orange),
+                  title: Text(
+                    '계정 및 조직',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text('등록된 계정, 사용자 계정 추가 (Premium)', style: TextStyle(fontSize: 12)),
+                ),
               ),
             ),
-          ),
           
-          // 등록된 계정 목록
-          FutureBuilder<List<SavedAccountModel>>(
+          // 🎯 Premium 전용: 등록된 계정 목록
+          if (_isPremium)
+            FutureBuilder<List<SavedAccountModel>>(
             future: AccountManagerService().getSavedAccounts(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -942,45 +978,95 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             child: Divider(height: 1),
           ),
           
-          // 자동 로그인 스위치
-          _buildSwitchTile(
-            icon: Icons.lock_clock,
-            title: '자동 로그인',
-            subtitle: '계정 전환 시 비밀번호 없이 로그인',
-            value: _keepLoginEnabled,
-            onChanged: (value) async {
-              await AccountManagerService().setKeepLoginEnabled(value);
-              setState(() {
-                _keepLoginEnabled = value;
-              });
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      value 
-                          ? '자동 로그인이 활성화되었습니다. 계정 전환 시 비밀번호 없이 로그인됩니다.' 
-                          : '자동 로그인이 비활성화되었습니다. 계정 전환 시 확인 다이얼로그가 표시됩니다.',
+          // 🎯 Premium 전용: 자동 로그인 스위치
+          if (_isPremium) ...[
+            _buildSwitchTile(
+              icon: Icons.lock_clock,
+              title: '자동 로그인',
+              subtitle: '계정 전환 시 비밀번호 없이 로그인 (Premium)',
+              value: _keepLoginEnabled,
+              onChanged: (value) async {
+                await AccountManagerService().setKeepLoginEnabled(value);
+                setState(() {
+                  _keepLoginEnabled = value;
+                });
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        value 
+                            ? '자동 로그인이 활성화되었습니다. 계정 전환 시 비밀번호 없이 로그인됩니다.' 
+                            : '자동 로그인이 비활성화되었습니다. 계정 전환 시 확인 다이얼로그가 표시됩니다.',
+                      ),
+                      backgroundColor: value ? Colors.green : Colors.grey,
                     ),
-                    backgroundColor: value ? Colors.green : Colors.grey,
-                  ),
-                );
-              }
-            },
-          ),
-          
-          const SizedBox(height: 8),
-          
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-            leading: const Icon(Icons.person_add, color: Colors.green, size: 22),
-            title: const Text('사용자 계정 추가', style: TextStyle(fontSize: 15)),
-            subtitle: const Text(
-              '새로운 계정으로 로그인',
-              style: TextStyle(fontSize: 11),
+                  );
+                }
+              },
             ),
-            trailing: const Icon(Icons.chevron_right, size: 20),
-            onTap: () => _handleAddAccount(context),
-          ),
+            const SizedBox(height: 8),
+          ],
+          
+          // 🎯 Premium 전용: 사용자 계정 추가
+          if (_isPremium)
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+              leading: const Icon(Icons.person_add, color: Colors.green, size: 22),
+              title: const Text('사용자 계정 추가', style: TextStyle(fontSize: 15)),
+              subtitle: const Text(
+                '새로운 계정으로 로그인 (Premium)',
+                style: TextStyle(fontSize: 11),
+              ),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () => _handleAddAccount(context),
+            ),
+          
+          // 🔒 무료 사용자: Premium 안내 메시지
+          if (!_isPremium)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.amber[50]!, Colors.orange[50]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.workspace_premium, color: Colors.orange[700], size: 32),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '멀티 계정 로그인',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange[900],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Premium 사용자만 여러 계정을 동시에 사용할 수 있습니다',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange[800],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           
           const SizedBox(height: 24),
           
