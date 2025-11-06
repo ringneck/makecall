@@ -9,7 +9,6 @@ import '../../services/api_service.dart';
 import '../../models/contact_model.dart';
 import '../../models/call_history_model.dart';
 import '../../models/phonebook_model.dart';
-import '../../models/call_forward_info_model.dart';
 import '../../providers/selected_extension_provider.dart';
 import 'dialpad_screen.dart';
 import 'phonebook_tab.dart';
@@ -985,12 +984,9 @@ class _CallTabState extends State<CallTab> {
                           ],
                         ),
                       ),
-                      // 단말번호 정보 (착신전환 정보 포함)
+                      // 단말번호 정보 (클릭투콜 발신 시 착신전환 정보 포함)
                       if (call.extensionUsed != null)
-                        _buildExtensionWithForwardInfo(
-                          userId: context.read<AuthService>().currentUser?.uid ?? '',
-                          extensionNumber: call.extensionUsed!,
-                        ),
+                        _buildExtensionInfo(call),
                       // 수신 방식 배지 (착신 통화만)
                       if (call.callType == CallType.incoming && call.statusText.isNotEmpty)
                         Padding(
@@ -1466,81 +1462,71 @@ class _CallTabState extends State<CallTab> {
     );
   }
 
-  /// 🔥 고급 개발자 패턴: 단말번호와 착신전환 정보를 함께 표시
-  /// StreamBuilder로 실시간 착신전환 상태 반영
-  Widget _buildExtensionWithForwardInfo({
-    required String userId,
-    required String extensionNumber,
-  }) {
-    return StreamBuilder<CallForwardInfoModel?>(
-      stream: _databaseService.getCallForwardInfo(userId, extensionNumber),
-      builder: (context, snapshot) {
-        final forwardInfo = snapshot.data;
-        final isForwardEnabled = forwardInfo?.isEnabled ?? false;
-        final destinationNumber = forwardInfo?.destinationNumber ?? '';
-        
-        return Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(
-            children: [
-              // 단말번호 표시
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
+  /// 🔥 단말번호 및 착신전환 정보 표시
+  /// 클릭투콜 발신 시 저장된 착신전환 정보만 표시
+  Widget _buildExtensionInfo(CallHistoryModel call) {
+    final isForwardEnabled = call.callForwardEnabled == true;
+    final destinationNumber = call.callForwardDestination ?? '';
+    
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 6,
+              vertical: 2,
+            ),
+            decoration: BoxDecoration(
+              color: isForwardEnabled 
+                  ? Colors.orange.withOpacity(0.1)
+                  : Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: isForwardEnabled
+                  ? Border.all(color: Colors.orange.withOpacity(0.3), width: 1)
+                  : null,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.phone_android,
+                  size: 10,
+                  color: isForwardEnabled ? Colors.orange[700] : Colors.blue[700],
                 ),
-                decoration: BoxDecoration(
-                  color: isForwardEnabled 
-                      ? Colors.orange.withOpacity(0.1)
-                      : Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: isForwardEnabled
-                      ? Border.all(color: Colors.orange.withOpacity(0.3), width: 1)
-                      : null,
+                const SizedBox(width: 3),
+                Text(
+                  call.extensionUsed ?? '',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: isForwardEnabled ? Colors.orange[700] : Colors.blue[700],
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.phone_android,
-                      size: 12,
-                      color: isForwardEnabled ? Colors.orange[700] : Colors.blue[700],
+                
+                // 착신전환 활성화 시에만 화살표와 착신번호 표시
+                if (isForwardEnabled && destinationNumber.isNotEmpty) ...[
+                  const SizedBox(width: 3),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 11,
+                    color: Colors.orange[700],
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    destinationNumber,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.orange[700],
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      extensionNumber,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isForwardEnabled ? Colors.orange[700] : Colors.blue[700],
-                      ),
-                    ),
-                    
-                    // 착신전환 활성화 시 화살표와 착신번호 표시
-                    if (isForwardEnabled && destinationNumber.isNotEmpty) ...[
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 14,
-                        color: Colors.orange[700],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        destinationNumber,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.orange[700],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                ],
+              ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 

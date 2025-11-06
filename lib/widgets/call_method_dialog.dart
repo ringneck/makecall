@@ -278,7 +278,22 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
         debugPrint('✅ Click to Call 성공: $result');
       }
 
-      // 통화 기록 저장
+      // 🔥 착신전환 정보 조회 (현재 시점 기준)
+      final callForwardInfo = await _databaseService
+          .getCallForwardInfo(userId, selectedExtension.extension)
+          .first;
+      
+      final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
+      final forwardDestination = callForwardInfo?.destinationNumber ?? '';
+
+      if (kDebugMode) {
+        debugPrint('📞 착신전환 상태: ${isForwardEnabled ? "활성화" : "비활성화"}');
+        if (isForwardEnabled) {
+          debugPrint('📞 착신번호: $forwardDestination');
+        }
+      }
+
+      // 통화 기록 저장 (착신전환 정보 포함)
       await _databaseService.addCallHistory(
         CallHistoryModel(
           id: '',
@@ -289,6 +304,8 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
           callTime: DateTime.now(),
           mainNumberUsed: cidNumber,
           extensionUsed: selectedExtension.extension,
+          callForwardEnabled: isForwardEnabled,
+          callForwardDestination: isForwardEnabled ? forwardDestination : null,
         ),
       );
 

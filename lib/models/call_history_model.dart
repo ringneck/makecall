@@ -16,6 +16,8 @@ class CallHistoryModel {
   final String? extensionUsed;
   final String? linkedid; // 통화 상세 조회용 linkedid
   final String? status; // 통화 상태 (confirmed, device_answered, rejected, missed 등)
+  final bool? callForwardEnabled; // 착신전환 활성화 여부 (클릭투콜 발신 시점)
+  final String? callForwardDestination; // 착신전환 목적지 번호 (클릭투콜 발신 시점)
   
   CallHistoryModel({
     required this.id,
@@ -30,6 +32,8 @@ class CallHistoryModel {
     this.extensionUsed,
     this.linkedid,
     this.status,
+    this.callForwardEnabled,
+    this.callForwardDestination,
   });
   
   factory CallHistoryModel.fromMap(Map<String, dynamic> map, String id) {
@@ -86,6 +90,8 @@ class CallHistoryModel {
       extensionUsed: map['extensionUsed'] as String?,
       linkedid: map['linkedid'] as String?,
       status: map['status'] as String?,
+      callForwardEnabled: map['callForwardEnabled'] as bool?,
+      callForwardDestination: map['callForwardDestination'] as String?,
     );
   }
   
@@ -102,6 +108,8 @@ class CallHistoryModel {
       'extensionUsed': extensionUsed,
       if (linkedid != null) 'linkedid': linkedid,
       if (status != null) 'status': status,
+      if (callForwardEnabled != null) 'callForwardEnabled': callForwardEnabled,
+      if (callForwardDestination != null) 'callForwardDestination': callForwardDestination,
     };
   }
   
