@@ -483,68 +483,28 @@ class DCMIWSService {
         debugPrint('  - Linkedid: $linkedid');
       }
       
-      // 최근 5분 이내의 클릭투콜 통화 기록 조회 (userId만 쿼리, 나머지는 메모리 필터링)
+      // 최근 5분 이내의 클릭투콜 통화 기록 조회
+      // ⚠️ Firebase Console에서 복합 인덱스 생성 필요
+      // 인덱스 URL: https://console.firebase.google.com/v1/r/project/makecallio/firestore/indexes
       final fiveMinutesAgo = DateTime.now().subtract(const Duration(minutes: 5));
-      
-      // 🔥 복합 인덱스 불필요: userId만 쿼리
       final querySnapshot = await firestore
           .collection('call_history')
           .where('userId', isEqualTo: userId)
+          .where('callType', isEqualTo: 'outgoing')
+          .where('callMethod', isEqualTo: 'extension')
+          .orderBy('callTime', descending: true)
+          .limit(10)
           .get();
       
       if (kDebugMode) {
-        debugPrint('📋 조회된 통화 기록: ${querySnapshot.docs.length}개 (메모리 필터링 전)');
-      }
-      
-      // 메모리에서 필터링: callType, callMethod, callTime, linkedid
-      final filteredDocs = querySnapshot.docs.where((doc) {
-        final data = doc.data();
-        final callType = data['callType'] as String?;
-        final callMethod = data['callMethod'] as String?;
-        final callTimeStr = data['callTime'] as String?;
-        final existingLinkedId = data['linkedid'] as String?;
-        
-        // callType과 callMethod 확인
-        if (callType != 'outgoing' || callMethod != 'extension') {
-          return false;
-        }
-        
-        // linkedid가 이미 있으면 제외
-        if (existingLinkedId != null && existingLinkedId.isNotEmpty) {
-          return false;
-        }
-        
-        // callTime 파싱 및 5분 이내 확인
-        if (callTimeStr != null) {
-          try {
-            final callTime = DateTime.parse(callTimeStr);
-            return callTime.isAfter(fiveMinutesAgo);
-          } catch (e) {
-            return false;
-          }
-        }
-        
-        return false;
-      }).toList();
-      
-      // callTime 기준으로 정렬 (최신순)
-      filteredDocs.sort((a, b) {
-        final aTime = DateTime.parse(a.data()['callTime'] as String);
-        final bTime = DateTime.parse(b.data()['callTime'] as String);
-        return bTime.compareTo(aTime);
-      });
-      
-      // 최대 10개만 처리
-      final docsToProcess = filteredDocs.take(10).toList();
-      
-      if (kDebugMode) {
-        debugPrint('📋 필터링 후 통화 기록: ${docsToProcess.length}개');
+        debugPrint('📋 조회된 통화 기록: ${querySnapshot.docs.length}개');
       }
       
       // linkedid가 없고, phoneNumber가 callee와 일치하는 최근 통화 기록 찾기
-      for (var doc in docsToProcess) {
+      for (var doc in querySnapshot.docs) {
         final data = doc.data();
         final callTime = DateTime.parse(data['callTime'] as String);
+        final existingLinkedId = data['linkedid'] as String?;
         final phoneNumber = data['phoneNumber'] as String?;
         
         if (phoneNumber == null) continue;
@@ -555,10 +515,13 @@ class DCMIWSService {
         if (kDebugMode) {
           debugPrint('  📞 확인 중: $phoneNumber (정규화: $normalizedPhoneNumber)');
           debugPrint('     - 통화 시간: $callTime');
+          debugPrint('     - Linkedid 존재: ${existingLinkedId != null}');
         }
         
-        // phoneNumber가 callee와 일치
-        if (normalizedPhoneNumber == normalizedCallee) {
+        // 5분 이내 && linkedid가 없음 && phoneNumber가 callee와 일치
+        if (callTime.isAfter(fiveMinutesAgo) && 
+            existingLinkedId == null &&
+            normalizedPhoneNumber == normalizedCallee) {
           // linkedid 업데이트
           await doc.reference.update({
             'linkedid': linkedid,
