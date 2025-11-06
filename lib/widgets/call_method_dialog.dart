@@ -6,6 +6,7 @@ import '../services/database_service.dart';
 import '../services/call_service.dart';
 import '../services/api_service.dart';
 import '../models/call_history_model.dart';
+import '../models/call_forward_info_model.dart';
 import '../providers/selected_extension_provider.dart';
 
 class CallMethodDialog extends StatefulWidget {
@@ -278,19 +279,47 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
         debugPrint('✅ Click to Call 성공: $result');
       }
 
-      // 🔥 착신전환 정보 조회 (현재 시점 기준)
-      final callForwardInfo = await _databaseService
-          .getCallForwardInfo(userId, selectedExtension.extension)
-          .first;
+      // 🔥 착신전환 정보 조회 (현재 시점 기준) - 타임아웃 방지
+      if (kDebugMode) {
+        debugPrint('🔍 착신전환 정보 조회 시작...');
+        debugPrint('   userId: $userId');
+        debugPrint('   extensionNumber: ${selectedExtension.extension}');
+      }
+      
+      // Stream first 대신 timeout을 추가하여 안전하게 조회
+      CallForwardInfoModel? callForwardInfo;
+      try {
+        callForwardInfo = await _databaseService
+            .getCallForwardInfo(userId, selectedExtension.extension)
+            .first
+            .timeout(const Duration(seconds: 3));
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 착신전환 정보 조회 실패 (타임아웃 또는 에러): $e');
+        }
+        callForwardInfo = null;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('📦 조회된 착신전환 정보: $callForwardInfo');
+        if (callForwardInfo != null) {
+          debugPrint('   isEnabled: ${callForwardInfo.isEnabled}');
+          debugPrint('   destinationNumber: "${callForwardInfo.destinationNumber}"');
+          debugPrint('   extensionNumber: ${callForwardInfo.extensionNumber}');
+        } else {
+          debugPrint('   ⚠️ 착신전환 정보가 null입니다 (설정되지 않음).');
+        }
+      }
       
       final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
       final forwardDestination = callForwardInfo?.destinationNumber ?? '';
 
       if (kDebugMode) {
-        debugPrint('📞 착신전환 상태: ${isForwardEnabled ? "활성화" : "비활성화"}');
-        if (isForwardEnabled) {
-          debugPrint('📞 착신번호: $forwardDestination');
-        }
+        debugPrint('📞 최종 착신전환 상태: ${isForwardEnabled ? "활성화" : "비활성화"}');
+        debugPrint('📞 최종 착신번호: "$forwardDestination" (길이: ${forwardDestination.length})');
+        debugPrint('💾 통화 기록 저장 예정:');
+        debugPrint('   callForwardEnabled: $isForwardEnabled');
+        debugPrint('   callForwardDestination: ${isForwardEnabled ? forwardDestination : null}');
       }
 
       // 통화 기록 저장 (착신전환 정보 포함)

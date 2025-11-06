@@ -1468,6 +1468,15 @@ class _CallTabState extends State<CallTab> {
     final isForwardEnabled = call.callForwardEnabled == true;
     final destinationNumber = call.callForwardDestination ?? '';
     
+    if (kDebugMode) {
+      debugPrint('📱 _buildExtensionInfo 호출:');
+      debugPrint('   extensionUsed: ${call.extensionUsed}');
+      debugPrint('   callForwardEnabled: ${call.callForwardEnabled}');
+      debugPrint('   callForwardDestination: ${call.callForwardDestination}');
+      debugPrint('   isForwardEnabled: $isForwardEnabled');
+      debugPrint('   destinationNumber: "$destinationNumber" (길이: ${destinationNumber.length})');
+    }
+    
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(

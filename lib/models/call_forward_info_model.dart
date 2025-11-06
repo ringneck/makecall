@@ -38,7 +38,7 @@ class CallForwardInfoModel {
       userId: data['userId'] as String? ?? '',
       extensionNumber: data['extensionNumber'] as String? ?? '',
       isEnabled: data['isEnabled'] as bool? ?? false,
-      destinationNumber: data['destinationNumber'] as String? ?? '00000000000',
+      destinationNumber: data['destinationNumber'] as String? ?? '',
       lastUpdated: (data['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -50,7 +50,7 @@ class CallForwardInfoModel {
       userId: data['userId'] as String? ?? '',
       extensionNumber: data['extensionNumber'] as String? ?? '',
       isEnabled: data['isEnabled'] as bool? ?? false,
-      destinationNumber: data['destinationNumber'] as String? ?? '00000000000',
+      destinationNumber: data['destinationNumber'] as String? ?? '',
       lastUpdated: (data['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
