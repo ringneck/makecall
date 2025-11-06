@@ -106,13 +106,6 @@ class CallService {
       final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
       final forwardDestination = (callForwardInfo?.destinationNumber ?? '').trim();
       
-      // ignore: avoid_print
-      print('📞 [CallService] 착신전환 정보 조회 완료');
-      // ignore: avoid_print
-      print('   isEnabled: $isForwardEnabled');
-      // ignore: avoid_print
-      print('   destinationNumber: $forwardDestination');
-      
       // 통화 기록 저장 (착신전환 정보 포함)
       await _databaseService.addCallHistory(
         CallHistoryModel(

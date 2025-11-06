@@ -1468,22 +1468,6 @@ class _CallTabState extends State<CallTab> {
     final isForwardEnabled = call.callForwardEnabled == true;
     final destinationNumber = call.callForwardDestination ?? '';
     
-    // TEMP: Release 모드에서도 로그 확인
-    // ignore: avoid_print
-    print('📱 [UI] _buildExtensionInfo 호출:');
-    // ignore: avoid_print
-    print('   extensionUsed: ${call.extensionUsed}');
-    // ignore: avoid_print
-    print('   callForwardEnabled: ${call.callForwardEnabled}');
-    // ignore: avoid_print
-    print('   callForwardDestination: ${call.callForwardDestination}');
-    // ignore: avoid_print
-    print('   isForwardEnabled: $isForwardEnabled');
-    // ignore: avoid_print
-    print('   destinationNumber: "$destinationNumber" (길이: ${destinationNumber.length})');
-    // ignore: avoid_print
-    print('   조건 체크: isForwardEnabled=$isForwardEnabled && destinationNumber.isNotEmpty=${destinationNumber.isNotEmpty}');
-    
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
@@ -1735,25 +1719,11 @@ class _CallTabState extends State<CallTab> {
       }
 
       // 🔥 착신전환 정보 조회 (현재 시점 기준)
-      // ignore: avoid_print
-      print('📞 [call_tab] 착신전환 정보 조회 시작');
-      // ignore: avoid_print
-      print('   발신 단말(caller): ${selectedExtension.extension}');
-      // ignore: avoid_print
-      print('   발신 대상(callee): $phoneNumber');
-      
       final callForwardInfo = await _databaseService
           .getCallForwardInfoOnce(userId, selectedExtension.extension);
       
       final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
       final forwardDestination = (callForwardInfo?.destinationNumber ?? '').trim();
-      
-      // ignore: avoid_print
-      print('📞 [call_tab] 착신전환 정보 조회 완료 (발신 단말 ${selectedExtension.extension}의 착신전환)');
-      // ignore: avoid_print
-      print('   isEnabled: $isForwardEnabled');
-      // ignore: avoid_print
-      print('   destinationNumber: $forwardDestination');
 
       // 통화 기록 저장 (착신전환 정보 포함)
       await _databaseService.addCallHistory(

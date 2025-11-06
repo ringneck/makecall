@@ -126,39 +126,14 @@ class DatabaseService {
   // 통화 기록 추가
   Future<String> addCallHistory(CallHistoryModel callHistory) async {
     try {
-      // TEMP: Release 모드에서도 로그 확인
-      // ignore: avoid_print
-      print('💾 [DatabaseService] 통화 기록 저장 시작');
-      // ignore: avoid_print
-      print('  - 전화번호: ${callHistory.phoneNumber}');
-      // ignore: avoid_print
-      print('  - 통화 타입: ${callHistory.callType}');
-      // ignore: avoid_print
-      print('  - 통화 방법: ${callHistory.callMethod}');
-      // ignore: avoid_print
-      print('  - 단말번호: ${callHistory.extensionUsed}');
-      // ignore: avoid_print
-      print('  - callForwardEnabled: ${callHistory.callForwardEnabled}');
-      // ignore: avoid_print
-      print('  - callForwardDestination: ${callHistory.callForwardDestination}');
-      
-      final dataToSave = callHistory.toMap();
-      // ignore: avoid_print
-      print('  - toMap() 결과: $dataToSave');
-      
       final docRef = await _firestore
           .collection('call_history')
-          .add(dataToSave);
-      
-      // ignore: avoid_print
-      print('✅ [DatabaseService] 통화 기록 저장 완료 (문서 ID: ${docRef.id})');
+          .add(callHistory.toMap());
       
       return docRef.id;
     } catch (e, stackTrace) {
       // ignore: avoid_print
       print('❌ [DatabaseService] 통화 기록 저장 실패: $e');
-      // ignore: avoid_print
-      print('   Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -875,45 +850,20 @@ class DatabaseService {
     try {
       final docId = '${userId}_$extensionNumber';
       
-      // TEMP: Release 모드에서도 로그 확인 (디버깅용)
-      // ignore: avoid_print
-      print('🔍 [DatabaseService] getCallForwardInfoOnce 호출');
-      // ignore: avoid_print
-      print('   docId: $docId');
-      
       final doc = await _firestore
           .collection('call_forward_info')
           .doc(docId)
           .get();
       
-      // ignore: avoid_print
-      print('📄 [DatabaseService] Document 조회 완료');
-      // ignore: avoid_print
-      print('   doc.exists: ${doc.exists}');
-      if (doc.exists) {
-        // ignore: avoid_print
-        print('   doc.data: ${doc.data()}');
-      }
-      
       if (doc.exists) {
         final model = CallForwardInfoModel.fromFirestore(doc);
-        // ignore: avoid_print
-        print('✅ [DatabaseService] CallForwardInfoModel 생성 완료');
-        // ignore: avoid_print
-        print('   isEnabled: ${model.isEnabled}');
-        // ignore: avoid_print
-        print('   destinationNumber: ${model.destinationNumber}');
         return model;
       }
       
-      // ignore: avoid_print
-      print('⚠️ [DatabaseService] Document가 존재하지 않습니다: $docId');
       return null;
     } catch (e, stackTrace) {
       // ignore: avoid_print
       print('❌ [DatabaseService] Get call forward info error: $e');
-      // ignore: avoid_print
-      print('   Stack trace: $stackTrace');
       return null;
     }
   }
