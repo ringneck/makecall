@@ -864,6 +864,27 @@ class DatabaseService {
         });
   }
 
+  // 🔥 착신전환 정보 직접 조회 (Stream이 아닌 Future 반환)
+  Future<CallForwardInfoModel?> getCallForwardInfoOnce(String userId, String extensionNumber) async {
+    try {
+      final docId = '${userId}_$extensionNumber';
+      final doc = await _firestore
+          .collection('call_forward_info')
+          .doc(docId)
+          .get();
+      
+      if (doc.exists) {
+        return CallForwardInfoModel.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Get call forward info error: $e');
+      }
+      return null;
+    }
+  }
+
   // 착신전환 정보 저장/업데이트
   Future<void> saveCallForwardInfo(CallForwardInfoModel info) async {
     try {

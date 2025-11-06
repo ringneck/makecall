@@ -279,26 +279,16 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
         debugPrint('✅ Click to Call 성공: $result');
       }
 
-      // 🔥 착신전환 정보 조회 (현재 시점 기준) - 타임아웃 방지
+      // 🔥 착신전환 정보 조회 (현재 시점 기준) - 직접 조회 방식
       if (kDebugMode) {
         debugPrint('🔍 착신전환 정보 조회 시작...');
         debugPrint('   userId: $userId');
         debugPrint('   extensionNumber: ${selectedExtension.extension}');
       }
       
-      // Stream first 대신 timeout을 추가하여 안전하게 조회
-      CallForwardInfoModel? callForwardInfo;
-      try {
-        callForwardInfo = await _databaseService
-            .getCallForwardInfo(userId, selectedExtension.extension)
-            .first
-            .timeout(const Duration(seconds: 3));
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('⚠️ 착신전환 정보 조회 실패 (타임아웃 또는 에러): $e');
-        }
-        callForwardInfo = null;
-      }
+      // Stream 대신 직접 Document 조회 (더 안정적)
+      final callForwardInfo = await _databaseService
+          .getCallForwardInfoOnce(userId, selectedExtension.extension);
       
       if (kDebugMode) {
         debugPrint('📦 조회된 착신전환 정보: $callForwardInfo');
