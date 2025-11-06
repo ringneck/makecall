@@ -280,25 +280,30 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
       }
 
       // 🔥 착신전환 정보 조회 (현재 시점 기준) - 직접 조회 방식
-      if (kDebugMode) {
-        debugPrint('🔍 착신전환 정보 조회 시작...');
-        debugPrint('   userId: $userId');
-        debugPrint('   extensionNumber: ${selectedExtension.extension}');
-      }
+      // TEMP: Release 모드에서도 로그 확인 (디버깅용)
+      // ignore: avoid_print
+      print('🔍 [CallMethodDialog] 착신전환 정보 조회 시작...');
+      // ignore: avoid_print
+      print('   userId: $userId');
+      // ignore: avoid_print
+      print('   extensionNumber: ${selectedExtension.extension}');
       
       // Stream 대신 직접 Document 조회 (더 안정적)
       final callForwardInfo = await _databaseService
           .getCallForwardInfoOnce(userId, selectedExtension.extension);
       
-      if (kDebugMode) {
-        debugPrint('📦 조회된 착신전환 정보: $callForwardInfo');
-        if (callForwardInfo != null) {
-          debugPrint('   isEnabled: ${callForwardInfo.isEnabled}');
-          debugPrint('   destinationNumber: "${callForwardInfo.destinationNumber}"');
-          debugPrint('   extensionNumber: ${callForwardInfo.extensionNumber}');
-        } else {
-          debugPrint('   ⚠️ 착신전환 정보가 null입니다 (설정되지 않음).');
-        }
+      // ignore: avoid_print
+      print('📦 [CallMethodDialog] 조회된 착신전환 정보: $callForwardInfo');
+      if (callForwardInfo != null) {
+        // ignore: avoid_print
+        print('   isEnabled: ${callForwardInfo.isEnabled}');
+        // ignore: avoid_print
+        print('   destinationNumber: "${callForwardInfo.destinationNumber}"');
+        // ignore: avoid_print
+        print('   extensionNumber: ${callForwardInfo.extensionNumber}');
+      } else {
+        // ignore: avoid_print
+        print('   ⚠️ 착신전환 정보가 null입니다 (설정되지 않음).');
       }
       
       final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
