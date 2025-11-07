@@ -131,15 +131,15 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Container(
         constraints: const BoxConstraints(
           maxWidth: 500,
-          maxHeight: 450,
+          maxHeight: 340,
         ),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -163,7 +163,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
             // 컨트롤 바
             _buildControls(),
             
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
           ],
         ),
       ),
@@ -172,29 +172,29 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
         ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
               Icons.headphones,
               color: Colors.white,
-              size: 24,
+              size: 16,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,16 +203,16 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
                   widget.title,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   '통화 녹음 파일',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                 ),
               ],
@@ -231,16 +231,16 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
     if (_error != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
                 Icons.error_outline,
-                size: 64,
+                size: 40,
                 color: Colors.white70,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text(
                 _error!,
                 textAlign: TextAlign.center,
@@ -249,7 +249,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
                   fontSize: 14,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: _loadAudio,
                 icon: const Icon(Icons.refresh),
@@ -273,7 +273,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
             CircularProgressIndicator(
               color: Colors.white,
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 12),
             Text(
               '오디오 파일 로딩 중...',
               style: TextStyle(
@@ -293,12 +293,12 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
           // 웨이브 애니메이션
           _buildWaveAnimation(),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
           
           // 재생 버튼
           _buildPlayButton(),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
           
           // 시간 표시
           _buildTimeDisplay(),
@@ -316,15 +316,15 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
           children: List.generate(5, (index) {
             final delay = index * 0.2;
             final value = (_waveController.value + delay) % 1.0;
-            final height = _isPlaying ? 40 + (20 * (0.5 - (value - 0.5).abs() * 2)) : 20.0;
+            final height = _isPlaying ? 24 + (12 * (0.5 - (value - 0.5).abs() * 2)) : 12.0;
             
             return Container(
-              width: 6,
+              width: 4,
               height: height,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(2),
               ),
             );
           }),
@@ -337,8 +337,8 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
     return GestureDetector(
       onTap: _togglePlayPause,
       child: Container(
-        width: 80,
-        height: 80,
+        width: 56,
+        height: 56,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white,
@@ -352,7 +352,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
         ),
         child: Icon(
           _isPlaying ? Icons.pause : Icons.play_arrow,
-          size: 40,
+          size: 28,
           color: const Color(0xFF1e3c72),
         ),
       ),
@@ -361,7 +361,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
 
   Widget _buildTimeDisplay() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -388,15 +388,15 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
 
   Widget _buildControls() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
           // 진행 바
           SliderTheme(
             data: SliderThemeData(
-              trackHeight: 4,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+              trackHeight: 3,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
               activeTrackColor: Colors.white,
               inactiveTrackColor: Colors.white.withOpacity(0.3),
               thumbColor: Colors.white,
@@ -411,7 +411,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
             ),
           ),
           
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           
           // 컨트롤 버튼
           Row(
@@ -420,21 +420,21 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
               // 10초 뒤로
               IconButton(
                 icon: const Icon(Icons.replay_10, color: Colors.white),
-                iconSize: 32,
+                iconSize: 24,
                 onPressed: () {
                   final newPosition = _position - const Duration(seconds: 10);
                   _seekTo(newPosition.inSeconds.toDouble().clamp(0, _duration.inSeconds.toDouble()));
                 },
               ),
               
-              const SizedBox(width: 40),
+              const SizedBox(width: 24),
               
               // 재생/일시정지 버튼
               GestureDetector(
                 onTap: _togglePlayPause,
                 child: Container(
-                  width: 60,
-                  height: 60,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.white,
@@ -448,18 +448,18 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
                   ),
                   child: Icon(
                     _isPlaying ? Icons.pause : Icons.play_arrow,
-                    size: 32,
+                    size: 24,
                     color: const Color(0xFF1e3c72),
                   ),
                 ),
               ),
               
-              const SizedBox(width: 40),
+              const SizedBox(width: 24),
               
               // 10초 앞으로
               IconButton(
                 icon: const Icon(Icons.forward_10, color: Colors.white),
-                iconSize: 32,
+                iconSize: 24,
                 onPressed: () {
                   final newPosition = _position + const Duration(seconds: 10);
                   _seekTo(newPosition.inSeconds.toDouble().clamp(0, _duration.inSeconds.toDouble()));

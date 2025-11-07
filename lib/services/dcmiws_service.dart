@@ -305,13 +305,18 @@ class DCMIWSService {
       if (callerIdNum == null || exten == null) return;
       if (channel == null || linkedid == null) return;
       
-      // 🚫 Click-to-call 필터링: Channel에 "click-to-call" 포함 시 무시
-      if (channel.toLowerCase().contains('click-to-call')) {
+      // 🚫 Click-to-call 필터링: Context에 "click-to-call" 포함 시 Linkedid 저장 후 무시
+      if (context != null && context.toLowerCase().contains('click-to-call')) {
         if (kDebugMode) {
-          debugPrint('🚫 Click-to-call 통화 감지 - 통화 기록 저장 제외');
+          debugPrint('📞 Click-to-call 발신 감지 - Linkedid 저장');
           debugPrint('  Channel: $channel');
+          debugPrint('  Context: $context');
           debugPrint('  Linkedid: $linkedid');
+          debugPrint('  Exten: $exten');
         }
+        
+        // Linkedid를 클릭투콜 통화 기록에 저장
+        await _saveClickToCallLinkedId(linkedid, exten);
         return;
       }
       
@@ -489,12 +494,12 @@ class DCMIWSService {
         if (kDebugMode) {
           debugPrint('📱 IncomingCallScreen 자동 닫기');
         }
-        _navigatorKey!.currentState!.pop({'moveToTab': 0}); // 0 = 최근통화 탭
+        _navigatorKey!.currentState!.pop({'moveToTab': 1}); // 1 = 최근통화 탭
         
         // 탭 이동 이벤트 전송
         _eventController.add({
           'type': 'MOVE_TO_TAB',
-          'tabIndex': 0,
+          'tabIndex': 1,
         });
         
         if (kDebugMode) {
@@ -625,6 +630,116 @@ class DCMIWSService {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ 클릭투콜 linkedid 업데이트 오류: $e');
+      }
+    }
+  }
+  
+  /// Newchannel 이벤트에서 클릭투콜 Linkedid 저장
+  /// 
+  /// Newchannel 이벤트 조건:
+  /// - Event: "Newchannel"
+  /// - ChannelStateDesc: "Ring"
+  /// - Context: "click-to-call" 포함
+  /// 
+  /// 최근 5분 이내 클릭투콜 발신 기록(extension 방식)에 linkedid 저장
+  Future<void> _saveClickToCallLinkedId(String linkedid, String exten) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final auth = FirebaseAuth.instance;
+      final userId = auth.currentUser?.uid;
+      
+      if (userId == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 로그인 정보가 없어 linkedid를 저장할 수 없습니다');
+        }
+        return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('🔍 클릭투콜 통화 기록 검색 시작 (Newchannel 이벤트)');
+        debugPrint('  - Exten (단말번호): $exten');
+        debugPrint('  - Linkedid: $linkedid');
+      }
+      
+      // 최근 5분 이내의 클릭투콜 통화 기록 조회
+      final fiveMinutesAgo = DateTime.now().subtract(const Duration(minutes: 5));
+      final querySnapshot = await firestore
+          .collection('call_history')
+          .where('userId', isEqualTo: userId)
+          .where('callType', isEqualTo: 'outgoing')
+          .where('callMethod', isEqualTo: 'extension')
+          .orderBy('callTime', descending: true)
+          .limit(10)
+          .get();
+      
+      if (kDebugMode) {
+        debugPrint('📋 조회된 통화 기록: ${querySnapshot.docs.length}개');
+      }
+      
+      // linkedid가 없는 최근 통화 기록 찾기
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        final callTime = DateTime.parse(data['callTime'] as String);
+        final existingLinkedId = data['linkedid'] as String?;
+        final extensionUsed = data['extensionUsed'] as String?;
+        final phoneNumber = data['phoneNumber'] as String?;
+        
+        if (kDebugMode) {
+          debugPrint('  📞 확인 중: ${phoneNumber ?? "(번호 없음)"}');
+          debugPrint('     - 통화 시간: $callTime');
+          debugPrint('     - 단말번호: $extensionUsed');
+          debugPrint('     - Linkedid 존재: ${existingLinkedId != null}');
+        }
+        
+        // 조건: 5분 이내 && linkedid가 없음 && extensionUsed와 exten 일치
+        final isMatch = callTime.isAfter(fiveMinutesAgo) && 
+                        existingLinkedId == null &&
+                        extensionUsed == exten;
+        
+        if (kDebugMode) {
+          debugPrint('     - 매칭 결과: ${isMatch ? "✅" : "❌"}');
+        }
+        
+        if (isMatch) {
+          // linkedid 업데이트
+          await doc.reference.update({
+            'linkedid': linkedid,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          
+          // 업데이트 후 실제 저장 확인
+          final updatedDoc = await doc.reference.get();
+          final updatedData = updatedDoc.data();
+          final savedLinkedId = updatedData?['linkedid'] as String?;
+          
+          if (kDebugMode) {
+            debugPrint('');
+            debugPrint('✅ 클릭투콜 Linkedid 저장 완료! (Newchannel)');
+            debugPrint('  - 문서 ID: ${doc.id}');
+            debugPrint('  - 저장한 Linkedid: $linkedid');
+            debugPrint('  - 실제 저장된 Linkedid: $savedLinkedId');
+            debugPrint('  - 저장 확인: ${savedLinkedId == linkedid ? "✅ 성공" : "❌ 불일치"}');
+            debugPrint('  - 단말번호: $extensionUsed');
+            debugPrint('  - 발신번호: $phoneNumber');
+            debugPrint('  - 통화 시간: $callTime');
+            debugPrint('  → 통화 상세 페이지에서 CDR 조회 가능');
+            debugPrint('');
+          }
+          
+          return; // 첫 번째 매칭 기록만 업데이트
+        }
+      }
+      
+      if (kDebugMode) {
+        debugPrint('⚠️ 조건에 맞는 클릭투콜 기록을 찾을 수 없습니다');
+        debugPrint('   - 최근 5분 이내');
+        debugPrint('   - linkedid가 없음');
+        debugPrint('   - extensionUsed == $exten');
+      }
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 클릭투콜 Linkedid 저장 오류 (Newchannel): $e');
       }
     }
   }
@@ -1086,7 +1201,7 @@ class DCMIWSService {
       if (kDebugMode) {
         debugPrint('');
         debugPrint('🔄 IncomingCallScreen 결과 수신');
-        debugPrint('  → 탭 이동 요청: $tabIndex (0=최근통화)');
+        debugPrint('  → 탭 이동 요청: $tabIndex (1=최근통화)');
       }
       
       // 이벤트 스트림으로 탭 이동 요청 전송
