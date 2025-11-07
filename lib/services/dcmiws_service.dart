@@ -597,6 +597,7 @@ class DCMIWSService {
             debugPrint('  - 저장 확인: ${savedLinkedId == linkedid ? "✅ 성공" : "❌ 불일치"}');
             debugPrint('  - 발신번호 (callee): $phoneNumber');
             debugPrint('  - 통화 시간: $callTime');
+            debugPrint('  → 통화 상세 페이지에서 CDR 정보를 조회할 수 있습니다');
             debugPrint('');
           }
           
@@ -1013,7 +1014,7 @@ class DCMIWSService {
       debugPrint('  Linkedid: $linkedid');
     }
     
-    _navigatorKey!.currentState!.push(
+    final result = await _navigatorKey!.currentState!.push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (context) => IncomingCallScreen(
@@ -1070,6 +1071,28 @@ class DCMIWSService {
         ),
       ),
     );
+    
+    // IncomingCallScreen 결과 처리
+    if (result != null && result is Map && result['moveToTab'] != null) {
+      final tabIndex = result['moveToTab'] as int;
+      
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('🔄 IncomingCallScreen 결과 수신');
+        debugPrint('  → 탭 이동 요청: $tabIndex (0=최근통화)');
+      }
+      
+      // 이벤트 스트림으로 탭 이동 요청 전송
+      _eventController.add({
+        'type': 'MOVE_TO_TAB',
+        'tabIndex': tabIndex,
+      });
+      
+      if (kDebugMode) {
+        debugPrint('  ✅ 탭 이동 이벤트 전송 완료');
+        debugPrint('');
+      }
+    }
   }
 
   /// 에러 핸들러

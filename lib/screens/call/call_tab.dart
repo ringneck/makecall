@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +7,7 @@ import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/mobile_contacts_service.dart';
 import '../../services/api_service.dart';
+import '../../services/dcmiws_service.dart';
 import '../../models/contact_model.dart';
 import '../../models/call_history_model.dart';
 import '../../models/phonebook_model.dart';
@@ -15,7 +17,6 @@ import 'phonebook_tab.dart';
 import '../../widgets/call_method_dialog.dart';
 import '../../widgets/add_contact_dialog.dart';
 import '../../widgets/call_detail_dialog.dart';
-import '../../widgets/audio_player_dialog.dart';
 import '../../widgets/profile_drawer.dart';
 import '../../widgets/extension_drawer.dart';
 
@@ -47,6 +48,9 @@ class _CallTabState extends State<CallTab> {
   // 🔒 고급 개발자 패턴: AuthService 참조를 안전하게 저장
   // dispose()에서 context 사용을 피하기 위한 전략
   AuthService? _authService;
+  
+  // 🔔 DCMIWS 이벤트 구독
+  StreamSubscription? _dcmiwsEventSubscription;
 
   // 영어 이름을 한글로 번역하는 매핑 테이블 (Feature Codes 이름 번역용)
   final Map<String, String> _nameTranslations = {
@@ -69,6 +73,32 @@ class _CallTabState extends State<CallTab> {
       
       // AuthService 리스너 등록 (사용자 전환 감지)
       _authService?.addListener(_onUserModelChanged);
+      
+      // 🔔 DCMIWS 이벤트 스트림 구독 (IncomingCallScreen 결과 처리)
+      _dcmiwsEventSubscription = DCMIWSService().events.listen((event) {
+        if (!mounted) return;
+        
+        if (event['type'] == 'MOVE_TO_TAB') {
+          final tabIndex = event['tabIndex'] as int?;
+          
+          if (tabIndex != null && kDebugMode) {
+            debugPrint('');
+            debugPrint('🔔 DCMIWS 이벤트 수신: MOVE_TO_TAB');
+            debugPrint('  → 탭 이동: $tabIndex');
+          }
+          
+          if (tabIndex != null) {
+            setState(() {
+              _currentTabIndex = tabIndex;
+            });
+            
+            if (kDebugMode) {
+              debugPrint('  ✅ 탭 이동 완료: $_currentTabIndex');
+              debugPrint('');
+            }
+          }
+        }
+      });
       
       // 🎉 신규 사용자 체크 및 ProfileDrawer 자동 열기
       if (widget.autoOpenProfileForNewUser) {
@@ -101,6 +131,10 @@ class _CallTabState extends State<CallTab> {
     // context.read()를 사용하지 않음 → deactivated widget 에러 방지
     _authService?.removeListener(_onUserModelChanged);
     _authService = null; // 메모리 누수 방지
+    
+    // 🔔 DCMIWS 이벤트 구독 취소
+    _dcmiwsEventSubscription?.cancel();
+    _dcmiwsEventSubscription = null;
     
     _searchController.dispose();
     super.dispose();
@@ -1037,22 +1071,6 @@ class _CallTabState extends State<CallTab> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 녹음 파일 재생 버튼 (billsec >= 5초이고 recordingUrl 존재 시)
-                    if (call.hasRecording) ...[
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.purple.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.play_circle_filled, size: 20),
-                          color: Colors.purple[700],
-                          onPressed: () => _showAudioPlayerDialog(call),
-                          tooltip: '녹음 파일 재생',
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                    ],
                     // 연락처 추가 버튼
                     Container(
                       decoration: BoxDecoration(
@@ -2159,38 +2177,6 @@ class _CallTabState extends State<CallTab> {
     showDialog(
       context: context,
       builder: (context) => CallDetailDialog(linkedid: call.linkedid!),
-    );
-  }
-
-  /// 녹음 파일 재생 다이얼로그
-  void _showAudioPlayerDialog(CallHistoryModel call) {
-    if (call.recordingUrl == null || call.recordingUrl!.isEmpty) {
-      if (kDebugMode) {
-        debugPrint('❌ 녹음 파일 URL이 없습니다');
-      }
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('녹음 파일을 찾을 수 없습니다'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    if (kDebugMode) {
-      debugPrint('🎵 녹음 파일 재생 다이얼로그 열기');
-      debugPrint('  - URL: ${call.recordingUrl}');
-      debugPrint('  - 통화 시간: ${call.billsec}초');
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => AudioPlayerDialog(
-        audioUrl: call.recordingUrl!,
-        title: call.contactName ?? call.phoneNumber,
-      ),
     );
   }
 
