@@ -552,17 +552,17 @@ class DCMIWSService {
         debugPrint('  - Linkedid: $linkedid');
       }
       
-      // 최근 5분 이내의 클릭투콜 통화 기록 조회
+      // 최근 10분 이내의 클릭투콜 통화 기록 조회 (5분 → 10분으로 확장)
       // ⚠️ Firebase Console에서 복합 인덱스 생성 필요
       // 인덱스 URL: https://console.firebase.google.com/v1/r/project/makecallio/firestore/indexes
-      final fiveMinutesAgo = DateTime.now().subtract(const Duration(minutes: 5));
+      final tenMinutesAgo = DateTime.now().subtract(const Duration(minutes: 10));
       final querySnapshot = await firestore
           .collection('call_history')
           .where('userId', isEqualTo: userId)
           .where('callType', isEqualTo: 'outgoing')
           .where('callMethod', isEqualTo: 'extension')
           .orderBy('callTime', descending: true)
-          .limit(10)
+          .limit(20)  // 10 → 20으로 증가
           .get();
       
       if (kDebugMode) {
@@ -583,8 +583,8 @@ class DCMIWSService {
           debugPrint('     - Linkedid 존재: ${existingLinkedId != null}');
         }
         
-        // 기본 조건: 5분 이내 && linkedid가 없음
-        bool isMatch = callTime.isAfter(fiveMinutesAgo) && existingLinkedId == null;
+        // 기본 조건: 10분 이내 && linkedid가 없음 (5분 → 10분으로 확장)
+        bool isMatch = callTime.isAfter(tenMinutesAgo) && existingLinkedId == null;
         
         // callee가 있으면 추가로 번호 매칭 확인
         if (isMatch && normalizedCallee != null && phoneNumber != null) {
@@ -636,13 +636,18 @@ class DCMIWSService {
       
       if (kDebugMode) {
         debugPrint('⚠️ 조건에 맞는 클릭투콜 기록을 찾을 수 없습니다');
-        debugPrint('   - 최근 5분 이내');
+        debugPrint('   - 최근 10분 이내 (확장됨: 5분 → 10분)');
         debugPrint('   - linkedid가 없음');
         if (normalizedCallee != null) {
           debugPrint('   - phoneNumber == $normalizedCallee');
         } else {
           debugPrint('   - phoneNumber 매칭: 건너뜀 (callee 정보 없음)');
         }
+        debugPrint('');
+        debugPrint('💡 Linkedid 누락 방지 팁:');
+        debugPrint('   1. WebSocket 연결 상태 확인');
+        debugPrint('   2. 통화 기록이 Firestore에 정상 저장되었는지 확인');
+        debugPrint('   3. Newchannel 이벤트가 정상 수신되는지 확인');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -678,15 +683,15 @@ class DCMIWSService {
         debugPrint('  - Linkedid: $linkedid');
       }
       
-      // 최근 5분 이내의 클릭투콜 통화 기록 조회
-      final fiveMinutesAgo = DateTime.now().subtract(const Duration(minutes: 5));
+      // 최근 10분 이내의 클릭투콜 통화 기록 조회 (5분 → 10분으로 확장)
+      final tenMinutesAgo = DateTime.now().subtract(const Duration(minutes: 10));
       final querySnapshot = await firestore
           .collection('call_history')
           .where('userId', isEqualTo: userId)
           .where('callType', isEqualTo: 'outgoing')
           .where('callMethod', isEqualTo: 'extension')
           .orderBy('callTime', descending: true)
-          .limit(10)
+          .limit(20)  // 10 → 20으로 증가
           .get();
       
       if (kDebugMode) {
@@ -708,13 +713,17 @@ class DCMIWSService {
           debugPrint('     - Linkedid 존재: ${existingLinkedId != null}');
         }
         
-        // 조건: 5분 이내 && linkedid가 없음 && extensionUsed와 exten 일치
-        final isMatch = callTime.isAfter(fiveMinutesAgo) && 
-                        existingLinkedId == null &&
-                        extensionUsed == exten;
+        // 조건: 10분 이내 && linkedid가 없음 && extensionUsed와 exten 일치
+        final isTimeMatch = callTime.isAfter(tenMinutesAgo);
+        final isLinkedIdEmpty = existingLinkedId == null;
+        final isExtensionMatch = extensionUsed == exten;
+        final isMatch = isTimeMatch && isLinkedIdEmpty && isExtensionMatch;
         
         if (kDebugMode) {
-          debugPrint('     - 매칭 결과: ${isMatch ? "✅" : "❌"}');
+          debugPrint('     - 시간 조건 (10분 이내): ${isTimeMatch ? "✅" : "❌"}');
+          debugPrint('     - Linkedid 없음: ${isLinkedIdEmpty ? "✅" : "❌"}');
+          debugPrint('     - 단말번호 일치 ($exten == $extensionUsed): ${isExtensionMatch ? "✅" : "❌"}');
+          debugPrint('     - 최종 매칭: ${isMatch ? "✅ 매칭 성공!" : "❌ 매칭 실패"}');
         }
         
         if (isMatch) {
