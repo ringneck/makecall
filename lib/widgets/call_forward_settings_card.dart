@@ -185,9 +185,18 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
         diversionType: 'CFI',
       );
 
-      // 조회된 착신번호가 없으면 기본값 사용
+      // 🔥 CRITICAL FIX: WebSocket 조회 결과가 없을 때 DB 값 유지
+      // 조회된 착신번호가 없으면 현재 값 유지 (DB에서 로드한 값)
       if (destination == null || destination.isEmpty) {
-        destination = '00000000000';
+        // 현재 값이 기본값이면 기본값 유지, 아니면 DB 값 유지
+        if (_destination == '00000000000') {
+          destination = '00000000000';
+        } else {
+          destination = _destination; // DB에서 로드한 값 유지
+          if (kDebugMode) {
+            debugPrint('⚠️ WebSocket 조회 실패 - DB 저장 값 유지: $_destination');
+          }
+        }
       }
 
       if (mounted) {
@@ -198,20 +207,38 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
           _errorMessage = null;
         });
 
-        // DB에 저장
-        await _saveToDatabase();
+        // DB에 저장 (WebSocket 조회 성공 시에만)
+        if (destination != _destination || enabled != _isEnabled) {
+          await _saveToDatabase();
+          if (kDebugMode) {
+            debugPrint('💾 WebSocket 조회 결과를 DB에 저장: enabled=$enabled, destination=$destination');
+          }
+        }
       }
 
       if (kDebugMode) {
-        debugPrint('✅ CallForwardSettings: Enabled=$enabled, Destination=$destination');
+        debugPrint('');
+        debugPrint('📡 ========== WebSocket 착신전환 조회 완료 ==========');
+        debugPrint('   📱 단말번호: ${widget.extension.extension}');
+        debugPrint('   🔄 착신전환 활성화: $enabled');
+        debugPrint('   ➡️  착신번호: $destination');
+        debugPrint('   💾 DB 저장 여부: ${destination != _destination || enabled != _isEnabled ? "예" : "아니오 (변경 없음)"}');
+        debugPrint('================================================');
+        debugPrint('');
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ CallForwardSettings: Failed to fetch - $e');
+        debugPrint('');
+        debugPrint('❌ ========== WebSocket 조회 실패 ==========');
+        debugPrint('   📱 단말번호: ${widget.extension.extension}');
+        debugPrint('   ⚠️  오류: $e');
+        debugPrint('   💡 DB 저장 값 유지: enabled=$_isEnabled, destination=$_destination');
+        debugPrint('================================================');
+        debugPrint('');
       }
       if (mounted) {
         setState(() {
-          _errorMessage = '착신번호 조회 실패';
+          _errorMessage = '착신번호 조회 실패 (DB 값 유지)';
         });
       }
     }
