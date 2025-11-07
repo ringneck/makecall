@@ -2144,6 +2144,7 @@ class _CallTabState extends State<CallTab> {
     if (kDebugMode) {
       debugPrint('');
       debugPrint('📞 통화 상세 다이얼로그 요청');
+      debugPrint('  - 문서 ID: ${call.id}');  // 🔥 추가: 문서 ID 출력
       debugPrint('  - 전화번호: ${call.phoneNumber}');
       debugPrint('  - 통화 타입: ${call.callType}');
       debugPrint('  - 통화 시간: ${call.callTime}');

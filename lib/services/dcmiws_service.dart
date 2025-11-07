@@ -589,31 +589,38 @@ class DCMIWSService {
         }
         
         if (isMatch) {
-          // linkedid 업데이트
-          await doc.reference.update({
-            'linkedid': linkedid,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+          // 🔥 NEW APPROACH: 기존 문서 삭제 후 linkedid를 포함한 새 문서 생성
+          // Linkedid는 통화 시작부터 끝까지 동일하므로 업데이트가 아닌 최초 생성 시 포함해야 함
           
-          // 🔍 업데이트 후 실제 저장 확인
-          final updatedDoc = await doc.reference.get();
-          final updatedData = updatedDoc.data();
-          final savedLinkedId = updatedData?['linkedid'] as String?;
+          // 1. 기존 문서의 모든 데이터 복사
+          final newDocData = Map<String, dynamic>.from(data);
+          
+          // 2. linkedid 추가
+          newDocData['linkedid'] = linkedid;
+          newDocData['updatedAt'] = FieldValue.serverTimestamp();
+          
+          // 3. 기존 문서 삭제
+          await doc.reference.delete();
+          
+          // 4. linkedid를 포함한 새 문서 생성
+          await firestore
+              .collection('call_history')
+              .add(newDocData);
           
           if (kDebugMode) {
             debugPrint('');
-            debugPrint('✅ 클릭투콜 통화 기록에 linkedid 저장 완료!');
-            debugPrint('  - 문서 ID: ${doc.id}');
-            debugPrint('  - 저장한 Linkedid: $linkedid');
-            debugPrint('  - 실제 저장된 Linkedid: $savedLinkedId');
-            debugPrint('  - 저장 확인: ${savedLinkedId == linkedid ? "✅ 성공" : "❌ 불일치"}');
+            debugPrint('✅ 클릭투콜 통화 기록 재생성 완료! (Linkedid 포함)');
+            debugPrint('  - 기존 문서 ID (삭제됨): ${doc.id}');
+            debugPrint('  - Linkedid: $linkedid');
             debugPrint('  - 발신번호 (callee): $phoneNumber');
             debugPrint('  - 통화 시간: $callTime');
-            debugPrint('  → 통화 상세 페이지에서 CDR 정보를 조회할 수 있습니다');
+            debugPrint('  - 착신전환 활성화: ${data['callForwardEnabled'] ?? false}');
+            debugPrint('  - 착신전환 목적지: ${data['callForwardDestination'] ?? "없음"}');
+            debugPrint('  → Linkedid는 최초 생성 시 포함되어 업데이트 불필요');
             debugPrint('');
           }
           
-          return; // 첫 번째 매칭 기록만 업데이트
+          return; // 첫 번째 매칭 기록만 처리
         }
       }
       
@@ -701,32 +708,39 @@ class DCMIWSService {
         }
         
         if (isMatch) {
-          // linkedid 업데이트
-          await doc.reference.update({
-            'linkedid': linkedid,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+          // 🔥 NEW APPROACH: 기존 문서 삭제 후 linkedid를 포함한 새 문서 생성
+          // Linkedid는 통화 시작부터 끝까지 동일하므로 업데이트가 아닌 최초 생성 시 포함해야 함
           
-          // 업데이트 후 실제 저장 확인
-          final updatedDoc = await doc.reference.get();
-          final updatedData = updatedDoc.data();
-          final savedLinkedId = updatedData?['linkedid'] as String?;
+          // 1. 기존 문서의 모든 데이터 복사
+          final newDocData = Map<String, dynamic>.from(data);
+          
+          // 2. linkedid 추가
+          newDocData['linkedid'] = linkedid;
+          newDocData['updatedAt'] = FieldValue.serverTimestamp();
+          
+          // 3. 기존 문서 삭제
+          await doc.reference.delete();
+          
+          // 4. linkedid를 포함한 새 문서 생성
+          await firestore
+              .collection('call_history')
+              .add(newDocData);
           
           if (kDebugMode) {
             debugPrint('');
-            debugPrint('✅ 클릭투콜 Linkedid 저장 완료! (Newchannel)');
-            debugPrint('  - 문서 ID: ${doc.id}');
-            debugPrint('  - 저장한 Linkedid: $linkedid');
-            debugPrint('  - 실제 저장된 Linkedid: $savedLinkedId');
-            debugPrint('  - 저장 확인: ${savedLinkedId == linkedid ? "✅ 성공" : "❌ 불일치"}');
+            debugPrint('✅ 클릭투콜 통화 기록 재생성 완료! (Linkedid 포함)');
+            debugPrint('  - 기존 문서 ID (삭제됨): ${doc.id}');
+            debugPrint('  - Linkedid: $linkedid');
             debugPrint('  - 단말번호: $extensionUsed');
             debugPrint('  - 발신번호: $phoneNumber');
             debugPrint('  - 통화 시간: $callTime');
-            debugPrint('  → 통화 상세 페이지에서 CDR 조회 가능');
+            debugPrint('  - 착신전환 활성화: ${data['callForwardEnabled'] ?? false}');
+            debugPrint('  - 착신전환 목적지: ${data['callForwardDestination'] ?? "없음"}');
+            debugPrint('  → Linkedid는 최초 생성 시 포함되어 업데이트 불필요');
             debugPrint('');
           }
           
-          return; // 첫 번째 매칭 기록만 업데이트
+          return; // 첫 번째 매칭 기록만 처리
         }
       }
       
