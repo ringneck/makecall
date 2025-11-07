@@ -599,6 +599,24 @@ class DCMIWSService {
         }
         
         if (isMatch) {
+          // 🚨 중복 처리 방지: 동일한 linkedid가 이미 있는지 재확인
+          final duplicateCheck = await firestore
+              .collection('call_history')
+              .where('userId', isEqualTo: userId)
+              .where('linkedid', isEqualTo: linkedid)
+              .limit(1)
+              .get();
+          
+          if (duplicateCheck.docs.isNotEmpty) {
+            if (kDebugMode) {
+              debugPrint('⚠️ 이미 동일한 Linkedid로 처리된 기록이 있습니다');
+              debugPrint('  - Linkedid: $linkedid');
+              debugPrint('  - 기존 문서 ID: ${duplicateCheck.docs.first.id}');
+              debugPrint('  → 중복 처리 방지를 위해 건너뜁니다');
+            }
+            return;
+          }
+          
           // 🔥 NEW APPROACH: 기존 문서 삭제 후 linkedid를 포함한 새 문서 생성
           // Linkedid는 통화 시작부터 끝까지 동일하므로 업데이트가 아닌 최초 생성 시 포함해야 함
           
