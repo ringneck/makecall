@@ -4,7 +4,7 @@ module.exports = {
     node: true,
   },
   parserOptions: {
-    ecmaVersion: 2018,
+    ecmaVersion: 2022, // Optional chaining, nullish coalescing 지원
   },
   extends: [
     "eslint:recommended",
