@@ -122,7 +122,17 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
         }
       }
       
-      await _audioPlayer.pause();
+      // ⚠️ 확실하게 pause 호출 (타임아웃 후에도)
+      try {
+        await _audioPlayer.pause();
+        if (kDebugMode) {
+          debugPrint('✅ 오디오 일시정지 완료');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('⚠️ Pause 실패 (무시): $e');
+        }
+      }
       
       // Duration 로드 실패 시에도 seek는 시도 (에러 무시)
       try {
@@ -405,8 +415,8 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
                 value: _position.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()),
                 min: 0.0,
                 max: _duration.inSeconds.toDouble() > 0 ? _duration.inSeconds.toDouble() : 1.0,
-                onChanged: (_isLoading || _error != null) 
-                    ? null  // 로딩 중이거나 에러 시에만 비활성화 (duration 조건 제거)
+                onChanged: (_isLoading || _error != null || _duration.inSeconds == 0) 
+                    ? null  // 로딩 중, 에러, 또는 duration이 0이면 비활성화
                     : _seekTo,
               ),
             ),
