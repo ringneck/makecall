@@ -8,8 +8,8 @@
 
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const {logger} = require("firebase-functions/v2/logger");
 const admin = require("firebase-admin");
-const {logger} = require("firebase-functions/v2");
 
 // Firebase Admin 초기화
 admin.initializeApp();
