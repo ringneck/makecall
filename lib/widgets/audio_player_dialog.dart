@@ -104,56 +104,47 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
       // 오디오 소스 설정
       await _audioPlayer.setSourceUrl(widget.audioUrl);
 
-      // Duration을 가져오기 위해 잠깐 재생했다가 즉시 일시정지
+      // Duration을 가져오기 위해 짧게 재생 시도
       await _audioPlayer.play(UrlSource(widget.audioUrl));
       
       // ⚠️ Duration이 실제로 설정될 때까지 기다림 (onDurationChanged 리스너가 완료 신호)
-      // 최대 10초 타임아웃 (네트워크 느린 경우 대비)
+      // 최대 3초 타임아웃 (빠른 실패)
       bool durationLoaded = true;
       try {
         await _durationCompleter!.future.timeout(
-          const Duration(seconds: 10),
+          const Duration(seconds: 3),
         );
-      } catch (e) {
-        durationLoaded = false;
-        if (kDebugMode) {
-          debugPrint('⚠️ Duration 로딩 타임아웃 (10초)');
-          debugPrint('   → 재생 시작하면 duration이 자동으로 설정됩니다');
-        }
-      }
-      
-      // ⚠️ 확실하게 pause 호출 (타임아웃 후에도)
-      try {
+        
+        // Duration 로드 성공 → 즉시 일시정지
         await _audioPlayer.pause();
-        if (kDebugMode) {
-          debugPrint('✅ 오디오 일시정지 완료');
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('⚠️ Pause 실패 (무시): $e');
-        }
-      }
-      
-      // Duration 로드 실패 시에도 seek는 시도 (에러 무시)
-      try {
         await _audioPlayer.seek(Duration.zero);
-      } catch (e) {
+        
         if (kDebugMode) {
-          debugPrint('⚠️ Seek 실패 (무시): $e');
-        }
-      }
-
-      if (kDebugMode) {
-        if (durationLoaded) {
           debugPrint('✅ 오디오 로딩 완료');
           debugPrint('   Duration: ${_duration.inSeconds}초');
-        } else {
-          debugPrint('⚠️ 오디오 로딩 완료 (Duration 대기 중)');
-          debugPrint('   → 재생 시작 후 duration이 업데이트됩니다');
+        }
+      } catch (e) {
+        // Duration 로드 실패 → 즉시 정지
+        durationLoaded = false;
+        
+        try {
+          await _audioPlayer.stop();
+          if (kDebugMode) {
+            debugPrint('⚠️ Duration 로딩 타임아웃 (3초) → 오디오 정지');
+          }
+        } catch (stopError) {
+          if (kDebugMode) {
+            debugPrint('⚠️ Stop 실패: $stopError');
+          }
+        }
+        
+        if (kDebugMode) {
+          debugPrint('⚠️ 오디오 로딩 완료 (Duration 없음)');
+          debugPrint('   → 재생 버튼을 누르면 자동으로 duration이 설정됩니다');
         }
       }
 
-      // Duration 로드 실패 시 로딩 상태 해제 (onDurationChanged에서 처리 안 되므로)
+      // Duration 로드 실패 시 로딩 상태 해제
       if (!durationLoaded && mounted) {
         setState(() {
           _isLoading = false;
