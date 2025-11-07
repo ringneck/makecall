@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// 현대적이고 깔끔한 오디오 플레이어 다이얼로그
 class AudioPlayerDialog extends StatefulWidget {
@@ -95,8 +97,16 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
         _isLoading = false;
       });
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 오디오 재생 오류: $e');
+        debugPrint('   오디오 URL: ${widget.audioUrl}');
+      }
+      
       setState(() {
-        _error = '오디오 파일을 불러올 수 없습니다\n$e';
+        // WAV 파일은 웹 브라우저에서 재생이 제한될 수 있음
+        _error = '오디오 파일을 재생할 수 없습니다\n\n'
+                'WAV 파일은 일부 브라우저에서 재생이 제한됩니다.\n'
+                '다운로드하여 재생하시거나 다른 브라우저를 시도해보세요.';
         _isLoading = false;
       });
     }
@@ -230,36 +240,62 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
   Widget _buildContent() {
     if (_error != null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.error_outline,
-                size: 40,
-                color: Colors.white70,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 40,
+                  color: Colors.white70,
                 ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _loadAudio,
-                icon: const Icon(Icons.refresh),
-                label: const Text('다시 시도'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF1e3c72),
+                const SizedBox(height: 12),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _loadAudio,
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('다시 시도'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF1e3c72),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        // URL로 새 탭에서 열기 (다운로드)
+                        final uri = Uri.parse(widget.audioUrl);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('다운로드'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF1e3c72),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       );
