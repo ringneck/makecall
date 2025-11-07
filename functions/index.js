@@ -15,7 +15,6 @@
 
 const {onDocumentCreated, onDocumentUpdated} = require("firebase-functions/v2/firestore");
 const {onCall, HttpsError, onRequest} = require("firebase-functions/v2/https");
-const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {logger} = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
@@ -263,39 +262,69 @@ exports.remoteLogout = onCall(
 );
 
 // ============================================================================
-// 3. 만료된 FCM 토큰 정리 (스케줄 함수로 개선)
+// 3. 만료된 FCM 토큰 정리 (Callable Function으로 변경)
 // ============================================================================
 
 /**
- * 만료된 FCM 토큰 정리 (스케줄 함수)
+ * 만료된 FCM 토큰 정리 함수
  *
- * 매일 자정에 자동 실행되어 30일 이상 사용되지 않은 FCM 토큰을 삭제합니다.
+ * Cloud Scheduler 권한 문제로 인해 Scheduled Function에서 Callable Function으로 변경
+ * 외부 크론 서비스(예: GitHub Actions, Cloud Run Jobs)에서 주기적으로 호출 가능
+ *
+ * @param {Object} data - 요청 데이터
+ * @param {number} data.daysThreshold - 토큰 만료 기준 일수 (기본값: 30)
+ * @param {boolean} data.testMode - 테스트 모드 (삭제하지 않고 개수만 반환)
+ * @return {Promise<Object>} 결과 객체
  */
-exports.cleanupExpiredTokens = onSchedule(
-    {
-      schedule: "0 0 * * *", // 매일 자정 (KST)
-      timeZone: "Asia/Seoul",
-      region: "asia-east1",
-    },
-    async (event) => {
+exports.cleanupExpiredTokens = onCall(
+    {region: "asia-east1"},
+    async (request) => {
+      const {data, auth} = request;
+
+      // 인증 확인 (선택적 - 공개 엔드포인트로 사용하려면 제거)
+      if (!auth) {
+        logger.warn("⚠️  인증되지 않은 요청으로 토큰 정리 실행");
+      }
+
       logger.info("=".repeat(60));
-      logger.info("🧹 만료된 FCM 토큰 정리 시작 (자동)");
+      logger.info("🧹 만료된 FCM 토큰 정리 시작");
       logger.info("=".repeat(60));
 
       try {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const daysThreshold = data?.daysThreshold || 30;
+        const testMode = data?.testMode || false;
+
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() - daysThreshold);
+
+        logger.info(`기준 날짜: ${expiryDate.toISOString()}`);
+        logger.info(`테스트 모드: ${testMode}`);
 
         const expiredTokens = await admin.firestore()
             .collection("fcm_tokens")
-            .where("lastActiveAt", "<", admin.firestore.Timestamp.fromDate(thirtyDaysAgo))
+            .where("lastActiveAt", "<", admin.firestore.Timestamp.fromDate(expiryDate))
             .get();
 
         logger.info(`발견된 만료 토큰: ${expiredTokens.size}개`);
 
         if (expiredTokens.empty) {
           logger.info("✅ 만료된 토큰이 없습니다.");
-          return;
+          return {
+            success: true,
+            deletedCount: 0,
+            totalTokens: 0,
+            testMode: testMode,
+          };
+        }
+
+        if (testMode) {
+          logger.info("⚠️  테스트 모드: 삭제하지 않음");
+          return {
+            success: true,
+            deletedCount: 0,
+            totalTokens: expiredTokens.size,
+            testMode: true,
+          };
         }
 
         // 배치 삭제 (500개씩)
@@ -319,14 +348,23 @@ exports.cleanupExpiredTokens = onSchedule(
 
         logger.info(`✅ ${expiredTokens.size}개의 만료된 토큰 삭제 완료`);
         logger.info("=".repeat(60));
+
+        return {
+          success: true,
+          deletedCount: expiredTokens.size,
+          totalTokens: expiredTokens.size,
+          testMode: false,
+        };
       } catch (error) {
         logger.error("❌ 토큰 정리 실패:", error);
+        throw new HttpsError("internal", `토큰 정리 실패: ${error.message}`);
       }
     },
 );
 
 /**
- * 수동 토큰 정리 함수 (관리자용)
+ * 수동 토큰 정리 함수 (별칭 - cleanupExpiredTokens와 동일)
+ * 기존 코드 호환성을 위해 유지
  */
 exports.manualCleanupTokens = onCall(
     {region: "asia-east1"},
@@ -685,22 +723,37 @@ exports.sendGroupMessage = onCall(
 );
 
 // ============================================================================
-// 7. 예약 알림 전송 (스케줄 함수)
+// 7. 예약 알림 전송 (Callable Function으로 변경)
 // ============================================================================
 
 /**
- * 예약 알림 처리 (매분 실행)
+ * 예약 알림 처리 함수
+ *
+ * Cloud Scheduler 권한 문제로 인해 Scheduled Function에서 Callable Function으로 변경
+ * 외부 크론 서비스(예: GitHub Actions, Cloud Run Jobs)에서 주기적으로 호출 가능
  *
  * scheduled_notifications 컬렉션을 확인하여 예약된 알림을 전송합니다.
+ *
+ * @param {Object} data - 요청 데이터
+ * @param {number} data.limit - 한 번에 처리할 알림 개수 (기본값: 100)
+ * @return {Promise<Object>} 처리 결과
  */
-exports.processScheduledNotifications = onSchedule(
-    {
-      schedule: "* * * * *", // 매분 실행
-      timeZone: "Asia/Seoul",
-      region: "asia-east1",
-    },
-    async (event) => {
+exports.processScheduledNotifications = onCall(
+    {region: "asia-east1"},
+    async (request) => {
+      const {data, auth} = request;
+
+      // 인증 확인 (선택적 - 공개 엔드포인트로 사용하려면 제거)
+      if (!auth) {
+        logger.warn("⚠️  인증되지 않은 요청으로 예약 알림 처리 실행");
+      }
+
+      logger.info("=".repeat(60));
+      logger.info("📅 예약 알림 처리 시작");
+      logger.info("=".repeat(60));
+
       const now = admin.firestore.Timestamp.now();
+      const limit = data?.limit || 100;
 
       try {
         // 전송 시각이 지난 미처리 알림 조회
@@ -708,16 +761,23 @@ exports.processScheduledNotifications = onSchedule(
             .collection("scheduled_notifications")
             .where("scheduledAt", "<=", now)
             .where("processed", "==", false)
-            .limit(100)
+            .limit(limit)
             .get();
 
         if (scheduledNotifs.empty) {
-          return;
+          logger.info("✅ 처리할 예약 알림이 없습니다.");
+          return {
+            success: true,
+            processedCount: 0,
+            totalFound: 0,
+          };
         }
 
-        logger.info(`📅 예약 알림 ${scheduledNotifs.size}개 처리 시작`);
+        logger.info(`발견된 예약 알림: ${scheduledNotifs.size}개`);
 
         const batch = admin.firestore().batch();
+        let successCount = 0;
+        let failureCount = 0;
 
         for (const doc of scheduledNotifs.docs) {
           const notifData = doc.data();
@@ -752,6 +812,7 @@ exports.processScheduledNotifications = onSchedule(
 
               await admin.messaging().sendEachForMulticast(message);
               logger.info(`✅ 예약 알림 전송: ${doc.id}`);
+              successCount++;
             }
 
             // 처리 완료 표시
@@ -761,6 +822,7 @@ exports.processScheduledNotifications = onSchedule(
             });
           } catch (error) {
             logger.error(`❌ 예약 알림 전송 실패 (${doc.id}):`, error);
+            failureCount++;
 
             // 에러 정보 저장
             batch.update(doc.ref, {
@@ -772,9 +834,19 @@ exports.processScheduledNotifications = onSchedule(
         }
 
         await batch.commit();
-        logger.info(`✅ 예약 알림 처리 완료: ${scheduledNotifs.size}개`);
+        logger.info(`✅ 예약 알림 처리 완료 - 성공: ${successCount}, 실패: ${failureCount}`);
+        logger.info("=".repeat(60));
+
+        return {
+          success: true,
+          processedCount: scheduledNotifs.size,
+          totalFound: scheduledNotifs.size,
+          successCount: successCount,
+          failureCount: failureCount,
+        };
       } catch (error) {
         logger.error("❌ 예약 알림 처리 실패:", error);
+        throw new HttpsError("internal", `예약 알림 처리 실패: ${error.message}`);
       }
     },
 );
