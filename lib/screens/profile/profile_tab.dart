@@ -847,6 +847,18 @@ class _ProfileTabState extends State<ProfileTab> {
       final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
       final maxExtensions = authService.currentUserModel?.maxExtensions ?? 1;
       
+      if (kDebugMode) {
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        debugPrint('🔍 maxExtensions 제한 체크');
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        debugPrint('📊 UserModel 존재: ${authService.currentUserModel != null}');
+        debugPrint('📊 현재 등록된 단말번호 개수: ${currentMyExtensions.length}');
+        debugPrint('📊 등록된 단말번호 목록: $currentMyExtensions');
+        debugPrint('📊 최대 등록 가능 개수: $maxExtensions');
+        debugPrint('📊 비교 결과: ${currentMyExtensions.length} >= $maxExtensions = ${currentMyExtensions.length >= maxExtensions}');
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      }
+      
       if (currentMyExtensions.length >= maxExtensions) {
         if (kDebugMode) {
           debugPrint('❌ 단말번호 등록 한도 초과: 현재 ${currentMyExtensions.length}개, 최대 $maxExtensions개');

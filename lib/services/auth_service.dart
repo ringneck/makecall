@@ -63,8 +63,17 @@ class AuthService extends ChangeNotifier {
           debugPrint('   📦 Firestore Raw Data:');
           debugPrint('      - 전체 필드 개수: ${data.keys.length}');
           debugPrint('      - 필드 목록: ${data.keys.toList()}');
+          debugPrint('      - maxExtensions (raw): ${data['maxExtensions']}');
+          debugPrint('      - myExtensions (raw): ${data['myExtensions']}');
         }
         _currentUserModel = UserModel.fromMap(data, uid);
+        
+        if (kDebugMode) {
+          debugPrint('   ✅ UserModel 생성 완료:');
+          debugPrint('      - maxExtensions: ${_currentUserModel?.maxExtensions}');
+          debugPrint('      - myExtensions: ${_currentUserModel?.myExtensions}');
+          debugPrint('      - myExtensions length: ${_currentUserModel?.myExtensions?.length ?? 0}');
+        }
         
         // 계정 저장 (비밀번호 포함)
         await _accountManager.saveAccount(_currentUserModel!, password: password ?? _tempPassword);
@@ -316,6 +325,8 @@ class AuthService extends ChangeNotifier {
           debugPrint('      - websocketServerUrl: ${data['websocketServerUrl'] ?? "(없음)"}');
           debugPrint('      - websocketServerPort: ${data['websocketServerPort'] ?? "(없음)"}');
           debugPrint('      - websocketUseSSL: ${data['websocketUseSSL'] ?? "(없음)"}');
+          debugPrint('      - maxExtensions: ${data['maxExtensions'] ?? 1}');
+          debugPrint('      - myExtensions: ${data['myExtensions'] ?? []}');
           debugPrint('');
           debugPrint('   ✅ Firestore 데이터 확인 완료 - 이 데이터는 로그아웃 후에도 유지됩니다');
         } else {
