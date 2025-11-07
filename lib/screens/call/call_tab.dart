@@ -14,8 +14,7 @@ import 'dialpad_screen.dart';
 import 'phonebook_tab.dart';
 import '../../widgets/call_method_dialog.dart';
 import '../../widgets/add_contact_dialog.dart';
-// ⚠️ 주석 처리: 통화상세 조회 기능 비활성화
-// import '../../widgets/call_detail_dialog.dart';
+import '../../widgets/call_detail_dialog.dart';
 import '../../widgets/profile_drawer.dart';
 import '../../widgets/extension_drawer.dart';
 
@@ -858,9 +857,7 @@ class _CallTabState extends State<CallTab> {
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                // ⚠️ 주석 처리: 통화상세 조회 기능 비활성화
-                // onTap: () => _showCallDetailDialog(call), // 통화 상세 다이얼로그
-                onTap: null, // 클릭 비활성화
+                onTap: () => _showCallDetailDialog(call), // 통화 상세 다이얼로그
                 // 🎨 컬러풀한 아이콘 (원형 배경)
                 leading: Container(
                   width: 48,
@@ -2107,8 +2104,6 @@ class _CallTabState extends State<CallTab> {
 
   /// 최근통화에서 연락처 추가 다이얼로그
   /// 통화 상세 내역 다이얼로그 표시
-  /// ⚠️ 주석 처리: 통화상세 조회 기능 비활성화
-  /*
   Future<void> _showCallDetailDialog(CallHistoryModel call) async {
     // 🔍 디버그: 통화 기록 정보 확인
     if (kDebugMode) {
@@ -2149,7 +2144,6 @@ class _CallTabState extends State<CallTab> {
       builder: (context) => CallDetailDialog(linkedid: call.linkedid!),
     );
   }
-  */
 
   void _showAddContactFromCallDialog(CallHistoryModel call) {
     final userId = context.read<AuthService>().currentUser?.uid ?? '';
