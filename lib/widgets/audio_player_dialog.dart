@@ -107,6 +107,14 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
 
   Future<void> _togglePlayPause() async {
     try {
+      // 오디오가 로드되지 않았거나 에러 상태면 재생하지 않음
+      if (_isLoading || _error != null || _duration.inMilliseconds == 0) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 재생 건너뛰기: 오디오 준비되지 않음');
+        }
+        return;
+      }
+      
       if (_isPlaying) {
         await _audioPlayer.pause();
       } else {
@@ -121,7 +129,23 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
 
   Future<void> _seekTo(double seconds) async {
     try {
-      await _audioPlayer.seek(Duration(seconds: seconds.toInt()));
+      // 오디오가 로드되지 않았거나 duration이 0이면 seek 하지 않음
+      if (_duration.inMilliseconds == 0 || _isLoading || _error != null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ Seek 건너뛰기: 오디오 준비되지 않음');
+        }
+        return;
+      }
+      
+      // Seek 범위를 duration 내로 제한
+      final seekDuration = Duration(seconds: seconds.toInt());
+      if (seekDuration > _duration) {
+        await _audioPlayer.seek(_duration);
+      } else if (seekDuration < Duration.zero) {
+        await _audioPlayer.seek(Duration.zero);
+      } else {
+        await _audioPlayer.seek(seekDuration);
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Seek 오류: $e');
@@ -315,7 +339,9 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
                 value: _position.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()),
                 min: 0.0,
                 max: _duration.inSeconds.toDouble() > 0 ? _duration.inSeconds.toDouble() : 1.0,
-                onChanged: _seekTo,
+                onChanged: (_isLoading || _error != null || _duration.inMilliseconds == 0) 
+                    ? null  // 오디오 준비 안 됐으면 Slider 비활성화
+                    : _seekTo,
               ),
             ),
           ],
@@ -331,11 +357,15 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
             IconButton(
               icon: const Icon(Icons.replay_10),
               iconSize: 32,
-              color: const Color(0xFF1e3c72),
-              onPressed: () {
-                final newPosition = _position - const Duration(seconds: 10);
-                _seekTo(newPosition.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()));
-              },
+              color: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+                  ? Colors.grey
+                  : const Color(0xFF1e3c72),
+              onPressed: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+                  ? null
+                  : () {
+                      final newPosition = _position - const Duration(seconds: 10);
+                      _seekTo(newPosition.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()));
+                    },
             ),
 
             const SizedBox(width: 16),
@@ -344,8 +374,10 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
             Container(
               width: 64,
               height: 64,
-              decoration: const BoxDecoration(
-                color: Color(0xFF1e3c72),
+              decoration: BoxDecoration(
+                color: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+                    ? Colors.grey
+                    : const Color(0xFF1e3c72),
                 shape: BoxShape.circle,
               ),
               child: IconButton(
@@ -354,7 +386,9 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
                   color: Colors.white,
                 ),
                 iconSize: 36,
-                onPressed: _togglePlayPause,
+                onPressed: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+                    ? null
+                    : _togglePlayPause,
               ),
             ),
 
@@ -364,11 +398,15 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
             IconButton(
               icon: const Icon(Icons.forward_10),
               iconSize: 32,
-              color: const Color(0xFF1e3c72),
-              onPressed: () {
-                final newPosition = _position + const Duration(seconds: 10);
-                _seekTo(newPosition.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()));
-              },
+              color: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+                  ? Colors.grey
+                  : const Color(0xFF1e3c72),
+              onPressed: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+                  ? null
+                  : () {
+                      final newPosition = _position + const Duration(seconds: 10);
+                      _seekTo(newPosition.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()));
+                    },
             ),
           ],
         ),
