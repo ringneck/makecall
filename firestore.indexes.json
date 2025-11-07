@@ -1,0 +1,31 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "call_history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "callMethod",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "callType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "extensionUsed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "callTime",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
