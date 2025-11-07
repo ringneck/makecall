@@ -21,7 +21,10 @@ admin.initializeApp();
  * 중복 로그인 감지 시 기존 기기에 강제 로그아웃 알림을 전송합니다.
  */
 exports.sendForceLogoutNotification = onDocumentCreated(
-    "fcm_force_logout_queue/{queueId}",
+    {
+      document: "fcm_force_logout_queue/{queueId}",
+      region: "asia-east1",
+    },
     async (event) => {
       const snapshot = event.data;
       if (!snapshot) {
