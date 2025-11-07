@@ -137,12 +137,31 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
         });
 
         if (kDebugMode) {
-          debugPrint('✅ Loaded from DB: enabled=$_isEnabled, destination=$_destination');
+          debugPrint('');
+          debugPrint('📂 ========== 착신전환 정보 DB 로드 ==========');
+          debugPrint('   📱 단말번호: ${widget.extension.extension}');
+          debugPrint('   🔄 착신전환 활성화: $_isEnabled');
+          debugPrint('   ➡️  착신번호: $_destination');
+          debugPrint('   📅 마지막 업데이트: $_lastUpdated');
+          debugPrint('   ✅ DB 로드 완료');
+          debugPrint('================================================');
+          debugPrint('');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('');
+          debugPrint('📂 ========== 착신전환 정보 DB 로드 ==========');
+          debugPrint('   📱 단말번호: ${widget.extension.extension}');
+          debugPrint('   ⚠️  저장된 정보 없음 - 기본값 사용');
+          debugPrint('   🔄 착신전환: 비활성화 (기본값)');
+          debugPrint('   ➡️  착신번호: 00000000000 (기본값)');
+          debugPrint('================================================');
+          debugPrint('');
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('⚠️ Failed to load from DB: $e');
+        debugPrint('❌ Failed to load from DB: $e');
       }
     }
   }
@@ -218,7 +237,16 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
       await _dbService.saveCallForwardInfo(info);
 
       if (kDebugMode) {
-        debugPrint('✅ Saved to DB: ${info.id}');
+        debugPrint('');
+        debugPrint('💾 ========== 착신전환 정보 DB 저장 ==========');
+        debugPrint('   📱 단말번호: ${widget.extension.extension}');
+        debugPrint('   🔄 착신전환 활성화: $_isEnabled');
+        debugPrint('   ➡️  착신번호: $_destination');
+        debugPrint('   🆔 문서 ID: ${info.id}');
+        debugPrint('   📅 저장 시간: ${info.lastUpdated}');
+        debugPrint('   ✅ Firestore 저장 완료');
+        debugPrint('================================================');
+        debugPrint('');
       }
     } catch (e) {
       if (kDebugMode) {

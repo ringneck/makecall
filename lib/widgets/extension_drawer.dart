@@ -175,12 +175,20 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                           context.read<SelectedExtensionProvider>().setSelectedExtension(
                                 extensions[_currentPage],
                               );
+                          
+                          // 🔥 CRITICAL FIX: 마지막 선택 정보가 없거나 첫 로그인 시에도 현재 단말번호 저장
+                          // 이렇게 하면 로그아웃 후 다시 로그인해도 같은 단말번호가 선택됨
+                          await _saveLastSelectedExtension(
+                            extensions[_currentPage].id, 
+                            extensions[_currentPage].extension,
+                          );
                         }
                         
                         if (kDebugMode) {
                           debugPrint('   ✅ Provider에 단말번호 설정 완료');
+                          debugPrint('   💾 마지막 선택 단말번호 저장 완료 (자동 저장)');
                           debugPrint('   🔑 Key: call_forward_${extensions[_currentPage].id}_${extensions[_currentPage].extension}');
-                          debugPrint('   💡 CallForwardSettingsCard가 이 key로 재생성됩니다');
+                          debugPrint('   💡 CallForwardSettingsCard가 이 key로 재생성되고 착신전환 정보를 로드합니다');
                           debugPrint('================================================');
                           debugPrint('');
                         }

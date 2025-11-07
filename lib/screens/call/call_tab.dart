@@ -1776,6 +1776,20 @@ class _CallTabState extends State<CallTab> {
       final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
       final forwardDestination = (callForwardInfo?.destinationNumber ?? '').trim();
 
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('💾 ========== 통화 기록 저장 (착신전환 정보 포함) ==========');
+        debugPrint('   📱 단말번호: ${selectedExtension.extension}');
+        debugPrint('   📞 발신 대상: $phoneNumber');
+        debugPrint('   🔄 착신전환 활성화: $isForwardEnabled');
+        debugPrint('   ➡️  착신전환 목적지: ${isForwardEnabled ? forwardDestination : "비활성화"}');
+        debugPrint('   📦 저장 데이터:');
+        debugPrint('      - callForwardEnabled: $isForwardEnabled');
+        debugPrint('      - callForwardDestination: ${(isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : "null"}');
+        debugPrint('========================================================');
+        debugPrint('');
+      }
+
       // 통화 기록 저장 (착신전환 정보 포함)
       await _databaseService.addCallHistory(
         CallHistoryModel(
