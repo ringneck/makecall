@@ -69,6 +69,9 @@ dependencies:
   package_info_plus: 8.1.2
   device_info_plus: 11.1.0  # Device information for session management
   webview_flutter: 4.13.0  # WebView for terms and privacy policy
+  
+  # Audio Player
+  audioplayers: ^6.1.0  # Audio playback for call recordings
 
 dev_dependencies:
   flutter_test:

@@ -718,9 +718,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         onTap: () async {
           // 통화 기록 저장
           await _saveCallHistory();
-          // 화면 닫기
+          // 화면 닫고 최근통화 탭으로 이동 (result: {'moveToTab': 0})
           if (mounted) {
-            Navigator.of(context).pop();
+            Navigator.of(context).pop({'moveToTab': 0}); // 0 = 최근통화 탭
           }
         },
         child: Column(

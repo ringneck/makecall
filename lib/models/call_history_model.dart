@@ -18,6 +18,8 @@ class CallHistoryModel {
   final String? status; // 통화 상태 (confirmed, device_answered, rejected, missed 등)
   final bool? callForwardEnabled; // 착신전환 활성화 여부 (클릭투콜 발신 시점)
   final String? callForwardDestination; // 착신전환 목적지 번호 (클릭투콜 발신 시점)
+  final int? billsec; // 통화 시간 (초) - CDR API의 billsec
+  final String? recordingUrl; // 녹음 파일 URL - CDR API의 recording_url
   
   CallHistoryModel({
     required this.id,
@@ -34,6 +36,8 @@ class CallHistoryModel {
     this.status,
     this.callForwardEnabled,
     this.callForwardDestination,
+    this.billsec,
+    this.recordingUrl,
   });
   
   factory CallHistoryModel.fromMap(Map<String, dynamic> map, String id) {
@@ -92,6 +96,8 @@ class CallHistoryModel {
       status: map['status'] as String?,
       callForwardEnabled: map['callForwardEnabled'] as bool?,
       callForwardDestination: map['callForwardDestination'] as String?,
+      billsec: map['billsec'] as int?,
+      recordingUrl: map['recordingUrl'] as String?,
     );
   }
   
@@ -110,6 +116,8 @@ class CallHistoryModel {
       if (status != null) 'status': status,
       if (callForwardEnabled != null) 'callForwardEnabled': callForwardEnabled,
       if (callForwardDestination != null) 'callForwardDestination': callForwardDestination,
+      if (billsec != null) 'billsec': billsec,
+      if (recordingUrl != null) 'recordingUrl': recordingUrl,
     };
   }
   
@@ -154,5 +162,10 @@ class CallHistoryModel {
     final minutes = duration! ~/ 60;
     final seconds = duration! % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+  
+  /// 녹음 파일 재생 가능 여부 (billsec >= 5초이고 recordingUrl 존재)
+  bool get hasRecording {
+    return billsec != null && billsec! >= 5 && recordingUrl != null && recordingUrl!.isNotEmpty;
   }
 }

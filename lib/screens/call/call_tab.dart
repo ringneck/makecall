@@ -15,6 +15,7 @@ import 'phonebook_tab.dart';
 import '../../widgets/call_method_dialog.dart';
 import '../../widgets/add_contact_dialog.dart';
 import '../../widgets/call_detail_dialog.dart';
+import '../../widgets/audio_player_dialog.dart';
 import '../../widgets/profile_drawer.dart';
 import '../../widgets/extension_drawer.dart';
 
@@ -1036,6 +1037,22 @@ class _CallTabState extends State<CallTab> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // 녹음 파일 재생 버튼 (billsec >= 5초이고 recordingUrl 존재 시)
+                    if (call.hasRecording) ...[
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.play_circle_filled, size: 20),
+                          color: Colors.purple[700],
+                          onPressed: () => _showAudioPlayerDialog(call),
+                          tooltip: '녹음 파일 재생',
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                    ],
                     // 연락처 추가 버튼
                     Container(
                       decoration: BoxDecoration(
@@ -2142,6 +2159,38 @@ class _CallTabState extends State<CallTab> {
     showDialog(
       context: context,
       builder: (context) => CallDetailDialog(linkedid: call.linkedid!),
+    );
+  }
+
+  /// 녹음 파일 재생 다이얼로그
+  void _showAudioPlayerDialog(CallHistoryModel call) {
+    if (call.recordingUrl == null || call.recordingUrl!.isEmpty) {
+      if (kDebugMode) {
+        debugPrint('❌ 녹음 파일 URL이 없습니다');
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('녹음 파일을 찾을 수 없습니다'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (kDebugMode) {
+      debugPrint('🎵 녹음 파일 재생 다이얼로그 열기');
+      debugPrint('  - URL: ${call.recordingUrl}');
+      debugPrint('  - 통화 시간: ${call.billsec}초');
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AudioPlayerDialog(
+        audioUrl: call.recordingUrl!,
+        title: call.contactName ?? call.phoneNumber,
+      ),
     );
   }
 
