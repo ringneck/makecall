@@ -9,6 +9,7 @@ import '../../services/api_service.dart';
 import '../../services/database_service.dart';
 import '../../models/my_extension_model.dart';
 import 'api_settings_dialog.dart';
+import 'active_sessions_screen.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -402,6 +403,26 @@ class _ProfileTabState extends State<ProfileTab> {
               showDialog(
                 context: context,
                 builder: (context) => const ApiSettingsDialog(),
+              );
+            },
+          ),
+          const Divider(),
+          
+          // 활성 세션 관리 (중복 로그인 방지)
+          ListTile(
+            leading: const Icon(Icons.devices, size: 22, color: Colors.orange),
+            title: const Text('활성 세션 관리', style: TextStyle(fontSize: 15)),
+            subtitle: const Text(
+              '로그인된 기기 확인 및 원격 로그아웃',
+              style: TextStyle(fontSize: 11),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ActiveSessionsScreen(),
+                ),
               );
             },
           ),
