@@ -30,17 +30,23 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
     super.dispose();
   }
 
-  // 마지막 선택된 단말번호 저장
-  Future<void> _saveLastSelectedExtension(String extensionId) async {
+  // 마지막 선택된 단말번호 저장 및 착신전환 정보 업데이트
+  Future<void> _saveLastSelectedExtension(String extensionId, String extensionNumber) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final authService = context.read<AuthService>();
       final userId = authService.currentUser?.uid ?? '';
       
       if (userId.isNotEmpty) {
+        // 1. 마지막 선택 단말번호 저장
         await prefs.setString('last_selected_extension_$userId', extensionId);
+        
+        // 2. 착신전환 정보도 DB에서 최신 상태로 로드 (CallForwardSettingsCard에서 자동 처리됨)
+        // CallForwardSettingsCard의 initState에서 자동으로 _loadFromDatabase() 호출
+        
         if (kDebugMode) {
-          debugPrint('💾 마지막 선택 단말번호 저장: $extensionId (user: $userId)');
+          debugPrint('💾 마지막 선택 단말번호 저장: $extensionId ($extensionNumber) (user: $userId)');
+          debugPrint('   ℹ️  착신전환 정보는 CallForwardSettingsCard에서 자동 로드됩니다');
         }
       }
     } catch (e) {
@@ -289,8 +295,11 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                                     extensions[newValue],
                                                   );
                                               
-                                              // 마지막 선택 단말번호 저장
-                                              _saveLastSelectedExtension(extensions[newValue].id);
+                                              // 마지막 선택 단말번호 저장 (착신전환 정보도 자동 업데이트됨)
+                                              _saveLastSelectedExtension(
+                                                extensions[newValue].id,
+                                                extensions[newValue].extension,
+                                              );
                                               
                                               if (kDebugMode) {
                                                 debugPrint('📄 Dropdown changed to index: $newValue');
