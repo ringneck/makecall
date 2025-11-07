@@ -1564,7 +1564,10 @@ class _CallTabState extends State<CallTab> {
     return phoneNumber.startsWith('*');
   }
 
-  void _showCallMethodDialog(String phoneNumber) {
+  /// 🔥 착신전환 상태를 확인하여 발신 방법 결정
+  /// - 착신전환 비활성화: 즉시 클릭투콜 실행
+  /// - 착신전환 활성화: 발신 방법 선택 다이얼로그 표시
+  Future<void> _showCallMethodDialog(String phoneNumber) async {
     // 기능번호는 다이얼로그 없이 바로 Click to Call
     if (_isFeatureCode(phoneNumber)) {
       if (kDebugMode) {
@@ -1583,6 +1586,54 @@ class _CallTabState extends State<CallTab> {
       }
       _handleFeatureCodeCall(phoneNumber);
       return;
+    }
+
+    // 🔍 착신전환 상태 확인 (현재 선택된 단말번호 기준)
+    try {
+      final userId = context.read<AuthService>().currentUser?.uid ?? '';
+      final selectedExtension = context.read<SelectedExtensionProvider>().selectedExtension;
+      
+      if (selectedExtension == null) {
+        throw Exception('선택된 단말번호가 없습니다.\n왼쪽 상단 프로필에서 단말번호를 등록해주세요.');
+      }
+
+      final callForwardInfo = await _databaseService
+          .getCallForwardInfoOnce(userId, selectedExtension.extension);
+      
+      final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
+
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('🔍 ========== 최근통화 발신 방법 결정 ==========');
+        debugPrint('   📞 발신 대상: $phoneNumber');
+        debugPrint('   📱 단말번호: ${selectedExtension.extension}');
+        debugPrint('   🔄 착신전환 상태: ${isForwardEnabled ? "활성화" : "비활성화"}');
+        if (isForwardEnabled) {
+          debugPrint('   ➡️  착신번호: ${callForwardInfo?.destinationNumber ?? "미설정"}');
+        }
+        debugPrint('================================================');
+        debugPrint('');
+      }
+
+      // 🎯 착신전환 비활성화 시: 즉시 클릭투콜 실행
+      if (!isForwardEnabled) {
+        if (kDebugMode) {
+          debugPrint('✅ 착신전환 비활성화 → 즉시 클릭투콜 실행');
+        }
+        _handleFeatureCodeCall(phoneNumber);
+        return;
+      }
+
+      // 🎯 착신전환 활성화 시: 발신 방법 선택 다이얼로그 표시
+      if (kDebugMode) {
+        debugPrint('⚠️  착신전환 활성화 → 발신 방법 선택 다이얼로그 표시');
+      }
+
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 착신전환 상태 확인 실패: $e');
+        debugPrint('   → 기본 동작: 발신 방법 선택 다이얼로그 표시');
+      }
     }
 
     // 일반 전화번호는 발신 방법 선택 다이얼로그 표시
