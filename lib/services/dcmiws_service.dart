@@ -742,21 +742,76 @@ class DCMIWSService {
         return;
       }
       
-      // ⚠️ 임시 저장소에 데이터가 없는 경우 (정상적이지 않은 상황)
-      // - API 호출 없이 직접 전화가 걸린 경우
-      // - 앱이 재시작되어 임시 저장소가 초기화된 경우
-      // - 타이밍 이슈로 pending 저장이 실패한 경우
+      // 임시 저장소에 데이터가 없는 경우 → Fallback: 최근 Firestore 기록 검색
+      // 원인: 10초 타임아웃이 먼저 발동하여 이미 Firestore에 저장됨
       if (kDebugMode) {
         debugPrint('⚠️ 임시 저장소에 데이터가 없습니다');
         debugPrint('   단말번호: $exten');
-        debugPrint('   → WebSocket 이벤트만 수신된 비정상 상황');
-        debugPrint('   → Linkedid만 단독으로 저장하는 것은 무의미하므로 건너뜁니다');
+        debugPrint('   → Fallback: 최근 Firestore 기록에서 linkedid 없는 기록 검색');
       }
       
-      // ❌ 오래된 Firestore 조회 및 업데이트 로직 제거됨
-      // 새로운 아키텍처에서는 임시 저장소에 있는 데이터만 처리합니다.
-      // Linkedid는 통화 시작 시점에 생성되어야 하며,
-      // 나중에 기존 기록을 찾아서 업데이트하는 방식은 사용하지 않습니다.
+      // 최근 1분 이내의 통화 기록 중 linkedid가 없는 기록 찾기
+      final oneMinuteAgo = DateTime.now().subtract(const Duration(minutes: 1));
+      final querySnapshot = await firestore
+          .collection('call_history')
+          .where('userId', isEqualTo: userId)
+          .where('callType', isEqualTo: 'outgoing')
+          .where('callMethod', isEqualTo: 'extension')
+          .where('extensionUsed', isEqualTo: exten)
+          .orderBy('callTime', descending: true)
+          .limit(5)
+          .get();
+      
+      if (kDebugMode) {
+        debugPrint('📋 조회된 최근 통화 기록: ${querySnapshot.docs.length}개');
+      }
+      
+      // linkedid가 없고 시간 조건에 맞는 첫 번째 기록 찾기
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        final callTime = DateTime.parse(data['callTime'] as String);
+        final existingLinkedId = data['linkedid'] as String?;
+        
+        // 조건: 1분 이내 && linkedid가 없음
+        if (callTime.isAfter(oneMinuteAgo) && existingLinkedId == null) {
+          if (kDebugMode) {
+            debugPrint('✅ 매칭된 기록 발견!');
+            debugPrint('   - 문서 ID: ${doc.id}');
+            debugPrint('   - 발신번호: ${data['phoneNumber']}');
+            debugPrint('   - 통화 시간: $callTime');
+            debugPrint('   → Linkedid 추가 업데이트 수행');
+          }
+          
+          // 중복 확인 (이미 다른 이벤트로 처리되었는지)
+          final currentData = await doc.reference.get();
+          if (currentData.exists && currentData.data()?['linkedid'] != null) {
+            if (kDebugMode) {
+              debugPrint('⚠️ 다른 이벤트가 이미 처리했습니다 (건너뜀)');
+            }
+            return;
+          }
+          
+          // Linkedid 추가
+          await doc.reference.update({
+            'linkedid': linkedid,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          
+          if (kDebugMode) {
+            debugPrint('✅ Linkedid 추가 완료!');
+            debugPrint('   - Linkedid: $linkedid');
+          }
+          
+          return; // 첫 번째 매칭만 처리
+        }
+      }
+      
+      if (kDebugMode) {
+        debugPrint('⚠️ 조건에 맞는 통화 기록을 찾을 수 없습니다');
+        debugPrint('   - 1분 이내 통화');
+        debugPrint('   - linkedid 없음');
+        debugPrint('   - extensionUsed == $exten');
+      }
       
     } catch (e) {
       if (kDebugMode) {
