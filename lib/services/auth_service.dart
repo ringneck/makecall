@@ -43,9 +43,27 @@ class AuthService extends ChangeNotifier {
   
   Future<void> _loadUserModel(String uid, {String? password}) async {
     try {
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('🔄 ========== _loadUserModel 호출 ==========');
+        debugPrint('   🆔 UID: $uid');
+        debugPrint('   🔍 Firestore에서 users 문서 조회 중...');
+      }
+      
       final doc = await _firestore.collection('users').doc(uid).get();
+      
+      if (kDebugMode) {
+        debugPrint('   📄 문서 존재 여부: ${doc.exists}');
+      }
+      
       if (doc.exists) {
         final data = doc.data()!;
+        
+        if (kDebugMode) {
+          debugPrint('   📦 Firestore Raw Data:');
+          debugPrint('      - 전체 필드 개수: ${data.keys.length}');
+          debugPrint('      - 필드 목록: ${data.keys.toList()}');
+        }
         _currentUserModel = UserModel.fromMap(data, uid);
         
         // 계정 저장 (비밀번호 포함)
@@ -271,10 +289,43 @@ class AuthService extends ChangeNotifier {
   ///   - fcm_tokens/{userId}_{deviceId}: FCM 토큰만 삭제
   ///   - _currentUserModel: 로컬 변수만 초기화 (Firestore 손대 안 함)
   Future<void> signOut() async {
-    if (kDebugMode) {
-      debugPrint('🔓 로그아웃 시작');
-      debugPrint('   - 현재 사용자: ${_currentUserModel?.email ?? "없음"}');
-      debugPrint('   - ⚠️  주의: Firestore users 컬렉션은 삭제되지 않습니다');
+    // 🔍 로그아웃 전 Firestore 데이터 확인 (디버그용)
+    if (kDebugMode && _auth.currentUser != null) {
+      debugPrint('');
+      debugPrint('🔓 ========== 로그아웃 시작 ==========');
+      debugPrint('   📧 현재 사용자: ${_currentUserModel?.email ?? "없음"}');
+      debugPrint('   🆔 UID: ${_auth.currentUser!.uid}');
+      debugPrint('');
+      
+      // Firestore에서 실제 데이터 확인
+      try {
+        final doc = await _firestore.collection('users').doc(_auth.currentUser!.uid).get();
+        if (doc.exists) {
+          final data = doc.data()!;
+          debugPrint('   📊 Firestore users 컬렉션 현재 상태:');
+          debugPrint('      - apiBaseUrl: ${data['apiBaseUrl'] ?? "(없음)"}');
+          debugPrint('      - apiHttpPort: ${data['apiHttpPort'] ?? "(없음)"}');
+          debugPrint('      - companyId: ${data['companyId'] ?? "(없음)"}');
+          debugPrint('      - appKey: ${data['appKey'] != null && (data['appKey'] as String).isNotEmpty ? "[${(data['appKey'] as String).length}자]" : "(없음)"}');
+          debugPrint('      - websocketServerUrl: ${data['websocketServerUrl'] ?? "(없음)"}');
+          debugPrint('      - websocketServerPort: ${data['websocketServerPort'] ?? "(없음)"}');
+          debugPrint('      - websocketUseSSL: ${data['websocketUseSSL'] ?? "(없음)"}');
+          debugPrint('');
+          debugPrint('   ✅ Firestore 데이터 확인 완료 - 이 데이터는 로그아웃 후에도 유지됩니다');
+        } else {
+          debugPrint('   ⚠️ Firestore에 users 문서가 없습니다!');
+        }
+      } catch (e) {
+        debugPrint('   ❌ Firestore 조회 오류: $e');
+      }
+      
+      debugPrint('');
+      debugPrint('   🔐 로그아웃 진행:');
+      debugPrint('      - FCM 토큰만 비활성화 (fcm_tokens 컬렉션)');
+      debugPrint('      - _currentUserModel 로컬 변수만 null 처리');
+      debugPrint('      - Firestore users 컬렉션은 절대 삭제 안 함!');
+      debugPrint('================================================');
+      debugPrint('');
     }
     
     // FCM 토큰 비활성화
