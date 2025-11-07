@@ -56,18 +56,19 @@ class AuthService extends ChangeNotifier {
         
         // 🔍 확장된 디버그 로깅 (API 서버 및 WebSocket 정보 포함)
         if (kDebugMode) {
+          debugPrint('');
           debugPrint('📥 ========== Firestore 사용자 데이터 로드 ==========');
           debugPrint('   📧 Email: ${data['email']}');
           debugPrint('   🏢 Company: ${data['companyName'] ?? "(없음)"}');
           debugPrint('   🆔 CompanyId: ${data['companyId'] ?? "(없음)"}');
           debugPrint('   🔑 AppKey: ${data['appKey'] ?? "(없음)"}');
           debugPrint('');
-          debugPrint('   🌐 API 서버 정보:');
+          debugPrint('   🌐 API 서버 정보 (Firestore Raw):');
           debugPrint('      - apiBaseUrl: ${data['apiBaseUrl'] ?? "(없음)"}');
           debugPrint('      - apiHttpPort: ${data['apiHttpPort'] ?? "(없음)"}');
           debugPrint('      - apiHttpsPort: ${data['apiHttpsPort'] ?? "(없음)"}');
           debugPrint('');
-          debugPrint('   🔌 WebSocket 서버 정보:');
+          debugPrint('   🔌 WebSocket 서버 정보 (Firestore Raw):');
           debugPrint('      - websocketServerUrl: ${data['websocketServerUrl'] ?? "(없음)"}');
           debugPrint('      - websocketServerPort: ${data['websocketServerPort'] ?? "(없음)"}');
           debugPrint('      - websocketUseSSL: ${data['websocketUseSSL'] ?? "(없음)"}');
@@ -81,7 +82,22 @@ class AuthService extends ChangeNotifier {
           debugPrint('   ✅ UserModel 생성 완료:');
           debugPrint('      - apiBaseUrl: ${_currentUserModel?.apiBaseUrl ?? "(null)"}');
           debugPrint('      - websocketServerUrl: ${_currentUserModel?.websocketServerUrl ?? "(null)"}');
+          debugPrint('');
+          debugPrint('   🔒 데이터 보존 검증:');
+          final hasApiConfig = _currentUserModel?.apiBaseUrl != null && _currentUserModel!.apiBaseUrl!.isNotEmpty;
+          final hasWebSocketConfig = _currentUserModel?.websocketServerUrl != null && _currentUserModel!.websocketServerUrl!.isNotEmpty;
+          debugPrint('      - API 설정 존재: ${hasApiConfig ? "✅ 정상" : "⚠️ 없음"}');
+          debugPrint('      - WebSocket 설정 존재: ${hasWebSocketConfig ? "✅ 정상" : "⚠️ 없음"}');
+          if (!hasApiConfig || !hasWebSocketConfig) {
+            debugPrint('');
+            debugPrint('   ⚠️⚠️⚠️ 경고: API/WebSocket 설정이 없습니다!');
+            debugPrint('      - 로그아웃 전에 데이터가 저장되지 않았을 가능성');
+            debugPrint('      - Profile 탭에서 API 서버 정보를 다시 입력하세요');
+          } else {
+            debugPrint('   ✅✅✅ 데이터 보존 성공: 모든 설정이 정상적으로 로드됨');
+          }
           debugPrint('================================================');
+          debugPrint('');
         }
         
         notifyListeners();
@@ -243,10 +259,22 @@ class AuthService extends ChangeNotifier {
   }
   
   // 로그아웃
+  /// 로그아웃
+  /// 
+  /// ⚠️ 중요: 이 메서드는 Firestore 데이터를 삭제하지 않습니다!
+  /// ✅ 보존되는 데이터:
+  ///   - users/{userId}: API/WebSocket 설정, 회사 정보
+  ///   - my_extensions: 등록된 단말번호
+  ///   - call_forward_info: 착신전환 설정
+  /// 
+  /// 삭제되는 데이터:
+  ///   - fcm_tokens/{userId}_{deviceId}: FCM 토큰만 삭제
+  ///   - _currentUserModel: 로컬 변수만 초기화 (Firestore 손대 안 함)
   Future<void> signOut() async {
     if (kDebugMode) {
       debugPrint('🔓 로그아웃 시작');
       debugPrint('   - 현재 사용자: ${_currentUserModel?.email ?? "없음"}');
+      debugPrint('   - ⚠️  주의: Firestore users 컬렉션은 삭제되지 않습니다');
     }
     
     // FCM 토큰 비활성화
@@ -266,10 +294,12 @@ class AuthService extends ChangeNotifier {
     }
     
     await _auth.signOut();
-    _currentUserModel = null;
+    _currentUserModel = null;  // 로컬 변수만 초기화 (Firestore 데이터 삭제 안 함!)
     
     if (kDebugMode) {
-      debugPrint('✅ currentUserModel 초기화 완료');
+      debugPrint('✅ currentUserModel 초기화 완료 (로컬 변수만)');
+      debugPrint('✅ Firestore users 컬렉션 보존됨');
+      debugPrint('✅ 재로그인 시 모든 데이터 로드 가능');
     }
     
     notifyListeners();

@@ -164,11 +164,21 @@ class FCMService {
   
   /// FCM 토큰을 Firestore에 저장 (중복 로그인 방지 포함)
   /// 
-  /// 새 기기에서 로그인 시:
-  /// 1. 기존 활성 토큰 조회
-  /// 2. 기존 기기에 강제 로그아웃 FCM 메시지 전송
-  /// 3. 기존 토큰 비활성화
-  /// 4. 새 토큰 저장
+  /// ⚠️ 중요: 사용자 데이터(users 컬렉션)는 절대 삭제하지 않음!
+  /// 
+  /// 중복 로그인 방지 프로세스:
+  /// 1. 기존 활성 토큰 조회 (fcm_tokens 컬렉션)
+  /// 2. 다른 기기 감지 시 → 기존 기기에 강제 로그아웃 FCM 알림 전송
+  /// 3. 기존 FCM 토큰만 비활성화 (fcm_tokens 컬렉션에서만 처리)
+  /// 4. 새 FCM 토큰 저장
+  /// 
+  /// ✅ 보존되는 데이터:
+  /// - users/{userId}: API 서버 설정, WebSocket 설정, 회사 정보, 단말번호 등 모든 사용자 데이터
+  /// - my_extensions/{extensionId}: 등록된 단말번호 정보
+  /// - call_forward_info/{infoId}: 착신전환 설정
+  /// 
+  /// ❌ 삭제되는 데이터:
+  /// - fcm_tokens/{userId}_{deviceId}: 이전 기기의 FCM 토큰만 (세션 관리용)
   Future<void> _saveFCMToken(String userId, String token) async {
     try {
       final deviceId = await _getDeviceId();
@@ -176,32 +186,65 @@ class FCMService {
       final platform = _getPlatformName();
       
       // ignore: avoid_print
-      print('🔐 [FCMService] FCM 토큰 저장 프로세스 시작');
+      print('');
       // ignore: avoid_print
-      print('   사용자 ID: $userId');
+      print('='*70);
       // ignore: avoid_print
-      print('   새 기기: $deviceName ($platform)');
+      print('🔐 [중복 로그인 방지] FCM 토큰 저장 프로세스');
+      // ignore: avoid_print
+      print('='*70);
+      // ignore: avoid_print
+      print('   📱 사용자 ID: $userId');
+      // ignore: avoid_print
+      print('   📱 새 기기: $deviceName ($platform)');
+      // ignore: avoid_print
+      print('   📱 기기 ID: $deviceId');
       
-      // 1. 기존 활성 토큰 조회
+      // 1. 기존 활성 토큰 조회 (fcm_tokens 컬렉션에서만)
       final existingToken = await _databaseService.getActiveFcmToken(userId);
       
       if (existingToken != null && existingToken.deviceId != deviceId) {
+        // 다른 기기에서 로그인 감지
         // ignore: avoid_print
-        print('🚨 [FCMService] 중복 로그인 감지!');
+        print('');
         // ignore: avoid_print
-        print('   기존 기기: ${existingToken.deviceName} (${existingToken.platform})');
+        print('🚨 [중복 로그인 감지]');
         // ignore: avoid_print
-        print('   기존 토큰: ${existingToken.fcmToken.substring(0, 30)}...');
+        print('   🔴 기존 기기: ${existingToken.deviceName} (${existingToken.platform})');
+        // ignore: avoid_print
+        print('   🔴 기존 기기 ID: ${existingToken.deviceId}');
+        // ignore: avoid_print
+        print('   🔴 기존 토큰: ${existingToken.fcmToken.substring(0, 30)}...');
+        // ignore: avoid_print
+        print('');
+        // ignore: avoid_print
+        print('   ⚙️  중복 로그인 방지 동작:');
+        // ignore: avoid_print
+        print('   1️⃣  기존 기기에 강제 로그아웃 FCM 알림 전송');
+        // ignore: avoid_print
+        print('   2️⃣  기존 FCM 토큰만 비활성화 (fcm_tokens 컬렉션)');
+        // ignore: avoid_print
+        print('   3️⃣  사용자 데이터는 보존 (users 컬렉션 유지)');
         
         // 2. 기존 기기에 강제 로그아웃 알림 전송
         await _sendForceLogoutNotification(existingToken.fcmToken, deviceName, platform);
         
         // ignore: avoid_print
+        print('');
+        // ignore: avoid_print
         print('   ✅ 기존 기기에 강제 로그아웃 알림 전송 완료');
+        // ignore: avoid_print
+        print('   ✅ 기존 FCM 토큰 비활성화됨 (fcm_tokens/{userId}_{deviceId})');
+        // ignore: avoid_print
+        print('   ✅ 사용자 데이터는 온전히 보존됨 (users/{userId})');
       } else if (existingToken != null) {
         // ignore: avoid_print
-        print('   ℹ️  동일 기기에서 토큰 갱신');
+        print('');
+        // ignore: avoid_print
+        print('   ℹ️  동일 기기에서 토큰 갱신 (정상)');
       } else {
+        // ignore: avoid_print
+        print('');
         // ignore: avoid_print
         print('   ℹ️  첫 로그인 (기존 활성 토큰 없음)');
       }
@@ -221,9 +264,29 @@ class FCMService {
       await _databaseService.saveFcmToken(tokenModel);
       
       // ignore: avoid_print
-      print('✅ [FCMService] 새 FCM 토큰 저장 완료');
+      print('');
       // ignore: avoid_print
-      print('   기기: $deviceName ($platform)');
+      print('✅ [완료] 새 FCM 토큰 저장 성공');
+      // ignore: avoid_print
+      print('   📱 기기: $deviceName ($platform)');
+      // ignore: avoid_print
+      print('   🔑 토큰 길이: ${token.length} 문자');
+      // ignore: avoid_print
+      print('');
+      // ignore: avoid_print
+      print('💡 [중요] 사용자 데이터 보존 확인:');
+      // ignore: avoid_print
+      print('   ✓ users/{userId}: API/WebSocket 설정 유지');
+      // ignore: avoid_print
+      print('   ✓ my_extensions: 단말번호 정보 유지');
+      // ignore: avoid_print
+      print('   ✓ call_forward_info: 착신전환 설정 유지');
+      // ignore: avoid_print
+      print('   ✓ 재로그인 시 모든 데이터 정상 로드됨');
+      // ignore: avoid_print
+      print('='*70);
+      // ignore: avoid_print
+      print('');
       
     } catch (e) {
       // ignore: avoid_print
@@ -657,19 +720,33 @@ class FCMService {
   
   /// FCM 토큰 비활성화 (로그아웃 시)
   /// 
-  /// 로그아웃 시 현재 기기의 FCM 토큰을 삭제합니다.
+  /// ⚠️ 중요: 이 메서드는 오직 fcm_tokens 컬렉션만 삭제합니다!
+  /// ✅ 보존되는 데이터:
+  ///   - users/{userId}: API/WebSocket 설정, 회사 정보 등
+  ///   - my_extensions: 등록된 단말번호 정보
+  ///   - call_forward_info: 착신전환 설정
+  /// 
+  /// 로그아웃 시 현재 기기의 FCM 토큰만 삭제합니다.
   Future<void> deactivateToken(String userId) async {
     if (_fcmToken == null) return;
     
     try {
       // ignore: avoid_print
       print('🗑️  [FCMService] FCM 토큰 비활성화 시작');
+      // ignore: avoid_print
+      print('   ⚠️  주의: fcm_tokens 컬렉션만 삭제 (users 컬렉션 보존)');
       
       final deviceId = await _getDeviceId();
       await _databaseService.deleteFcmToken(userId, deviceId);
       
       // ignore: avoid_print
       print('✅ [FCMService] FCM 토큰 비활성화 완료');
+      // ignore: avoid_print
+      print('   ✓ users/{userId}: API/WebSocket 설정 보존됨');
+      // ignore: avoid_print
+      print('   ✓ my_extensions: 단말번호 정보 보존됨');
+      // ignore: avoid_print
+      print('   ✓ call_forward_info: 착신전환 설정 보존됨');
     } catch (e) {
       // ignore: avoid_print
       print('❌ [FCMService] FCM 토큰 비활성화 오류: $e');

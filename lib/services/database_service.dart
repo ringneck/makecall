@@ -1084,6 +1084,10 @@ class DatabaseService {
 
   /// FCM 토큰 삭제 (로그아웃 시 사용)
   /// 
+  /// ⚠️ 중요: 이 메서드는 오직 fcm_tokens 컬렉션만 삭제합니다!
+  /// ✅ users/{userId} 컬렉션은 절대 삭제하지 않습니다.
+  /// ✅ my_extensions, call_forward_info 등 모든 사용자 데이터는 보존됩니다.
+  /// 
   /// @param userId 사용자 ID
   /// @param deviceId 기기 ID
   Future<void> deleteFcmToken(String userId, String deviceId) async {
@@ -1094,12 +1098,24 @@ class DatabaseService {
       print('   userId: $userId');
       // ignore: avoid_print
       print('   deviceId: $deviceId');
+      // ignore: avoid_print
+      print('   ⚠️  삭제 범위: fcm_tokens 컬렉션만 (단일 문서)');
 
       final docId = '${userId}_$deviceId';
       await _firestore.collection('fcm_tokens').doc(docId).delete();
 
       // ignore: avoid_print
       print('✅ [DatabaseService] FCM 토큰 삭제 완료');
+      // ignore: avoid_print
+      print('   🔒 보존된 데이터:');
+      // ignore: avoid_print
+      print('      - users/{userId}: API/WebSocket 설정, 회사 정보');
+      // ignore: avoid_print
+      print('      - my_extensions: 단말번호 정보');
+      // ignore: avoid_print
+      print('      - call_forward_info: 착신전환 설정');
+      // ignore: avoid_print
+      print('   ✅ 재로그인 시 모든 데이터가 정상 로드됩니다');
     } catch (e) {
       // ignore: avoid_print
       print('❌ [DatabaseService] FCM 토큰 삭제 실패: $e');
