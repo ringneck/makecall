@@ -1454,6 +1454,95 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         return;
       }
 
+      // ✅ CRITICAL: maxExtensions 제한 확인 (다이얼로그 표시 전에 먼저 체크!)
+      // 🔥 my_extensions 컬렉션에서 실제 등록된 단말번호 개수 확인
+      final dbService = DatabaseService();
+      final myExtensionsSnapshot = await dbService.getMyExtensions(userId).first;
+      final currentExtensionCount = myExtensionsSnapshot.length;
+      final maxExtensions = userModel.maxExtensions;
+      
+      if (kDebugMode) {
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        debugPrint('🔍 ProfileDrawer - maxExtensions 제한 체크');
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        debugPrint('📊 현재 등록된 단말번호 개수 (my_extensions): $currentExtensionCount');
+        debugPrint('📊 등록된 단말번호 목록: ${myExtensionsSnapshot.map((e) => e.extension).toList()}');
+        debugPrint('📊 최대 등록 가능 개수: $maxExtensions');
+        debugPrint('📊 비교 결과: $currentExtensionCount >= $maxExtensions = ${currentExtensionCount >= maxExtensions}');
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      }
+      
+      if (currentExtensionCount >= maxExtensions) {
+        if (kDebugMode) {
+          debugPrint('❌ ProfileDrawer - 단말번호 등록 한도 초과: 현재 $currentExtensionCount개, 최대 $maxExtensions개');
+        }
+        
+        setState(() {
+          _isSearching = false;
+        });
+        
+        if (!mounted) return;
+        
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                SizedBox(width: 8),
+                Text('등록 한도 초과', style: TextStyle(fontSize: 18)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '단말번호는 최대 $maxExtensions개까지 등록할 수 있습니다.',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                          const SizedBox(width: 6),
+                          Text(
+                            '현재 등록된 단말번호: $currentExtensionCount개',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '더 많은 단말번호를 등록하려면 기존 단말번호를 삭제하거나 관리자에게 문의하세요.',
+                        style: TextStyle(fontSize: 12, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('확인', style: TextStyle(fontSize: 14)),
+              ),
+            ],
+          ),
+        );
+        return; // 제한 초과 시 여기서 종료
+      }
+      
       // 단말번호 선택 다이얼로그 표시
       if (!mounted) return;
       
