@@ -1618,7 +1618,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         debugPrint('   - my_extensions 컬렉션 추가');
       }
 
-      if (mounted) {
+      // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
+      if (mounted && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('단말번호가 등록되었습니다'),
@@ -1630,7 +1631,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       if (kDebugMode) {
         debugPrint('❌ ProfileDrawer - 단말번호 등록 실패: $e');
       }
-      if (mounted) {
+      // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
+      if (mounted && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('등록 실패: $e')),
         );
@@ -1674,7 +1676,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           debugPrint('   - registered_extensions 등록 해제');
         }
         
-        if (mounted) {
+        // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
+        if (mounted && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('단말번호가 삭제되었습니다')),
           );
@@ -1683,7 +1686,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         if (kDebugMode) {
           debugPrint('❌ ProfileDrawer - 단말번호 삭제 실패: $e');
         }
-        if (mounted) {
+        // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
+        if (mounted && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('삭제 실패: $e')),
           );
@@ -1734,7 +1738,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           debugPrint('   - registered_extensions 등록 해제: $extensionNumbers');
         }
         
-        if (mounted) {
+        // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
+        if (mounted && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('모든 단말번호가 삭제되었습니다')),
           );
@@ -1743,7 +1748,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         if (kDebugMode) {
           debugPrint('❌ ProfileDrawer - 전체 삭제 실패: $e');
         }
-        if (mounted) {
+        // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
+        if (mounted && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('삭제 실패: $e')),
           );
