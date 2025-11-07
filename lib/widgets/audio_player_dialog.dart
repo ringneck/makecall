@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// 현대적이고 깔끔한 오디오 플레이어 다이얼로그
+/// 간단하고 안정적인 오디오 플레이어 다이얼로그
 class AudioPlayerDialog extends StatefulWidget {
   final String audioUrl;
   final String title;
@@ -18,28 +18,24 @@ class AudioPlayerDialog extends StatefulWidget {
   State<AudioPlayerDialog> createState() => _AudioPlayerDialogState();
 }
 
-class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTickerProviderStateMixin {
+class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
   late AudioPlayer _audioPlayer;
   bool _isPlaying = false;
   bool _isLoading = true;
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
   String? _error;
-  
-  late AnimationController _waveController;
 
   @override
   void initState() {
     super.initState();
     _audioPlayer = AudioPlayer();
-    
-    // 웨이브 애니메이션 컨트롤러
-    _waveController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
-    
-    // 오디오 상태 리스너
+    _setupAudioPlayer();
+    _loadAudio();
+  }
+
+  void _setupAudioPlayer() {
+    // 플레이어 상태 리스너
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) {
         setState(() {
@@ -47,7 +43,8 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
         });
       }
     });
-    
+
+    // Duration 리스너
     _audioPlayer.onDurationChanged.listen((duration) {
       if (mounted) {
         setState(() {
@@ -56,7 +53,8 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
         });
       }
     });
-    
+
+    // Position 리스너
     _audioPlayer.onPositionChanged.listen((position) {
       if (mounted) {
         setState(() {
@@ -64,7 +62,8 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
         });
       }
     });
-    
+
+    // 재생 완료 리스너
     _audioPlayer.onPlayerComplete.listen((event) {
       if (mounted) {
         setState(() {
@@ -73,39 +72,12 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
         });
       }
     });
-    
-    _loadAudio();
   }
 
   @override
   void dispose() {
     _audioPlayer.dispose();
-    _waveController.dispose();
     super.dispose();
-  }
-
-  /// Slider의 최대값을 안전하게 반환
-  double _getMaxDuration() {
-    final maxValue = _duration.inSeconds.toDouble();
-    return maxValue > 0 ? maxValue : 1.0;
-  }
-
-  /// 현재 위치를 Slider 범위 내로 제한
-  double _getClampedPosition() {
-    final currentPos = _position.inSeconds.toDouble();
-    final maxPos = _getMaxDuration();
-    
-    // 현재 위치가 최대값을 초과하지 않도록 제한
-    if (currentPos > maxPos) {
-      return maxPos;
-    }
-    
-    // 음수 방지
-    if (currentPos < 0) {
-      return 0.0;
-    }
-    
-    return currentPos;
   }
 
   Future<void> _loadAudio() async {
@@ -114,419 +86,293 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
         _isLoading = true;
         _error = null;
       });
-      
+
       await _audioPlayer.setSourceUrl(widget.audioUrl);
-      
+
       setState(() {
         _isLoading = false;
       });
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ 오디오 재생 오류: $e');
-        debugPrint('   오디오 URL: ${widget.audioUrl}');
+        debugPrint('❌ 오디오 로드 오류: $e');
+        debugPrint('   URL: ${widget.audioUrl}');
       }
-      
+
       setState(() {
-        // WAV 파일은 웹 브라우저에서 재생이 제한될 수 있음
-        _error = '오디오 파일을 재생할 수 없습니다\n\n'
-                'WAV 파일은 일부 브라우저에서 재생이 제한됩니다.\n'
-                '다운로드하여 재생하시거나 다른 브라우저를 시도해보세요.';
+        _error = '오디오 파일을 로드할 수 없습니다';
         _isLoading = false;
       });
     }
   }
 
   Future<void> _togglePlayPause() async {
-    if (_isPlaying) {
-      await _audioPlayer.pause();
-    } else {
-      await _audioPlayer.resume();
+    try {
+      if (_isPlaying) {
+        await _audioPlayer.pause();
+      } else {
+        await _audioPlayer.resume();
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 재생/일시정지 오류: $e');
+      }
     }
   }
 
-  Future<void> _seekTo(double value) async {
-    final position = Duration(seconds: value.toInt());
-    await _audioPlayer.seek(position);
+  Future<void> _seekTo(double seconds) async {
+    try {
+      await _audioPlayer.seek(Duration(seconds: seconds.toInt()));
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Seek 오류: $e');
+      }
+    }
   }
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    final seconds = duration.inSeconds.remainder(60);
-    
-    if (hours > 0) {
-      return '${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}';
-    }
-    return '${twoDigits(minutes)}:${twoDigits(seconds)}';
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
+  }
+
+  double _getProgress() {
+    if (_duration.inMilliseconds == 0) return 0.0;
+    final progress = _position.inMilliseconds / _duration.inMilliseconds;
+    return progress.clamp(0.0, 1.0);
   }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
       child: Container(
-        constraints: const BoxConstraints(
-          maxWidth: 500,
-          maxHeight: 340,
-        ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF1e3c72),
-              const Color(0xFF2a5298),
-            ],
-          ),
-        ),
+        width: 400,
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // 헤더
-            _buildHeader(),
-            
-            // 메인 콘텐츠
-            Expanded(
-              child: _buildContent(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1e3c72),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Color(0xFF1e3c72)),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
-            
-            // 컨트롤 바
-            _buildControls(),
-            
-            const SizedBox(height: 12),
+
+            const SizedBox(height: 24),
+
+            // 콘텐츠
+            if (_isLoading)
+              _buildLoading()
+            else if (_error != null)
+              _buildError()
+            else
+              _buildPlayer(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.headphones,
-              color: Colors.white,
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '통화 녹음 파일',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
+  Widget _buildLoading() {
+    return const Column(
+      children: [
+        CircularProgressIndicator(),
+        SizedBox(height: 16),
+        Text('로딩 중...', style: TextStyle(color: Colors.grey)),
+      ],
     );
   }
 
-  Widget _buildContent() {
-    if (_error != null) {
-      return Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 40,
-                  color: Colors.white70,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _loadAudio,
-                      icon: const Icon(Icons.refresh, size: 18),
-                      label: const Text('다시 시도'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF1e3c72),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        // URL로 새 탭에서 열기 (다운로드)
-                        final uri = Uri.parse(widget.audioUrl);
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        }
-                      },
-                      icon: const Icon(Icons.download, size: 18),
-                      label: const Text('다운로드'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF1e3c72),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+  Widget _buildError() {
+    return Column(
+      children: [
+        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+        const SizedBox(height: 16),
+        Text(
+          _error!,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.red),
         ),
-      );
-    }
-    
-    if (_isLoading) {
-      return const Center(
-        child: Column(
+        const SizedBox(height: 16),
+        Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(
-              color: Colors.white,
+            ElevatedButton.icon(
+              onPressed: _loadAudio,
+              icon: const Icon(Icons.refresh),
+              label: const Text('다시 시도'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1e3c72),
+                foregroundColor: Colors.white,
+              ),
             ),
-            SizedBox(height: 12),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final uri = Uri.parse(widget.audioUrl);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              icon: const Icon(Icons.download),
+              label: const Text('다운로드'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[700],
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlayer() {
+    return Column(
+      children: [
+        // 오디오 아이콘
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1e3c72).withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            _isPlaying ? Icons.volume_up : Icons.headphones,
+            size: 40,
+            color: const Color(0xFF1e3c72),
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // 시간 표시
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
             Text(
-              '오디오 파일 로딩 중...',
-              style: TextStyle(
-                color: Colors.white,
+              _formatDuration(_position),
+              style: const TextStyle(
                 fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1e3c72),
+              ),
+            ),
+            Text(
+              _formatDuration(_duration),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
               ),
             ),
           ],
         ),
-      );
-    }
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 웨이브 애니메이션
-          _buildWaveAnimation(),
-          
-          const SizedBox(height: 20),
-          
-          // 재생 버튼
-          _buildPlayButton(),
-          
-          const SizedBox(height: 20),
-          
-          // 시간 표시
-          _buildTimeDisplay(),
-        ],
-      ),
-    );
-  }
+        const SizedBox(height: 8),
 
-  Widget _buildWaveAnimation() {
-    return AnimatedBuilder(
-      animation: _waveController,
-      builder: (context, child) {
-        return Row(
+        // 프로그레스 바 (LinearProgressIndicator 사용)
+        Column(
+          children: [
+            LinearProgressIndicator(
+              value: _getProgress(),
+              backgroundColor: Colors.grey[300],
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1e3c72)),
+              minHeight: 4,
+            ),
+            const SizedBox(height: 4),
+            // Slider (조작용)
+            SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 2,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                activeTrackColor: Colors.transparent,
+                inactiveTrackColor: Colors.transparent,
+                thumbColor: const Color(0xFF1e3c72),
+                overlayColor: const Color(0xFF1e3c72).withOpacity(0.2),
+              ),
+              child: Slider(
+                value: _position.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()),
+                min: 0.0,
+                max: _duration.inSeconds.toDouble() > 0 ? _duration.inSeconds.toDouble() : 1.0,
+                onChanged: _seekTo,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        // 재생 컨트롤
+        Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(5, (index) {
-            final delay = index * 0.2;
-            final value = (_waveController.value + delay) % 1.0;
-            final height = _isPlaying ? 24 + (12 * (0.5 - (value - 0.5).abs() * 2)) : 12.0;
-            
-            return Container(
-              width: 4,
-              height: height,
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            );
-          }),
-        );
-      },
-    );
-  }
+          children: [
+            // 10초 뒤로
+            IconButton(
+              icon: const Icon(Icons.replay_10),
+              iconSize: 32,
+              color: const Color(0xFF1e3c72),
+              onPressed: () {
+                final newPosition = _position - const Duration(seconds: 10);
+                _seekTo(newPosition.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()));
+              },
+            ),
 
-  Widget _buildPlayButton() {
-    return GestureDetector(
-      onTap: _togglePlayPause,
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+            const SizedBox(width: 16),
+
+            // 재생/일시정지 버튼
+            Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: Color(0xFF1e3c72),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: Icon(
+                  _isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: Colors.white,
+                ),
+                iconSize: 36,
+                onPressed: _togglePlayPause,
+              ),
+            ),
+
+            const SizedBox(width: 16),
+
+            // 10초 앞으로
+            IconButton(
+              icon: const Icon(Icons.forward_10),
+              iconSize: 32,
+              color: const Color(0xFF1e3c72),
+              onPressed: () {
+                final newPosition = _position + const Duration(seconds: 10);
+                _seekTo(newPosition.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()));
+              },
             ),
           ],
         ),
-        child: Icon(
-          _isPlaying ? Icons.pause : Icons.play_arrow,
-          size: 28,
-          color: const Color(0xFF1e3c72),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimeDisplay() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            _formatDuration(_position),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Text(
-            _formatDuration(_duration),
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildControls() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          // 진행 바
-          SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-              activeTrackColor: Colors.white,
-              inactiveTrackColor: Colors.white.withOpacity(0.3),
-              thumbColor: Colors.white,
-              overlayColor: Colors.white.withOpacity(0.2),
-            ),
-            child: Slider(
-              value: _getClampedPosition(),
-              max: _getMaxDuration(),
-              onChanged: _seekTo,
-            ),
-          ),
-          
-          const SizedBox(height: 8),
-          
-          // 컨트롤 버튼
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 10초 뒤로
-              IconButton(
-                icon: const Icon(Icons.replay_10, color: Colors.white),
-                iconSize: 24,
-                onPressed: () {
-                  final newPosition = _position - const Duration(seconds: 10);
-                  _seekTo(newPosition.inSeconds.toDouble().clamp(0, _duration.inSeconds.toDouble()));
-                },
-              ),
-              
-              const SizedBox(width: 24),
-              
-              // 재생/일시정지 버튼
-              GestureDetector(
-                onTap: _togglePlayPause,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    _isPlaying ? Icons.pause : Icons.play_arrow,
-                    size: 24,
-                    color: const Color(0xFF1e3c72),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(width: 24),
-              
-              // 10초 앞으로
-              IconButton(
-                icon: const Icon(Icons.forward_10, color: Colors.white),
-                iconSize: 24,
-                onPressed: () {
-                  final newPosition = _position + const Duration(seconds: 10);
-                  _seekTo(newPosition.inSeconds.toDouble().clamp(0, _duration.inSeconds.toDouble()));
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
+      ],
     );
   }
 }
