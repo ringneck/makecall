@@ -107,10 +107,10 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
 
   Future<void> _togglePlayPause() async {
     try {
-      // 오디오가 로드되지 않았거나 에러 상태면 재생하지 않음
-      if (_isLoading || _error != null || _duration.inMilliseconds == 0) {
+      // 로딩 중이거나 에러 상태면 재생하지 않음
+      if (_isLoading || _error != null) {
         if (kDebugMode) {
-          debugPrint('⚠️ 재생 건너뛰기: 오디오 준비되지 않음');
+          debugPrint('⚠️ 재생 건너뛰기: 오디오 준비되지 않음 (로딩 또는 에러)');
         }
         return;
       }
@@ -118,7 +118,12 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
       if (_isPlaying) {
         await _audioPlayer.pause();
       } else {
-        await _audioPlayer.resume();
+        // Duration이 0이면 처음 재생 (play 사용), 아니면 resume
+        if (_duration.inMilliseconds == 0) {
+          await _audioPlayer.play(UrlSource(widget.audioUrl));
+        } else {
+          await _audioPlayer.resume();
+        }
       }
     } catch (e) {
       if (kDebugMode) {
@@ -375,7 +380,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+                color: (_isLoading || _error != null)
                     ? Colors.grey
                     : const Color(0xFF1e3c72),
                 shape: BoxShape.circle,
@@ -386,7 +391,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
                   color: Colors.white,
                 ),
                 iconSize: 36,
-                onPressed: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+                onPressed: (_isLoading || _error != null)
                     ? null
                     : _togglePlayPause,
               ),
