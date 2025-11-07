@@ -151,6 +151,15 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                         final lastExtensionId = await _loadLastSelectedExtension();
                         final initialIndex = _findExtensionIndex(extensions, lastExtensionId);
                         
+                        if (kDebugMode) {
+                          debugPrint('');
+                          debugPrint('🔄 ========== EndDrawer 초기화 (로그인 후) ==========');
+                          debugPrint('   📂 마지막 선택 단말번호 ID: $lastExtensionId');
+                          debugPrint('   📍 찾은 인덱스: $initialIndex');
+                          debugPrint('   📱 단말번호: ${extensions[initialIndex].extension}');
+                          debugPrint('   👤 이름: ${extensions[initialIndex].name}');
+                        }
+                        
                         if (initialIndex != _currentPage) {
                           setState(() {
                             _currentPage = initialIndex;
@@ -169,7 +178,11 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                         }
                         
                         if (kDebugMode) {
-                          debugPrint('🎯 초기화 완료: index=$_currentPage, extension=${extensions[_currentPage].extension}');
+                          debugPrint('   ✅ Provider에 단말번호 설정 완료');
+                          debugPrint('   🔑 Key: call_forward_${extensions[_currentPage].id}_${extensions[_currentPage].extension}');
+                          debugPrint('   💡 CallForwardSettingsCard가 이 key로 재생성됩니다');
+                          debugPrint('================================================');
+                          debugPrint('');
                         }
                       } else {
                         // 현재 페이지가 범위를 벗어나면 조정
@@ -595,6 +608,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                             userCompanyId != null &&
                             userCompanyId.isNotEmpty) ...[
                           CallForwardSettingsCard(
+                            key: ValueKey('call_forward_${extension.id}_${extension.extension}'), // 🔑 단말번호 변경 시 재생성
                             extension: extension,
                             tenantId: userCompanyId,
                             wsServerAddress: userWsServerUrl,
