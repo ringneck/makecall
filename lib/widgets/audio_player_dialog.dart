@@ -87,14 +87,25 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
         _error = null;
       });
 
+      if (kDebugMode) {
+        debugPrint('🎵 오디오 로딩 시작: ${widget.audioUrl}');
+      }
+
       // 오디오 소스 설정
       await _audioPlayer.setSourceUrl(widget.audioUrl);
 
       // Duration을 가져오기 위해 잠깐 재생했다가 즉시 일시정지
       await _audioPlayer.play(UrlSource(widget.audioUrl));
-      await Future.delayed(const Duration(milliseconds: 100)); // Duration 설정 대기
+      await Future.delayed(const Duration(milliseconds: 150)); // Duration 설정 대기 (100ms → 150ms)
       await _audioPlayer.pause();
+      
+      // ⚠️ 주의: 여기서는 _seekTo()를 사용하지 않고 직접 seek 호출
+      // _seekTo()는 duration 검증 로직이 있어서 초기 로딩 시 경고가 발생함
       await _audioPlayer.seek(Duration.zero); // 처음으로 되돌리기
+
+      if (kDebugMode) {
+        debugPrint('✅ 오디오 로딩 완료');
+      }
 
       setState(() {
         _isLoading = false;
@@ -145,6 +156,10 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
       if (_duration.inMilliseconds == 0 || _isLoading || _error != null) {
         if (kDebugMode) {
           debugPrint('⚠️ Seek 건너뛰기: 오디오 준비되지 않음');
+          debugPrint('   - Duration: ${_duration.inMilliseconds}ms');
+          debugPrint('   - Loading: $_isLoading');
+          debugPrint('   - Error: $_error');
+          debugPrint('   - 요청된 위치: ${seconds}초');
         }
         return;
       }
