@@ -54,12 +54,34 @@ class AuthService extends ChangeNotifier {
         // 일시 비밀번호 삭제
         _tempPassword = null;
         
-        // myExtensions 필드 디버그 로깅
+        // 🔍 확장된 디버그 로깅 (API 서버 및 WebSocket 정보 포함)
         if (kDebugMode) {
-          final rawMyExtensions = data['myExtensions'];
-          debugPrint('📥 Firestore에서 사용자 데이터 로드');
-          debugPrint('   - myExtensions (raw): $rawMyExtensions (타입: ${rawMyExtensions.runtimeType})');
-          debugPrint('   - myExtensions (파싱): ${_currentUserModel?.myExtensions}');
+          debugPrint('📥 ========== Firestore 사용자 데이터 로드 ==========');
+          debugPrint('   📧 Email: ${data['email']}');
+          debugPrint('   🏢 Company: ${data['companyName'] ?? "(없음)"}');
+          debugPrint('   🆔 CompanyId: ${data['companyId'] ?? "(없음)"}');
+          debugPrint('   🔑 AppKey: ${data['appKey'] ?? "(없음)"}');
+          debugPrint('');
+          debugPrint('   🌐 API 서버 정보:');
+          debugPrint('      - apiBaseUrl: ${data['apiBaseUrl'] ?? "(없음)"}');
+          debugPrint('      - apiHttpPort: ${data['apiHttpPort'] ?? "(없음)"}');
+          debugPrint('      - apiHttpsPort: ${data['apiHttpsPort'] ?? "(없음)"}');
+          debugPrint('');
+          debugPrint('   🔌 WebSocket 서버 정보:');
+          debugPrint('      - websocketServerUrl: ${data['websocketServerUrl'] ?? "(없음)"}');
+          debugPrint('      - websocketServerPort: ${data['websocketServerPort'] ?? "(없음)"}');
+          debugPrint('      - websocketUseSSL: ${data['websocketUseSSL'] ?? "(없음)"}');
+          debugPrint('      - amiServerId: ${data['amiServerId'] ?? "(없음)"}');
+          debugPrint('');
+          debugPrint('   📱 단말번호 정보:');
+          debugPrint('      - myExtensions (raw): ${data['myExtensions']} (타입: ${data['myExtensions'].runtimeType})');
+          debugPrint('      - myExtensions (파싱): ${_currentUserModel?.myExtensions}');
+          debugPrint('      - maxExtensions: ${data['maxExtensions'] ?? 1}');
+          debugPrint('');
+          debugPrint('   ✅ UserModel 생성 완료:');
+          debugPrint('      - apiBaseUrl: ${_currentUserModel?.apiBaseUrl ?? "(null)"}');
+          debugPrint('      - websocketServerUrl: ${_currentUserModel?.websocketServerUrl ?? "(null)"}');
+          debugPrint('================================================');
         }
         
         notifyListeners();
