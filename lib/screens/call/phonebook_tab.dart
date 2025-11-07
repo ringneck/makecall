@@ -1093,7 +1093,18 @@ class _PhonebookTabState extends State<PhonebookTab> {
         debugPrint('✅ 기능번호 Click to Call 성공: $result');
       }
 
-      // 통화 기록 저장
+      // 🔥 착신전환 정보 조회 (현재 시점 기준)
+      final callForwardInfo = await _databaseService
+          .getCallForwardInfoOnce(userId, selectedExtension.extension);
+
+      final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
+      final forwardDestination = (callForwardInfo?.destinationNumber ?? '').trim();
+
+      if (kDebugMode) {
+        debugPrint('📞 단말번호 탭 착신전환 정보: enabled=$isForwardEnabled, destination=$forwardDestination');
+      }
+
+      // 통화 기록 저장 (착신전환 정보 포함)
       await _databaseService.addCallHistory(
         CallHistoryModel(
           id: '',
@@ -1104,6 +1115,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
           callTime: DateTime.now(),
           mainNumberUsed: cidNumber,
           extensionUsed: selectedExtension.extension,
+          callForwardEnabled: isForwardEnabled,
+          callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
         ),
       );
 

@@ -68,6 +68,7 @@ dependencies:
   intl: 0.19.0
   package_info_plus: 8.1.2
   device_info_plus: 11.1.0  # Device information for session management
+  webview_flutter: 4.13.0  # WebView for terms and privacy policy
 
 dev_dependencies:
   flutter_test:
@@ -98,6 +99,8 @@ flutter:
   assets:
     - assets/icons/app_icon.png
     - assets/images/app_logo.png
+    - assets/html/terms_of_service.html
+    - assets/html/privacy_policy.html
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

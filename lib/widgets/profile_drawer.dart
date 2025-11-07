@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:io';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
@@ -705,17 +706,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
             leading: const Icon(Icons.description, size: 22),
-            title: const Text('이용 약관', style: TextStyle(fontSize: 15)),
+            title: const Text('서비스 이용 약관', style: TextStyle(fontSize: 15)),
             trailing: const Icon(Icons.chevron_right, size: 20),
             onTap: () {
-              _showTextDialog(
+              _showWebViewPage(
                 context,
-                '이용 약관',
-                '여기에 이용 약관 내용이 표시됩니다.\n\n'
-                '1. 서비스 이용 약관\n'
-                '2. 개인정보 수집 및 이용 동의\n'
-                '3. 위치기반서비스 이용약관\n'
-                '...',
+                '서비스 이용 약관',
+                'assets/html/terms_of_service.html',
               );
             },
           ),
@@ -726,14 +723,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             title: const Text('개인정보 처리방침', style: TextStyle(fontSize: 15)),
             trailing: const Icon(Icons.chevron_right, size: 20),
             onTap: () {
-              _showTextDialog(
+              _showWebViewPage(
                 context,
                 '개인정보 처리방침',
-                '여기에 개인정보 처리방침 내용이 표시됩니다.\n\n'
-                '1. 개인정보의 수집 및 이용 목적\n'
-                '2. 수집하는 개인정보의 항목\n'
-                '3. 개인정보의 보유 및 이용 기간\n'
-                '...',
+                'assets/html/privacy_policy.html',
               );
             },
           ),
@@ -1810,7 +1803,25 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     
     if (!context.mounted) return;
     
-    // 커스텀 라이선스 페이지 (Powered by Flutter 제거)
+    // 라이선스 정보 직접 가져오기
+    final licenses = await LicenseRegistry.licenses.toList();
+    
+    if (!context.mounted) return;
+    
+    // 패키지별로 그룹화
+    final Map<String, List<LicenseEntry>> groupedLicenses = {};
+    for (final license in licenses) {
+      for (final package in license.packages) {
+        if (!groupedLicenses.containsKey(package)) {
+          groupedLicenses[package] = [];
+        }
+        groupedLicenses[package]!.add(license);
+      }
+    }
+    
+    // 패키지 이름 정렬
+    final sortedPackages = groupedLicenses.keys.toList()..sort();
+    
     Navigator.push(
       context,
       MaterialPageRoute<void>(
@@ -1820,62 +1831,189 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             backgroundColor: const Color(0xFF2196F3),
             foregroundColor: Colors.white,
           ),
-          body: ListView(
+          body: Column(
             children: [
               // 앱 정보 헤더
               Container(
                 padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  border: Border(
+                    bottom: BorderSide(color: Colors.blue[100]!),
+                  ),
+                ),
                 child: Column(
                   children: [
                     Image.asset(
                       'assets/images/app_logo.png',
-                      width: 80,
-                      height: 80,
+                      width: 60,
+                      height: 60,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     const Text(
                       'MAKECALL',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: Color(0xFF2196F3),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       'Version ${packageInfo.version}',
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         color: Colors.grey,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Powered by MAKECALL',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
+                    const SizedBox(height: 12),
+                    Text(
+                      '사용된 오픈소스 패키지: ${sortedPackages.length}개',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2196F3),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Divider(),
               // 라이선스 목록
-              ListTile(
-                title: const Text('라이선스 보기'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // Flutter 기본 라이선스 페이지 표시 (하지만 우리 헤더는 표시 안 됨)
-                  showLicensePage(
-                    context: context,
-                    applicationName: 'MAKECALL',
-                    applicationVersion: packageInfo.version,
-                    applicationIcon: null, // 아이콘 숨김으로 Powered by Flutter도 최소화
-                    applicationLegalese: null, // 텍스트 숨김
-                  );
-                },
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: sortedPackages.length,
+                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final package = sortedPackages[index];
+                    final packageLicenses = groupedLicenses[package]!;
+                    
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.blue[100],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.code,
+                          color: Color(0xFF2196F3),
+                          size: 24,
+                        ),
+                      ),
+                      title: Text(
+                        package,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${packageLicenses.length}개의 라이선스',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, size: 20),
+                      onTap: () {
+                        _showLicenseDetail(context, package, packageLicenses);
+                      },
+                    );
+                  },
+                ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  void _showLicenseDetail(BuildContext context, String package, List<LicenseEntry> licenses) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text(package),
+            backgroundColor: const Color(0xFF2196F3),
+            foregroundColor: Colors.white,
+          ),
+          body: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: licenses.length,
+            itemBuilder: (context, index) {
+              final license = licenses[index];
+              final paragraphs = license.paragraphs.toList();
+              
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (licenses.length > 1)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            '라이선스 ${index + 1}/${licenses.length}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2196F3),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ...paragraphs.map((paragraph) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            paragraph.text,
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.5,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+  
+  void _showWebViewPage(BuildContext context, String title, String assetPath) async {
+    // HTML 파일 내용 로드
+    final htmlContent = await rootBundle.loadString(assetPath);
+    
+    if (!context.mounted) return;
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text(title),
+            backgroundColor: title.contains('서비스') 
+                ? const Color(0xFF2196F3) 
+                : const Color(0xFF4CAF50),
+            foregroundColor: Colors.white,
+          ),
+          body: WebViewWidget(
+            controller: WebViewController()
+              ..setJavaScriptMode(JavaScriptMode.unrestricted)
+              ..loadHtmlString(htmlContent),
           ),
         ),
       ),
