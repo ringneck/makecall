@@ -83,7 +83,16 @@ class _DialpadScreenState extends State<DialpadScreen> {
       builder: (context) => CallMethodDialog(
         phoneNumber: _phoneNumber, 
         autoCallShortExtension: false,
-        onClickToCallSuccess: widget.onClickToCallSuccess, // 부모에게 콜백 전달
+        onClickToCallSuccess: () {
+          // 클릭투콜 성공 시 번호 초기화
+          if (mounted) {
+            setState(() {
+              _phoneNumber = '';
+            });
+          }
+          // 부모에게 콜백 전달
+          widget.onClickToCallSuccess?.call();
+        },
       ),
     );
   }
