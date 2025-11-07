@@ -229,10 +229,13 @@ class AuthService extends ChangeNotifier {
     
     // FCM 토큰 비활성화
     try {
-      final fcmService = FCMService();
-      await fcmService.deactivateToken();
-      if (kDebugMode) {
-        debugPrint('✅ FCM 토큰 비활성화 완료');
+      final userId = _auth.currentUser?.uid;
+      if (userId != null) {
+        final fcmService = FCMService();
+        await fcmService.deactivateToken(userId);
+        if (kDebugMode) {
+          debugPrint('✅ FCM 토큰 비활성화 완료');
+        }
       }
     } catch (e) {
       if (kDebugMode) {

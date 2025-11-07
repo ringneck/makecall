@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
+import 'services/fcm_service.dart';
 import 'services/user_session_manager.dart';
 import 'services/dcmiws_service.dart';
 import 'services/dcmiws_connection_manager.dart';
@@ -73,6 +74,25 @@ class _MyAppState extends State<MyApp> {
     
     // 🔑 NavigatorKey를 DCMIWSService에 등록
     DCMIWSService.setNavigatorKey(navigatorKey);
+    
+    // 🔐 FCM 강제 로그아웃 콜백 설정 (중복 로그인 방지)
+    FCMService.setForceLogoutCallback(() async {
+      // ignore: avoid_print
+      print('🚨 [Main] 강제 로그아웃 실행');
+      
+      if (mounted) {
+        final authService = context.read<AuthService>();
+        await authService.signOut();
+        
+        // 로그인 화면으로 이동
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (route) => false,
+          );
+        }
+      }
+    });
     
     // 🚀 WebSocket 연결 관리자 시작
     WidgetsBinding.instance.addPostFrameCallback((_) {

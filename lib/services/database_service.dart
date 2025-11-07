@@ -8,6 +8,7 @@ import '../models/my_extension_model.dart';
 import '../models/phonebook_model.dart';
 import '../models/call_forward_info_model.dart';
 import '../models/user_model.dart';
+import '../models/fcm_token_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -954,6 +955,230 @@ class DatabaseService {
         debugPrint('❌ Delete call forward info error: $e');
       }
       rethrow;
+    }
+  }
+
+  // ===== FCM 토큰 관리 (중복 로그인 방지) =====
+
+  /// FCM 토큰 저장 또는 업데이트
+  /// 
+  /// 사용자의 FCM 토큰을 저장합니다. 동일한 userId를 가진 기존 토큰이 있으면
+  /// isActive를 false로 설정하여 무효화합니다.
+  /// 
+  /// @param tokenModel FCM 토큰 모델
+  /// @return 저장된 문서 ID
+  Future<String> saveFcmToken(FcmTokenModel tokenModel) async {
+    try {
+      // ignore: avoid_print
+      print('🔐 [DatabaseService] FCM 토큰 저장 시작');
+      // ignore: avoid_print
+      print('   userId: ${tokenModel.userId}');
+      // ignore: avoid_print
+      print('   deviceId: ${tokenModel.deviceId}');
+      // ignore: avoid_print
+      print('   platform: ${tokenModel.platform}');
+
+      // 1. 해당 사용자의 기존 활성 토큰들을 모두 비활성화
+      final existingTokens = await _firestore
+          .collection('fcm_tokens')
+          .where('userId', isEqualTo: tokenModel.userId)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      // ignore: avoid_print
+      print('   기존 활성 토큰 수: ${existingTokens.docs.length}');
+
+      // 기존 토큰들을 비활성화
+      final batch = _firestore.batch();
+      for (var doc in existingTokens.docs) {
+        batch.update(doc.reference, {
+          'isActive': false,
+          'lastActiveAt': FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+
+      if (existingTokens.docs.isNotEmpty) {
+        // ignore: avoid_print
+        print('   ✅ ${existingTokens.docs.length}개의 기존 토큰 비활성화 완료');
+      }
+
+      // 2. 새 토큰 저장 (deviceId를 문서 ID로 사용하여 중복 방지)
+      final docRef = _firestore
+          .collection('fcm_tokens')
+          .doc('${tokenModel.userId}_${tokenModel.deviceId}');
+
+      await docRef.set(tokenModel.toMap());
+
+      // ignore: avoid_print
+      print('✅ [DatabaseService] FCM 토큰 저장 완료 (문서 ID: ${docRef.id})');
+
+      return docRef.id;
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ [DatabaseService] FCM 토큰 저장 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 사용자의 활성 FCM 토큰 조회
+  /// 
+  /// @param userId 사용자 ID
+  /// @return 활성 FCM 토큰 모델 (없으면 null)
+  Future<FcmTokenModel?> getActiveFcmToken(String userId) async {
+    try {
+      // ignore: avoid_print
+      print('🔍 [DatabaseService] 활성 FCM 토큰 조회');
+      // ignore: avoid_print
+      print('   userId: $userId');
+
+      final querySnapshot = await _firestore
+          .collection('fcm_tokens')
+          .where('userId', isEqualTo: userId)
+          .where('isActive', isEqualTo: true)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        // ignore: avoid_print
+        print('   ⚠️  활성 FCM 토큰 없음');
+        return null;
+      }
+
+      final tokenModel = FcmTokenModel.fromFirestore(querySnapshot.docs.first);
+      // ignore: avoid_print
+      print('   ✅ 활성 FCM 토큰 발견: ${tokenModel.deviceName}');
+
+      return tokenModel;
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ [DatabaseService] FCM 토큰 조회 실패: $e');
+      return null;
+    }
+  }
+
+  /// 특정 기기의 FCM 토큰 조회
+  /// 
+  /// @param userId 사용자 ID
+  /// @param deviceId 기기 ID
+  /// @return FCM 토큰 모델 (없으면 null)
+  Future<FcmTokenModel?> getFcmTokenByDevice(String userId, String deviceId) async {
+    try {
+      final docId = '${userId}_$deviceId';
+      final doc = await _firestore
+          .collection('fcm_tokens')
+          .doc(docId)
+          .get();
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      return FcmTokenModel.fromFirestore(doc);
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ [DatabaseService] 기기별 FCM 토큰 조회 실패: $e');
+      return null;
+    }
+  }
+
+  /// FCM 토큰 삭제 (로그아웃 시 사용)
+  /// 
+  /// @param userId 사용자 ID
+  /// @param deviceId 기기 ID
+  Future<void> deleteFcmToken(String userId, String deviceId) async {
+    try {
+      // ignore: avoid_print
+      print('🗑️  [DatabaseService] FCM 토큰 삭제 시작');
+      // ignore: avoid_print
+      print('   userId: $userId');
+      // ignore: avoid_print
+      print('   deviceId: $deviceId');
+
+      final docId = '${userId}_$deviceId';
+      await _firestore.collection('fcm_tokens').doc(docId).delete();
+
+      // ignore: avoid_print
+      print('✅ [DatabaseService] FCM 토큰 삭제 완료');
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ [DatabaseService] FCM 토큰 삭제 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// FCM 토큰 마지막 활동 시간 업데이트
+  /// 
+  /// @param userId 사용자 ID
+  /// @param deviceId 기기 ID
+  Future<void> updateFcmTokenActivity(String userId, String deviceId) async {
+    try {
+      final docId = '${userId}_$deviceId';
+      await _firestore.collection('fcm_tokens').doc(docId).update({
+        'lastActiveAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      // 에러 무시 (중요하지 않은 작업)
+      if (kDebugMode) {
+        debugPrint('⚠️  FCM 토큰 활동 시간 업데이트 실패: $e');
+      }
+    }
+  }
+
+  /// 사용자의 모든 FCM 토큰 조회 (관리 목적)
+  /// 
+  /// @param userId 사용자 ID
+  /// @return FCM 토큰 목록
+  Future<List<FcmTokenModel>> getAllFcmTokens(String userId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('fcm_tokens')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => FcmTokenModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ [DatabaseService] 전체 FCM 토큰 조회 실패: $e');
+      return [];
+    }
+  }
+
+  /// 만료된 FCM 토큰 정리 (주기적으로 실행)
+  /// 
+  /// @param expiryDays 만료 기준 일수 (기본 30일)
+  Future<void> cleanupExpiredFcmTokens({int expiryDays = 30}) async {
+    try {
+      final expiryDate = DateTime.now().subtract(Duration(days: expiryDays));
+      
+      final querySnapshot = await _firestore
+          .collection('fcm_tokens')
+          .where('lastActiveAt', isLessThan: Timestamp.fromDate(expiryDate))
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('✅ 만료된 FCM 토큰 없음');
+        }
+        return;
+      }
+
+      // 배치 삭제
+      final batch = _firestore.batch();
+      for (var doc in querySnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+
+      if (kDebugMode) {
+        debugPrint('✅ ${querySnapshot.docs.length}개의 만료된 FCM 토큰 삭제 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ FCM 토큰 정리 실패: $e');
+      }
     }
   }
 }

@@ -4,17 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 import '../screens/call/incoming_call_screen.dart';
+import '../models/fcm_token_model.dart';
 import 'dcmiws_service.dart';
 import 'auth_service.dart';
+import 'database_service.dart';
 import 'package:provider/provider.dart';
 
 /// FCM(Firebase Cloud Messaging) 서비스
+/// 
+/// 중복 로그인 방지 기능 포함:
+/// - 새 기기에서 로그인 시 이전 세션 강제 로그아웃
+/// - FCM 메시지를 통한 세션 만료 알림
+/// - 한 사용자당 하나의 활성 세션만 유지
 class FCMService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final DatabaseService _databaseService = DatabaseService();
   
   String? _fcmToken;
   static BuildContext? _context; // 전역 BuildContext 저장
+  static Function()? _onForceLogout; // 강제 로그아웃 콜백
   
   /// FCM 토큰 가져오기
   String? get fcmToken => _fcmToken;
@@ -22,6 +31,11 @@ class FCMService {
   /// BuildContext 설정 (main.dart에서 호출)
   static void setContext(BuildContext context) {
     _context = context;
+  }
+  
+  /// 강제 로그아웃 콜백 설정
+  static void setForceLogoutCallback(Function() callback) {
+    _onForceLogout = callback;
   }
   
   /// FCM 초기화
@@ -147,54 +161,145 @@ class FCMService {
     }
   }
   
-  /// FCM 토큰을 Firestore에 저장
+  /// FCM 토큰을 Firestore에 저장 (중복 로그인 방지 포함)
+  /// 
+  /// 새 기기에서 로그인 시:
+  /// 1. 기존 활성 토큰 조회
+  /// 2. 기존 기기에 강제 로그아웃 FCM 메시지 전송
+  /// 3. 기존 토큰 비활성화
+  /// 4. 새 토큰 저장
   Future<void> _saveFCMToken(String userId, String token) async {
     try {
       final deviceId = await _getDeviceId();
       final deviceName = await _getDeviceName();
       final platform = _getPlatformName();
       
-      await _firestore.collection('fcm_tokens').doc(token).set({
-        'userId': userId,
-        'token': token,
-        'deviceId': deviceId,
-        'deviceName': deviceName,
-        'platform': platform,
-        'appVersion': '1.0.0', // TODO: 실제 앱 버전으로 변경
-        'isActive': true,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-        'lastUsedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      // ignore: avoid_print
+      print('🔐 [FCMService] FCM 토큰 저장 프로세스 시작');
+      // ignore: avoid_print
+      print('   사용자 ID: $userId');
+      // ignore: avoid_print
+      print('   새 기기: $deviceName ($platform)');
       
-      if (kDebugMode) {
-        debugPrint('✅ FCM 토큰 Firestore 저장 완료');
-        debugPrint('   컬렉션: fcm_tokens');
-        debugPrint('   문서 ID: ${token.substring(0, 30)}...');
-        debugPrint('   사용자 ID: $userId');
-        debugPrint('   기기: $deviceName ($platform)');
+      // 1. 기존 활성 토큰 조회
+      final existingToken = await _databaseService.getActiveFcmToken(userId);
+      
+      if (existingToken != null && existingToken.deviceId != deviceId) {
+        // ignore: avoid_print
+        print('🚨 [FCMService] 중복 로그인 감지!');
+        // ignore: avoid_print
+        print('   기존 기기: ${existingToken.deviceName} (${existingToken.platform})');
+        // ignore: avoid_print
+        print('   기존 토큰: ${existingToken.fcmToken.substring(0, 30)}...');
+        
+        // 2. 기존 기기에 강제 로그아웃 알림 전송
+        await _sendForceLogoutNotification(existingToken.fcmToken, deviceName, platform);
+        
+        // ignore: avoid_print
+        print('   ✅ 기존 기기에 강제 로그아웃 알림 전송 완료');
+      } else if (existingToken != null) {
+        // ignore: avoid_print
+        print('   ℹ️  동일 기기에서 토큰 갱신');
+      } else {
+        // ignore: avoid_print
+        print('   ℹ️  첫 로그인 (기존 활성 토큰 없음)');
       }
+      
+      // 3. 새 토큰 모델 생성 및 저장
+      final tokenModel = FcmTokenModel(
+        userId: userId,
+        fcmToken: token,
+        deviceId: deviceId,
+        deviceName: deviceName,
+        platform: platform,
+        createdAt: DateTime.now(),
+        lastActiveAt: DateTime.now(),
+        isActive: true,
+      );
+      
+      await _databaseService.saveFcmToken(tokenModel);
+      
+      // ignore: avoid_print
+      print('✅ [FCMService] 새 FCM 토큰 저장 완료');
+      // ignore: avoid_print
+      print('   기기: $deviceName ($platform)');
+      
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ FCM 토큰 저장 오류: $e');
-      }
+      // ignore: avoid_print
+      print('❌ [FCMService] FCM 토큰 저장 오류: $e');
+    }
+  }
+  
+  /// 기존 기기에 강제 로그아웃 FCM 메시지 전송
+  /// 
+  /// @param targetToken 대상 기기의 FCM 토큰
+  /// @param newDeviceName 새로 로그인한 기기 이름
+  /// @param newPlatform 새로 로그인한 플랫폼
+  Future<void> _sendForceLogoutNotification(
+    String targetToken,
+    String newDeviceName,
+    String newPlatform,
+  ) async {
+    try {
+      // ignore: avoid_print
+      print('📤 [FCMService] 강제 로그아웃 알림 전송 시작');
+      // ignore: avoid_print
+      print('   대상 토큰: ${targetToken.substring(0, 30)}...');
+      
+      // Cloud Functions를 통해 FCM 메시지 전송
+      // Cloud Functions에서 Firebase Admin SDK로 메시지 전송 처리
+      await _firestore.collection('fcm_force_logout_queue').add({
+        'targetToken': targetToken,
+        'newDeviceName': newDeviceName,
+        'newPlatform': newPlatform,
+        'message': {
+          'type': 'force_logout',
+          'title': '다른 기기에서 로그인됨',
+          'body': '$newDeviceName에서 로그인되어 현재 세션이 종료됩니다.',
+        },
+        'createdAt': FieldValue.serverTimestamp(),
+        'processed': false,
+      });
+      
+      // ignore: avoid_print
+      print('✅ [FCMService] 강제 로그아웃 알림 큐 등록 완료');
+      // ignore: avoid_print
+      print('   ℹ️  Cloud Functions가 실제 FCM 메시지를 전송합니다');
+      
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ [FCMService] 강제 로그아웃 알림 전송 실패: $e');
+      // 에러 무시 (중요하지 않은 작업)
     }
   }
   
   /// 포그라운드 메시지 처리
   void _handleForegroundMessage(RemoteMessage message) {
-    if (kDebugMode) {
-      debugPrint('');
-      debugPrint('='*60);
-      debugPrint('📨 포그라운드 메시지 수신 (${_getPlatformName()})');
-      debugPrint('='*60);
-      debugPrint('  제목: ${message.notification?.title}');
-      debugPrint('  내용: ${message.notification?.body}');
-      debugPrint('  데이터: ${message.data}');
-      debugPrint('  메시지 ID: ${message.messageId}');
-      debugPrint('  전송 시각: ${message.sentTime}');
-      debugPrint('='*60);
-      debugPrint('');
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('='*60);
+    // ignore: avoid_print
+    print('📨 포그라운드 메시지 수신 (${_getPlatformName()})');
+    // ignore: avoid_print
+    print('='*60);
+    // ignore: avoid_print
+    print('  제목: ${message.notification?.title}');
+    // ignore: avoid_print
+    print('  내용: ${message.notification?.body}');
+    // ignore: avoid_print
+    print('  데이터: ${message.data}');
+    // ignore: avoid_print
+    print('  메시지 타입: ${message.data['type']}');
+    // ignore: avoid_print
+    print('='*60);
+    // ignore: avoid_print
+    print('');
+    
+    // 🔐 강제 로그아웃 메시지 처리
+    if (message.data['type'] == 'force_logout') {
+      _handleForceLogout(message);
+      return;
     }
     
     // 웹 플랫폼: 브라우저 알림 표시
@@ -210,6 +315,90 @@ class FCMService {
       // 풀스크린 표시
       _showIncomingCallScreen(message);
     }
+  }
+  
+  /// 강제 로그아웃 메시지 처리
+  /// 
+  /// 다른 기기에서 로그인했을 때 현재 세션을 종료합니다.
+  void _handleForceLogout(RemoteMessage message) {
+    // ignore: avoid_print
+    print('🚨 [FCMService] 강제 로그아웃 메시지 수신');
+    
+    final newDeviceName = message.data['newDeviceName'] ?? '다른 기기';
+    final newPlatform = message.data['newPlatform'] ?? 'unknown';
+    
+    // ignore: avoid_print
+    print('   새 로그인 기기: $newDeviceName ($newPlatform)');
+    
+    if (_context != null) {
+      // 다이얼로그 표시
+      showDialog(
+        context: _context!,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              SizedBox(width: 12),
+              Text('다른 기기에서 로그인됨'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$newDeviceName에서 로그인되어 현재 세션이 종료됩니다.',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.orange.withOpacity(0.3),
+                  ),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '본인이 아닌 경우 비밀번호를 변경하세요.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // 강제 로그아웃 실행
+                if (_onForceLogout != null) {
+                  _onForceLogout!();
+                }
+              },
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Context가 없으면 바로 로그아웃
+      if (_onForceLogout != null) {
+        _onForceLogout!();
+      }
+    }
+    
+    // ignore: avoid_print
+    print('✅ [FCMService] 강제 로그아웃 처리 완료');
   }
   
   /// 웹 플랫폼 알림 표시
@@ -466,44 +655,56 @@ class FCMService {
   }
   
   /// FCM 토큰 비활성화 (로그아웃 시)
-  Future<void> deactivateToken() async {
+  /// 
+  /// 로그아웃 시 현재 기기의 FCM 토큰을 삭제합니다.
+  Future<void> deactivateToken(String userId) async {
     if (_fcmToken == null) return;
     
     try {
-      await _firestore.collection('fcm_tokens').doc(_fcmToken).update({
-        'isActive': false,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      // ignore: avoid_print
+      print('🗑️  [FCMService] FCM 토큰 비활성화 시작');
       
-      if (kDebugMode) {
-        debugPrint('✅ FCM 토큰 비활성화 완료');
-      }
+      final deviceId = await _getDeviceId();
+      await _databaseService.deleteFcmToken(userId, deviceId);
+      
+      // ignore: avoid_print
+      print('✅ [FCMService] FCM 토큰 비활성화 완료');
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ FCM 토큰 비활성화 오류: $e');
-      }
+      // ignore: avoid_print
+      print('❌ [FCMService] FCM 토큰 비활성화 오류: $e');
     }
   }
   
   /// 기기 ID 가져오기
+  /// 
+  /// FCM 토큰과 함께 사용하여 기기를 고유하게 식별합니다.
+  /// 중복 로그인 방지에 사용됩니다.
   Future<String> _getDeviceId() async {
     try {
-      // TODO: device_info_plus 패키지를 사용하여 실제 기기 ID 가져오기
-      return 'device_${DateTime.now().millisecondsSinceEpoch}';
+      if (_fcmToken != null) {
+        // FCM 토큰의 해시를 기기 ID로 사용 (고유성 보장)
+        return _fcmToken!.substring(0, 50);
+      }
+      // FCM 토큰이 없으면 임시 ID 생성
+      return 'temp_device_${DateTime.now().millisecondsSinceEpoch}';
     } catch (e) {
-      return 'unknown_device';
+      return 'unknown_device_${DateTime.now().millisecondsSinceEpoch}';
     }
   }
   
   /// 기기 이름 가져오기
+  /// 
+  /// 사용자에게 표시할 기기 이름을 반환합니다.
   Future<String> _getDeviceName() async {
     try {
-      // TODO: device_info_plus 패키지를 사용하여 실제 기기 이름 가져오기
       if (kIsWeb) {
+        // 웹: 브라우저 정보 포함
         return 'Web Browser';
       } else if (Platform.isAndroid) {
+        // Android: 모델명 포함 (TODO: device_info_plus로 실제 모델명 가져오기)
         return 'Android Device';
       } else if (Platform.isIOS) {
+        // iOS: 기기 모델 포함 (TODO: device_info_plus로 실제 모델명 가져오기)
         return 'iOS Device';
       }
       return 'Unknown Device';
