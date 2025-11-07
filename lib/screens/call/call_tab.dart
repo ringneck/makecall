@@ -2179,7 +2179,59 @@ class _CallTabState extends State<CallTab> {
     try {
       final userId = context.read<AuthService>().currentUser?.uid ?? '';
       
-      // Firestore에 저장
+      // 🔥 중복 체크: 전화번호 기준으로 이미 존재하는 연락처 확인
+      final existingContact = await _databaseService.findContactByPhone(
+        userId, 
+        contact.phoneNumber,
+      );
+      
+      if (existingContact != null) {
+        // 중복된 연락처가 이미 존재하는 경우
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.white, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '이미 추가된 연락처입니다',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${contact.phoneNumber}는 이미 즐겨찾기에 저장되어 있습니다.',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange[700],
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: '보기',
+                textColor: Colors.white,
+                onPressed: () {
+                  setState(() {
+                    _currentTabIndex = 3; // 즐겨찾기 탭으로 이동
+                  });
+                },
+              ),
+            ),
+          );
+        }
+        return; // 중복이므로 추가하지 않음
+      }
+      
+      // 중복이 아니면 Firestore에 저장
       final newContact = contact.copyWith(
         userId: userId,
         isFavorite: true,
