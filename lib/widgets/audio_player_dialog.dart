@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -25,6 +26,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
   String? _error;
+  Completer<void>? _durationCompleter;
 
   @override
   void initState() {
@@ -51,6 +53,11 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
           _duration = duration;
           _isLoading = false;
         });
+        
+        // Duration이 설정되면 Completer 완료
+        if (_durationCompleter != null && !_durationCompleter!.isCompleted) {
+          _durationCompleter!.complete();
+        }
       }
     });
 
@@ -91,12 +98,26 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
         debugPrint('🎵 오디오 로딩 시작: ${widget.audioUrl}');
       }
 
+      // Duration Completer 생성
+      _durationCompleter = Completer<void>();
+
       // 오디오 소스 설정
       await _audioPlayer.setSourceUrl(widget.audioUrl);
 
       // Duration을 가져오기 위해 잠깐 재생했다가 즉시 일시정지
       await _audioPlayer.play(UrlSource(widget.audioUrl));
-      await Future.delayed(const Duration(milliseconds: 150)); // Duration 설정 대기 (100ms → 150ms)
+      
+      // ⚠️ Duration이 실제로 설정될 때까지 기다림 (onDurationChanged 리스너가 완료 신호)
+      // 최대 3초 타임아웃
+      await _durationCompleter!.future.timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          if (kDebugMode) {
+            debugPrint('⚠️ Duration 로딩 타임아웃 (3초)');
+          }
+        },
+      );
+      
       await _audioPlayer.pause();
       
       // ⚠️ 주의: 여기서는 _seekTo()를 사용하지 않고 직접 seek 호출
@@ -105,11 +126,10 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
 
       if (kDebugMode) {
         debugPrint('✅ 오디오 로딩 완료');
+        debugPrint('   Duration: ${_duration.inSeconds}초');
       }
 
-      setState(() {
-        _isLoading = false;
-      });
+      // setState는 onDurationChanged 리스너에서 이미 호출됨
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ 오디오 로드 오류: $e');
