@@ -87,7 +87,14 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
         _error = null;
       });
 
+      // 오디오 소스 설정
       await _audioPlayer.setSourceUrl(widget.audioUrl);
+
+      // Duration을 가져오기 위해 잠깐 재생했다가 즉시 일시정지
+      await _audioPlayer.play(UrlSource(widget.audioUrl));
+      await Future.delayed(const Duration(milliseconds: 100)); // Duration 설정 대기
+      await _audioPlayer.pause();
+      await _audioPlayer.seek(Duration.zero); // 처음으로 되돌리기
 
       setState(() {
         _isLoading = false;
@@ -344,8 +351,8 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
                 value: _position.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()),
                 min: 0.0,
                 max: _duration.inSeconds.toDouble() > 0 ? _duration.inSeconds.toDouble() : 1.0,
-                onChanged: (_isLoading || _error != null || _duration.inMilliseconds == 0) 
-                    ? null  // 오디오 준비 안 됐으면 Slider 비활성화
+                onChanged: (_isLoading || _error != null) 
+                    ? null  // 로딩 중이거나 에러 시에만 비활성화 (duration 조건 제거)
                     : _seekTo,
               ),
             ),
@@ -362,10 +369,10 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
             IconButton(
               icon: const Icon(Icons.replay_10),
               iconSize: 32,
-              color: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+              color: (_isLoading || _error != null)
                   ? Colors.grey
                   : const Color(0xFF1e3c72),
-              onPressed: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+              onPressed: (_isLoading || _error != null)
                   ? null
                   : () {
                       final newPosition = _position - const Duration(seconds: 10);
@@ -403,10 +410,10 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
             IconButton(
               icon: const Icon(Icons.forward_10),
               iconSize: 32,
-              color: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+              color: (_isLoading || _error != null)
                   ? Colors.grey
                   : const Color(0xFF1e3c72),
-              onPressed: (_isLoading || _error != null || _duration.inMilliseconds == 0)
+              onPressed: (_isLoading || _error != null)
                   ? null
                   : () {
                       final newPosition = _position + const Duration(seconds: 10);
