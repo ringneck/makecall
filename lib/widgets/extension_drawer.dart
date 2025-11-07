@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
 import '../models/my_extension_model.dart';
@@ -21,11 +22,74 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   List<MyExtensionModel> _previousExtensions = [];
+  bool _isInitialized = false;
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  // 마지막 선택된 단말번호 저장
+  Future<void> _saveLastSelectedExtension(String extensionId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final authService = context.read<AuthService>();
+      final userId = authService.currentUser?.uid ?? '';
+      
+      if (userId.isNotEmpty) {
+        await prefs.setString('last_selected_extension_$userId', extensionId);
+        if (kDebugMode) {
+          debugPrint('💾 마지막 선택 단말번호 저장: $extensionId (user: $userId)');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 마지막 선택 단말번호 저장 실패: $e');
+      }
+    }
+  }
+
+  // 마지막 선택된 단말번호 불러오기
+  Future<String?> _loadLastSelectedExtension() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final authService = context.read<AuthService>();
+      final userId = authService.currentUser?.uid ?? '';
+      
+      if (userId.isNotEmpty) {
+        final lastExtensionId = prefs.getString('last_selected_extension_$userId');
+        if (kDebugMode) {
+          debugPrint('📂 마지막 선택 단말번호 불러오기: $lastExtensionId (user: $userId)');
+        }
+        return lastExtensionId;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 마지막 선택 단말번호 불러오기 실패: $e');
+      }
+    }
+    return null;
+  }
+
+  // 단말번호 목록에서 마지막 선택 단말번호 찾기
+  int _findExtensionIndex(List<MyExtensionModel> extensions, String? lastExtensionId) {
+    if (lastExtensionId == null || lastExtensionId.isEmpty) {
+      return 0;
+    }
+    
+    final index = extensions.indexWhere((ext) => ext.id == lastExtensionId);
+    if (index != -1) {
+      if (kDebugMode) {
+        debugPrint('✅ 마지막 선택 단말번호 찾음: index=$index, id=$lastExtensionId');
+      }
+      return index;
+    }
+    
+    if (kDebugMode) {
+      debugPrint('⚠️ 마지막 선택 단말번호를 찾을 수 없음, 첫 번째 단말번호 선택');
+    }
+    return 0;
   }
 
   @override
@@ -71,30 +135,58 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                   
                   if (extensionsChanged) {
                     // 단말번호 목록이 변경되었을 때만 상태 업데이트
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) async {
                       // 이전 목록 저장
                       _previousExtensions = List.from(extensions);
                       
-                      // 현재 페이지가 범위를 벗어나면 조정
-                      if (_currentPage >= extensions.length && extensions.isNotEmpty) {
-                        setState(() {
-                          _currentPage = extensions.length - 1;
-                        });
-                        // PageController도 업데이트
-                        if (_pageController.hasClients) {
-                          _pageController.jumpToPage(_currentPage);
+                      // 첫 초기화 시 마지막 선택된 단말번호 불러오기
+                      if (!_isInitialized && extensions.isNotEmpty) {
+                        _isInitialized = true;
+                        final lastExtensionId = await _loadLastSelectedExtension();
+                        final initialIndex = _findExtensionIndex(extensions, lastExtensionId);
+                        
+                        if (initialIndex != _currentPage) {
+                          setState(() {
+                            _currentPage = initialIndex;
+                          });
+                          // PageController도 업데이트
+                          if (_pageController.hasClients) {
+                            _pageController.jumpToPage(_currentPage);
+                          }
                         }
-                      } else if (extensions.isEmpty) {
-                        setState(() {
-                          _currentPage = 0;
-                        });
-                      }
-                      
-                      // 선택된 단말번호 업데이트
-                      if (extensions.isNotEmpty && _currentPage < extensions.length) {
-                        context.read<SelectedExtensionProvider>().setSelectedExtension(
-                              extensions[_currentPage],
-                            );
+                        
+                        // 선택된 단말번호 업데이트
+                        if (_currentPage < extensions.length) {
+                          context.read<SelectedExtensionProvider>().setSelectedExtension(
+                                extensions[_currentPage],
+                              );
+                        }
+                        
+                        if (kDebugMode) {
+                          debugPrint('🎯 초기화 완료: index=$_currentPage, extension=${extensions[_currentPage].extension}');
+                        }
+                      } else {
+                        // 현재 페이지가 범위를 벗어나면 조정
+                        if (_currentPage >= extensions.length && extensions.isNotEmpty) {
+                          setState(() {
+                            _currentPage = extensions.length - 1;
+                          });
+                          // PageController도 업데이트
+                          if (_pageController.hasClients) {
+                            _pageController.jumpToPage(_currentPage);
+                          }
+                        } else if (extensions.isEmpty) {
+                          setState(() {
+                            _currentPage = 0;
+                          });
+                        }
+                        
+                        // 선택된 단말번호 업데이트
+                        if (extensions.isNotEmpty && _currentPage < extensions.length) {
+                          context.read<SelectedExtensionProvider>().setSelectedExtension(
+                                extensions[_currentPage],
+                              );
+                        }
                       }
                     });
                   }
@@ -196,10 +288,15 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                               context.read<SelectedExtensionProvider>().setSelectedExtension(
                                                     extensions[newValue],
                                                   );
+                                              
+                                              // 마지막 선택 단말번호 저장
+                                              _saveLastSelectedExtension(extensions[newValue].id);
+                                              
                                               if (kDebugMode) {
                                                 debugPrint('📄 Dropdown changed to index: $newValue');
                                                 debugPrint('   - Extension: ${extensions[newValue].extension}');
                                                 debugPrint('   - Name: ${extensions[newValue].name}');
+                                                debugPrint('   - ID: ${extensions[newValue].id}');
                                               }
                                             }
                                           },
