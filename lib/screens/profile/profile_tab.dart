@@ -844,7 +844,9 @@ class _ProfileTabState extends State<ProfileTab> {
       }
 
       // ✅ CRITICAL: maxExtensions 제한 확인 (다이얼로그 표시 전에 먼저 체크!)
-      final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
+      // 🔥 FIXED: my_extensions 컬렉션에서 실제 등록된 단말번호 개수 확인
+      final myExtensionsSnapshot = await DatabaseService().getMyExtensions(userId).first;
+      final currentExtensionCount = myExtensionsSnapshot.length;
       final maxExtensions = authService.currentUserModel?.maxExtensions ?? 1;
       
       if (kDebugMode) {
@@ -852,16 +854,17 @@ class _ProfileTabState extends State<ProfileTab> {
         debugPrint('🔍 maxExtensions 제한 체크');
         debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         debugPrint('📊 UserModel 존재: ${authService.currentUserModel != null}');
-        debugPrint('📊 현재 등록된 단말번호 개수: ${currentMyExtensions.length}');
-        debugPrint('📊 등록된 단말번호 목록: $currentMyExtensions');
+        debugPrint('📊 my_extensions 컬렉션 조회 완료');
+        debugPrint('📊 현재 등록된 단말번호 개수 (my_extensions): $currentExtensionCount');
+        debugPrint('📊 등록된 단말번호 목록: ${myExtensionsSnapshot.map((e) => e.extension).toList()}');
         debugPrint('📊 최대 등록 가능 개수: $maxExtensions');
-        debugPrint('📊 비교 결과: ${currentMyExtensions.length} >= $maxExtensions = ${currentMyExtensions.length >= maxExtensions}');
+        debugPrint('📊 비교 결과: $currentExtensionCount >= $maxExtensions = ${currentExtensionCount >= maxExtensions}');
         debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       }
       
-      if (currentMyExtensions.length >= maxExtensions) {
+      if (currentExtensionCount >= maxExtensions) {
         if (kDebugMode) {
-          debugPrint('❌ 단말번호 등록 한도 초과: 현재 ${currentMyExtensions.length}개, 최대 $maxExtensions개');
+          debugPrint('❌ 단말번호 등록 한도 초과: 현재 $currentExtensionCount개, 최대 $maxExtensions개');
         }
         
         if (context.mounted) {
@@ -899,7 +902,7 @@ class _ProfileTabState extends State<ProfileTab> {
                             const Icon(Icons.info_outline, size: 16, color: Colors.orange),
                             const SizedBox(width: 6),
                             Text(
-                              '현재 등록된 단말번호: ${currentMyExtensions.length}개',
+                              '현재 등록된 단말번호: $currentExtensionCount개',
                               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                             ),
                           ],
