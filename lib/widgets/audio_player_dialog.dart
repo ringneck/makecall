@@ -108,28 +108,47 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
       await _audioPlayer.play(UrlSource(widget.audioUrl));
       
       // ⚠️ Duration이 실제로 설정될 때까지 기다림 (onDurationChanged 리스너가 완료 신호)
-      // 최대 3초 타임아웃
-      await _durationCompleter!.future.timeout(
-        const Duration(seconds: 3),
-        onTimeout: () {
-          if (kDebugMode) {
-            debugPrint('⚠️ Duration 로딩 타임아웃 (3초)');
-          }
-        },
-      );
+      // 최대 10초 타임아웃 (네트워크 느린 경우 대비)
+      bool durationLoaded = true;
+      try {
+        await _durationCompleter!.future.timeout(
+          const Duration(seconds: 10),
+        );
+      } catch (e) {
+        durationLoaded = false;
+        if (kDebugMode) {
+          debugPrint('⚠️ Duration 로딩 타임아웃 (10초)');
+          debugPrint('   → 재생 시작하면 duration이 자동으로 설정됩니다');
+        }
+      }
       
       await _audioPlayer.pause();
       
-      // ⚠️ 주의: 여기서는 _seekTo()를 사용하지 않고 직접 seek 호출
-      // _seekTo()는 duration 검증 로직이 있어서 초기 로딩 시 경고가 발생함
-      await _audioPlayer.seek(Duration.zero); // 처음으로 되돌리기
-
-      if (kDebugMode) {
-        debugPrint('✅ 오디오 로딩 완료');
-        debugPrint('   Duration: ${_duration.inSeconds}초');
+      // Duration 로드 실패 시에도 seek는 시도 (에러 무시)
+      try {
+        await _audioPlayer.seek(Duration.zero);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('⚠️ Seek 실패 (무시): $e');
+        }
       }
 
-      // setState는 onDurationChanged 리스너에서 이미 호출됨
+      if (kDebugMode) {
+        if (durationLoaded) {
+          debugPrint('✅ 오디오 로딩 완료');
+          debugPrint('   Duration: ${_duration.inSeconds}초');
+        } else {
+          debugPrint('⚠️ 오디오 로딩 완료 (Duration 대기 중)');
+          debugPrint('   → 재생 시작 후 duration이 업데이트됩니다');
+        }
+      }
+
+      // Duration 로드 실패 시 로딩 상태 해제 (onDurationChanged에서 처리 안 되므로)
+      if (!durationLoaded && mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ 오디오 로드 오류: $e');
