@@ -29,6 +29,10 @@ class DCMIWSService {
   bool _isConnected = false;
   bool get isConnected => _isConnected;
   
+  // 📝 클릭투콜 임시 저장소 (Newchannel 이벤트 대기용)
+  // Key: extensionNumber, Value: 통화 기록 데이터 + 타임스탬프
+  final Map<String, Map<String, dynamic>> _pendingClickToCallRecords = {};
+  
   // 재연결 로직
   Timer? _reconnectTimer;
   int _reconnectAttempts = 0;
@@ -576,6 +580,7 @@ class DCMIWSService {
         final callTime = DateTime.parse(data['callTime'] as String);
         final existingLinkedId = data['linkedid'] as String?;
         final phoneNumber = data['phoneNumber'] as String?;
+        final extensionUsed = data['extensionUsed'] as String?;
         
         if (kDebugMode) {
           debugPrint('  📞 확인 중: ${phoneNumber ?? "(번호 없음)"}');
@@ -615,6 +620,15 @@ class DCMIWSService {
               debugPrint('  → 중복 처리 방지를 위해 건너뜁니다');
             }
             return;
+          }
+          
+          // 🆕 임시 저장소 우선 확인
+          if (_pendingClickToCallRecords.containsKey(extensionUsed)) {
+            if (kDebugMode) {
+              debugPrint('✅ 임시 저장소에서 발견! 임시 데이터로 생성');
+            }
+            await _createCallHistoryFromPending(extensionUsed!, linkedid);
+            return; // 임시 데이터로 생성 완료
           }
           
           // 🔥 NEW APPROACH: 기존 문서 삭제 후 linkedid를 포함한 새 문서 생성
@@ -1612,10 +1626,94 @@ class DCMIWSService {
       }
     }
   }
+  /// 클릭투콜 기록을 임시 저장 (Newchannel 이벤트 대기)
+  void storePendingClickToCallRecord({
+    required String extensionNumber,
+    required String phoneNumber,
+    required String userId,
+    required String mainNumberUsed,
+    required bool callForwardEnabled,
+    String? callForwardDestination,
+  }) {
+    final timestamp = DateTime.now();
+    
+    _pendingClickToCallRecords[extensionNumber] = {
+      'phoneNumber': phoneNumber,
+      'userId': userId,
+      'mainNumberUsed': mainNumberUsed,
+      'extensionUsed': extensionNumber,
+      'callForwardEnabled': callForwardEnabled,
+      'callForwardDestination': callForwardDestination,
+      'timestamp': timestamp.toIso8601String(),
+      'callTime': timestamp,
+    };
+    
+    if (kDebugMode) {
+      debugPrint('📝 클릭투콜 기록 임시 저장 (Newchannel 이벤트 대기)');
+      debugPrint('   단말번호: $extensionNumber');
+      debugPrint('   발신번호: $phoneNumber');
+      debugPrint('   착신전환: $callForwardEnabled');
+    }
+    
+    // 10초 후 타임아웃 - 이벤트가 안 오면 임시 데이터로 생성
+    Future.delayed(const Duration(seconds: 10), () {
+      if (_pendingClickToCallRecords.containsKey(extensionNumber)) {
+        final data = _pendingClickToCallRecords[extensionNumber]!;
+        final recordTimestamp = DateTime.parse(data['timestamp'] as String);
+        
+        // 10초 경과 확인
+        if (DateTime.now().difference(recordTimestamp).inSeconds >= 10) {
+          if (kDebugMode) {
+            debugPrint('⏰ Newchannel 이벤트 타임아웃 - 임시 데이터로 기록 생성');
+            debugPrint('   단말번호: $extensionNumber');
+          }
+          
+          // Firestore에 linkedid 없이 생성
+          _createCallHistoryFromPending(extensionNumber, null);
+        }
+      }
+    });
+  }
+  
+  /// 임시 저장된 클릭투콜 기록을 Firestore에 생성
+  Future<void> _createCallHistoryFromPending(String extensionNumber, String? linkedid) async {
+    final data = _pendingClickToCallRecords.remove(extensionNumber);
+    if (data == null) return;
+    
+    try {
+      final firestore = FirebaseFirestore.instance;
+      
+      await firestore.collection('call_history').add({
+        'userId': data['userId'],
+        'phoneNumber': data['phoneNumber'],
+        'callType': 'outgoing',
+        'callMethod': 'extension',
+        'callTime': (data['callTime'] as DateTime).toIso8601String(),
+        'mainNumberUsed': data['mainNumberUsed'],
+        'extensionUsed': data['extensionUsed'],
+        'callForwardEnabled': data['callForwardEnabled'],
+        'callForwardDestination': data['callForwardDestination'],
+        'linkedid': linkedid, // Newchannel에서 받은 linkedid (없으면 null)
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      
+      if (kDebugMode) {
+        debugPrint('✅ 클릭투콜 기록 생성 완료');
+        debugPrint('   단말번호: $extensionNumber');
+        debugPrint('   Linkedid: ${linkedid ?? "(없음)"}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 클릭투콜 기록 생성 오류: $e');
+      }
+    }
+  }
+
   /// 서비스 정리
   void dispose() {
     disconnect();
     _connectionStateController.close();
     _eventController.close();
+    _pendingClickToCallRecords.clear();
   }
 }

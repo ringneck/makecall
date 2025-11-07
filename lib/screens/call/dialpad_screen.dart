@@ -6,6 +6,7 @@ import '../../widgets/call_method_dialog.dart';
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
 import '../../services/database_service.dart';
+import '../../services/dcmiws_service.dart';
 import '../../models/call_history_model.dart';
 import '../../providers/selected_extension_provider.dart';
 
@@ -192,32 +193,26 @@ class _DialpadScreenState extends State<DialpadScreen> {
 
       if (kDebugMode) {
         debugPrint('');
-        debugPrint('💾 ========== 통화 기록 저장 (착신전환 정보 포함) ==========');
+        debugPrint('💾 ========== 클릭투콜 기록 임시 저장 (Newchannel 대기) ==========');
         debugPrint('   📱 단말번호: ${selectedExtension.extension}');
         debugPrint('   📞 발신 대상: $phoneNumber');
         debugPrint('   🔄 착신전환 활성화: $isForwardEnabled');
         debugPrint('   ➡️  착신전환 목적지: ${isForwardEnabled ? forwardDestination : "비활성화"}');
-        debugPrint('   📦 저장 데이터:');
-        debugPrint('      - callForwardEnabled: $isForwardEnabled');
-        debugPrint('      - callForwardDestination: ${(isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : "null"}');
+        debugPrint('   ⏳ Newchannel 이벤트 대기 중... (10초 타임아웃)');
         debugPrint('========================================================');
         debugPrint('');
       }
 
-      // 통화 기록 저장 (착신전환 정보 포함)
-      await _databaseService.addCallHistory(
-        CallHistoryModel(
-          id: '',
-          userId: userId,
-          phoneNumber: phoneNumber,
-          callType: CallType.outgoing,
-          callMethod: CallMethod.extension,
-          callTime: DateTime.now(),
-          mainNumberUsed: cidNumber,
-          extensionUsed: selectedExtension.extension,
-          callForwardEnabled: isForwardEnabled,
-          callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
-        ),
+      // 🆕 Firestore에 즉시 저장하지 않고, DCMIWS 임시 저장소에 저장
+      // Newchannel 이벤트에서 linkedid와 함께 생성
+      final dcmiws = DCMIWSService();
+      dcmiws.storePendingClickToCallRecord(
+        extensionNumber: selectedExtension.extension,
+        phoneNumber: phoneNumber,
+        userId: userId,
+        mainNumberUsed: cidNumber,
+        callForwardEnabled: isForwardEnabled,
+        callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
       );
 
       if (mounted) {
