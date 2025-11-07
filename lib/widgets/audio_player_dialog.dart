@@ -84,6 +84,30 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
     super.dispose();
   }
 
+  /// Slider의 최대값을 안전하게 반환
+  double _getMaxDuration() {
+    final maxValue = _duration.inSeconds.toDouble();
+    return maxValue > 0 ? maxValue : 1.0;
+  }
+
+  /// 현재 위치를 Slider 범위 내로 제한
+  double _getClampedPosition() {
+    final currentPos = _position.inSeconds.toDouble();
+    final maxPos = _getMaxDuration();
+    
+    // 현재 위치가 최대값을 초과하지 않도록 제한
+    if (currentPos > maxPos) {
+      return maxPos;
+    }
+    
+    // 음수 방지
+    if (currentPos < 0) {
+      return 0.0;
+    }
+    
+    return currentPos;
+  }
+
   Future<void> _loadAudio() async {
     try {
       setState(() {
@@ -439,10 +463,8 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> with SingleTicker
               overlayColor: Colors.white.withOpacity(0.2),
             ),
             child: Slider(
-              value: _position.inSeconds.toDouble(),
-              max: _duration.inSeconds.toDouble() > 0 
-                  ? _duration.inSeconds.toDouble() 
-                  : 1.0,
+              value: _getClampedPosition(),
+              max: _getMaxDuration(),
               onChanged: _seekTo,
             ),
           ),
