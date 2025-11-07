@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'audio_player_dialog.dart';
-import 'dart:html' as html show window;
+import 'package:flutter_app/utils/platform_user_agent.dart';
 
 /// 통화 상세 내역 다이얼로그
 class CallDetailDialog extends StatefulWidget {
@@ -836,7 +836,7 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
     // 웹 환경에서 User-Agent 확인
     if (kIsWeb) {
       // User-Agent를 통해 브라우저 감지
-      final userAgent = html.window.navigator.userAgent.toLowerCase();
+      final userAgent = PlatformUserAgent.getUserAgent().toLowerCase();
       
       // Chrome 또는 Edge인 경우 WAV 그대로 사용
       final isChrome = userAgent.contains('chrome') && !userAgent.contains('edg');
@@ -855,6 +855,17 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         final mp3Url = url.substring(0, url.length - 4) + '.mp3';
         if (kDebugMode) {
           debugPrint('🎵 브라우저: 기타 (iOS/Safari/Firefox) - MP3로 변환');
+          debugPrint('   원본: $url');
+          debugPrint('   변환: $mp3Url');
+        }
+        return mp3Url;
+      }
+    } else {
+      // 모바일 플랫폼 (iOS/Android): 항상 MP3 사용
+      if (url.toLowerCase().endsWith('.wav')) {
+        final mp3Url = url.substring(0, url.length - 4) + '.mp3';
+        if (kDebugMode) {
+          debugPrint('🎵 모바일 플랫폼: MP3로 변환');
           debugPrint('   원본: $url');
           debugPrint('   변환: $mp3Url');
         }
