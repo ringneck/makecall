@@ -1,12 +1,15 @@
-# Compiled JavaScript files
-**/*.js
-**/*.js.map
+# Compiled JavaScript files (exclude index.js as it's our source)
+# **/*.js
+# **/*.js.map
 
 # TypeScript v1 declaration files
 typings/
 
 # Node.js dependency directory
 node_modules/
+
+# Package lock file
+package-lock.json
 
 # Firebase configuration
 .runtimeconfig.json
