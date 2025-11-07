@@ -291,22 +291,25 @@ class DCMIWSService {
       final event = eventData['Event'] as String?;
       if (event != 'Newchannel') return;
       
-      // ChannelStateDesc가 "Ring"인지 확인 (수신 통화만 처리)
-      final channelStateDesc = eventData['ChannelStateDesc'] as String?;
-      if (channelStateDesc != 'Ring') return;
-      
-      // CallerIDNum, Exten, Channel, Linkedid, Context 추출
+      // CallerIDNum, Exten, Channel, Linkedid, Context 추출 (클릭투콜 체크를 위해 먼저 추출)
       final callerIdNum = eventData['CallerIDNum'] as String?;
       final exten = eventData['Exten'] as String?;
       final channel = eventData['Channel'] as String?;
       final linkedid = eventData['Linkedid'] as String?;
       final context = eventData['Context'] as String?;
       
-      if (callerIdNum == null || exten == null) return;
-      if (channel == null || linkedid == null) return;
-      
-      // 🚫 Click-to-call 필터링: Context에 "click-to-call" 포함 시 Linkedid 저장 후 무시
+      // 🚫 CRITICAL: Click-to-call 체크를 Ring 체크보다 먼저 수행!
+      // Click-to-call은 ChannelStateDesc가 "Ring"이 아니므로 먼저 처리해야 함
       if (context != null && context.toLowerCase().contains('click-to-call')) {
+        if (exten == null || linkedid == null) {
+          if (kDebugMode) {
+            debugPrint('⚠️ Click-to-call 이벤트이지만 필수 필드 누락');
+            debugPrint('  Exten: $exten');
+            debugPrint('  Linkedid: $linkedid');
+          }
+          return;
+        }
+        
         if (kDebugMode) {
           debugPrint('📞 Click-to-call 발신 감지 - Linkedid 저장');
           debugPrint('  Channel: $channel');
@@ -315,10 +318,17 @@ class DCMIWSService {
           debugPrint('  Exten: $exten');
         }
         
-        // Linkedid를 클릭투콜 통화 기록에 저장
+        // Linkedid를 클릭투콜 통화 기록에 저장 (재생성)
         await _saveClickToCallLinkedId(linkedid, exten);
         return;
       }
+      
+      // ChannelStateDesc가 "Ring"인지 확인 (수신 통화만 처리)
+      final channelStateDesc = eventData['ChannelStateDesc'] as String?;
+      if (channelStateDesc != 'Ring') return;
+      
+      if (callerIdNum == null || exten == null) return;
+      if (channel == null || linkedid == null) return;
       
       if (kDebugMode) {
         debugPrint('📞 수신 전화 감지!');
