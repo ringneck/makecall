@@ -300,20 +300,16 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
         debugPrint('');
       }
 
-      // 통화 기록 저장 (착신전환 정보 포함)
-      await _databaseService.addCallHistory(
-        CallHistoryModel(
-          id: '',
-          userId: userId,
-          phoneNumber: widget.phoneNumber,
-          callType: CallType.outgoing,
-          callMethod: CallMethod.extension,
-          callTime: DateTime.now(),
-          mainNumberUsed: cidNumber,
-          extensionUsed: selectedExtension.extension,
-          callForwardEnabled: isForwardEnabled,
-          callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
-        ),
+      // 🆕 Firestore에 즉시 저장하지 않고, DCMIWS 임시 저장소에 저장
+      // Newchannel 이벤트에서 linkedid와 함께 생성
+      final dcmiws = DCMIWSService();
+      dcmiws.storePendingClickToCallRecord(
+        extensionNumber: selectedExtension.extension,
+        phoneNumber: widget.phoneNumber,
+        userId: userId,
+        mainNumberUsed: cidNumber,
+        callForwardEnabled: isForwardEnabled,
+        callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
       );
 
       if (mounted) {
