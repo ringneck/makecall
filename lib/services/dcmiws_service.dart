@@ -449,10 +449,7 @@ class DCMIWSService {
       // 활성 수신 전화 목록에서 해당 linkedid 찾기
       final activeCall = _activeIncomingCalls[linkedid];
       if (activeCall == null) {
-        if (kDebugMode) {
-          debugPrint('⚠️ BridgeEnter: 활성 수신 전화를 찾을 수 없음 (linkedid: $linkedid)');
-          debugPrint('  → Click-to-call 통화이거나 이미 처리된 통화일 수 있습니다');
-        }
+        // Click-to-call 통화이거나 이미 처리된 통화 - 조용히 무시
         return;
       }
       
@@ -487,12 +484,22 @@ class DCMIWSService {
       // 활성 통화 목록에서 제거
       _activeIncomingCalls.remove(linkedid);
       
-      // IncomingCallScreen 자동 닫기
+      // IncomingCallScreen 자동 닫기 및 최근통화 탭으로 이동
       if (_navigatorKey?.currentState != null) {
         if (kDebugMode) {
           debugPrint('📱 IncomingCallScreen 자동 닫기');
         }
-        _navigatorKey!.currentState!.pop();
+        _navigatorKey!.currentState!.pop({'moveToTab': 0}); // 0 = 최근통화 탭
+        
+        // 탭 이동 이벤트 전송
+        _eventController.add({
+          'type': 'MOVE_TO_TAB',
+          'tabIndex': 0,
+        });
+        
+        if (kDebugMode) {
+          debugPrint('🔄 최근통화 탭 이동 이벤트 전송 (BridgeEnter 자동 확인)');
+        }
       }
       
     } catch (e) {

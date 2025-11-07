@@ -556,6 +556,19 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         fields.add(_buildSectionHeader('통화 #${i + 1}'));
         fields.add(const SizedBox(height: 12));
         
+        // 🎵 녹음 파일 섹션 (최상단 배치 - billsec >= 5초이고 recording_url이 존재하는 경우)
+        final billsec = cdr['billsec'];
+        final recordingUrl = cdr['recording_url'] as String?;
+        
+        if (billsec != null && 
+            (billsec is int && billsec >= 5 || 
+             billsec is String && (int.tryParse(billsec) ?? 0) >= 5) &&
+            recordingUrl != null && 
+            recordingUrl.isNotEmpty) {
+          fields.add(_buildCompactRecordingButton(recordingUrl, cdr));
+          fields.add(const SizedBox(height: 16));
+        }
+        
         // 📞 기본 정보 섹션
         fields.add(_buildGroupHeader('기본 정보', Icons.info_outline, const Color(0xFF2196F3)));
         if (cdr['calldate'] != null) {
@@ -619,21 +632,6 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
           fields.add(_buildCompactInfoRow('컨텍스트', cdr['dcontext'].toString(), Icons.code));
         }
         fields.add(const SizedBox(height: 16));
-        
-        // 🎵 녹음 파일 섹션 (billsec >= 5초이고 recording_url이 존재하는 경우)
-        final billsec = cdr['billsec'];
-        final recordingUrl = cdr['recording_url'] as String?;
-        
-        if (billsec != null && 
-            (billsec is int && billsec >= 5 || 
-             billsec is String && (int.tryParse(billsec) ?? 0) >= 5) &&
-            recordingUrl != null && 
-            recordingUrl.isNotEmpty) {
-          fields.add(_buildGroupHeader('녹음 파일', Icons.mic, const Color(0xFF9C27B0)));
-          fields.add(const SizedBox(height: 8));
-          fields.add(_buildRecordingButton(recordingUrl, cdr));
-          fields.add(const SizedBox(height: 16));
-        }
         
         // 구분선 (마지막 항목 제외)
         if (i < cdrList.length - 1) {
@@ -830,17 +828,15 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
     );
   }
   
-  /// 녹음 파일 재생 버튼
-  Widget _buildRecordingButton(String recordingUrl, Map<String, dynamic> cdr) {
+  /// 간단하고 깔끔한 녹음 파일 재생 버튼 (축소형)
+  Widget _buildCompactRecordingButton(String recordingUrl, Map<String, dynamic> cdr) {
     final billsec = cdr['billsec'];
-    String billsecText = '통화 시간: ';
+    String durationText = '';
     
     if (billsec is int) {
-      billsecText += _formatDuration(billsec);
+      durationText = _formatDuration(billsec);
     } else if (billsec is String) {
-      billsecText += _formatDuration(billsec);
-    } else {
-      billsecText += '알 수 없음';
+      durationText = _formatDuration(billsec);
     }
     
     return Container(
@@ -868,69 +864,61 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
               ),
             );
           },
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF9C27B0),
-                  Color(0xFF7B1FA2),
-                ],
+              color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: const Color(0xFF9C27B0).withValues(alpha: 0.3),
+                width: 1,
               ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF9C27B0).withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: const Color(0xFF9C27B0),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.play_circle_filled,
+                    Icons.play_arrow,
                     color: Colors.white,
-                    size: 32,
+                    size: 18,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '녹음 파일 재생',
+                        '🎵 녹음 파일',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF9C27B0),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        billsecText,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 13,
+                      if (durationText.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          durationText,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
                         ),
-                      ),
+                      ]
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.arrow_forward_ios,
-                  color: Colors.white,
-                  size: 18,
+                  color: const Color(0xFF9C27B0),
+                  size: 14,
                 ),
               ],
             ),
