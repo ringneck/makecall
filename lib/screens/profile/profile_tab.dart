@@ -843,6 +843,77 @@ class _ProfileTabState extends State<ProfileTab> {
         return;
       }
 
+      // ✅ CRITICAL: maxExtensions 제한 확인 (다이얼로그 표시 전에 먼저 체크!)
+      final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
+      final maxExtensions = authService.currentUserModel?.maxExtensions ?? 1;
+      
+      if (currentMyExtensions.length >= maxExtensions) {
+        if (kDebugMode) {
+          debugPrint('❌ 단말번호 등록 한도 초과: 현재 ${currentMyExtensions.length}개, 최대 $maxExtensions개');
+        }
+        
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                  SizedBox(width: 8),
+                  Text('등록 한도 초과', style: TextStyle(fontSize: 18)),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '단말번호는 최대 $maxExtensions개까지 등록할 수 있습니다.',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                            const SizedBox(width: 6),
+                            Text(
+                              '현재 등록된 단말번호: ${currentMyExtensions.length}개',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '더 많은 단말번호를 등록하려면 기존 단말번호를 삭제하거나 관리자에게 문의하세요.',
+                          style: TextStyle(fontSize: 12, color: Colors.black87),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('확인', style: TextStyle(fontSize: 14)),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
       // 단말번호 선택 다이얼로그 표시
       if (context.mounted) {
         await _showExtensionSelectionDialog(
@@ -1056,82 +1127,7 @@ class _ProfileTabState extends State<ProfileTab> {
         final userId = authService.currentUser?.uid ?? '';
         final userEmail = authService.currentUser?.email ?? '';
         final userName = authService.currentUserModel?.phoneNumberName ?? '';
-        
-        // ✅ maxExtensions 제한 확인
         final currentMyExtensions = authService.currentUserModel?.myExtensions ?? [];
-        final maxExtensions = authService.currentUserModel?.maxExtensions ?? 1;
-        
-        if (currentMyExtensions.length >= maxExtensions) {
-          if (kDebugMode) {
-            debugPrint('❌ 단말번호 등록 한도 초과: 현재 ${currentMyExtensions.length}개, 최대 $maxExtensions개');
-          }
-          
-          if (context.mounted) {
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Row(
-                  children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-                    SizedBox(width: 8),
-                    Text('등록 한도 초과', style: TextStyle(fontSize: 18)),
-                  ],
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '단말번호는 최대 $maxExtensions개까지 등록할 수 있습니다.',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.orange[50],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange[200]!),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.info_outline, size: 16, color: Colors.orange),
-                              const SizedBox(width: 6),
-                              Text(
-                                '현재 등록된 단말번호: ${currentMyExtensions.length}개',
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          ...currentMyExtensions.map((ext) => Padding(
-                            padding: const EdgeInsets.only(left: 22, top: 2),
-                            child: Text('• $ext', style: const TextStyle(fontSize: 12)),
-                          )),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      '새 단말번호를 등록하려면 기존 단말번호를 먼저 삭제해주세요.',
-                      style: TextStyle(fontSize: 13, color: Colors.black54),
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('확인', style: TextStyle(fontSize: 14)),
-                  ),
-                ],
-              ),
-            );
-          }
-          return;
-        }
         
         // 선택된 extension의 이름 가져오기
         final selectedExtData = extensions.firstWhere(
