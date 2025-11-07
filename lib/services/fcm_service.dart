@@ -47,7 +47,19 @@ class FCMService {
         debugPrint('   플랫폼: ${_getPlatformName()}');
       }
       
-      // 알림 권한 요청
+      // 🌐 웹 플랫폼에서는 FCM 비활성화 (VAPID 키 설정 필요)
+      if (kIsWeb) {
+        if (kDebugMode) {
+          debugPrint('');
+          debugPrint('⚠️  웹 플랫폼에서는 FCM이 비활성화되어 있습니다');
+          debugPrint('   💡 중복 로그인 방지 기능은 모바일 앱에서만 사용 가능합니다');
+          debugPrint('   💡 웹에서 FCM을 사용하려면 Firebase Console에서 VAPID 키를 설정하세요');
+          debugPrint('');
+        }
+        return; // 웹에서는 FCM 초기화 중단
+      }
+      
+      // 알림 권한 요청 (모바일만)
       NotificationSettings settings = await _messaging.requestPermission(
         alert: true,
         announcement: false,
@@ -65,33 +77,8 @@ class FCMService {
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
         
-        // FCM 토큰 가져오기 (웹 플랫폼은 VAPID 키 필요)
-        if (kIsWeb) {
-          // 웹 플랫폼: VAPID 키 사용
-          // ⚠️ VAPID 키는 Firebase Console → Project Settings → Cloud Messaging → Web Push certificates에서 생성
-          // TODO: 실제 VAPID 키로 교체 필요
-          const vapidKey = 'YOUR_VAPID_KEY_HERE'; // Firebase Console에서 생성한 Web Push certificate의 Key pair 값
-          
-          try {
-            _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
-            if (kDebugMode) {
-              debugPrint('🌐 웹 FCM 토큰 획득 성공 (VAPID)');
-            }
-          } catch (e) {
-            if (kDebugMode) {
-              debugPrint('⚠️ 웹 FCM 토큰 획득 실패: $e');
-              debugPrint('💡 Firebase Console에서 Web Push certificate를 생성하고 VAPID 키를 설정하세요:');
-              debugPrint('   1. Firebase Console → Project Settings → Cloud Messaging');
-              debugPrint('   2. Web Push certificates → Generate key pair');
-              debugPrint('   3. 생성된 키를 fcm_service.dart의 vapidKey 변수에 복사');
-            }
-            // VAPID 키 없이 시도 (일부 브라우저에서 작동할 수 있음)
-            _fcmToken = await _messaging.getToken();
-          }
-        } else {
-          // 모바일 플랫폼: 일반 토큰 획득
-          _fcmToken = await _messaging.getToken();
-        }
+        // FCM 토큰 가져오기 (모바일만)
+        _fcmToken = await _messaging.getToken();
         
         if (_fcmToken != null) {
           if (kDebugMode) {

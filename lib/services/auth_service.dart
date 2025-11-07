@@ -92,10 +92,9 @@ class AuthService extends ChangeNotifier {
           debugPrint('      - websocketUseSSL: ${data['websocketUseSSL'] ?? "(없음)"}');
           debugPrint('      - amiServerId: ${data['amiServerId'] ?? "(없음)"}');
           debugPrint('');
-          debugPrint('   📱 단말번호 정보:');
-          debugPrint('      - myExtensions (raw): ${data['myExtensions']} (타입: ${data['myExtensions'].runtimeType})');
-          debugPrint('      - myExtensions (파싱): ${_currentUserModel?.myExtensions}');
-          debugPrint('      - maxExtensions: ${data['maxExtensions'] ?? 1}');
+          debugPrint('   📱 단말번호 제한 정보:');
+          debugPrint('      - maxExtensions: ${data['maxExtensions'] ?? 1} (등록 가능한 최대 개수)');
+          debugPrint('      - myExtensions: ${data['myExtensions'] ?? "null"} (⚠️ 참고용 - 실제는 my_extensions 컬렉션에서 조회)');
           debugPrint('');
           debugPrint('   ✅ UserModel 생성 완료:');
           debugPrint('      - apiBaseUrl: ${_currentUserModel?.apiBaseUrl ?? "(null)"}');
@@ -254,12 +253,19 @@ class AuthService extends ChangeNotifier {
           if (kDebugMode) {
             debugPrint('');
             debugPrint('🔔 로그인 성공 - FCM 초기화 시작...');
+            if (kIsWeb) {
+              debugPrint('   💡 웹 플랫폼: FCM 중복 로그인 방지 비활성화 (모바일에서만 지원)');
+            }
           }
           final fcmService = FCMService();
           await fcmService.initialize(credential.user!.uid);
+          if (kDebugMode) {
+            debugPrint('✅ FCM 초기화 완료');
+          }
         } catch (e) {
           if (kDebugMode) {
             debugPrint('⚠️  FCM 초기화 오류 (로그인은 정상): $e');
+            debugPrint('   💡 웹 플랫폼에서는 FCM 오류가 정상입니다 (중복 로그인 방지는 모바일 전용)');
           }
         }
       }
