@@ -764,40 +764,37 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
           
           // 착신전환 활성화 스위치 & 새로고침 버튼
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // 착신전환 활성화 스위치
-              Row(
-                children: [
-                  Text(
-                    '착신전환',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[700],
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(
+                      '착신전환',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Switch(
-                    value: _isEnabled && !isDefaultNumber,
-                    onChanged: _isSaving ? null : _toggleCallForward,
-                    activeTrackColor: const Color(0xFFFF9800).withValues(alpha: 0.5),
-                    activeThumbColor: const Color(0xFFFF9800),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ],
-              ),
-              // 새로고침 버튼
-              TextButton.icon(
-                onPressed: _isSaving ? null : _fetchCallForwardInfo,
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('새로고침', style: TextStyle(fontSize: 11)),
-                style: TextButton.styleFrom(
-                  foregroundColor: displayColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    const SizedBox(width: 8),
+                    Switch(
+                      value: _isEnabled && !isDefaultNumber,
+                      onChanged: _isSaving ? null : _toggleCallForward,
+                      activeTrackColor: const Color(0xFFFF9800).withValues(alpha: 0.5),
+                      activeThumbColor: const Color(0xFFFF9800),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ],
                 ),
+              ),
+              // 새로고침 버튼 (아이콘만)
+              IconButton(
+                onPressed: _isSaving ? null : _fetchCallForwardInfo,
+                icon: Icon(Icons.refresh, size: 20, color: displayColor),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                tooltip: '새로고침',
               ),
             ],
           ),
