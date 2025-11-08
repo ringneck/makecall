@@ -302,8 +302,27 @@ class DCMIWSService {
       final linkedid = eventData['Linkedid'] as String?;
       final context = eventData['Context'] as String?;
       
-      // 🚫 CRITICAL: Click-to-call 체크를 Ring 체크보다 먼저 수행!
-      // Click-to-call은 ChannelStateDesc가 "Ring"이 아니므로 먼저 처리해야 함
+      // ChannelStateDesc 추출 (이벤트 필터링용)
+      final channelStateDesc = eventData['ChannelStateDesc'] as String?;
+      
+      // 🚫 CRITICAL: ChannelStateDesc가 "Ring"이 아니면 모든 이벤트 무시!
+      // Ring: 수신 대기 중 (처리 필요)
+      // Down: 통화 종료, Up: 통화 연결, Ringing: 발신 중 등은 무시
+      if (channelStateDesc != 'Ring') {
+        if (kDebugMode) {
+          // Down 이벤트는 자주 발생하므로 로그 출력
+          if (channelStateDesc == 'Down') {
+            debugPrint('🚫 ChannelStateDesc Down 이벤트 무시');
+            debugPrint('  Context: $context');
+            debugPrint('  Linkedid: $linkedid');
+          }
+        }
+        return;
+      }
+      
+      // ✅ 이제 ChannelStateDesc가 "Ring"인 이벤트만 처리
+      
+      // 🔧 Click-to-call 이벤트 체크 (Ring 이벤트만 처리)
       if (context != null && context.toLowerCase().contains('click-to-call')) {
         if (exten == null || linkedid == null) {
           if (kDebugMode) {
@@ -317,10 +336,11 @@ class DCMIWSService {
         if (kDebugMode) {
           debugPrint('');
           debugPrint('='*60);
-          debugPrint('📞 Newchannel 이벤트 감지 (Click-to-Call)');
+          debugPrint('📞 Newchannel 이벤트 감지 (Click-to-Call + Ring)');
           debugPrint('='*60);
           debugPrint('  Channel: $channel');
           debugPrint('  Context: $context');
+          debugPrint('  ChannelStateDesc: $channelStateDesc ✅');
           debugPrint('  Linkedid: $linkedid');
           debugPrint('  Exten (단말번호): $exten');
           debugPrint('  → Pending Storage에서 데이터 조회 후 Firestore 생성');
@@ -333,21 +353,23 @@ class DCMIWSService {
         return;
       }
       
-      // ChannelStateDesc가 "Ring"인지 확인 (수신 통화만 처리)
-      final channelStateDesc = eventData['ChannelStateDesc'] as String?;
-      if (channelStateDesc != 'Ring') return;
-      
+      // 수신 전화 이벤트 (Click-to-call이 아닌 경우)
       if (callerIdNum == null || exten == null) return;
       if (channel == null || linkedid == null) return;
       
       if (kDebugMode) {
-        debugPrint('📞 수신 전화 감지!');
+        debugPrint('');
+        debugPrint('='*60);
+        debugPrint('📞 Newchannel 이벤트 감지 (수신 전화 + Ring)');
+        debugPrint('='*60);
         debugPrint('  발신번호 (CallerIDNum): $callerIdNum');
         debugPrint('  수신번호 (Exten): $exten');
         debugPrint('  Channel: $channel');
-        debugPrint('  Linkedid: $linkedid');
         debugPrint('  Context: $context');
-        debugPrint('  ChannelStateDesc: $channelStateDesc');
+        debugPrint('  ChannelStateDesc: $channelStateDesc ✅');
+        debugPrint('  Linkedid: $linkedid');
+        debugPrint('='*60);
+        debugPrint('');
       }
       
       // 🔐 my_extensions 유효성 검사 (등록된 내선번호인지 확인)
