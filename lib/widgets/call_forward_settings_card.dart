@@ -724,7 +724,6 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                             ),
                           ),
                           child: Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.phone,
@@ -732,7 +731,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                                 color: isDefaultNumber ? Colors.grey : Colors.blue,
                               ),
                               const SizedBox(width: 4),
-                              Flexible(
+                              Expanded(
                                 child: Text(
                                   PhoneFormatter.format(_destination),
                                   style: TextStyle(
@@ -741,6 +740,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                                     color: isDefaultNumber ? Colors.grey : Colors.black87,
                                   ),
                                   overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                               const SizedBox(width: 3),
