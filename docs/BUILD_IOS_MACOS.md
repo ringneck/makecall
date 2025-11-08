@@ -154,6 +154,31 @@ cd macos && pod install && cd ..
 
 ## 🔍 트러블슈팅
 
+### 문제 0: 디바이스/시뮬레이터를 찾을 수 없음
+**에러 메시지:**
+```
+Unable to find a destination matching the provided destination specifier
+```
+
+**해결 방법:**
+```bash
+# 1. 사용 가능한 시뮬레이터 확인
+xcrun simctl list devices available
+
+# 2. Flutter 디바이스 목록 확인
+flutter devices
+
+# 3. 시뮬레이터용으로 빌드
+flutter build ios --simulator
+
+# 4. 특정 시뮬레이터로 실행
+flutter run -d "iPhone 15 Pro"
+
+# 5. Xcode에서 직접 빌드 (권장)
+open ios/Runner.xcworkspace
+# Xcode에서 디바이스/시뮬레이터 선택 후 빌드
+```
+
 ### 문제 1: CocoaPods 의존성 오류
 ```bash
 # Pods 완전 재설치

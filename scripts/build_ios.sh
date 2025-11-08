@@ -34,10 +34,26 @@ flutter pub run build_runner build --delete-conflicting-outputs || true
 
 # 4. iOS 빌드
 echo -e "${GREEN}🔨 iOS 빌드 중...${NC}"
+
+# 사용 가능한 시뮬레이터 자동 선택
+SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | grep -o '\[.*\]' | sed 's/\[//;s/\]//')
+
 if [ "$BUILD_MODE" = "release" ]; then
-    flutter build ios --release --no-codesign
+    if [ -z "$SIMULATOR_ID" ]; then
+        echo -e "${YELLOW}⚠️  시뮬레이터를 찾을 수 없습니다. 실제 디바이스용으로 빌드합니다.${NC}"
+        flutter build ios --release --no-codesign
+    else
+        echo -e "${GREEN}✓ 시뮬레이터용으로 빌드: $SIMULATOR_ID${NC}"
+        flutter build ios --release --simulator
+    fi
 else
-    flutter build ios --debug --no-codesign
+    if [ -z "$SIMULATOR_ID" ]; then
+        echo -e "${YELLOW}⚠️  시뮬레이터를 찾을 수 없습니다. 실제 디바이스용으로 빌드합니다.${NC}"
+        flutter build ios --debug --no-codesign
+    else
+        echo -e "${GREEN}✓ 시뮬레이터용으로 빌드: $SIMULATOR_ID${NC}"
+        flutter build ios --debug --simulator
+    fi
 fi
 
 echo ""
