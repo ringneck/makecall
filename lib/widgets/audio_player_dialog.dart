@@ -101,18 +101,34 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
       // Duration Completer 생성
       _durationCompleter = Completer<void>();
 
-      // 오디오 소스 설정
+      // 🔧 최적화 1: setSource로 먼저 duration 로드 시도
       await _audioPlayer.setSourceUrl(widget.audioUrl);
+      
+      // 짧은 대기 (setSource가 duration을 설정하는지 확인)
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Duration이 이미 설정되었는지 확인
+      if (_duration.inSeconds > 0) {
+        if (kDebugMode) {
+          debugPrint('✅ 오디오 로딩 완료 (setSource로 Duration 로드 성공)');
+          debugPrint('   Duration: ${_duration.inSeconds}초');
+        }
+        
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
 
-      // Duration을 가져오기 위해 짧게 재생 시도
+      // Duration이 없으면 재생으로 강제 로드
       await _audioPlayer.play(UrlSource(widget.audioUrl));
       
       // ⚠️ Duration이 실제로 설정될 때까지 기다림 (onDurationChanged 리스너가 완료 신호)
-      // 최대 3초 타임아웃 (빠른 실패)
+      // 🔧 최적화 2: 타임아웃 3초 → 10초 증가 (네트워크 지연 대응)
       bool durationLoaded = true;
       try {
         await _durationCompleter!.future.timeout(
-          const Duration(seconds: 3),
+          const Duration(seconds: 10),
         );
         
         // Duration 로드 성공 → 즉시 일시정지
@@ -120,7 +136,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
         await _audioPlayer.seek(Duration.zero);
         
         if (kDebugMode) {
-          debugPrint('✅ 오디오 로딩 완료');
+          debugPrint('✅ 오디오 로딩 완료 (재생으로 Duration 로드 성공)');
           debugPrint('   Duration: ${_duration.inSeconds}초');
         }
       } catch (e) {
@@ -130,7 +146,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
         try {
           await _audioPlayer.stop();
           if (kDebugMode) {
-            debugPrint('⚠️ Duration 로딩 타임아웃 (3초) → 오디오 정지');
+            debugPrint('⚠️ Duration 로딩 타임아웃 (10초) → 오디오 정지');
           }
         } catch (stopError) {
           if (kDebugMode) {
@@ -165,21 +181,41 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
 
   Future<void> _togglePlayPause() async {
     try {
-      // 로딩 중이거나 에러 상태면 재생하지 않음
-      if (_isLoading || _error != null) {
+      // 🔧 최적화 3: 에러 상태면 재생하지 않지만, Duration 없어도 재생 허용
+      if (_error != null) {
         if (kDebugMode) {
-          debugPrint('⚠️ 재생 건너뛰기: 오디오 준비되지 않음 (로딩 또는 에러)');
+          debugPrint('⚠️ 재생 건너뛰기: 오디오 오류 상태');
         }
         return;
       }
       
       if (_isPlaying) {
         await _audioPlayer.pause();
+        
+        if (kDebugMode) {
+          debugPrint('⏸️ 오디오 일시정지');
+        }
       } else {
-        // Duration이 0이면 처음 재생 (play 사용), 아니면 resume
-        if (_duration.inMilliseconds == 0) {
+        // Duration이 0이거나 로딩 중이면 처음부터 재생
+        if (_duration.inMilliseconds == 0 || _isLoading) {
+          if (kDebugMode) {
+            debugPrint('▶️ 오디오 재생 시작 (처음부터)');
+          }
+          
+          // 로딩 상태 해제
+          if (_isLoading) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+          
           await _audioPlayer.play(UrlSource(widget.audioUrl));
         } else {
+          // Duration이 있으면 resume
+          if (kDebugMode) {
+            debugPrint('▶️ 오디오 재생 재개');
+          }
+          
           await _audioPlayer.resume();
         }
       }
@@ -369,8 +405,11 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
                 color: Color(0xFF1e3c72),
               ),
             ),
+            // 🔧 최적화 4: Duration이 없으면 "로딩 중..." 표시
             Text(
-              _formatDuration(_duration),
+              _duration.inSeconds > 0 
+                  ? _formatDuration(_duration)
+                  : '로딩 중...',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -385,32 +424,33 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
         Column(
           children: [
             LinearProgressIndicator(
-              value: _getProgress(),
+              value: _duration.inSeconds > 0 ? _getProgress() : null, // duration 없으면 indeterminate
               backgroundColor: Colors.grey[300],
               valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1e3c72)),
               minHeight: 4,
             ),
             const SizedBox(height: 4),
-            // Slider (조작용)
-            SliderTheme(
-              data: SliderThemeData(
-                trackHeight: 2,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                activeTrackColor: Colors.transparent,
-                inactiveTrackColor: Colors.transparent,
-                thumbColor: const Color(0xFF1e3c72),
-                overlayColor: const Color(0xFF1e3c72).withOpacity(0.2),
-              ),
-              child: Slider(
-                value: _position.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()),
-                min: 0.0,
-                max: _duration.inSeconds.toDouble() > 0 ? _duration.inSeconds.toDouble() : 1.0,
-                onChanged: (_isLoading || _error != null || _duration.inSeconds == 0) 
-                    ? null  // 로딩 중, 에러, 또는 duration이 0이면 비활성화
-                    : _seekTo,
-              ),
-            ),
+            // Slider (조작용) - Duration이 있을 때만 표시
+            if (_duration.inSeconds > 0)
+              SliderTheme(
+                data: SliderThemeData(
+                  trackHeight: 2,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                  activeTrackColor: Colors.transparent,
+                  inactiveTrackColor: Colors.transparent,
+                  thumbColor: const Color(0xFF1e3c72),
+                  overlayColor: const Color(0xFF1e3c72).withOpacity(0.2),
+                ),
+                child: Slider(
+                  value: _position.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()),
+                  min: 0.0,
+                  max: _duration.inSeconds.toDouble(),
+                  onChanged: _error != null ? null : _seekTo,
+                ),
+              )
+            else
+              const SizedBox(height: 32), // Slider 대신 공간 유지
           ],
         ),
 
@@ -420,14 +460,14 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 10초 뒤로
+            // 10초 뒤로 (duration 있을 때만 활성화)
             IconButton(
               icon: const Icon(Icons.replay_10),
               iconSize: 32,
-              color: (_isLoading || _error != null)
+              color: (_error != null || _duration.inSeconds == 0)
                   ? Colors.grey
                   : const Color(0xFF1e3c72),
-              onPressed: (_isLoading || _error != null)
+              onPressed: (_error != null || _duration.inSeconds == 0)
                   ? null
                   : () {
                       final newPosition = _position - const Duration(seconds: 10);
@@ -437,12 +477,12 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
 
             const SizedBox(width: 16),
 
-            // 재생/일시정지 버튼
+            // 🔧 최적화 5: 재생 버튼은 duration 없어도 활성화 (에러만 비활성화)
             Container(
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: (_isLoading || _error != null)
+                color: _error != null
                     ? Colors.grey
                     : const Color(0xFF1e3c72),
                 shape: BoxShape.circle,
@@ -453,22 +493,20 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
                   color: Colors.white,
                 ),
                 iconSize: 36,
-                onPressed: (_isLoading || _error != null)
-                    ? null
-                    : _togglePlayPause,
+                onPressed: _error != null ? null : _togglePlayPause,
               ),
             ),
 
             const SizedBox(width: 16),
 
-            // 10초 앞으로
+            // 10초 앞으로 (duration 있을 때만 활성화)
             IconButton(
               icon: const Icon(Icons.forward_10),
               iconSize: 32,
-              color: (_isLoading || _error != null)
+              color: (_error != null || _duration.inSeconds == 0)
                   ? Colors.grey
                   : const Color(0xFF1e3c72),
-              onPressed: (_isLoading || _error != null)
+              onPressed: (_error != null || _duration.inSeconds == 0)
                   ? null
                   : () {
                       final newPosition = _position + const Duration(seconds: 10);
