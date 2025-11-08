@@ -179,7 +179,35 @@ open ios/Runner.xcworkspace
 # Xcode에서 디바이스/시뮬레이터 선택 후 빌드
 ```
 
-### 문제 1: CocoaPods 의존성 오류
+### 문제 1: CocoaPods 설정 충돌
+**에러 메시지:**
+```
+CocoaPods did not set the base configuration of your project because your project 
+already has a custom config set. In order for CocoaPods integration to work at all, 
+please either set the base configurations of the target `Runner` to 
+`Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig` or include the 
+`Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig` in your build 
+configuration (`Flutter/Release.xcconfig`).
+```
+
+**원인:**
+- `Profile.xcconfig` 파일이 누락됨
+- CocoaPods가 Profile 빌드 구성을 찾을 수 없음
+
+**해결 방법:**
+```bash
+# iOS Profile.xcconfig 생성 (이미 생성되어 있음)
+# ios/Flutter/Profile.xcconfig
+
+# macOS Profile.xcconfig 생성 (이미 생성되어 있음)
+# macos/Flutter/Flutter-Profile.xcconfig
+
+# Pods 재설치
+cd ios && pod install && cd ..
+cd macos && pod install && cd ..
+```
+
+### 문제 2: CocoaPods 의존성 오류
 ```bash
 # Pods 완전 재설치
 cd ios
@@ -188,7 +216,7 @@ pod install --repo-update
 cd ..
 ```
 
-### 문제 2: Xcode 빌드 실패
+### 문제 3: Xcode 빌드 실패
 ```bash
 # Xcode 파생 데이터 정리
 rm -rf ~/Library/Developer/Xcode/DerivedData
@@ -198,20 +226,20 @@ flutter clean
 flutter pub get
 ```
 
-### 문제 3: Apple Silicon (M1/M2) 호환성 문제
+### 문제 4: Apple Silicon (M1/M2) 호환성 문제
 ```bash
 # Rosetta 환경에서 CocoaPods 설치
 sudo arch -x86_64 gem install ffi
 cd ios && arch -x86_64 pod install && cd ..
 ```
 
-### 문제 4: 코드 서명 오류
+### 문제 5: 코드 서명 오류
 ```bash
 # 코드 서명 없이 빌드 (개발용)
 flutter build ios --release --no-codesign
 ```
 
-### 문제 5: Firebase 관련 오류
+### 문제 6: Firebase 관련 오류
 - `google-services.json` (Android) 확인
 - `GoogleService-Info.plist` (iOS) 확인
 - Firebase 패키지 버전 확인 (고정 버전 사용)
