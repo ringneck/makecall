@@ -777,7 +777,20 @@ class DCMIWSService {
       if (kDebugMode) {
         debugPrint('  ⚠️ Pending Storage에 데이터 없음');
         debugPrint('  단말번호: $exten');
-        debugPrint('  원인: 10초 타임아웃으로 이미 Firestore에 저장됨');
+        debugPrint('  원인 1: 10초 타임아웃으로 이미 Firestore에 저장됨');
+        debugPrint('  원인 2: storePendingClickToCallRecord() 호출 누락');
+        debugPrint('  원인 3: 단말번호 불일치');
+        
+        // 🔍 디버그: Pending Storage 내용 출력
+        if (_pendingClickToCallRecords.isNotEmpty) {
+          debugPrint('  📋 현재 Pending Storage 내용:');
+          _pendingClickToCallRecords.forEach((key, value) {
+            debugPrint('     - 단말번호: $key, 발신번호: ${value['phoneNumber']}');
+          });
+        } else {
+          debugPrint('  📋 Pending Storage가 비어있음');
+        }
+        
         debugPrint('  → Fallback Mode: Firestore에서 linkedid 없는 기록 검색');
       }
       
@@ -798,8 +811,8 @@ class DCMIWSService {
         return;
       }
       
-      // 최근 1분 이내의 통화 기록 중 linkedid가 없는 기록 찾기
-      final oneMinuteAgo = DateTime.now().subtract(const Duration(minutes: 1));
+      // 🔧 FIX: 최근 2분 이내의 통화 기록 중 linkedid가 없는 기록 찾기 (1분 → 2분 확대)
+      final twoMinutesAgo = DateTime.now().subtract(const Duration(minutes: 2));
       final querySnapshot = await firestore
           .collection('call_history')
           .where('userId', isEqualTo: userId)
@@ -820,8 +833,8 @@ class DCMIWSService {
         final callTime = DateTime.parse(data['callTime'] as String);
         final existingLinkedId = data['linkedid'] as String?;
         
-        // 조건: 1분 이내 && linkedid가 없음
-        if (callTime.isAfter(oneMinuteAgo) && existingLinkedId == null) {
+        // 🔧 FIX: 조건 업데이트 (1분 → 2분)
+        if (callTime.isAfter(twoMinutesAgo) && existingLinkedId == null) {
           if (kDebugMode) {
             debugPrint('✅ 매칭된 기록 발견! (Fallback 모드)');
             debugPrint('   - 문서 ID: ${doc.id}');
@@ -871,7 +884,7 @@ class DCMIWSService {
         debugPrint('');
         debugPrint('⚠️ Fallback 실패: 조건에 맞는 통화 기록 없음');
         debugPrint('  검색 조건:');
-        debugPrint('   - 1분 이내 통화');
+        debugPrint('   - 2분 이내 통화 (확대됨: 1분 → 2분)');
         debugPrint('   - callType: outgoing');
         debugPrint('   - callMethod: extension');
         debugPrint('   - extensionUsed: $exten');
@@ -879,9 +892,10 @@ class DCMIWSService {
         debugPrint('  조회 결과: ${querySnapshot.docs.length}개 중 매칭 없음');
         debugPrint('');
         debugPrint('💡 문제 해결 방법:');
-        debugPrint('   1. WebSocket 연결 상태 확인');
-        debugPrint('   2. Newchannel 이벤트 수신 확인');
-        debugPrint('   3. 클릭투콜 API 응답 확인');
+        debugPrint('   1. storePendingClickToCallRecord() 호출 확인');
+        debugPrint('   2. 단말번호 일치 여부 확인 (현재: $exten)');
+        debugPrint('   3. WebSocket 연결 상태 확인');
+        debugPrint('   4. API 호출과 이벤트 간격이 10초 초과 여부 확인');
         debugPrint('');
       }
       
