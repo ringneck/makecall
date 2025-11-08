@@ -136,84 +136,98 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
 
                   final extensions = snapshot.data ?? [];
 
-                  // 단말번호 목록이 변경되었는지 확인
+                  // ✨ iOS FIX: 단말번호 목록이 변경되었는지 확인
                   final extensionsChanged = !_areExtensionListsEqual(_previousExtensions, extensions);
                   
-                  if (extensionsChanged) {
-                    // 단말번호 목록이 변경되었을 때만 상태 업데이트
+                  // ✨ iOS FIX: 초기화는 딱 한 번만 실행 (연쇄 rebuild 방지)
+                  if (extensionsChanged && !_isInitialized && extensions.isNotEmpty) {
                     WidgetsBinding.instance.addPostFrameCallback((_) async {
+                      if (!mounted) return;
+                      
                       // 이전 목록 저장
                       _previousExtensions = List.from(extensions);
+                      _isInitialized = true;
                       
-                      // 첫 초기화 시 마지막 선택된 단말번호 불러오기
-                      if (!_isInitialized && extensions.isNotEmpty) {
-                        _isInitialized = true;
-                        final lastExtensionId = await _loadLastSelectedExtension();
-                        final initialIndex = _findExtensionIndex(extensions, lastExtensionId);
+                      final lastExtensionId = await _loadLastSelectedExtension();
+                      final initialIndex = _findExtensionIndex(extensions, lastExtensionId);
+                      
+                      if (kDebugMode) {
+                        debugPrint('');
+                        debugPrint('🔄 ========== EndDrawer 초기화 (로그인 후) ==========');
+                        debugPrint('   📂 마지막 선택 단말번호 ID: $lastExtensionId');
+                        debugPrint('   📍 찾은 인덱스: $initialIndex');
+                        debugPrint('   📱 단말번호: ${extensions[initialIndex].extension}');
+                        debugPrint('   👤 이름: ${extensions[initialIndex].name}');
+                      }
+                      
+                      if (!mounted) return;
+                      
+                      // ✨ iOS FIX: 한 번만 setState 호출
+                      if (initialIndex != _currentPage) {
+                        setState(() {
+                          _currentPage = initialIndex;
+                        });
                         
-                        if (kDebugMode) {
-                          debugPrint('');
-                          debugPrint('🔄 ========== EndDrawer 초기화 (로그인 후) ==========');
-                          debugPrint('   📂 마지막 선택 단말번호 ID: $lastExtensionId');
-                          debugPrint('   📍 찾은 인덱스: $initialIndex');
-                          debugPrint('   📱 단말번호: ${extensions[initialIndex].extension}');
-                          debugPrint('   👤 이름: ${extensions[initialIndex].name}');
-                        }
+                        if (!mounted) return;
                         
-                        if (initialIndex != _currentPage) {
-                          setState(() {
-                            _currentPage = initialIndex;
-                          });
-                          // PageController도 업데이트
-                          if (_pageController.hasClients) {
-                            _pageController.jumpToPage(_currentPage);
-                          }
+                        // PageController도 업데이트
+                        if (_pageController.hasClients) {
+                          _pageController.jumpToPage(_currentPage);
                         }
+                      }
+                      
+                      if (!mounted) return;
+                      
+                      // 선택된 단말번호 업데이트
+                      if (_currentPage < extensions.length) {
+                        context.read<SelectedExtensionProvider>().setSelectedExtension(
+                              extensions[_currentPage],
+                            );
                         
-                        // 선택된 단말번호 업데이트
-                        if (_currentPage < extensions.length) {
-                          context.read<SelectedExtensionProvider>().setSelectedExtension(
-                                extensions[_currentPage],
-                              );
-                          
-                          // 🔥 CRITICAL FIX: 마지막 선택 정보가 없거나 첫 로그인 시에도 현재 단말번호 저장
-                          // 이렇게 하면 로그아웃 후 다시 로그인해도 같은 단말번호가 선택됨
-                          await _saveLastSelectedExtension(
-                            extensions[_currentPage].id, 
-                            extensions[_currentPage].extension,
-                          );
-                        }
-                        
-                        if (kDebugMode) {
-                          debugPrint('   ✅ Provider에 단말번호 설정 완료');
-                          debugPrint('   💾 마지막 선택 단말번호 저장 완료 (자동 저장)');
-                          debugPrint('   🔑 Key: call_forward_${extensions[_currentPage].id}_${extensions[_currentPage].extension}');
-                          debugPrint('   💡 CallForwardSettingsCard가 이 key로 재생성되고 착신전환 정보를 로드합니다');
-                          debugPrint('================================================');
-                          debugPrint('');
-                        }
-                      } else {
-                        // 현재 페이지가 범위를 벗어나면 조정
-                        if (_currentPage >= extensions.length && extensions.isNotEmpty) {
+                        await _saveLastSelectedExtension(
+                          extensions[_currentPage].id, 
+                          extensions[_currentPage].extension,
+                        );
+                      }
+                      
+                      if (kDebugMode) {
+                        debugPrint('   ✅ Provider에 단말번호 설정 완료');
+                        debugPrint('   💾 마지막 선택 단말번호 저장 완료');
+                        debugPrint('================================================');
+                        debugPrint('');
+                      }
+                    });
+                  } else if (extensionsChanged && _isInitialized) {
+                    // ✨ iOS FIX: 초기화 이후에는 목록 업데이트만 (setState 최소화)
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      
+                      _previousExtensions = List.from(extensions);
+                      
+                      // 범위 체크만 (필요한 경우에만 setState)
+                      if (_currentPage >= extensions.length && extensions.isNotEmpty) {
+                        if (mounted) {
                           setState(() {
                             _currentPage = extensions.length - 1;
                           });
-                          // PageController도 업데이트
+                          
                           if (_pageController.hasClients) {
                             _pageController.jumpToPage(_currentPage);
                           }
-                        } else if (extensions.isEmpty) {
+                        }
+                      } else if (extensions.isEmpty && _currentPage != 0) {
+                        if (mounted) {
                           setState(() {
                             _currentPage = 0;
                           });
                         }
-                        
-                        // 선택된 단말번호 업데이트
-                        if (extensions.isNotEmpty && _currentPage < extensions.length) {
-                          context.read<SelectedExtensionProvider>().setSelectedExtension(
-                                extensions[_currentPage],
-                              );
-                        }
+                      }
+                      
+                      // Provider 업데이트 (setState 없음)
+                      if (mounted && extensions.isNotEmpty && _currentPage < extensions.length) {
+                        context.read<SelectedExtensionProvider>().setSelectedExtension(
+                              extensions[_currentPage],
+                            );
                       }
                     });
                   }
