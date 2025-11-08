@@ -1938,23 +1938,25 @@ class _CallTabState extends State<CallTab> {
     setState(() => _isLoadingDeviceContacts = true);
 
     try {
-      // 1단계: 권한 상태 확인
+      // ✨ iOS FIX: 권한 상태 확인 (iOS 캐시 동기화 포함)
       if (kDebugMode) {
         debugPrint('');
         debugPrint('🔍 ===== _toggleDeviceContacts START =====');
       }
       
+      // hasContactsPermission()이 iOS 권한 캐시 동기화를 자동으로 처리
       final hasPermission = await _mobileContactsService.hasContactsPermission();
       
       if (kDebugMode) {
         debugPrint('🔍 _toggleDeviceContacts: hasPermission = $hasPermission');
       }
       
+      // 권한이 없으면 권한 요청
       if (!hasPermission) {
         if (kDebugMode) {
           debugPrint('⚠️ _toggleDeviceContacts: 권한 없음 - 권한 요청 다이얼로그 표시');
         }
-        // 권한이 없으면 권한 요청
+        
         if (mounted) {
           setState(() => _isLoadingDeviceContacts = false);
           
@@ -1973,11 +1975,9 @@ class _CallTabState extends State<CallTab> {
             debugPrint('   - permissionStatus: $permissionStatus');
             debugPrint('   - isGranted: ${permissionStatus.isGranted}');
             debugPrint('   - isLimited: ${permissionStatus.isLimited}');
-            debugPrint('   - isDenied: ${permissionStatus.isDenied}');
           }
           
-          // ✨ iOS FIX: isGranted 또는 isLimited 모두 허용
-          // iOS 14+ Limited Contacts 지원
+          // iOS FIX: isGranted 또는 isLimited 모두 허용
           if (!permissionStatus.isGranted && !permissionStatus.isLimited) {
             if (kDebugMode) {
               debugPrint('❌ _toggleDeviceContacts: 권한 거부됨 - 설정 다이얼로그 표시');
@@ -1985,7 +1985,6 @@ class _CallTabState extends State<CallTab> {
             setState(() => _isLoadingDeviceContacts = false);
             
             if (mounted) {
-              // 권한 거부 시 설정으로 이동 제안
               _showPermissionDeniedDialog();
             }
             return;
@@ -1996,14 +1995,13 @@ class _CallTabState extends State<CallTab> {
         }
       }
 
-      // 2단계: 연락처 가져오기
+      // 연락처 가져오기
       if (mounted) {
         if (kDebugMode) {
           debugPrint('✅ _toggleDeviceContacts: 권한 확인 완료 - 연락처 가져오기 시작');
         }
         
         final userId = context.read<AuthService>().currentUser?.uid ?? '';
-        
         final contacts = await _mobileContactsService.getDeviceContacts(userId);
         
         if (kDebugMode) {

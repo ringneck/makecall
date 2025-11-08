@@ -8,12 +8,11 @@ class MobileContactsService {
   /// 연락처 권한 상태 확인 (읽기 전용, 빠른 체크)
   Future<bool> hasContactsPermission() async {
     try {
-      // ✨ iOS FIX: iOS는 권한을 캐싱하므로 isGranted만 체크하면 
-      // 실제 시스템 권한과 다를 수 있음
-      // isLimited, isPermanentlyDenied 등도 함께 확인
+      // ✨ iOS FIX: iOS 권한 캐시 동기화 문제 해결
       final status = await Permission.contacts.status;
+      
       if (kDebugMode) {
-        debugPrint('📱 Contacts permission status: $status');
+        debugPrint('📱 [1] Initial permission status: $status');
         debugPrint('   - isGranted: ${status.isGranted}');
         debugPrint('   - isDenied: ${status.isDenied}');
         debugPrint('   - isPermanentlyDenied: ${status.isPermanentlyDenied}');
@@ -21,8 +20,33 @@ class MobileContactsService {
         debugPrint('   - isLimited: ${status.isLimited}');
       }
       
-      // iOS에서는 isGranted 또는 isLimited 모두 허용으로 간주
-      return status.isGranted || status.isLimited;
+      // ✅ iOS에서는 isGranted 또는 isLimited 모두 허용으로 간주
+      if (status.isGranted || status.isLimited) {
+        return true;
+      }
+      
+      // 🔧 iOS 권한 캐시 버그 해결: 
+      // isDenied이지만 isPermanentlyDenied가 아닌 경우,
+      // 실제 권한 요청을 통해 iOS 시스템과 동기화
+      if (Platform.isIOS && status.isDenied && !status.isPermanentlyDenied) {
+        if (kDebugMode) {
+          debugPrint('⚠️ iOS: Permission shows denied but not permanently');
+          debugPrint('🔄 Triggering permission request to sync with system state...');
+        }
+        
+        // 권한 요청 (이미 허용된 경우 다이얼로그 없이 즉시 granted 반환)
+        final syncedStatus = await Permission.contacts.request();
+        
+        if (kDebugMode) {
+          debugPrint('📱 [2] Synced permission status: $syncedStatus');
+          debugPrint('   - isGranted: ${syncedStatus.isGranted}');
+          debugPrint('   - isLimited: ${syncedStatus.isLimited}');
+        }
+        
+        return syncedStatus.isGranted || syncedStatus.isLimited;
+      }
+      
+      return false;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Error checking contacts permission: $e');
