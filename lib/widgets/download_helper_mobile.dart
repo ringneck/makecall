@@ -1,5 +1,6 @@
 // 모바일 플랫폼용 다운로드 헬퍼 (iOS/Android 구현)
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
