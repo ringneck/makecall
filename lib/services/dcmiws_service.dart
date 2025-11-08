@@ -295,12 +295,13 @@ class DCMIWSService {
       final event = eventData['Event'] as String?;
       if (event != 'Newchannel') return;
       
-      // CallerIDNum, Exten, Channel, Linkedid, Context 추출 (클릭투콜 체크를 위해 먼저 추출)
+      // CallerIDNum, Exten, Channel, Linkedid, Context, ConnectedLineNum 추출
       final callerIdNum = eventData['CallerIDNum'] as String?;
-      final exten = eventData['Exten'] as String?;
+      final exten = eventData['Exten'] as String?;  // 🚨 수신 전화의 경우 발신번호!
       final channel = eventData['Channel'] as String?;
       final linkedid = eventData['Linkedid'] as String?;
       final context = eventData['Context'] as String?;
+      final connectedLineNum = eventData['ConnectedLineNum'] as String?;  // 수신번호 (callee)
       
       // ChannelStateDesc 추출 (이벤트 필터링용)
       final channelStateDesc = eventData['ChannelStateDesc'] as String?;
@@ -354,40 +355,56 @@ class DCMIWSService {
       }
       
       // 수신 전화 이벤트 (Click-to-call이 아닌 경우)
-      if (callerIdNum == null || exten == null) return;
-      if (channel == null || linkedid == null) return;
+      // 🚨 CRITICAL: exten은 발신번호(caller), connectedLineNum은 수신번호(callee)
+      if (exten == null || linkedid == null) return;
+      if (channel == null) return;
+      
+      // ConnectedLineNum이 없으면 CallerIDNum을 발신번호로 사용 (fallback)
+      final callerNumber = exten;  // 발신번호
+      final calleeNumber = connectedLineNum ?? callerIdNum;  // 수신번호 (ConnectedLineNum 우선, 없으면 CallerIDNum)
+      
+      if (calleeNumber == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 수신번호를 찾을 수 없음 (ConnectedLineNum, CallerIDNum 모두 null)');
+        }
+        return;
+      }
       
       if (kDebugMode) {
         debugPrint('');
         debugPrint('='*60);
         debugPrint('📞 Newchannel 이벤트 감지 (수신 전화 + Ring)');
         debugPrint('='*60);
-        debugPrint('  발신번호 (CallerIDNum): $callerIdNum');
-        debugPrint('  수신번호 (Exten): $exten');
-        debugPrint('  Channel: $channel');
-        debugPrint('  Context: $context');
-        debugPrint('  ChannelStateDesc: $channelStateDesc ✅');
-        debugPrint('  Linkedid: $linkedid');
+        debugPrint('  🔍 통화 식별자:');
+        debugPrint('     - 발신번호 (Exten): $callerNumber');
+        debugPrint('     - Linkedid: $linkedid');
+        debugPrint('  📞 통화 정보:');
+        debugPrint('     - 수신번호 (ConnectedLineNum): $calleeNumber');
+        debugPrint('     - CallerIDNum: $callerIdNum');
+        debugPrint('  🔧 기술 정보:');
+        debugPrint('     - Channel: $channel');
+        debugPrint('     - Context: $context');
+        debugPrint('     - ChannelStateDesc: $channelStateDesc ✅');
         debugPrint('='*60);
         debugPrint('');
       }
       
-      // 🔐 my_extensions 유효성 검사 (등록된 내선번호인지 확인)
-      final isValidExtension = await _validateMyExtension(exten);
+      // 🔐 my_extensions 유효성 검사 (수신번호가 등록된 내선번호인지 확인)
+      final isValidExtension = await _validateMyExtension(calleeNumber);
       if (!isValidExtension) {
         if (kDebugMode) {
-          debugPrint('⚠️ 등록되지 않은 내선번호: $exten');
+          debugPrint('⚠️ 등록되지 않은 내선번호: $calleeNumber');
           debugPrint('  해당 이벤트는 무시됩니다.');
         }
         return;
       }
       
       if (kDebugMode) {
-        debugPrint('✅ 등록된 내선번호 확인됨: $exten');
+        debugPrint('✅ 등록된 내선번호 확인됨: $calleeNumber');
       }
       
       // 🔍 통화 타입 감지 (외부 수신 / 내부 수신)
-      final callType = await _detectCallType(exten, context);
+      final callType = await _detectCallType(calleeNumber, context);
       
       if (kDebugMode) {
         debugPrint('📞 통화 타입: $callType');
@@ -395,15 +412,17 @@ class DCMIWSService {
       
       // 수신 전화 화면 표시 및 활성 통화 추적
       // Note: callerName은 _showIncomingCallScreen 내부에서 결정 후 업데이트됨
+      // 🔑 Key: linkedid (각 통화의 고유 식별자)
+      // 🆔 통화 구별: exten (발신번호) + linkedid
       _activeIncomingCalls[linkedid] = {
-        'callerNumber': callerIdNum,
-        'receiverNumber': exten,
+        'callerNumber': callerNumber,      // Exten 값 (발신번호)
+        'receiverNumber': calleeNumber,    // ConnectedLineNum 값 (수신번호/내선)
         'channel': channel,
         'callType': callType,
         'callerName': null, // 초기값 (나중에 업데이트)
       };
       
-      _showIncomingCallScreen(callerIdNum, exten, channel, linkedid, data, callType);
+      _showIncomingCallScreen(callerNumber, calleeNumber, channel, linkedid, data, callType);
       
     } catch (e) {
       if (kDebugMode) {
