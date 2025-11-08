@@ -135,33 +135,47 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 _buildRippleEffect(),
 
                 // 📱 메인 콘텐츠
-                Column(
-                  children: [
-                    const SizedBox(height: 40),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: IntrinsicHeight(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 20),
 
-                    // 🏢 내 단말번호 정보 (상단)
-                    _buildMyExtensionInfo(),
+                              // 🏢 내 단말번호 정보 (상단)
+                              _buildMyExtensionInfo(),
 
-                    const SizedBox(height: 30),
+                              const SizedBox(height: 16),
 
-                    // 📞 "수신 전화" 텍스트
-                    _buildHeaderText(),
+                              // 📞 "수신 전화" 텍스트
+                              _buildHeaderText(),
 
-                    const Spacer(flex: 2),
+                              const Spacer(flex: 2),
 
-                    // 👤 발신자 정보 (아바타 + 이름 + 번호)
-                    ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: _buildCallerInfo(),
-                    ),
+                              // 👤 발신자 정보 (아바타 + 이름 + 번호)
+                              ScaleTransition(
+                                scale: _scaleAnimation,
+                                child: _buildCallerInfo(),
+                              ),
 
-                    const Spacer(flex: 3),
+                              const Spacer(flex: 3),
 
-                    // ✅ 확인 버튼 (아이콘+레이블)
-                    _buildConfirmButtonWithIcon(),
+                              // ✅ 확인 버튼 (아이콘+레이블)
+                              _buildConfirmButtonWithIcon(),
 
-                    const SizedBox(height: 80),
-                  ],
+                              const SizedBox(height: 40),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
