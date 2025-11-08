@@ -883,18 +883,61 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
   Future<void> _downloadRecordingFile(String recordingUrl, String filename) async {
     try {
       if (kDebugMode) {
+        debugPrint('');
+        debugPrint('='*60);
         debugPrint('📥 녹음 파일 다운로드 시작');
+        debugPrint('='*60);
         debugPrint('  - 플랫폼: ${kIsWeb ? "Web" : "Mobile (iOS/Android)"}');
-        debugPrint('  - URL: $recordingUrl');
+        debugPrint('  - 원본 URL: $recordingUrl');
         debugPrint('  - 파일명: $filename');
       }
 
       // 변환된 URL 사용 (플랫폼별 최적화)
-      final convertedUrl = _convertRecordingUrlForDevice(recordingUrl);
+      var convertedUrl = _convertRecordingUrlForDevice(recordingUrl);
+      
+      // 🔧 iOS/Android 기기에서 localhost/127.0.0.1 URL 처리
+      if (!kIsWeb) {
+        final uri = Uri.parse(convertedUrl);
+        if (uri.host == 'localhost' || uri.host == '127.0.0.1') {
+          if (kDebugMode) {
+            debugPrint('⚠️ localhost URL 감지!');
+            debugPrint('  - 현재 호스트: ${uri.host}');
+            debugPrint('');
+            debugPrint('❌ iOS/Android 기기는 localhost에 접근할 수 없습니다.');
+            debugPrint('');
+            debugPrint('💡 해결 방법:');
+            debugPrint('  1. 서버를 컴퓨터의 실제 IP 주소로 접근하세요');
+            debugPrint('  2. 예: http://192.168.1.100:${uri.port}${uri.path}');
+            debugPrint('  3. 또는 공인 도메인을 사용하세요');
+            debugPrint('');
+            debugPrint('🔍 현재 설정된 서버 URL: $_serverUrl');
+            debugPrint('='*60);
+          }
+          
+          throw Exception(
+            'localhost 접근 불가\n\n'
+            'iOS/Android 기기는 localhost(${uri.host})에 접근할 수 없습니다.\n\n'
+            '해결 방법:\n'
+            '1. 프로필 설정에서 서버 주소를 변경하세요\n'
+            '2. localhost 대신 컴퓨터의 실제 IP를 사용하세요\n'
+            '   예: 192.168.1.100 (Wi-Fi 설정에서 확인)\n\n'
+            '현재 서버 URL: $_serverUrl'
+          );
+        }
+        
+        if (kDebugMode) {
+          debugPrint('  - 변환된 URL: $convertedUrl');
+          debugPrint('  - 호스트: ${uri.host}');
+          debugPrint('  - 포트: ${uri.port}');
+          debugPrint('  - 경로: ${uri.path}');
+          debugPrint('='*60);
+          debugPrint('');
+        }
+      }
       
       if (kIsWeb) {
         // 웹 플랫폼: 즉시 다운로드
-        downloadFile(convertedUrl, filename);
+        await downloadFile(convertedUrl, filename);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1014,10 +1057,15 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         final errorMessage = e.toString();
         String displayMessage;
         
-        if (errorMessage.contains('TimeoutException') || errorMessage.contains('시간 초과')) {
+        if (errorMessage.contains('localhost 접근 불가')) {
+          displayMessage = 'localhost는 모바일 기기에서\n접근할 수 없습니다.\n\n'
+              '프로필 설정에서 서버 주소를\n'
+              '실제 IP로 변경하세요.\n'
+              '(예: 192.168.1.100)';
+        } else if (errorMessage.contains('TimeoutException') || errorMessage.contains('시간 초과')) {
           displayMessage = '다운로드 시간 초과.\n서버 응답이 없습니다.';
         } else if (errorMessage.contains('SocketException') || errorMessage.contains('연결 실패')) {
-          displayMessage = '서버 연결 실패.\n네트워크 연결을 확인하세요.';
+          displayMessage = '서버 연결 실패.\n서버 주소와 네트워크를 확인하세요.';
         } else if (errorMessage.contains('HTTP')) {
           displayMessage = '서버 오류.\n잠시 후 다시 시도하세요.';
         } else if (errorMessage.contains('FileSystemException')) {
@@ -1025,7 +1073,7 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         } else {
           displayMessage = kIsWeb 
               ? '다운로드 실패.\n잠시 후 다시 시도해주세요.'
-              : '다운로드 실패.\n네트워크 연결을 확인해주세요.';
+              : '다운로드 실패.\n서버 연결을 확인해주세요.';
         }
         
         ScaffoldMessenger.of(context).showSnackBar(

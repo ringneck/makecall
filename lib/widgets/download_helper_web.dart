@@ -2,7 +2,7 @@
 import 'dart:html' as html;
 
 /// 웹 플랫폼에서 파일 다운로드
-void downloadFile(String url, String filename) {
+Future<void> downloadFile(String url, String filename) async {
   final anchor = html.AnchorElement(href: url)
     ..setAttribute('download', filename)
     ..setAttribute('target', '_blank');
