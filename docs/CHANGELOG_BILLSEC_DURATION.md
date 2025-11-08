@@ -64,7 +64,35 @@ class AudioPlayerDialog extends StatefulWidget {
 }
 ```
 
-### 2. initState()에서 billsec 기반 Duration 설정
+### 2. _setAudioSource() 메소드 추가
+
+**새로운 메소드:**
+```dart
+// 🔧 오디오 소스만 설정 (billsec용)
+Future<void> _setAudioSource() async {
+  try {
+    await _audioPlayer.setSourceUrl(widget.audioUrl);
+    
+    if (kDebugMode) {
+      debugPrint('✅ 오디오 소스 설정 완료');
+      debugPrint('   URL: ${widget.audioUrl}');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('❌ 오디오 소스 설정 오류: $e');
+    }
+    
+    setState(() {
+      _error = '오디오 파일을 로드할 수 없습니다';
+      _isLoading = false;
+    });
+  }
+}
+```
+
+**중요**: 이 메소드는 오디오 소스만 설정하고 duration 로딩을 위한 재생은 하지 않습니다.
+
+### 3. initState()에서 billsec 기반 Duration 설정
 
 **변경 전:**
 ```dart
@@ -94,6 +122,9 @@ void initState() {
       debugPrint('✅ 오디오 Duration 설정 (billsec)');
       debugPrint('   Duration: ${widget.billsec}초');
     }
+    
+    // 🔧 오디오 소스는 설정 (재생은 하지 않음)
+    _setAudioSource();
   } else {
     // billsec이 없으면 기존 방식으로 로드
     _loadAudio();
@@ -101,7 +132,9 @@ void initState() {
 }
 ```
 
-### 3. call_detail_dialog.dart에서 billsec 전달
+**중요**: `_setAudioSource()` 호출로 오디오 소스 설정 → 재생/seek 가능
+
+### 4. call_detail_dialog.dart에서 billsec 전달
 
 **파일**: `lib/widgets/call_detail_dialog.dart`
 
@@ -310,6 +343,31 @@ AudioPlayerDialog(
 
 ---
 
+## 🐛 버그 수정 (v1.2.1)
+
+### 문제: Seek 오류 발생
+
+**증상:**
+```
+flutter: ❌ Seek 오류: Bad state: No element
+```
+
+**원인:**
+- billsec으로 duration만 설정하고 오디오 소스는 미설정
+- 재생/seek 시도 시 AudioPlayer에 소스가 없어 오류 발생
+
+**해결:**
+1. `_setAudioSource()` 메소드 추가
+2. billsec 설정 후 오디오 소스 자동 설정
+3. duration 로딩을 위한 재생은 건너뜀
+
+**효과:**
+- ✅ billsec으로 duration 표시 유지 (0초 로딩)
+- ✅ 오디오 소스 설정으로 재생/seek 정상 동작
+- ✅ 최고의 사용자 경험 유지
+
+---
+
 ## 📝 코드 변경 요약
 
 ### 파일 1: `lib/widgets/audio_player_dialog.dart`
@@ -329,19 +387,35 @@ const AudioPlayerDialog({
 });
 ```
 
+**🆕 추가된 메소드:**
+```dart
+// 🔧 오디오 소스만 설정 (billsec용)
+Future<void> _setAudioSource() async {
+  try {
+    await _audioPlayer.setSourceUrl(widget.audioUrl);
+    // ... 로그
+  } catch (e) {
+    // ... 에러 처리
+  }
+}
+```
+
 **수정된 initState():**
 ```dart
-// billsec 기반 duration 설정 로직 추가 (line 40-51)
+// billsec 기반 duration 설정 로직 추가 (line 40-55)
 if (widget.billsec != null && widget.billsec! > 0) {
   _duration = Duration(seconds: widget.billsec!);
   _isLoading = false;
   // ... 로그
+  
+  // 🔧 오디오 소스는 설정 (재생은 하지 않음)
+  _setAudioSource();
 } else {
   _loadAudio();
 }
 ```
 
-**총 변경 라인**: ~15 줄
+**총 변경 라인**: ~40 줄 (메소드 추가 포함)
 
 ### 파일 2: `lib/widgets/call_detail_dialog.dart`
 
@@ -356,6 +430,47 @@ builder: (context) => AudioPlayerDialog(
 ```
 
 **총 변경 라인**: 1 줄
+
+---
+
+## 📊 최종 동작 플로우
+
+### billsec 제공 시 (최적 경로)
+
+```
+1. AudioPlayerDialog 생성 (billsec: 32)
+2. initState() 호출
+3. ✅ _duration = Duration(seconds: 32) 설정
+4. ✅ _isLoading = false 설정
+5. ✅ _setAudioSource() 호출
+   └─ await _audioPlayer.setSourceUrl(audioUrl)
+   └─ 오디오 소스 설정 완료 (재생은 안함)
+6. UI 렌더링 (Duration: 00:32)
+7. 사용자가 재생 버튼 클릭
+8. ✅ _audioPlayer.play() 정상 동작 (소스가 이미 설정됨)
+9. ✅ Slider로 seek 정상 동작 (소스가 이미 설정됨)
+
+로그:
+✅ 오디오 Duration 설정 (billsec)
+   Duration: 32초
+✅ 오디오 소스 설정 완료
+   URL: https://...
+▶️ 오디오 재생 시작 (처음부터)
+```
+
+### billsec 없을 시 (Fallback 경로)
+
+```
+1. AudioPlayerDialog 생성 (billsec: null)
+2. initState() 호출
+3. ❌ billsec 없음
+4. ✅ _loadAudio() 호출 (기존 방식)
+   └─ setSource 시도 (0.5초)
+   └─ play 시도 (2.5초)
+   └─ 타임아웃 처리 (10초)
+5. Duration 로드 또는 타임아웃
+6. UI 렌더링
+```
 
 ---
 
@@ -390,7 +505,9 @@ builder: (context) => AudioPlayerDialog(
 
 ## 🚀 배포 정보
 
-**커밋 해시**: 13ff647  
+**커밋 1**: 13ff647 - Billsec Duration 기능 구현  
+**커밋 2**: 18ac4fa - 상세 문서 추가  
+**커밋 3**: 35c87e5 - 🐛 Seek 오류 수정 (오디오 소스 설정 추가)  
 **브랜치**: main  
 **푸시 완료**: ✅  
 **Flutter 빌드**: ✅ 완료  
@@ -405,18 +522,26 @@ builder: (context) => AudioPlayerDialog(
 
 **핵심 성과:**
 - 🚀 **로딩 시간 0초** - 즉시 재생 가능
-- 🌐 **네트워크 불필요** - 트래픽 절약
+- 🌐 **네트워크 최소화** - Duration 로딩 불필요
 - ⏱️ **타임아웃 없음** - 100% 안정적
 - 🎯 **정확한 Duration** - 실제 통화 시간
-- ⭐ **최고의 사용자 경험** - 대기 없이 즉시 사용
+- ⭐ **재생/Seek 정상 동작** - 오디오 소스 자동 설정
+- ✅ **최고의 사용자 경험** - 대기 없이 즉시 사용
 
 **기술적 우수성:**
 - Graceful Degradation (billsec 없으면 Fallback)
 - 기존 최적화 로직 유지
-- 코드 변경 최소화 (~16 줄)
+- 오디오 소스 설정으로 모든 기능 정상 동작
+- 코드 변경 최소화 (~40 줄)
 - 문서화 완벽
+
+**버그 수정:**
+- ✅ Seek 오류 해결 (Bad state: No element)
+- ✅ 재생/일시정지 정상 동작
+- ✅ Slider 정상 동작
+- ✅ 10초 건너뛰기 정상 동작
 
 ---
 
 **작성자**: MAKECALL Development Team  
-**문서 버전**: 1.0
+**문서 버전**: 1.1 (버그 수정 포함)
