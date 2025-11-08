@@ -1865,14 +1865,22 @@ class DCMIWSService {
       
       if (kDebugMode) {
         final mode = linkedid != null ? '정상 모드 (Linkedid 포함)' : '타임아웃 모드 (Linkedid 없음)';
-        debugPrint('✅ 클릭투콜 기록 생성 완료 - $mode');
-        debugPrint('   단말번호: $extensionNumber');
-        debugPrint('   발신번호: ${data['phoneNumber']}');
-        debugPrint('   Linkedid: ${linkedid ?? "(없음 - 나중에 추가 가능)"}');
-        debugPrint('   착신전환: ${data['callForwardEnabled']}');
+        debugPrint('');
+        debugPrint('💾 ========== 통화 기록 저장 (착신전환 정보 포함) ==========');
+        debugPrint('   📱 단말번호: $extensionNumber');
+        debugPrint('   📞 발신 대상: ${data['phoneNumber']}');
+        debugPrint('   🔗 Linkedid: ${linkedid ?? "(없음 - 나중에 추가 가능)"}');
+        debugPrint('   🔄 착신전환 활성화: ${data['callForwardEnabled']}');
         if (data['callForwardEnabled'] == true) {
-          debugPrint('   착신전환 목적지: ${data['callForwardDestination']}');
+          debugPrint('   ➡️  착신전환 목적지: ${data['callForwardDestination']}');
         }
+        debugPrint('   📦 저장 데이터:');
+        debugPrint('      - callForwardEnabled: ${data['callForwardEnabled']}');
+        debugPrint('      - callForwardDestination: ${data['callForwardDestination'] ?? "null"}');
+        debugPrint('      - linkedid: ${linkedid ?? "null"}');
+        debugPrint('   ✅ 모드: $mode');
+        debugPrint('========================================================');
+        debugPrint('');
       }
     } catch (e) {
       if (kDebugMode) {
