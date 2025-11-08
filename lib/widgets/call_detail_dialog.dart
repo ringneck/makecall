@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'audio_player_dialog.dart';
 import 'package:flutter_app/utils/platform_user_agent.dart';
+import 'dart:html' as html; // 웹 플랫폼 다운로드
 
 /// 통화 상세 내역 다이얼로그
 class CallDetailDialog extends StatefulWidget {
@@ -877,7 +878,92 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
     return url;
   }
   
-  /// 간단하고 깔끔한 녹음 파일 재생 버튼 (축소형)
+  /// 녹음 파일 다운로드 (웹 플랫폼)
+  Future<void> _downloadRecordingFile(String recordingUrl, String filename) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('📥 녹음 파일 다운로드 시작');
+        debugPrint('  - URL: $recordingUrl');
+        debugPrint('  - 파일명: $filename');
+      }
+
+      // 변환된 URL 사용
+      final convertedUrl = _convertRecordingUrlForDevice(recordingUrl);
+      
+      // 웹 플랫폼에서 다운로드
+      if (kIsWeb) {
+        // Anchor element를 생성하여 다운로드
+        final anchor = html.AnchorElement(href: convertedUrl)
+          ..setAttribute('download', filename)
+          ..setAttribute('target', '_blank');
+        
+        // 브라우저에 추가하고 클릭
+        html.document.body?.append(anchor);
+        anchor.click();
+        anchor.remove();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.download_done, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '다운로드 시작',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          filename,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ 녹음 파일 다운로드 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 녹음 파일 다운로드 오류: $e');
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('다운로드 실패. 잠시 후 다시 시도해주세요.'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// 간단하고 깔끔한 녹음 파일 재생/다운로드 버튼 (개선형)
   Widget _buildCompactRecordingButton(String recordingUrl, Map<String, dynamic> cdr) {
     final billsec = cdr['billsec'];
     String durationText = '';
@@ -888,59 +974,59 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
       durationText = _formatDuration(billsec);
     }
     
+    // 발신/수신 번호로 파일명 생성
+    final src = cdr['src']?.toString() ?? '';
+    final dst = cdr['dst']?.toString() ?? '';
+    final calldate = cdr['calldate']?.toString() ?? '';
+    final title = src.isNotEmpty ? '$src → $dst' : '녹음 파일';
+    
+    // 파일명 생성 (예: recording_01012345678_20240108_143022.wav)
+    String filename = 'recording';
+    if (src.isNotEmpty && dst.isNotEmpty) {
+      filename += '_${src}_to_$dst';
+    }
+    if (calldate.isNotEmpty) {
+      // calldate format: 2024-01-08 14:30:22
+      final dateStr = calldate.replaceAll(RegExp(r'[:\s-]'), '');
+      filename += '_$dateStr';
+    }
+    filename += '.wav';
+    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            // 디바이스에 맞는 URL로 변환
-            final convertedUrl = _convertRecordingUrlForDevice(recordingUrl);
-            
-            if (kDebugMode) {
-              debugPrint('🎵 녹음 파일 재생 시작');
-              debugPrint('  - 원본 URL: $recordingUrl');
-              debugPrint('  - 변환 URL: $convertedUrl');
-              debugPrint('  - billsec: $billsec');
-            }
-            
-            // 발신/수신 번호 확인
-            final src = cdr['src']?.toString() ?? '';
-            final dst = cdr['dst']?.toString() ?? '';
-            final title = src.isNotEmpty ? '$src → $dst' : '녹음 파일';
-            
-            showDialog(
-              context: context,
-              builder: (context) => AudioPlayerDialog(
-                audioUrl: convertedUrl,
-                title: title,
-                billsec: billsec,  // 🔧 billsec 전달
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: const Color(0xFF9C27B0).withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: Row(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF9C27B0).withValues(alpha: 0.1),
+              const Color(0xFF7B1FA2).withValues(alpha: 0.05),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFF9C27B0).withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 헤더 (아이콘 + 제목 + 시간)
+            Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: const Color(0xFF9C27B0),
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
-                    Icons.play_arrow,
+                    Icons.graphic_eq,
                     color: Colors.white,
-                    size: 18,
+                    size: 20,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -949,34 +1035,143 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '🎵 녹음 파일',
+                        '🎵 통화 녹음',
                         style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
                           color: Color(0xFF9C27B0),
                         ),
                       ),
                       if (durationText.isNotEmpty) ...[
                         const SizedBox(height: 2),
-                        Text(
-                          durationText,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 14,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              durationText,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                      ]
+                      ],
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: const Color(0xFF9C27B0),
-                  size: 14,
+              ],
+            ),
+            const SizedBox(height: 12),
+            // 버튼 그룹 (재생 + 다운로드)
+            Row(
+              children: [
+                // 재생 버튼
+                Expanded(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        final convertedUrl = _convertRecordingUrlForDevice(recordingUrl);
+                        
+                        if (kDebugMode) {
+                          debugPrint('🎵 녹음 파일 재생 시작');
+                          debugPrint('  - 원본 URL: $recordingUrl');
+                          debugPrint('  - 변환 URL: $convertedUrl');
+                          debugPrint('  - billsec: $billsec');
+                        }
+                        
+                        showDialog(
+                          context: context,
+                          builder: (context) => AudioPlayerDialog(
+                            audioUrl: convertedUrl,
+                            title: title,
+                            billsec: billsec,
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF9C27B0),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.play_arrow,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              '재생',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 다운로드 버튼
+                Expanded(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        _downloadRecordingFile(recordingUrl, filename);
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFF9C27B0),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.download,
+                              color: Color(0xFF9C27B0),
+                              size: 20,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              '다운로드',
+                              style: TextStyle(
+                                color: Color(0xFF9C27B0),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
