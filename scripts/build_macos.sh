@@ -28,9 +28,9 @@ cd macos
 pod install --repo-update
 cd ..
 
-# 3. Flutter 코드 생성
-echo -e "${GREEN}⚙️  Flutter 코드 생성...${NC}"
-flutter pub run build_runner build --delete-conflicting-outputs || true
+# 3. Flutter 코드 생성 (build_runner 사용 시에만 필요)
+# echo -e "${GREEN}⚙️  Flutter 코드 생성...${NC}"
+# flutter pub run build_runner build --delete-conflicting-outputs || true
 
 # 4. macOS 빌드
 echo -e "${GREEN}🔨 macOS 빌드 중...${NC}"
