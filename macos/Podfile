@@ -49,6 +49,17 @@ post_install do |installer|
       
       # 🔒 보안 최적화
       config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+      
+      # 🎯 추가 빌드 최적화
+      config.build_settings['GCC_OPTIMIZATION_LEVEL'] = '0'  # Debug 빌드 속도 향상
+      config.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = '-Onone'  # Swift 빌드 속도 향상
+      config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'  # 전체 모듈 최적화
+      config.build_settings['DEAD_CODE_STRIPPING'] = 'YES'  # 미사용 코드 제거
+      config.build_settings['STRIP_INSTALLED_PRODUCT'] = 'YES'  # Release 시 심볼 제거
+      
+      # 🔧 아키텍처 최적화
+      config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'  # Debug 시 현재 아키텍처만 빌드
+      config.build_settings['ARCHS'] = 'x86_64 arm64'  # Intel + Apple Silicon 지원
     end
   end
 end

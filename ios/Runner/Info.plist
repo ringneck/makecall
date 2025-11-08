@@ -46,6 +46,27 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	
+	<!-- 🚀 성능 최적화 설정 -->
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	<key>UIStatusBarHidden</key>
+	<false/>
+	
+	<!-- 🎯 메모리 최적화 -->
+	<key>UIBackgroundModes</key>
+	<array/>
+	
+	<!-- 🔋 배터리 최적화 -->
+	<key>UIRequiresPersistentWiFi</key>
+	<false/>
+	
+	<!-- 📱 App Transport Security -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	
 	<!-- Camera & Photo Library Privacy Descriptions -->
 	<key>NSCameraUsageDescription</key>
 	<string>프로필 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.</string>
