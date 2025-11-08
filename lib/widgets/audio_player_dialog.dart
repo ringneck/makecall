@@ -27,6 +27,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
   Duration _position = Duration.zero;
   String? _error;
   Completer<void>? _durationCompleter;
+  bool _durationLoadFailed = false;  // 🔧 Duration 로드 실패 여부
 
   @override
   void initState() {
@@ -163,10 +164,11 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
           debugPrint('   → 재생 버튼을 누르면 자동으로 재생됩니다');
         }
         
-        // 🔧 FIX: 타임아웃 시에도 로딩 상태 해제
+        // 🔧 FIX: 타임아웃 시 로딩 상태 해제 및 실패 플래그 설정
         if (mounted) {
           setState(() {
             _isLoading = false;
+            _durationLoadFailed = true;  // Duration 로드 실패 표시
           });
         }
       }
@@ -406,14 +408,14 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
                 color: Color(0xFF1e3c72),
               ),
             ),
-            // 🔧 최적화 4: Duration이 없으면 "로딩 중..." 표시
+            // 🔧 최적화 4: Duration 상태에 따른 표시
             Text(
               _duration.inSeconds > 0 
                   ? _formatDuration(_duration)
-                  : '로딩 중...',
+                  : (_durationLoadFailed ? '--:--' : '로딩 중...'),  // 실패 시 "--:--" 표시
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: _durationLoadFailed ? Colors.grey[400] : Colors.grey[600],
               ),
             ),
           ],
@@ -424,34 +426,52 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
         // 프로그레스 바 (LinearProgressIndicator 사용)
         Column(
           children: [
+            // 🔧 Duration 로드 실패 시 안내 텍스트
+            if (_durationLoadFailed && _duration.inSeconds == 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  '재생 시간 정보를 가져올 수 없습니다. 재생 버튼을 눌러주세요.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.orange[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             LinearProgressIndicator(
               value: _duration.inSeconds > 0 ? _getProgress() : null, // duration 없으면 indeterminate
               backgroundColor: Colors.grey[300],
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1e3c72)),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                _durationLoadFailed ? Colors.orange : const Color(0xFF1e3c72),
+              ),
               minHeight: 4,
             ),
             const SizedBox(height: 4),
-            // Slider (조작용) - Duration이 있을 때만 표시
-            if (_duration.inSeconds > 0)
-              SliderTheme(
-                data: SliderThemeData(
-                  trackHeight: 2,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                  activeTrackColor: Colors.transparent,
-                  inactiveTrackColor: Colors.transparent,
-                  thumbColor: const Color(0xFF1e3c72),
-                  overlayColor: const Color(0xFF1e3c72).withOpacity(0.2),
-                ),
-                child: Slider(
-                  value: _position.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()),
-                  min: 0.0,
-                  max: _duration.inSeconds.toDouble(),
-                  onChanged: _error != null ? null : _seekTo,
-                ),
-              )
-            else
-              const SizedBox(height: 32), // Slider 대신 공간 유지
+            // 🔧 Slider 영역을 항상 동일한 높이로 유지 (레이아웃 안정성)
+            SizedBox(
+              height: 32,  // 고정 높이
+              child: _duration.inSeconds > 0
+                  ? SliderTheme(
+                      data: SliderThemeData(
+                        trackHeight: 2,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                        activeTrackColor: Colors.transparent,
+                        inactiveTrackColor: Colors.transparent,
+                        thumbColor: const Color(0xFF1e3c72),
+                        overlayColor: const Color(0xFF1e3c72).withOpacity(0.2),
+                      ),
+                      child: Slider(
+                        value: _position.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()),
+                        min: 0.0,
+                        max: _duration.inSeconds.toDouble(),
+                        onChanged: _error != null ? null : _seekTo,
+                      ),
+                    )
+                  : const SizedBox.shrink(),  // Duration 없으면 빈 공간
+            ),
           ],
         ),
 
@@ -485,7 +505,9 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
               decoration: BoxDecoration(
                 color: _error != null
                     ? Colors.grey
-                    : const Color(0xFF1e3c72),
+                    : (_durationLoadFailed && _duration.inSeconds == 0
+                        ? Colors.orange  // Duration 로드 실패 시 오렌지 색상
+                        : const Color(0xFF1e3c72)),
                 shape: BoxShape.circle,
               ),
               child: IconButton(

@@ -257,6 +257,136 @@ if (_isPlaying) {
 
 ---
 
+### 6. 🆕 UI 상태 개선 (타임아웃 후 명확한 안내)
+
+#### 문제 상황
+- **증상**: 타임아웃 후 "_isLoading = false"로 `_buildPlayer()` 호출되지만, `_duration = 0`이므로:
+  - Duration 표시: "로딩 중..." (회색 텍스트)
+  - Progress bar: indeterminate (무한 로딩 애니메이션)
+  - Slider: 숨김
+- **사용자 혼란**: "로딩 중..."이 계속 표시되어 로딩이 완료되지 않은 것으로 오해
+
+#### 해결책 1: Duration 로드 실패 상태 추가
+
+```dart
+bool _durationLoadFailed = false;  // 🔧 Duration 로드 실패 여부
+```
+
+**타임아웃 시 플래그 설정:**
+```dart
+// Duration 로드 실패 (타임아웃) → 정지 및 볼륨 복원
+await _audioPlayer.stop();
+await _audioPlayer.setVolume(1.0);
+
+if (mounted) {
+  setState(() {
+    _isLoading = false;
+    _durationLoadFailed = true;  // 🔧 실패 플래그 설정
+  });
+}
+```
+
+#### 해결책 2: Duration 표시 텍스트 개선
+
+**변경 전:**
+```dart
+Text(
+  _duration.inSeconds > 0 
+      ? _formatDuration(_duration)
+      : '로딩 중...',  // 타임아웃 후에도 계속 표시
+)
+```
+
+**변경 후:**
+```dart
+Text(
+  _duration.inSeconds > 0 
+      ? _formatDuration(_duration)
+      : (_durationLoadFailed ? '--:--' : '로딩 중...'),  // 실패 시 "--:--" 표시
+  style: TextStyle(
+    color: _durationLoadFailed ? Colors.grey[400] : Colors.grey[600],
+  ),
+)
+```
+
+#### 해결책 3: 명확한 안내 메시지 추가
+
+```dart
+// 🔧 Duration 로드 실패 시 안내 텍스트
+if (_durationLoadFailed && _duration.inSeconds == 0)
+  Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      '재생 시간 정보를 가져올 수 없습니다. 재생 버튼을 눌러주세요.',
+      style: TextStyle(
+        fontSize: 12,
+        color: Colors.orange[700],
+        fontWeight: FontWeight.w500,
+      ),
+      textAlign: TextAlign.center,
+    ),
+  ),
+```
+
+#### 해결책 4: Progress Bar 색상 변경
+
+```dart
+LinearProgressIndicator(
+  value: _duration.inSeconds > 0 ? _getProgress() : null,
+  backgroundColor: Colors.grey[300],
+  valueColor: AlwaysStoppedAnimation<Color>(
+    _durationLoadFailed ? Colors.orange : const Color(0xFF1e3c72),
+  ),
+  minHeight: 4,
+),
+```
+
+#### 해결책 5: 재생 버튼 색상 변경
+
+```dart
+Container(
+  decoration: BoxDecoration(
+    color: _error != null
+        ? Colors.grey
+        : (_durationLoadFailed && _duration.inSeconds == 0
+            ? Colors.orange  // Duration 로드 실패 시 오렌지 색상
+            : const Color(0xFF1e3c72)),
+    shape: BoxShape.circle,
+  ),
+  // ...
+)
+```
+
+#### 해결책 6: Slider 영역 레이아웃 안정성 개선
+
+**변경 전:**
+```dart
+if (_duration.inSeconds > 0)
+  SliderTheme(...)
+else
+  const SizedBox(height: 32), // 높이 불일치 가능
+```
+
+**변경 후:**
+```dart
+// 🔧 Slider 영역을 항상 동일한 높이로 유지 (레이아웃 안정성)
+SizedBox(
+  height: 32,  // 고정 높이
+  child: _duration.inSeconds > 0
+      ? SliderTheme(...)
+      : const SizedBox.shrink(),  // Duration 없으면 빈 공간
+),
+```
+
+#### 효과
+- ✅ "로딩 중..." → "--:--" 변경으로 혼란 감소
+- ✅ 명확한 안내 메시지 추가 ("재생 버튼을 눌러주세요")
+- ✅ 오렌지 색상으로 실패 상태 시각적 표시
+- ✅ Slider 영역 높이 고정으로 레이아웃 안정성 확보
+- ✅ Sidebar 오류 방지 (레이아웃 높이 불일치 해결)
+
+---
+
 ## 📊 시나리오별 동작
 
 ### 시나리오 1: 빠른 네트워크 (이상적)
@@ -299,6 +429,12 @@ if (_isPlaying) {
 5. 10초 경과... Duration 없음 ⚠️
 6. stop() 호출
 7. 로딩 완료 (Duration 없음)
+8. UI 상태:
+   - Duration 표시: "--:--" (회색 약간 연한 색)
+   - 안내 메시지: "재생 시간 정보를 가져올 수 없습니다. 재생 버튼을 눌러주세요."
+   - Progress bar: 오렌지 색상 (indeterminate)
+   - 재생 버튼: 오렌지 원 (활성화)
+   - Slider: 숨김 (고정 높이 영역은 유지)
 
 로그:
 ⚠️ Duration 로딩 타임아웃 (10초) → 오디오 정지
@@ -306,10 +442,16 @@ if (_isPlaying) {
    → 재생 버튼을 누르면 자동으로 duration이 설정됩니다
 
 사용자 액션:
-8. 사용자가 재생 버튼 클릭 ▶️
-9. play() 호출
-10. Duration 자동 로드 ✅
-11. 정상 재생!
+9. 사용자가 재생 버튼 클릭 ▶️
+10. play() 호출
+11. Duration 자동 로드 ✅
+12. UI 상태 업데이트:
+   - Duration 표시: "00:07"
+   - 안내 메시지: 사라짐
+   - Progress bar: 파란색 (determinate)
+   - 재생 버튼: 파란색 원 (일시정지 아이콘)
+   - Slider: 표시 (조작 가능)
+13. 정상 재생!
 
 로그:
 ▶️ 오디오 재생 시작 (처음부터)
@@ -319,6 +461,9 @@ if (_isPlaying) {
 - ✅ 타임아웃 후에도 복구 가능
 - ✅ 사용자가 직접 재생으로 duration 로드
 - ✅ 완전히 막히지 않음
+- ✅ 명확한 시각적 피드백 (오렌지 색상)
+- ✅ 안내 메시지로 다음 액션 제시
+- ✅ 레이아웃 안정성 (Sidebar 오류 방지)
 
 ---
 
@@ -334,7 +479,10 @@ if (_isPlaying) {
 1. Duration 로딩 타임아웃 증가 (10초)
 2. 타임아웃 후에도 재생 버튼 활성화 ✅
 3. 재생 버튼 클릭 시 자동 duration 로드
-4. "로딩 중..." 명확한 상태 표시
+4. "로딩 중..." → "--:--" 명확한 상태 표시
+5. 오렌지 색상으로 실패 상태 시각적 표시
+6. 명확한 안내 메시지 ("재생 버튼을 눌러주세요")
+7. Slider 영역 고정 높이로 레이아웃 안정성 확보
 
 ---
 
@@ -389,6 +537,34 @@ if (_isPlaying) {
 - 재생 버튼을 눌러 duration 로드
 - 자동으로 Slider 표시됨
 
+### 🆕 문제 4: Sidebar 오류 및 "로딩 중..." 회색 텍스트 계속 표시
+
+**증상:**
+```
+flutter: ⚠️ Duration 로딩 타임아웃 (5초)
+flutter:    → 재생 버튼을 누르면 자동으로 재생됩니다
+
+이 상태에서:
+- Sidebar 오류 발생
+- "로딩 중..." 회색 텍스트 계속 표시
+```
+
+**원인:**
+1. **"로딩 중..." 텍스트**: `_duration = 0`이므로 조건부 표시 로직에 의해 계속 표시됨 (의도된 동작이지만 혼란스러움)
+2. **Sidebar 오류**: Slider 영역의 높이가 duration 유무에 따라 달라져 레이아웃 재계산 시 constraint 문제 발생
+
+**해결:**
+1. **Duration 로드 실패 플래그 추가**: `_durationLoadFailed = true` (타임아웃 시)
+2. **텍스트 개선**: "로딩 중..." → "--:--" (실패 상태 명확히)
+3. **안내 메시지**: "재생 시간 정보를 가져올 수 없습니다. 재생 버튼을 눌러주세요."
+4. **시각적 피드백**: Progress bar & 재생 버튼 오렌지 색상
+5. **레이아웃 안정성**: Slider 영역을 `SizedBox(height: 32)`로 고정하여 duration 유무와 관계없이 동일한 높이 유지
+
+**효과:**
+- ✅ Sidebar 오류 해결 (레이아웃 높이 고정)
+- ✅ 사용자 혼란 감소 ("--:--"는 일반적으로 시간 정보 없음을 의미)
+- ✅ 명확한 다음 액션 제시 (안내 메시지)
+
 ---
 
 ## 📈 성능 개선 지표
@@ -424,6 +600,12 @@ if (_isPlaying) {
 - [x] 구조화된 로그 시스템
 - [x] 에러 처리 개선
 - [x] Flutter analyze 통과
+- [x] 🆕 Duration 로드 실패 플래그 추가
+- [x] 🆕 "--:--" 텍스트 표시 (타임아웃 시)
+- [x] 🆕 명확한 안내 메시지 추가
+- [x] 🆕 오렌지 색상 시각적 피드백
+- [x] 🆕 Slider 영역 레이아웃 안정성 개선
+- [x] 🆕 Sidebar 오류 해결
 
 ### 테스트 체크리스트
 
@@ -480,6 +662,35 @@ final timeout = networkSpeed == 'fast' ? 5 : 15;
 
 ---
 
-**문서 버전**: 1.0  
+---
+
+## 🆕 최근 개선 사항 (v1.1)
+
+### Duration 로드 실패 시 UI 개선
+
+**개선 날짜**: 2024-01-15
+
+**문제:**
+- 타임아웃 후 "_isLoading = false"로 `_buildPlayer()` 호출
+- 하지만 `_duration = 0`이므로 "로딩 중..." 텍스트 계속 표시
+- Slider 영역 높이 불일치로 Sidebar 오류 발생
+- 사용자 혼란 ("로딩이 끝났는지 아닌지 모르겠어요")
+
+**해결:**
+1. ✅ `_durationLoadFailed` 플래그 추가 (타임아웃 시 true)
+2. ✅ Duration 표시: "로딩 중..." → "--:--" (실패 시)
+3. ✅ 명확한 안내 메시지 추가
+4. ✅ 오렌지 색상 시각적 피드백 (Progress bar, 재생 버튼)
+5. ✅ Slider 영역 고정 높이 (레이아웃 안정성)
+6. ✅ Sidebar 오류 완전히 해결
+
+**효과:**
+- 사용자가 타임아웃 상태를 명확히 인지
+- "재생 버튼을 눌러주세요" 안내로 다음 액션 명확히 제시
+- 레이아웃 안정성 확보로 Sidebar 오류 제거
+
+---
+
+**문서 버전**: 1.1 (🆕 UI 개선 추가)  
 **최종 수정일**: 2024-01-15  
 **작성자**: MAKECALL Development Team
