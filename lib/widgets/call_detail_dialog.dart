@@ -7,7 +7,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'audio_player_dialog.dart';
 import 'package:flutter_app/utils/platform_user_agent.dart';
-import 'dart:html' as html; // 웹 플랫폼 다운로드
+// 조건부 import: 웹에서만 dart:html, 모바일에서는 빈 구현
+import 'download_helper_web.dart' if (dart.library.io) 'download_helper_mobile.dart';
 
 /// 통화 상세 내역 다이얼로그
 class CallDetailDialog extends StatefulWidget {
@@ -892,15 +893,8 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
       
       // 웹 플랫폼에서 다운로드
       if (kIsWeb) {
-        // Anchor element를 생성하여 다운로드
-        final anchor = html.AnchorElement(href: convertedUrl)
-          ..setAttribute('download', filename)
-          ..setAttribute('target', '_blank');
-        
-        // 브라우저에 추가하고 클릭
-        html.document.body?.append(anchor);
-        anchor.click();
-        anchor.remove();
+        // 플랫폼별 다운로드 헬퍼 사용
+        downloadFile(convertedUrl, filename);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -930,6 +924,17 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
               behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else {
+        // 모바일 플랫폼에서는 지원하지 않음
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('다운로드는 웹 플랫폼에서만 지원됩니다.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
             ),
           );
         }
