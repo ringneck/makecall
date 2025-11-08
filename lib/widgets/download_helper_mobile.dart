@@ -1,6 +1,7 @@
 // 모바일 플랫폼용 다운로드 헬퍼 (iOS/Android 구현)
 import 'dart:io';
 import 'dart:async';
+import 'dart:ui' show Rect;
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -106,10 +107,13 @@ Future<void> downloadFile(String url, String filename) async {
       debugPrint('📤 Share Sheet 실행 중...');
     }
     
+    // iPad에서는 sharePositionOrigin이 필수 (팝오버 위치 지정)
+    // iPhone에서는 무시됨
     final result = await Share.shareXFiles(
       [XFile(filePath)],
       text: '녹음 파일: $filename',
       subject: '통화 녹음',
+      sharePositionOrigin: const Rect.fromLTWH(0, 0, 100, 100), // iPad용 팝오버 위치
     );
     
     if (kDebugMode) {
