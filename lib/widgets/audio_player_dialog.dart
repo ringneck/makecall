@@ -30,6 +30,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
   String? _error;
   Completer<void>? _durationCompleter;
   bool _durationLoadFailed = false;  // 🔧 Duration 로드 실패 여부
+  bool _durationSetByBillsec = false;  // 🔧 billsec으로 duration 설정됨
 
   @override
   void initState() {
@@ -41,6 +42,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
     if (widget.billsec != null && widget.billsec! > 0) {
       _duration = Duration(seconds: widget.billsec!);
       _isLoading = false;
+      _durationSetByBillsec = true;  // 🔧 billsec으로 설정됨 플래그
       
       if (kDebugMode) {
         debugPrint('✅ 오디오 Duration 설정 (billsec)');
@@ -89,10 +91,13 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
     // Duration 리스너
     _audioPlayer.onDurationChanged.listen((duration) {
       if (mounted) {
-        setState(() {
-          _duration = duration;
-          _isLoading = false;
-        });
+        // 🔧 billsec으로 설정된 duration은 보호 (덮어쓰지 않음)
+        if (!_durationSetByBillsec) {
+          setState(() {
+            _duration = duration;
+            _isLoading = false;
+          });
+        }
         
         // Duration이 설정되면 Completer 완료
         if (_durationCompleter != null && !_durationCompleter!.isCompleted) {
