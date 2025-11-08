@@ -1777,6 +1777,39 @@ class _CallTabState extends State<CallTab> {
         ),
       );
 
+      // 🔥 Step 1: 착신전환 정보 먼저 조회 (API 호출 전)
+      final callForwardInfo = await _databaseService
+          .getCallForwardInfoOnce(userId, selectedExtension.extension);
+      
+      final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
+      final forwardDestination = (callForwardInfo?.destinationNumber ?? '').trim();
+
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('💾 ========== 통화 기록 준비 (착신전환 정보 포함) ==========');
+        debugPrint('   📱 단말번호: ${selectedExtension.extension}');
+        debugPrint('   📞 발신 대상: $phoneNumber');
+        debugPrint('   🔄 착신전환 활성화: $isForwardEnabled');
+        debugPrint('   ➡️  착신전환 목적지: ${isForwardEnabled ? forwardDestination : "비활성화"}');
+        debugPrint('   📦 준비 데이터:');
+        debugPrint('      - callForwardEnabled: $isForwardEnabled');
+        debugPrint('      - callForwardDestination: ${(isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : "null"}');
+        debugPrint('========================================================');
+        debugPrint('');
+      }
+
+      // 🚀 Step 2: Pending Storage에 먼저 저장 (Race Condition 방지!)
+      // ✅ API 호출 전에 저장하여 Newchannel 이벤트보다 항상 먼저 준비됨
+      final dcmiws = DCMIWSService();
+      dcmiws.storePendingClickToCallRecord(
+        extensionNumber: selectedExtension.extension,
+        phoneNumber: phoneNumber,
+        userId: userId,
+        mainNumberUsed: cidNumber,
+        callForwardEnabled: isForwardEnabled,
+        callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
+      );
+
       // API 서비스 생성 (동적 API URL 사용)
       // apiHttpPort가 3501이면 HTTPS 사용, 3500이면 HTTP 사용
       final useHttps = (userModel!.apiHttpPort ?? 3500) == 3501;
@@ -1787,7 +1820,7 @@ class _CallTabState extends State<CallTab> {
         appKey: userModel.appKey,
       );
 
-      // Click to Call API 호출
+      // 📞 Step 3: Click to Call API 호출 (Pending Storage 준비 완료 후)
       final result = await apiService.clickToCall(
         caller: selectedExtension.extension, // 선택된 단말번호 사용
         callee: phoneNumber,
@@ -1799,40 +1832,8 @@ class _CallTabState extends State<CallTab> {
 
       if (kDebugMode) {
         debugPrint('✅ 즐곊/최근통화 기능번호 Click to Call 성공: $result');
+        debugPrint('   → Newchannel 이벤트 대기 중... (Pending Storage 준비 완료)');
       }
-
-      // 🔥 착신전환 정보 조회 (현재 시점 기준)
-      final callForwardInfo = await _databaseService
-          .getCallForwardInfoOnce(userId, selectedExtension.extension);
-      
-      final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
-      final forwardDestination = (callForwardInfo?.destinationNumber ?? '').trim();
-
-      if (kDebugMode) {
-        debugPrint('');
-        debugPrint('💾 ========== 통화 기록 저장 (착신전환 정보 포함) ==========');
-        debugPrint('   📱 단말번호: ${selectedExtension.extension}');
-        debugPrint('   📞 발신 대상: $phoneNumber');
-        debugPrint('   🔄 착신전환 활성화: $isForwardEnabled');
-        debugPrint('   ➡️  착신전환 목적지: ${isForwardEnabled ? forwardDestination : "비활성화"}');
-        debugPrint('   📦 저장 데이터:');
-        debugPrint('      - callForwardEnabled: $isForwardEnabled');
-        debugPrint('      - callForwardDestination: ${(isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : "null"}');
-        debugPrint('========================================================');
-        debugPrint('');
-      }
-
-      // 🆕 Firestore에 즉시 저장하지 않고, DCMIWS 임시 저장소에 저장
-      // Newchannel 이벤트에서 linkedid와 함께 생성
-      final dcmiws = DCMIWSService();
-      dcmiws.storePendingClickToCallRecord(
-        extensionNumber: selectedExtension.extension,
-        phoneNumber: phoneNumber,
-        userId: userId,
-        mainNumberUsed: cidNumber,
-        callForwardEnabled: isForwardEnabled,
-        callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
-      );
 
       // 성공 메시지 (안전한 헬퍼 사용)
       _safeClearSnackBars();

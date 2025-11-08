@@ -159,53 +159,31 @@ class _DialpadScreenState extends State<DialpadScreen> {
         );
       }
 
-      // API 서비스 생성 (동적 API URL 사용)
-      // apiHttpPort가 3501이면 HTTPS 사용, 3500이면 HTTP 사용
-      final useHttps = (userModel!.apiHttpPort ?? 3500) == 3501;
-      
-      final apiService = ApiService(
-        baseUrl: userModel.getApiUrl(useHttps: useHttps),
-        companyId: userModel.companyId,
-        appKey: userModel.appKey,
-      );
-
-      // Click to Call API 호출
-      final result = await apiService.clickToCall(
-        caller: selectedExtension.extension, // 선택된 단말번호 사용
-        callee: phoneNumber,
-        cosId: selectedExtension.classOfServicesId, // 선택된 COS ID 사용
-        cidName: cidName,
-        cidNumber: cidNumber,
-        accountCode: userModel.phoneNumber ?? '',
-      );
-
-      if (kDebugMode) {
-        debugPrint('✅ 키패드 기능번호 Click to Call 성공: $result');
-      }
-
-      // 🔥 착신전환 정보 조회 (현재 시점 기준)
+      // 🔥 Step 1: 착신전환 정보 먼저 조회 (API 호출 전)
       final callForwardInfo = await _databaseService
           .getCallForwardInfoOnce(userId, selectedExtension.extension);
       
       final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
       final forwardDestination = (callForwardInfo?.destinationNumber ?? '').trim();
 
+      // 🚀 Step 2: Pending Storage에 먼저 저장 (Race Condition 방지!)
       // 🚫 *로 시작하는 기능번호는 통화 기록을 생성하지 않음
       if (!phoneNumber.startsWith('*')) {
         if (kDebugMode) {
           debugPrint('');
-          debugPrint('💾 ========== 클릭투콜 기록 임시 저장 (Newchannel 대기) ==========');
+          debugPrint('💾 ========== 통화 기록 준비 (착신전환 정보 포함) ==========');
           debugPrint('   📱 단말번호: ${selectedExtension.extension}');
           debugPrint('   📞 발신 대상: $phoneNumber');
           debugPrint('   🔄 착신전환 활성화: $isForwardEnabled');
           debugPrint('   ➡️  착신전환 목적지: ${isForwardEnabled ? forwardDestination : "비활성화"}');
-          debugPrint('   ⏳ Newchannel 이벤트 대기 중... (10초 타임아웃)');
+          debugPrint('   📦 준비 데이터:');
+          debugPrint('      - callForwardEnabled: $isForwardEnabled');
+          debugPrint('      - callForwardDestination: ${(isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : "null"}');
           debugPrint('========================================================');
           debugPrint('');
         }
 
-        // 🆕 Firestore에 즉시 저장하지 않고, DCMIWS 임시 저장소에 저장
-        // Newchannel 이벤트에서 linkedid와 함께 생성
+        // ✅ API 호출 전에 저장하여 Newchannel 이벤트보다 항상 먼저 준비됨
         final dcmiws = DCMIWSService();
         dcmiws.storePendingClickToCallRecord(
           extensionNumber: selectedExtension.extension,
@@ -220,6 +198,31 @@ class _DialpadScreenState extends State<DialpadScreen> {
           debugPrint('⏭️ *로 시작하는 기능번호 - 통화 기록 생성 건너뛰기');
           debugPrint('   발신 대상: $phoneNumber');
         }
+      }
+
+      // API 서비스 생성 (동적 API URL 사용)
+      // apiHttpPort가 3501이면 HTTPS 사용, 3500이면 HTTP 사용
+      final useHttps = (userModel!.apiHttpPort ?? 3500) == 3501;
+      
+      final apiService = ApiService(
+        baseUrl: userModel.getApiUrl(useHttps: useHttps),
+        companyId: userModel.companyId,
+        appKey: userModel.appKey,
+      );
+
+      // 📞 Step 3: Click to Call API 호출 (Pending Storage 준비 완료 후)
+      final result = await apiService.clickToCall(
+        caller: selectedExtension.extension, // 선택된 단말번호 사용
+        callee: phoneNumber,
+        cosId: selectedExtension.classOfServicesId, // 선택된 COS ID 사용
+        cidName: cidName,
+        cidNumber: cidNumber,
+        accountCode: userModel.phoneNumber ?? '',
+      );
+
+      if (kDebugMode) {
+        debugPrint('✅ 키패드 기능번호 Click to Call 성공: $result');
+        debugPrint('   → Newchannel 이벤트 대기 중... (Pending Storage 준비 완료)');
       }
 
       if (mounted) {
