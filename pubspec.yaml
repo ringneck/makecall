@@ -72,6 +72,10 @@ dependencies:
   
   # Audio Player
   audioplayers: ^6.1.0  # Audio playback for call recordings
+  
+  # File Download & Share (for recording downloads on mobile)
+  share_plus: 7.2.2  # Native share functionality for iOS/Android
+  path_provider: 2.1.4  # Access to device file system
 
 dev_dependencies:
   flutter_test:

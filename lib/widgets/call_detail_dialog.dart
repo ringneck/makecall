@@ -879,21 +879,21 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
     return url;
   }
   
-  /// 녹음 파일 다운로드 (웹 플랫폼)
+  /// 녹음 파일 다운로드 (모든 플랫폼 지원: Web, iOS, Android)
   Future<void> _downloadRecordingFile(String recordingUrl, String filename) async {
     try {
       if (kDebugMode) {
         debugPrint('📥 녹음 파일 다운로드 시작');
+        debugPrint('  - 플랫폼: ${kIsWeb ? "Web" : "Mobile (iOS/Android)"}');
         debugPrint('  - URL: $recordingUrl');
         debugPrint('  - 파일명: $filename');
       }
 
-      // 변환된 URL 사용
+      // 변환된 URL 사용 (플랫폼별 최적화)
       final convertedUrl = _convertRecordingUrlForDevice(recordingUrl);
       
-      // 웹 플랫폼에서 다운로드
       if (kIsWeb) {
-        // 플랫폼별 다운로드 헬퍼 사용
+        // 웹 플랫폼: 즉시 다운로드
         downloadFile(convertedUrl, filename);
         
         if (mounted) {
@@ -928,13 +928,67 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
           );
         }
       } else {
-        // 모바일 플랫폼에서는 지원하지 않음
+        // 모바일 플랫폼 (iOS/Android): Share Sheet로 저장/공유
+        if (mounted) {
+          // 다운로드 진행 중 표시
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      '파일 다운로드 중...',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.blue,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+        
+        // 비동기 다운로드 및 공유
+        await downloadFile(convertedUrl, filename);
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('다운로드는 웹 플랫폼에서만 지원됩니다.'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.share, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '파일 공유',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          filename,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
@@ -955,8 +1009,12 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
               children: [
                 const Icon(Icons.error_outline, color: Colors.white),
                 const SizedBox(width: 12),
-                const Expanded(
-                  child: Text('다운로드 실패. 잠시 후 다시 시도해주세요.'),
+                Expanded(
+                  child: Text(
+                    kIsWeb 
+                        ? '다운로드 실패. 잠시 후 다시 시도해주세요.'
+                        : '파일 다운로드 실패. 네트워크 연결을 확인해주세요.',
+                  ),
                 ),
               ],
             ),
