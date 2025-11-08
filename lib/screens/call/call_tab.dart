@@ -1941,7 +1941,14 @@ class _CallTabState extends State<CallTab> {
       // 1단계: 권한 상태 확인
       final hasPermission = await _mobileContactsService.hasContactsPermission();
       
+      if (kDebugMode) {
+        debugPrint('🔍 _toggleDeviceContacts: hasPermission = $hasPermission');
+      }
+      
       if (!hasPermission) {
+        if (kDebugMode) {
+          debugPrint('⚠️ _toggleDeviceContacts: 권한 없음 - 권한 요청 다이얼로그 표시');
+        }
         // 권한이 없으면 권한 요청
         if (mounted) {
           setState(() => _isLoadingDeviceContacts = false);
@@ -1956,7 +1963,9 @@ class _CallTabState extends State<CallTab> {
           // 권한 요청 실행
           final permissionStatus = await _mobileContactsService.requestContactsPermission();
           
-          if (!permissionStatus.isGranted) {
+          // ✨ iOS FIX: isGranted 또는 isLimited 모두 허용
+          // iOS 14+ Limited Contacts 지원
+          if (!permissionStatus.isGranted && !permissionStatus.isLimited) {
             setState(() => _isLoadingDeviceContacts = false);
             
             if (mounted) {
