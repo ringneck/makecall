@@ -1938,28 +1938,28 @@ class _CallTabState extends State<CallTab> {
     setState(() => _isLoadingDeviceContacts = true);
 
     try {
-      // ✨ iOS FIX: 권한 상태 확인 (iOS 캐시 동기화 포함)
       if (kDebugMode) {
         debugPrint('');
         debugPrint('🔍 ===== _toggleDeviceContacts START =====');
       }
       
-      // hasContactsPermission()이 iOS 권한 캐시 동기화를 자동으로 처리
+      // 🎯 STEP 1: 현재 권한 상태 확인 (flutter_contacts 사용)
       final hasPermission = await _mobileContactsService.hasContactsPermission();
       
       if (kDebugMode) {
         debugPrint('🔍 _toggleDeviceContacts: hasPermission = $hasPermission');
       }
       
-      // 권한이 없으면 권한 요청
+      // 🎯 STEP 2: 권한이 없으면 권한 요청
       if (!hasPermission) {
         if (kDebugMode) {
-          debugPrint('⚠️ _toggleDeviceContacts: 권한 없음 - 권한 요청 다이얼로그 표시');
+          debugPrint('⚠️ _toggleDeviceContacts: 권한 없음 - 사용자에게 권한 요청');
         }
         
         if (mounted) {
           setState(() => _isLoadingDeviceContacts = false);
           
+          // 사용자에게 권한 요청 의사 확인
           final shouldRequest = await _showPermissionRequestDialog();
           if (shouldRequest != true) {
             return;
@@ -1967,20 +1967,19 @@ class _CallTabState extends State<CallTab> {
           
           setState(() => _isLoadingDeviceContacts = true);
           
-          // 권한 요청 실행
+          // 시스템 권한 다이얼로그 표시 (flutter_contacts 사용)
           final permissionStatus = await _mobileContactsService.requestContactsPermission();
           
           if (kDebugMode) {
             debugPrint('📱 _toggleDeviceContacts: requestContactsPermission 결과');
             debugPrint('   - permissionStatus: $permissionStatus');
             debugPrint('   - isGranted: ${permissionStatus.isGranted}');
-            debugPrint('   - isLimited: ${permissionStatus.isLimited}');
           }
           
-          // iOS FIX: isGranted 또는 isLimited 모두 허용
-          if (!permissionStatus.isGranted && !permissionStatus.isLimited) {
+          // 권한 거부 시 설정으로 이동 안내
+          if (!permissionStatus.isGranted) {
             if (kDebugMode) {
-              debugPrint('❌ _toggleDeviceContacts: 권한 거부됨 - 설정 다이얼로그 표시');
+              debugPrint('❌ _toggleDeviceContacts: 권한 거부됨');
             }
             setState(() => _isLoadingDeviceContacts = false);
             
@@ -1995,7 +1994,7 @@ class _CallTabState extends State<CallTab> {
         }
       }
 
-      // 연락처 가져오기
+      // 🎯 STEP 3: 연락처 가져오기
       if (mounted) {
         if (kDebugMode) {
           debugPrint('✅ _toggleDeviceContacts: 권한 확인 완료 - 연락처 가져오기 시작');

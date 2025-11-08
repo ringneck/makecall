@@ -8,71 +8,74 @@ class MobileContactsService {
   /// 연락처 권한 상태 확인 (읽기 전용, 빠른 체크)
   Future<bool> hasContactsPermission() async {
     try {
-      // ✨ iOS FIX: iOS 권한 캐시 동기화 문제 해결
-      final status = await Permission.contacts.status;
-      
       if (kDebugMode) {
-        debugPrint('📱 [1] Initial permission status: $status');
-        debugPrint('   - isGranted: ${status.isGranted}');
-        debugPrint('   - isDenied: ${status.isDenied}');
-        debugPrint('   - isPermanentlyDenied: ${status.isPermanentlyDenied}');
-        debugPrint('   - isRestricted: ${status.isRestricted}');
-        debugPrint('   - isLimited: ${status.isLimited}');
+        debugPrint('');
+        debugPrint('🔍 ===== hasContactsPermission CHECK START =====');
       }
       
-      // ✅ iOS에서는 isGranted 또는 isLimited 모두 허용으로 간주
-      if (status.isGranted || status.isLimited) {
+      // 🎯 CRITICAL FIX: flutter_contacts를 PRIMARY 권한 체크로 사용
+      // flutter_contacts는 iOS/Android 네이티브 권한 API와 직접 통합
+      // readonly: true로 호출하면 다이얼로그 없이 현재 상태만 확인
+      final flutterContactsPermission = await FlutterContacts.requestPermission(readonly: true);
+      
+      if (kDebugMode) {
+        debugPrint('📱 FlutterContacts.requestPermission(readonly: true): $flutterContactsPermission');
+      }
+      
+      // flutter_contacts가 true를 반환하면 권한이 확실히 있음
+      if (flutterContactsPermission) {
+        if (kDebugMode) {
+          debugPrint('✅ FlutterContacts confirms permission GRANTED');
+          debugPrint('🔍 ===== hasContactsPermission CHECK END =====');
+          debugPrint('');
+        }
         return true;
       }
       
-      // 🔧 iOS 권한 캐시 버그 해결: 
-      // isDenied이지만 isPermanentlyDenied가 아닌 경우,
-      // 실제 권한 요청을 통해 iOS 시스템과 동기화
-      if (Platform.isIOS && status.isDenied && !status.isPermanentlyDenied) {
-        if (kDebugMode) {
-          debugPrint('⚠️ iOS: Permission shows denied but not permanently');
-          debugPrint('🔄 Triggering permission request to sync with system state...');
-        }
-        
-        // 권한 요청 (이미 허용된 경우 다이얼로그 없이 즉시 granted 반환)
-        final syncedStatus = await Permission.contacts.request();
-        
-        if (kDebugMode) {
-          debugPrint('📱 [2] Synced permission status: $syncedStatus');
-          debugPrint('   - isGranted: ${syncedStatus.isGranted}');
-          debugPrint('   - isLimited: ${syncedStatus.isLimited}');
-        }
-        
-        return syncedStatus.isGranted || syncedStatus.isLimited;
+      // flutter_contacts가 false를 반환하면 권한 없음
+      if (kDebugMode) {
+        debugPrint('❌ FlutterContacts confirms permission DENIED');
+        debugPrint('🔍 ===== hasContactsPermission CHECK END =====');
+        debugPrint('');
       }
       
       return false;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Error checking contacts permission: $e');
+        debugPrint('🔍 ===== hasContactsPermission CHECK END (ERROR) =====');
+        debugPrint('');
       }
       return false;
     }
   }
 
-  /// 연락처 권한 요청 (플랫폼별 최적화)
+  /// 연락처 권한 요청 (flutter_contacts 사용)
   Future<PermissionStatus> requestContactsPermission() async {
     try {
       if (kDebugMode) {
-        debugPrint('📱 Requesting contacts permission...');
+        debugPrint('');
+        debugPrint('🔍 ===== requestContactsPermission START =====');
+        debugPrint('📱 Calling FlutterContacts.requestPermission()...');
       }
 
-      // iOS와 Android 모두 permission_handler 사용
-      final status = await Permission.contacts.request();
+      // 🎯 CRITICAL FIX: flutter_contacts를 사용하여 권한 요청
+      // readonly: false로 호출하면 실제 시스템 권한 다이얼로그 표시
+      final granted = await FlutterContacts.requestPermission();
       
       if (kDebugMode) {
-        debugPrint('📱 Contacts permission result: $status');
+        debugPrint('📱 FlutterContacts.requestPermission() result: $granted');
+        debugPrint('🔍 ===== requestContactsPermission END =====');
+        debugPrint('');
       }
       
-      return status;
+      // bool을 PermissionStatus로 변환
+      return granted ? PermissionStatus.granted : PermissionStatus.denied;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Error requesting contacts permission: $e');
+        debugPrint('🔍 ===== requestContactsPermission END (ERROR) =====');
+        debugPrint('');
       }
       return PermissionStatus.denied;
     }
