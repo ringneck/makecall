@@ -120,51 +120,55 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
         return;
       }
 
-      // Duration이 없으면 재생으로 강제 로드
+      // 🔧 FIX: Duration 로드를 위해 짧게 재생 후 즉시 정지
+      if (kDebugMode) {
+        debugPrint('⏳ Duration 로드 시작 (짧은 재생)...');
+      }
+      
+      // 재생 시작 (duration 로드용)
       await _audioPlayer.play(UrlSource(widget.audioUrl));
       
+      // 🔧 FIX: 즉시 음소거 (사용자가 듣지 못하도록)
+      await _audioPlayer.setVolume(0.0);
+      
       // ⚠️ Duration이 실제로 설정될 때까지 기다림 (onDurationChanged 리스너가 완료 신호)
-      // 🔧 최적화 2: 타임아웃 3초 → 10초 증가 (네트워크 지연 대응)
-      bool durationLoaded = true;
+      // 🔧 타임아웃 5초로 조정
       try {
         await _durationCompleter!.future.timeout(
-          const Duration(seconds: 10),
+          const Duration(seconds: 5),
         );
         
-        // Duration 로드 성공 → 즉시 일시정지
-        await _audioPlayer.pause();
-        await _audioPlayer.seek(Duration.zero);
+        // Duration 로드 성공 → 정지 및 볼륨 복원
+        await _audioPlayer.stop();
+        await _audioPlayer.setVolume(1.0);
         
         if (kDebugMode) {
-          debugPrint('✅ 오디오 로딩 완료 (재생으로 Duration 로드 성공)');
+          debugPrint('✅ 오디오 로딩 완료 (Duration 로드 성공)');
           debugPrint('   Duration: ${_duration.inSeconds}초');
         }
-      } catch (e) {
-        // Duration 로드 실패 → 즉시 정지
-        durationLoaded = false;
         
-        try {
-          await _audioPlayer.stop();
-          if (kDebugMode) {
-            debugPrint('⚠️ Duration 로딩 타임아웃 (10초) → 오디오 정지');
-          }
-        } catch (stopError) {
-          if (kDebugMode) {
-            debugPrint('⚠️ Stop 실패: $stopError');
-          }
+        // 🔧 FIX: 로딩 상태 해제
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
         }
+      } catch (e) {
+        // Duration 로드 실패 (타임아웃) → 정지 및 볼륨 복원
+        await _audioPlayer.stop();
+        await _audioPlayer.setVolume(1.0);
         
         if (kDebugMode) {
-          debugPrint('⚠️ 오디오 로딩 완료 (Duration 없음)');
-          debugPrint('   → 재생 버튼을 누르면 자동으로 duration이 설정됩니다');
+          debugPrint('⚠️ Duration 로딩 타임아웃 (5초)');
+          debugPrint('   → 재생 버튼을 누르면 자동으로 재생됩니다');
         }
-      }
-
-      // Duration 로드 실패 시 로딩 상태 해제
-      if (!durationLoaded && mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        
+        // 🔧 FIX: 타임아웃 시에도 로딩 상태 해제
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       if (kDebugMode) {
@@ -181,7 +185,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
 
   Future<void> _togglePlayPause() async {
     try {
-      // 🔧 최적화 3: 에러 상태면 재생하지 않지만, Duration 없어도 재생 허용
+      // 🔧 에러 상태면 재생하지 않음
       if (_error != null) {
         if (kDebugMode) {
           debugPrint('⚠️ 재생 건너뛰기: 오디오 오류 상태');
@@ -196,26 +200,23 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
           debugPrint('⏸️ 오디오 일시정지');
         }
       } else {
-        // Duration이 0이거나 로딩 중이면 처음부터 재생
-        if (_duration.inMilliseconds == 0 || _isLoading) {
+        // 🔧 FIX: Duration이 0이면 새로 재생, 아니면 resume
+        if (_duration.inMilliseconds == 0) {
           if (kDebugMode) {
             debugPrint('▶️ 오디오 재생 시작 (처음부터)');
           }
           
-          // 로딩 상태 해제
-          if (_isLoading) {
-            setState(() {
-              _isLoading = false;
-            });
-          }
-          
+          // 🔧 FIX: 볼륨 확인 및 복원
+          await _audioPlayer.setVolume(1.0);
           await _audioPlayer.play(UrlSource(widget.audioUrl));
         } else {
           // Duration이 있으면 resume
           if (kDebugMode) {
-            debugPrint('▶️ 오디오 재생 재개');
+            debugPrint('▶️ 오디오 재생 재개 (Position: ${_position.inSeconds}s)');
           }
           
+          // 🔧 FIX: 볼륨 확인 및 복원
+          await _audioPlayer.setVolume(1.0);
           await _audioPlayer.resume();
         }
       }
