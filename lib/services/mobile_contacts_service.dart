@@ -51,12 +51,14 @@ class MobileContactsService {
         debugPrint('📱 Fetching device contacts...');
       }
 
-      // 권한 확인 (flutter_contacts 사용)
-      final permissionGranted = await FlutterContacts.requestPermission(readonly: true);
+      // ✨ iOS FIX: 이미 권한 체크를 call_tab에서 했으므로 여기서는 바로 가져오기
+      // FlutterContacts.requestPermission() 호출 시 iOS에서 권한 다이얼로그가 다시 표시됨
+      // 대신 현재 권한 상태만 확인하고 거부되면 빈 리스트 반환
+      final currentStatus = await Permission.contacts.status;
       
-      if (!permissionGranted) {
+      if (!currentStatus.isGranted) {
         if (kDebugMode) {
-          debugPrint('❌ Contacts permission not granted');
+          debugPrint('❌ Contacts permission not granted (current status: $currentStatus)');
         }
         return [];
       }
