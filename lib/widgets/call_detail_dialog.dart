@@ -999,27 +999,70 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ 녹음 파일 다운로드 오류: $e');
+        debugPrint('');
+        debugPrint('='*60);
+        debugPrint('❌ 녹음 파일 다운로드 오류');
+        debugPrint('='*60);
+        debugPrint('오류 내용: $e');
+        debugPrint('스택 추적: ${StackTrace.current}');
+        debugPrint('='*60);
+        debugPrint('');
       }
       
       if (mounted) {
+        // 에러 메시지에서 상세 정보 추출
+        final errorMessage = e.toString();
+        String displayMessage;
+        
+        if (errorMessage.contains('TimeoutException') || errorMessage.contains('시간 초과')) {
+          displayMessage = '다운로드 시간 초과.\n서버 응답이 없습니다.';
+        } else if (errorMessage.contains('SocketException') || errorMessage.contains('연결 실패')) {
+          displayMessage = '서버 연결 실패.\n네트워크 연결을 확인하세요.';
+        } else if (errorMessage.contains('HTTP')) {
+          displayMessage = '서버 오류.\n잠시 후 다시 시도하세요.';
+        } else if (errorMessage.contains('FileSystemException')) {
+          displayMessage = '파일 저장 실패.\n저장 공간을 확인하세요.';
+        } else {
+          displayMessage = kIsWeb 
+              ? '다운로드 실패.\n잠시 후 다시 시도해주세요.'
+              : '다운로드 실패.\n네트워크 연결을 확인해주세요.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    kIsWeb 
-                        ? '다운로드 실패. 잠시 후 다시 시도해주세요.'
-                        : '파일 다운로드 실패. 네트워크 연결을 확인해주세요.',
-                  ),
+                Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.white),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        '파일 다운로드 실패',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  displayMessage,
+                  style: const TextStyle(fontSize: 12),
+                ),
+                if (kDebugMode) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '상세: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}',
+                    style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic),
+                  ),
+                ],
               ],
             ),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
