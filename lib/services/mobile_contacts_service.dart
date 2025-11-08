@@ -85,24 +85,23 @@ class MobileContactsService {
   Future<List<ContactModel>> getDeviceContacts(String userId) async {
     try {
       if (kDebugMode) {
-        debugPrint('📱 Fetching device contacts...');
+        debugPrint('');
+        debugPrint('🔍 ===== getDeviceContacts START =====');
       }
 
-      // ✨ iOS FIX: 완벽한 중복 다이얼로그 차단
-      // iOS는 권한 상태를 캐싱하므로 isGranted 또는 isLimited 확인
-      final currentStatus = await Permission.contacts.status;
+      // 🎯 CRITICAL FIX: flutter_contacts로 권한 확인 (permission_handler 사용 안 함)
+      // hasContactsPermission()과 동일한 방식 사용
+      final hasPermission = await FlutterContacts.requestPermission(readonly: true);
       
       if (kDebugMode) {
-        debugPrint('📱 getDeviceContacts permission check:');
-        debugPrint('   - status: $currentStatus');
-        debugPrint('   - isGranted: ${currentStatus.isGranted}');
-        debugPrint('   - isLimited: ${currentStatus.isLimited}');
+        debugPrint('📱 FlutterContacts permission check: $hasPermission');
       }
       
-      // iOS에서는 isGranted 또는 isLimited 모두 허용
-      if (!currentStatus.isGranted && !currentStatus.isLimited) {
+      if (!hasPermission) {
         if (kDebugMode) {
-          debugPrint('❌ Contacts permission not granted (status: $currentStatus)');
+          debugPrint('❌ Contacts permission not granted');
+          debugPrint('🔍 ===== getDeviceContacts END (NO PERMISSION) =====');
+          debugPrint('');
         }
         return [];
       }
@@ -112,7 +111,6 @@ class MobileContactsService {
       }
 
       // 연락처 가져오기 (배치 처리로 최적화)
-      // iOS: getContacts() 호출 전에 이미 권한 확인 완료
       final contacts = await FlutterContacts.getContacts(
         withProperties: true,
         withPhoto: false,
@@ -122,10 +120,10 @@ class MobileContactsService {
       );
 
       if (kDebugMode) {
-        debugPrint('✅ Found ${contacts.length} device contacts');
+        debugPrint('✅ FlutterContacts.getContacts() returned ${contacts.length} contacts');
       }
 
-      // ContactModel로 변환 (Stream 처리로 메모리 최적화)
+      // ContactModel로 변환
       final contactModels = <ContactModel>[];
       
       for (final contact in contacts) {
@@ -168,10 +166,18 @@ class MobileContactsService {
       // 이름순 정렬
       contactModels.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
+      if (kDebugMode) {
+        debugPrint('📱 Returning ${contactModels.length} contacts');
+        debugPrint('🔍 ===== getDeviceContacts END =====');
+        debugPrint('');
+      }
+
       return contactModels;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Error fetching device contacts: $e');
+        debugPrint('🔍 ===== getDeviceContacts END (ERROR) =====');
+        debugPrint('');
       }
       return [];
     }
