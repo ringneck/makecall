@@ -914,6 +914,7 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
               builder: (context) => AudioPlayerDialog(
                 audioUrl: convertedUrl,
                 title: title,
+                billsec: billsec,  // 🔧 billsec 전달
               ),
             );
           },

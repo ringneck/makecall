@@ -8,11 +8,13 @@ import 'package:url_launcher/url_launcher.dart';
 class AudioPlayerDialog extends StatefulWidget {
   final String audioUrl;
   final String title;
+  final int? billsec;  // 🔧 통화 시간 (초)
 
   const AudioPlayerDialog({
     super.key,
     required this.audioUrl,
     this.title = '녹음 파일',
+    this.billsec,  // 🔧 billsec 추가
   });
 
   @override
@@ -34,7 +36,20 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
     super.initState();
     _audioPlayer = AudioPlayer();
     _setupAudioPlayer();
-    _loadAudio();
+    
+    // 🔧 billsec이 제공되면 즉시 duration 설정
+    if (widget.billsec != null && widget.billsec! > 0) {
+      _duration = Duration(seconds: widget.billsec!);
+      _isLoading = false;
+      
+      if (kDebugMode) {
+        debugPrint('✅ 오디오 Duration 설정 (billsec)');
+        debugPrint('   Duration: ${widget.billsec}초');
+      }
+    } else {
+      // billsec이 없으면 기존 방식으로 로드
+      _loadAudio();
+    }
   }
 
   void _setupAudioPlayer() {

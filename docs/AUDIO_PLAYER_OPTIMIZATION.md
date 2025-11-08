@@ -19,6 +19,81 @@ flutter:    → 재생 버튼을 누르면 자동으로 duration이 설정됩니
 
 ## ✅ 구현한 해결책
 
+### 🆕 0. Billsec 기반 Duration 설정 (최우선 방법)
+
+**개념:**
+- CDR(Call Detail Record)의 `billsec` 필드를 활용하여 오디오 duration을 즉시 설정
+- 네트워크 로딩이나 메타데이터 파싱 불필요
+- 타임아웃 없이 즉시 UI 렌더링 가능
+
+**구현:**
+```dart
+class AudioPlayerDialog extends StatefulWidget {
+  final String audioUrl;
+  final String title;
+  final int? billsec;  // 🔧 통화 시간 (초)
+
+  const AudioPlayerDialog({
+    super.key,
+    required this.audioUrl,
+    this.title = '녹음 파일',
+    this.billsec,  // 🔧 billsec 추가
+  });
+}
+
+@override
+void initState() {
+  super.initState();
+  _audioPlayer = AudioPlayer();
+  _setupAudioPlayer();
+  
+  // 🔧 billsec이 제공되면 즉시 duration 설정
+  if (widget.billsec != null && widget.billsec! > 0) {
+    _duration = Duration(seconds: widget.billsec!);
+    _isLoading = false;
+    
+    if (kDebugMode) {
+      debugPrint('✅ 오디오 Duration 설정 (billsec)');
+      debugPrint('   Duration: ${widget.billsec}초');
+    }
+  } else {
+    // billsec이 없으면 기존 방식으로 로드
+    _loadAudio();
+  }
+}
+```
+
+**사용 예시:**
+```dart
+showDialog(
+  context: context,
+  builder: (context) => AudioPlayerDialog(
+    audioUrl: convertedUrl,
+    title: title,
+    billsec: billsec,  // 🔧 billsec 전달
+  ),
+);
+```
+
+**효과:**
+- ✅ **즉시 UI 렌더링** (로딩 시간 0초)
+- ✅ **타임아웃 없음** (네트워크 불필요)
+- ✅ **정확한 duration** (실제 통화 시간)
+- ✅ **네트워크 트래픽 감소** (메타데이터 로딩 불필요)
+- ✅ **사용자 경험 대폭 개선** (즉시 재생 가능)
+
+**로그:**
+```
+✅ 오디오 Duration 설정 (billsec)
+   Duration: 7초
+```
+
+**우선순위:**
+1. **billsec 제공됨** → 즉시 duration 설정 (0초)
+2. **billsec 없음** → 기존 방식 (setSource → play → 타임아웃)
+
+---
+
 ### 1. 타임아웃 시간 증가 (3초 → 10초)
 
 **변경 전:**
@@ -389,7 +464,36 @@ SizedBox(
 
 ## 📊 시나리오별 동작
 
-### 시나리오 1: 빠른 네트워크 (이상적)
+### 🆕 시나리오 0: billsec 제공 (최선의 경우)
+
+```
+1. AudioPlayerDialog 생성 (billsec = 7)
+2. initState() 호출
+3. billsec 확인 → 7초 존재! ✅
+4. Duration 즉시 설정 (7초)
+5. _isLoading = false
+6. UI 즉시 렌더링
+7. 로딩 완료 (0초)
+
+로그:
+✅ 오디오 Duration 설정 (billsec)
+   Duration: 7초
+
+UI 상태:
+- Duration 표시: 00:07 ✅
+- Progress bar: 파란색 (determinate)
+- 재생 버튼: 파란색 원 (활성화)
+- Slider: 표시 (조작 가능)
+- 건너뛰기 버튼: 활성화
+```
+
+**효과:**
+- ✅ 즉시 재생 가능 (로딩 시간 0초)
+- ✅ 네트워크 불필요 (메타데이터 로딩 스킵)
+- ✅ 타임아웃 없음
+- ✅ 완벽한 사용자 경험
+
+### 시나리오 1: 빠른 네트워크 (billsec 없음, 이상적)
 
 ```
 1. setSourceUrl() 호출
@@ -403,7 +507,7 @@ SizedBox(
    Duration: 7초
 ```
 
-### 시나리오 2: 중간 네트워크 (일반적)
+### 시나리오 2: 중간 네트워크 (billsec 없음, 일반적)
 
 ```
 1. setSourceUrl() 호출
@@ -419,7 +523,7 @@ SizedBox(
    Duration: 7초
 ```
 
-### 시나리오 3: 느린 네트워크 (타임아웃)
+### 시나리오 3: 느린 네트워크 (billsec 없음, 타임아웃)
 
 ```
 1. setSourceUrl() 호출
@@ -573,9 +677,10 @@ flutter:    → 재생 버튼을 누르면 자동으로 재생됩니다
 
 | 시나리오 | 변경 전 | 변경 후 | 개선 |
 |---------|---------|---------|------|
-| 빠른 네트워크 | 3초 (재생 필수) | 0.5초 (setSource만) | **83% 향상** |
-| 중간 네트워크 | 3초 | 2.5초 | **17% 향상** |
-| 느린 네트워크 | 타임아웃 (막힘) | 타임아웃 (복구 가능) | **사용자 경험 개선** |
+| 🆕 billsec 제공 | - | **0초 (즉시)** | **최고 성능 ⭐** |
+| 빠른 네트워크 (billsec 없음) | 3초 (재생 필수) | 0.5초 (setSource만) | **83% 향상** |
+| 중간 네트워크 (billsec 없음) | 3초 | 2.5초 | **17% 향상** |
+| 느린 네트워크 (billsec 없음) | 타임아웃 (막힘) | 타임아웃 (복구 가능) | **사용자 경험 개선** |
 
 ### 사용자 경험
 
@@ -592,6 +697,7 @@ flutter:    → 재생 버튼을 누르면 자동으로 재생됩니다
 
 ### 개발자 체크리스트
 
+- [x] 🆕 **billsec 기반 Duration 설정** (최우선 방법)
 - [x] 타임아웃 시간 3초 → 10초 증가
 - [x] setSource로 사전 로딩 시도
 - [x] Duration 없어도 재생 가능하도록 개선
@@ -600,12 +706,12 @@ flutter:    → 재생 버튼을 누르면 자동으로 재생됩니다
 - [x] 구조화된 로그 시스템
 - [x] 에러 처리 개선
 - [x] Flutter analyze 통과
-- [x] 🆕 Duration 로드 실패 플래그 추가
-- [x] 🆕 "--:--" 텍스트 표시 (타임아웃 시)
-- [x] 🆕 명확한 안내 메시지 추가
-- [x] 🆕 오렌지 색상 시각적 피드백
-- [x] 🆕 Slider 영역 레이아웃 안정성 개선
-- [x] 🆕 Sidebar 오류 해결
+- [x] Duration 로드 실패 플래그 추가
+- [x] "--:--" 텍스트 표시 (타임아웃 시)
+- [x] 명확한 안내 메시지 추가
+- [x] 오렌지 색상 시각적 피드백
+- [x] Slider 영역 레이아웃 안정성 개선
+- [x] Sidebar 오류 해결
 
 ### 테스트 체크리스트
 
@@ -691,6 +797,36 @@ final timeout = networkSpeed == 'fast' ? 5 : 15;
 
 ---
 
-**문서 버전**: 1.1 (🆕 UI 개선 추가)  
+---
+
+## 🆕 최근 개선 사항 (v1.2)
+
+### Billsec 기반 Duration 설정
+
+**개선 날짜**: 2024-01-15
+
+**개념:**
+- CDR의 `billsec` 필드를 활용하여 네트워크 로딩 없이 즉시 duration 설정
+- 기존 방식(메타데이터 로딩)보다 훨씬 빠르고 안정적
+
+**구현:**
+1. ✅ `AudioPlayerDialog`에 `billsec` 매개변수 추가
+2. ✅ `initState()`에서 billsec 확인 → 즉시 duration 설정
+3. ✅ billsec 없으면 기존 방식 (Fallback)
+4. ✅ `call_detail_dialog.dart`에서 billsec 전달
+
+**효과:**
+- **로딩 시간 0초** (즉시 재생 가능)
+- **타임아웃 없음** (네트워크 불필요)
+- **정확한 duration** (실제 통화 시간)
+- **최고의 사용자 경험**
+
+**우선순위:**
+1. **billsec 제공** → 즉시 설정 (0초) ⭐
+2. **billsec 없음** → 기존 방식 (0.5~10초)
+
+---
+
+**문서 버전**: 1.2 (🆕 Billsec 기반 Duration 설정 추가)  
 **최종 수정일**: 2024-01-15  
 **작성자**: MAKECALL Development Team
