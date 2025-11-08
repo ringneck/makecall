@@ -46,9 +46,33 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
         debugPrint('✅ 오디오 Duration 설정 (billsec)');
         debugPrint('   Duration: ${widget.billsec}초');
       }
+      
+      // 🔧 오디오 소스는 설정 (재생은 하지 않음)
+      _setAudioSource();
     } else {
       // billsec이 없으면 기존 방식으로 로드
       _loadAudio();
+    }
+  }
+  
+  // 🔧 오디오 소스만 설정 (billsec용)
+  Future<void> _setAudioSource() async {
+    try {
+      await _audioPlayer.setSourceUrl(widget.audioUrl);
+      
+      if (kDebugMode) {
+        debugPrint('✅ 오디오 소스 설정 완료');
+        debugPrint('   URL: ${widget.audioUrl}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 오디오 소스 설정 오류: $e');
+      }
+      
+      setState(() {
+        _error = '오디오 파일을 로드할 수 없습니다';
+        _isLoading = false;
+      });
     }
   }
 
