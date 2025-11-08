@@ -315,11 +315,17 @@ class DCMIWSService {
         }
         
         if (kDebugMode) {
-          debugPrint('📞 Click-to-call 발신 감지 - Linkedid 저장');
+          debugPrint('');
+          debugPrint('='*60);
+          debugPrint('📞 Newchannel 이벤트 감지 (Click-to-Call)');
+          debugPrint('='*60);
           debugPrint('  Channel: $channel');
           debugPrint('  Context: $context');
           debugPrint('  Linkedid: $linkedid');
-          debugPrint('  Exten: $exten');
+          debugPrint('  Exten (단말번호): $exten');
+          debugPrint('  → Pending Storage에서 데이터 조회 후 Firestore 생성');
+          debugPrint('='*60);
+          debugPrint('');
         }
         
         // Linkedid를 클릭투콜 통화 기록에 저장 (재생성)
@@ -710,15 +716,17 @@ class DCMIWSService {
       }
       
       if (kDebugMode) {
-        debugPrint('🔍 클릭투콜 통화 기록 생성 시작 (Newchannel 이벤트)');
-        debugPrint('  - Exten (단말번호): $exten');
-        debugPrint('  - Linkedid: $linkedid');
+        debugPrint('🔍 통화 기록 생성 프로세스 시작');
+        debugPrint('  Exten (단말번호): $exten');
+        debugPrint('  Linkedid: $linkedid');
+        debugPrint('  → Step 1: Pending Storage 확인');
       }
       
       // 🆕 임시 저장소 우선 확인
       if (_pendingClickToCallRecords.containsKey(exten)) {
         if (kDebugMode) {
-          debugPrint('✅ 임시 저장소에서 발견! Linkedid와 함께 Firestore에 생성');
+          debugPrint('  ✅ Pending Storage에서 발견!');
+          debugPrint('  → Step 2: 중복 확인 후 Firestore 생성');
         }
         
         // 중복 확인
@@ -745,9 +753,27 @@ class DCMIWSService {
       // 임시 저장소에 데이터가 없는 경우 → Fallback: 최근 Firestore 기록 검색
       // 원인: 10초 타임아웃이 먼저 발동하여 이미 Firestore에 저장됨
       if (kDebugMode) {
-        debugPrint('⚠️ 임시 저장소에 데이터가 없습니다');
-        debugPrint('   단말번호: $exten');
-        debugPrint('   → Fallback: 최근 Firestore 기록에서 linkedid 없는 기록 검색');
+        debugPrint('  ⚠️ Pending Storage에 데이터 없음');
+        debugPrint('  단말번호: $exten');
+        debugPrint('  원인: 10초 타임아웃으로 이미 Firestore에 저장됨');
+        debugPrint('  → Fallback Mode: Firestore에서 linkedid 없는 기록 검색');
+      }
+      
+      // 🔒 Fallback 전에도 중복 확인
+      final duplicateCheck = await firestore
+          .collection('call_history')
+          .where('userId', isEqualTo: userId)
+          .where('linkedid', isEqualTo: linkedid)
+          .limit(1)
+          .get();
+      
+      if (duplicateCheck.docs.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint('⚠️ 이미 동일한 Linkedid로 처리된 기록이 있습니다 (Fallback 단계)');
+          debugPrint('  - Linkedid: $linkedid');
+          debugPrint('  → 중복 처리 방지를 위해 건너뜁니다');
+        }
+        return;
       }
       
       // 최근 1분 이내의 통화 기록 중 linkedid가 없는 기록 찾기
@@ -763,7 +789,7 @@ class DCMIWSService {
           .get();
       
       if (kDebugMode) {
-        debugPrint('📋 조회된 최근 통화 기록: ${querySnapshot.docs.length}개');
+        debugPrint('📋 Fallback 조회 결과: ${querySnapshot.docs.length}개');
       }
       
       // linkedid가 없고 시간 조건에 맞는 첫 번째 기록 찾기
@@ -775,11 +801,11 @@ class DCMIWSService {
         // 조건: 1분 이내 && linkedid가 없음
         if (callTime.isAfter(oneMinuteAgo) && existingLinkedId == null) {
           if (kDebugMode) {
-            debugPrint('✅ 매칭된 기록 발견!');
+            debugPrint('✅ 매칭된 기록 발견! (Fallback 모드)');
             debugPrint('   - 문서 ID: ${doc.id}');
             debugPrint('   - 발신번호: ${data['phoneNumber']}');
             debugPrint('   - 통화 시간: $callTime');
-            debugPrint('   → Linkedid 추가 업데이트 수행');
+            debugPrint('   → 기존 문서 삭제 후 Linkedid와 함께 재생성');
           }
           
           // 중복 확인 (이미 다른 이벤트로 처리되었는지)
@@ -791,15 +817,28 @@ class DCMIWSService {
             return;
           }
           
-          // Linkedid 추가
-          await doc.reference.update({
-            'linkedid': linkedid,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+          // 🔧 CRITICAL FIX: UPDATE 대신 재생성 패턴 사용
+          // 1. 기존 데이터 복사
+          final Map<String, dynamic> newDocData = Map.from(data);
+          
+          // 2. Linkedid 추가
+          newDocData['linkedid'] = linkedid;
+          newDocData['updatedAt'] = FieldValue.serverTimestamp();
+          
+          // 3. 기존 문서 삭제
+          await doc.reference.delete();
+          
+          // 4. Linkedid를 포함한 새 문서 생성
+          await firestore
+              .collection('call_history')
+              .add(newDocData);
           
           if (kDebugMode) {
-            debugPrint('✅ Linkedid 추가 완료!');
+            debugPrint('✅ 통화 기록 재생성 완료! (Fallback - Linkedid 포함)');
+            debugPrint('   - 기존 문서 ID (삭제됨): ${doc.id}');
             debugPrint('   - Linkedid: $linkedid');
+            debugPrint('   - 발신번호: ${data['phoneNumber']}');
+            debugPrint('   → Linkedid는 최초 생성 시 포함되어 업데이트 불필요');
           }
           
           return; // 첫 번째 매칭만 처리
@@ -807,10 +846,21 @@ class DCMIWSService {
       }
       
       if (kDebugMode) {
-        debugPrint('⚠️ 조건에 맞는 통화 기록을 찾을 수 없습니다');
+        debugPrint('');
+        debugPrint('⚠️ Fallback 실패: 조건에 맞는 통화 기록 없음');
+        debugPrint('  검색 조건:');
         debugPrint('   - 1분 이내 통화');
-        debugPrint('   - linkedid 없음');
-        debugPrint('   - extensionUsed == $exten');
+        debugPrint('   - callType: outgoing');
+        debugPrint('   - callMethod: extension');
+        debugPrint('   - extensionUsed: $exten');
+        debugPrint('   - linkedid: null (없음)');
+        debugPrint('  조회 결과: ${querySnapshot.docs.length}개 중 매칭 없음');
+        debugPrint('');
+        debugPrint('💡 문제 해결 방법:');
+        debugPrint('   1. WebSocket 연결 상태 확인');
+        debugPrint('   2. Newchannel 이벤트 수신 확인');
+        debugPrint('   3. 클릭투콜 API 응답 확인');
+        debugPrint('');
       }
       
     } catch (e) {
@@ -1660,10 +1710,20 @@ class DCMIWSService {
     };
     
     if (kDebugMode) {
-      debugPrint('📝 클릭투콜 기록 임시 저장 (Newchannel 이벤트 대기)');
-      debugPrint('   단말번호: $extensionNumber');
-      debugPrint('   발신번호: $phoneNumber');
-      debugPrint('   착신전환: $callForwardEnabled');
+      debugPrint('');
+      debugPrint('='*60);
+      debugPrint('📝 클릭투콜 임시 저장 (Pending Storage)');
+      debugPrint('='*60);
+      debugPrint('  단말번호: $extensionNumber');
+      debugPrint('  발신번호: $phoneNumber');
+      debugPrint('  대표번호: $mainNumberUsed');
+      debugPrint('  착신전환 활성화: $callForwardEnabled');
+      if (callForwardEnabled && callForwardDestination != null) {
+        debugPrint('  착신전환 목적지: $callForwardDestination');
+      }
+      debugPrint('  → Newchannel 이벤트 대기 중... (타임아웃: 10초)');
+      debugPrint('='*60);
+      debugPrint('');
     }
     
     // 10초 후 타임아웃 - 이벤트가 안 오면 임시 데이터로 생성
@@ -1675,8 +1735,12 @@ class DCMIWSService {
         // 10초 경과 확인
         if (DateTime.now().difference(recordTimestamp).inSeconds >= 10) {
           if (kDebugMode) {
-            debugPrint('⏰ Newchannel 이벤트 타임아웃 - 임시 데이터로 기록 생성');
-            debugPrint('   단말번호: $extensionNumber');
+            debugPrint('');
+            debugPrint('⏰ Newchannel 이벤트 타임아웃 (10초 경과)');
+            debugPrint('  단말번호: $extensionNumber');
+            debugPrint('  → Linkedid 없이 Firestore에 임시 저장');
+            debugPrint('  → 나중에 Newchannel 이벤트 도착 시 Fallback으로 처리');
+            debugPrint('');
           }
           
           // Firestore에 linkedid 없이 생성
@@ -1689,13 +1753,39 @@ class DCMIWSService {
   /// 임시 저장된 클릭투콜 기록을 Firestore에 생성
   Future<void> _createCallHistoryFromPending(String extensionNumber, String? linkedid) async {
     final data = _pendingClickToCallRecords.remove(extensionNumber);
-    if (data == null) return;
+    if (data == null) {
+      if (kDebugMode) {
+        debugPrint('⚠️ 임시 저장소에 데이터가 없습니다 (이미 처리됨)');
+        debugPrint('   단말번호: $extensionNumber');
+      }
+      return;
+    }
     
     try {
       final firestore = FirebaseFirestore.instance;
+      final userId = data['userId'] as String;
+      
+      // 🔒 중복 확인 (linkedid가 있는 경우에만)
+      if (linkedid != null) {
+        final duplicateCheck = await firestore
+            .collection('call_history')
+            .where('userId', isEqualTo: userId)
+            .where('linkedid', isEqualTo: linkedid)
+            .limit(1)
+            .get();
+        
+        if (duplicateCheck.docs.isNotEmpty) {
+          if (kDebugMode) {
+            debugPrint('⚠️ 이미 동일한 Linkedid로 처리된 기록이 있습니다 (생성 단계)');
+            debugPrint('  - Linkedid: $linkedid');
+            debugPrint('  → 중복 처리 방지를 위해 건너뜁니다');
+          }
+          return;
+        }
+      }
       
       await firestore.collection('call_history').add({
-        'userId': data['userId'],
+        'userId': userId,
         'phoneNumber': data['phoneNumber'],
         'callType': 'outgoing',
         'callMethod': 'extension',
@@ -1709,9 +1799,15 @@ class DCMIWSService {
       });
       
       if (kDebugMode) {
-        debugPrint('✅ 클릭투콜 기록 생성 완료');
+        final mode = linkedid != null ? '정상 모드 (Linkedid 포함)' : '타임아웃 모드 (Linkedid 없음)';
+        debugPrint('✅ 클릭투콜 기록 생성 완료 - $mode');
         debugPrint('   단말번호: $extensionNumber');
-        debugPrint('   Linkedid: ${linkedid ?? "(없음)"}');
+        debugPrint('   발신번호: ${data['phoneNumber']}');
+        debugPrint('   Linkedid: ${linkedid ?? "(없음 - 나중에 추가 가능)"}');
+        debugPrint('   착신전환: ${data['callForwardEnabled']}');
+        if (data['callForwardEnabled'] == true) {
+          debugPrint('   착신전환 목적지: ${data['callForwardDestination']}');
+        }
       }
     } catch (e) {
       if (kDebugMode) {
