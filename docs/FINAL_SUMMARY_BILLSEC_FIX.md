@@ -262,6 +262,8 @@ flutter: ❌ Seek 오류: Bad state: No element
 | 18ac4fa | 2024-01-15 | 📝 상세 문서 추가 |
 | 35c87e5 | 2024-01-15 | 🐛 Seek 오류 수정 (오디오 소스 설정) |
 | c33f3e2 | 2024-01-15 | 📝 문서 업데이트 (버그 수정 포함) |
+| 33215bb | 2024-01-15 | 📝 최종 요약 문서 추가 |
+| e0ffc30 | 2024-01-15 | 🐛 Sidebar/10초 버튼 수정 (Duration 보호) |
 
 ---
 
@@ -281,15 +283,64 @@ flutter: ❌ Seek 오류: Bad state: No element
 **사용자 경험:**
 - 녹음 파일 열기 → 즉시 Duration 표시 (0초)
 - 재생 버튼 클릭 → 즉시 재생 시작
-- Slider 조작 → 정확한 seek 동작
-- 10초 건너뛰기 → 정상 동작
+- Slider 조작 → 정확한 seek 동작 ✅
+- 10초 건너뛰기 → 정상 동작 ✅
+- Sidebar 오류 없음 ✅
 - 완벽한 오디오 플레이어 경험!
+
+---
+
+---
+
+## 🐛 추가 버그 수정 (e0ffc30)
+
+### 문제: Sidebar와 10초 전/후 버튼이 동작하지 않음
+
+**증상:**
+- Sidebar 오류 발생
+- 10초 전/후 버튼 비활성화 (회색)
+- Slider 비활성화
+
+**원인:**
+- `onDurationChanged` 리스너가 billsec으로 설정한 `_duration`을 덮어씀
+- `_setAudioSource()` 호출 시 AudioPlayer가 duration을 0으로 리셋
+- `_duration.inSeconds == 0` 조건으로 Slider와 10초 버튼이 비활성화됨
+
+**해결:**
+```dart
+// 1. 플래그 추가
+bool _durationSetByBillsec = false;
+
+// 2. billsec 설정 시 플래그 설정
+if (widget.billsec != null && widget.billsec! > 0) {
+  _duration = Duration(seconds: widget.billsec!);
+  _durationSetByBillsec = true;  // ✅ 플래그 설정
+}
+
+// 3. onDurationChanged에서 billsec duration 보호
+_audioPlayer.onDurationChanged.listen((duration) {
+  if (mounted) {
+    // 🔧 billsec으로 설정된 duration은 보호 (덮어쓰지 않음)
+    if (!_durationSetByBillsec) {
+      setState(() {
+        _duration = duration;
+      });
+    }
+  }
+});
+```
+
+**효과:**
+- ✅ Sidebar 오류 해결
+- ✅ 10초 전/후 버튼 정상 활성화
+- ✅ Slider 정상 동작
+- ✅ billsec duration 유지됨
 
 ---
 
 ## 🚀 배포 정보
 
-**최종 커밋**: c33f3e2  
+**최종 커밋**: e0ffc30  
 **브랜치**: main  
 **푸시 완료**: ✅  
 **Flutter 빌드**: ✅ 완료  
@@ -299,5 +350,5 @@ flutter: ❌ Seek 오류: Bad state: No element
 ---
 
 **작성자**: MAKECALL Development Team  
-**문서 버전**: 1.0 (최종)  
+**문서 버전**: 1.1 (Sidebar/10초 버튼 수정 포함)  
 **최종 수정일**: 2024-01-15
