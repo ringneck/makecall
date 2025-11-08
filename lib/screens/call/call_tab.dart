@@ -1939,6 +1939,11 @@ class _CallTabState extends State<CallTab> {
 
     try {
       // 1단계: 권한 상태 확인
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('🔍 ===== _toggleDeviceContacts START =====');
+      }
+      
       final hasPermission = await _mobileContactsService.hasContactsPermission();
       
       if (kDebugMode) {
@@ -1963,9 +1968,20 @@ class _CallTabState extends State<CallTab> {
           // 권한 요청 실행
           final permissionStatus = await _mobileContactsService.requestContactsPermission();
           
+          if (kDebugMode) {
+            debugPrint('📱 _toggleDeviceContacts: requestContactsPermission 결과');
+            debugPrint('   - permissionStatus: $permissionStatus');
+            debugPrint('   - isGranted: ${permissionStatus.isGranted}');
+            debugPrint('   - isLimited: ${permissionStatus.isLimited}');
+            debugPrint('   - isDenied: ${permissionStatus.isDenied}');
+          }
+          
           // ✨ iOS FIX: isGranted 또는 isLimited 모두 허용
           // iOS 14+ Limited Contacts 지원
           if (!permissionStatus.isGranted && !permissionStatus.isLimited) {
+            if (kDebugMode) {
+              debugPrint('❌ _toggleDeviceContacts: 권한 거부됨 - 설정 다이얼로그 표시');
+            }
             setState(() => _isLoadingDeviceContacts = false);
             
             if (mounted) {
@@ -1982,9 +1998,19 @@ class _CallTabState extends State<CallTab> {
 
       // 2단계: 연락처 가져오기
       if (mounted) {
+        if (kDebugMode) {
+          debugPrint('✅ _toggleDeviceContacts: 권한 확인 완료 - 연락처 가져오기 시작');
+        }
+        
         final userId = context.read<AuthService>().currentUser?.uid ?? '';
         
         final contacts = await _mobileContactsService.getDeviceContacts(userId);
+        
+        if (kDebugMode) {
+          debugPrint('📱 _toggleDeviceContacts: 연락처 ${contacts.length}개 가져옴');
+          debugPrint('🔍 ===== _toggleDeviceContacts END =====');
+          debugPrint('');
+        }
 
         if (mounted) {
           setState(() {
