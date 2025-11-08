@@ -1311,6 +1311,45 @@ class DCMIWSService {
       }
     }
     
+    // 6️⃣ 착신전환 정보 가져오기
+    bool? isCallForwardEnabled;
+    String? callForwardDestination;
+    
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null && receiverNumber.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint('🔍 착신전환 정보 조회 시작');
+          debugPrint('  receiverNumber: $receiverNumber');
+        }
+        
+        final callForwardDoc = await FirebaseFirestore.instance
+            .collection('call_forward_info')
+            .doc('${userId}_$receiverNumber')
+            .get();
+        
+        if (callForwardDoc.exists) {
+          final data = callForwardDoc.data();
+          isCallForwardEnabled = data?['isEnabled'] as bool?;
+          callForwardDestination = data?['destinationNumber'] as String?;
+          
+          if (kDebugMode) {
+            debugPrint('✅ 착신전환 정보 조회 성공');
+            debugPrint('  활성화: $isCallForwardEnabled');
+            debugPrint('  착신번호: $callForwardDestination');
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('⚠️ 착신전환 정보 없음');
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ 착신전환 정보 조회 실패: $e');
+      }
+    }
+    
     if (kDebugMode) {
       debugPrint('📞 수신 전화 화면 표시:');
       debugPrint('  발신자: $finalCallerName');
@@ -1318,6 +1357,8 @@ class DCMIWSService {
       debugPrint('  수신번호: $receiverNumber');
       debugPrint('  Channel: $channel');
       debugPrint('  Linkedid: $linkedid');
+      debugPrint('  착신전환 활성화: $isCallForwardEnabled');
+      debugPrint('  착신전환 번호: $callForwardDestination');
     }
     
     final result = await _navigatorKey!.currentState!.push(
@@ -1336,6 +1377,8 @@ class DCMIWSService {
           myOutboundCid: myOutboundCid,
           myExternalCidName: myExternalCidName,
           myExternalCidNumber: myExternalCidNumber,
+          isCallForwardEnabled: isCallForwardEnabled,
+          callForwardDestination: callForwardDestination,
           onAccept: () {
             Navigator.of(context).pop();
             // TODO: 전화 수락 로직 (SIP 연결 등)

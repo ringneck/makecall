@@ -18,6 +18,8 @@ class IncomingCallScreen extends StatefulWidget {
   final String? myOutboundCid;
   final String? myExternalCidName;
   final String? myExternalCidNumber;
+  final bool? isCallForwardEnabled; // 착신전환 활성화 여부
+  final String? callForwardDestination; // 착신전환 번호
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
@@ -35,6 +37,8 @@ class IncomingCallScreen extends StatefulWidget {
     this.myOutboundCid,
     this.myExternalCidName,
     this.myExternalCidNumber,
+    this.isCallForwardEnabled,
+    this.callForwardDestination,
     required this.onAccept,
     required this.onReject,
   });
@@ -261,9 +265,15 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   /// 🏢 내 단말번호 정보 (상단) - 통화 타입별 색상
   Widget _buildMyExtensionInfo() {
-    // companyName과 myOutboundCid가 모두 없으면 표시하지 않음
-    if ((widget.myCompanyName == null || widget.myCompanyName!.isEmpty) &&
-        (widget.myOutboundCid == null || widget.myOutboundCid!.isEmpty)) {
+    // receiverNumber와 착신전환 정보가 모두 없으면 표시하지 않음
+    final hasReceiverNumber = widget.receiverNumber.isNotEmpty;
+    final hasCompanyName = widget.myCompanyName != null && widget.myCompanyName!.isNotEmpty;
+    final hasCallForward = widget.isCallForwardEnabled == true && 
+                           widget.callForwardDestination != null && 
+                           widget.callForwardDestination!.isNotEmpty &&
+                           widget.callForwardDestination != '00000000000';
+    
+    if (!hasReceiverNumber && !hasCompanyName) {
       return const SizedBox.shrink();
     }
 
@@ -291,7 +301,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       child: Column(
         children: [
           // 조직명 (첫 번째 줄)
-          if (widget.myCompanyName != null && widget.myCompanyName!.isNotEmpty)
+          if (hasCompanyName)
             Text(
               widget.myCompanyName!,
               style: TextStyle(
@@ -304,37 +314,77 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
             ),
           
           // 간격 (조직명이 있을 때만)
-          if (widget.myCompanyName != null && 
-              widget.myCompanyName!.isNotEmpty &&
-              widget.myOutboundCid != null &&
-              widget.myOutboundCid!.isNotEmpty)
+          if (hasCompanyName && hasReceiverNumber)
             const SizedBox(height: 6),
           
-          // 외부발신 표시번호 (두 번째 줄)
-          if (widget.myOutboundCid != null && widget.myOutboundCid!.isNotEmpty)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.phone_forwarded,
-                  color: Colors.white.withOpacity(0.8),
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  widget.myOutboundCid!,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ],
-            ),
+          // 수신 단말번호 표시 (착신전환 상태에 따라 다르게 표시)
+          if (hasReceiverNumber)
+            _buildReceiverNumberDisplay(hasCallForward),
         ],
       ),
     );
+  }
+
+  /// 수신 단말번호 표시 (착신전환 상태에 따라 다르게 표시)
+  Widget _buildReceiverNumberDisplay(bool hasCallForward) {
+    if (hasCallForward) {
+      // 착신전환 활성화: 단말번호 → 착신번호 (주황색)
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 단말번호
+          Text(
+            widget.receiverNumber,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 화살표 아이콘
+          Icon(
+            Icons.arrow_forward,
+            color: const Color(0xFFFF9800),
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          // 착신전환 번호 (주황색)
+          Text(
+            widget.callForwardDestination!,
+            style: const TextStyle(
+              color: Color(0xFFFF9800),
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      );
+    } else {
+      // 착신전환 비활성화: 단말번호만 표시
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.phone_in_talk,
+            color: Colors.white.withOpacity(0.8),
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            widget.receiverNumber,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      );
+    }
   }
 
   /// 📞 헤더 텍스트 (통화 타입에 따라 변경 + 색상 구분)
