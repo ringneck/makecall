@@ -738,16 +738,21 @@ class DCMIWSService {
       }
       
       if (kDebugMode) {
+        debugPrint('');
         debugPrint('🔍 통화 기록 생성 프로세스 시작');
         debugPrint('  Exten (단말번호): $exten');
         debugPrint('  Linkedid: $linkedid');
         debugPrint('  → Step 1: Pending Storage 확인');
+        debugPrint('  🔍 조회 키: $exten');
       }
       
       // 🆕 임시 저장소 우선 확인
       if (_pendingClickToCallRecords.containsKey(exten)) {
         if (kDebugMode) {
           debugPrint('  ✅ Pending Storage에서 발견!');
+          debugPrint('  📋 저장된 단말번호: $exten');
+          debugPrint('  📋 조회한 단말번호: $exten');
+          debugPrint('  ✅ 매칭 성공!');
           debugPrint('  → Step 2: 중복 확인 후 Firestore 생성');
         }
         
@@ -776,21 +781,26 @@ class DCMIWSService {
       // 원인: 10초 타임아웃이 먼저 발동하여 이미 Firestore에 저장됨
       if (kDebugMode) {
         debugPrint('  ⚠️ Pending Storage에 데이터 없음');
-        debugPrint('  단말번호: $exten');
+        debugPrint('  🔍 조회한 단말번호: $exten');
         debugPrint('  원인 1: 10초 타임아웃으로 이미 Firestore에 저장됨');
         debugPrint('  원인 2: storePendingClickToCallRecord() 호출 누락');
         debugPrint('  원인 3: 단말번호 불일치');
+        debugPrint('');
         
         // 🔍 디버그: Pending Storage 내용 출력
         if (_pendingClickToCallRecords.isNotEmpty) {
           debugPrint('  📋 현재 Pending Storage 내용:');
           _pendingClickToCallRecords.forEach((key, value) {
-            debugPrint('     - 단말번호: $key, 발신번호: ${value['phoneNumber']}');
+            debugPrint('     - 저장된 단말번호: $key (비교 대상: $exten)');
+            debugPrint('       발신번호: ${value['phoneNumber']}');
+            debugPrint('       저장시간: ${value['timestamp']}');
+            final match = key == exten;
+            debugPrint('       매칭 여부: ${match ? '✅ 일치' : '❌ 불일치'}');
           });
         } else {
           debugPrint('  📋 Pending Storage가 비어있음');
         }
-        
+        debugPrint('');
         debugPrint('  → Fallback Mode: Firestore에서 linkedid 없는 기록 검색');
       }
       
