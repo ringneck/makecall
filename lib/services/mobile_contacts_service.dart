@@ -8,11 +8,21 @@ class MobileContactsService {
   /// 연락처 권한 상태 확인 (읽기 전용, 빠른 체크)
   Future<bool> hasContactsPermission() async {
     try {
+      // ✨ iOS FIX: iOS는 권한을 캐싱하므로 isGranted만 체크하면 
+      // 실제 시스템 권한과 다를 수 있음
+      // isLimited, isPermanentlyDenied 등도 함께 확인
       final status = await Permission.contacts.status;
       if (kDebugMode) {
         debugPrint('📱 Contacts permission status: $status');
+        debugPrint('   - isGranted: ${status.isGranted}');
+        debugPrint('   - isDenied: ${status.isDenied}');
+        debugPrint('   - isPermanentlyDenied: ${status.isPermanentlyDenied}');
+        debugPrint('   - isRestricted: ${status.isRestricted}');
+        debugPrint('   - isLimited: ${status.isLimited}');
       }
-      return status.isGranted;
+      
+      // iOS에서는 isGranted 또는 isLimited 모두 허용으로 간주
+      return status.isGranted || status.isLimited;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Error checking contacts permission: $e');
@@ -51,19 +61,31 @@ class MobileContactsService {
         debugPrint('📱 Fetching device contacts...');
       }
 
-      // ✨ iOS FIX: 이미 권한 체크를 call_tab에서 했으므로 여기서는 바로 가져오기
-      // FlutterContacts.requestPermission() 호출 시 iOS에서 권한 다이얼로그가 다시 표시됨
-      // 대신 현재 권한 상태만 확인하고 거부되면 빈 리스트 반환
+      // ✨ iOS FIX: 완벽한 중복 다이얼로그 차단
+      // iOS는 권한 상태를 캐싱하므로 isGranted 또는 isLimited 확인
       final currentStatus = await Permission.contacts.status;
       
-      if (!currentStatus.isGranted) {
+      if (kDebugMode) {
+        debugPrint('📱 getDeviceContacts permission check:');
+        debugPrint('   - status: $currentStatus');
+        debugPrint('   - isGranted: ${currentStatus.isGranted}');
+        debugPrint('   - isLimited: ${currentStatus.isLimited}');
+      }
+      
+      // iOS에서는 isGranted 또는 isLimited 모두 허용
+      if (!currentStatus.isGranted && !currentStatus.isLimited) {
         if (kDebugMode) {
-          debugPrint('❌ Contacts permission not granted (current status: $currentStatus)');
+          debugPrint('❌ Contacts permission not granted (status: $currentStatus)');
         }
         return [];
       }
+      
+      if (kDebugMode) {
+        debugPrint('✅ Contacts permission OK, fetching contacts...');
+      }
 
       // 연락처 가져오기 (배치 처리로 최적화)
+      // iOS: getContacts() 호출 전에 이미 권한 확인 완료
       final contacts = await FlutterContacts.getContacts(
         withProperties: true,
         withPhoto: false,
