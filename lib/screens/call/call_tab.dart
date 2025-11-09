@@ -1023,70 +1023,76 @@ class _CallTabState extends State<CallTab> {
                       if (call.callType == CallType.incoming && call.statusText.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: call.statusColor?.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: call.statusColor?.withOpacity(0.5) ?? Colors.grey,
-                                width: 1,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: call.statusColor?.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: call.statusColor?.withOpacity(0.5) ?? Colors.grey,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        call.status == 'device_answered' 
+                                          ? Icons.phone_in_talk_rounded 
+                                          : Icons.notifications_active_rounded,
+                                        size: 12,
+                                        color: call.statusColor,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      // 수신번호 → 단말번호 형식으로 표시 (overflow 방지)
+                                      Flexible(
+                                        child: call.receiverNumber != null && call.receiverNumber!.isNotEmpty && call.extensionUsed != null
+                                          ? Text(
+                                              '${call.receiverNumber} → ${call.extensionUsed}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                color: call.statusColor,
+                                                letterSpacing: -0.3,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            )
+                                          : call.receiverNumber != null && call.receiverNumber!.isNotEmpty
+                                            ? Text(
+                                                call.receiverNumber!,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: call.statusColor,
+                                                  letterSpacing: -0.3,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                                maxLines: 1,
+                                              )
+                                            : Text(
+                                                call.statusText,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: call.statusColor,
+                                                  letterSpacing: -0.3,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                                maxLines: 1,
+                                              ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  call.status == 'device_answered' 
-                                    ? Icons.phone_in_talk_rounded 
-                                    : Icons.notifications_active_rounded,
-                                  size: 12,
-                                  color: call.statusColor,
-                                ),
-                                const SizedBox(width: 4),
-                                // 수신번호 → 단말번호 형식으로 표시 (overflow 방지)
-                                Flexible(
-                                  child: call.receiverNumber != null && call.receiverNumber!.isNotEmpty && call.extensionUsed != null
-                                    ? Text(
-                                        '${call.receiverNumber} → ${call.extensionUsed}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: call.statusColor,
-                                          letterSpacing: -0.3,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 1,
-                                      )
-                                    : call.receiverNumber != null && call.receiverNumber!.isNotEmpty
-                                      ? Text(
-                                          call.receiverNumber!,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: call.statusColor,
-                                            letterSpacing: -0.3,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                        )
-                                      : Text(
-                                          call.statusText,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: call.statusColor,
-                                            letterSpacing: -0.3,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                        ),
-                                ),
-                              ],
-                            ),
+                            ],
                           ),
                         ),
                     ],
@@ -1103,12 +1109,12 @@ class _CallTabState extends State<CallTab> {
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.person_add_rounded, size: 14),
+                        icon: const Icon(Icons.person_add_rounded, size: 16),
                         color: Colors.green[700],
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                          minWidth: 32,
-                          minHeight: 32,
+                          minWidth: 30,
+                          minHeight: 30,
                         ),
                         onPressed: () => _showAddContactFromCallDialog(call),
                         tooltip: '연락처 추가',
@@ -1136,12 +1142,12 @@ class _CallTabState extends State<CallTab> {
                         ],
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.phone, size: 14),
+                        icon: const Icon(Icons.phone, size: 16),
                         color: Colors.white,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                          minWidth: 32,
-                          minHeight: 32,
+                          minWidth: 30,
+                          minHeight: 30,
                         ),
                         onPressed: () => _showCallMethodDialog(call.phoneNumber),
                         tooltip: '전화 걸기',
