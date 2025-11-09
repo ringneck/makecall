@@ -1040,7 +1040,6 @@ class _CallTabState extends State<CallTab> {
                                     ),
                                   ),
                                   child: Row(
-                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
                                         call.status == 'device_answered' 
@@ -1051,7 +1050,7 @@ class _CallTabState extends State<CallTab> {
                                       ),
                                       const SizedBox(width: 4),
                                       // 수신번호 → 단말번호 형식으로 표시 (overflow 방지)
-                                      Flexible(
+                                      Expanded(
                                         child: call.receiverNumber != null && call.receiverNumber!.isNotEmpty && call.extensionUsed != null
                                           ? Text(
                                               '${call.receiverNumber} → ${call.extensionUsed}',
