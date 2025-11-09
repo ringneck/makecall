@@ -1019,12 +1019,13 @@ class _CallTabState extends State<CallTab> {
                       // 단말번호 정보 (클릭투콜 발신 시 착신전환 정보 포함)
                       if (call.extensionUsed != null)
                         _buildExtensionInfo(call),
-                      // 수신 방식 배지 (착신 통화만)
+                      // 수신 방식 배지 + 수신번호 (착신 통화만)
                       if (call.callType == CallType.incoming && call.statusText.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Row(
                             children: [
+                              // 상태 배지 (단말수신/알림확인)
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
@@ -1061,6 +1062,43 @@ class _CallTabState extends State<CallTab> {
                                   ],
                                 ),
                               ),
+                              // 수신번호 배지 (receiverNumber)
+                              if (call.receiverNumber != null && call.receiverNumber!.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: Colors.blue.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.phone_forwarded,
+                                        size: 11,
+                                        color: Colors.blue[700],
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        call.receiverNumber!,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.blue[700],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),

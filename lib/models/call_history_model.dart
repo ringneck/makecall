@@ -14,6 +14,7 @@ class CallHistoryModel {
   final int? duration; // in seconds
   final String? mainNumberUsed;
   final String? extensionUsed;
+  final String? receiverNumber; // 수신번호 (착신 통화 시 받은 번호)
   final String? linkedid; // 통화 상세 조회용 linkedid
   final String? status; // 통화 상태 (confirmed, device_answered, rejected, missed 등)
   final bool? callForwardEnabled; // 착신전환 활성화 여부 (클릭투콜 발신 시점)
@@ -32,6 +33,7 @@ class CallHistoryModel {
     this.duration,
     this.mainNumberUsed,
     this.extensionUsed,
+    this.receiverNumber,
     this.linkedid,
     this.status,
     this.callForwardEnabled,
@@ -92,6 +94,7 @@ class CallHistoryModel {
       duration: map['duration'] as int?,
       mainNumberUsed: map['mainNumberUsed'] as String?,
       extensionUsed: map['extensionUsed'] as String?,
+      receiverNumber: map['receiverNumber'] as String?,
       linkedid: map['linkedid'] as String?,
       status: map['status'] as String?,
       callForwardEnabled: map['callForwardEnabled'] as bool?,
@@ -112,6 +115,7 @@ class CallHistoryModel {
       'duration': duration,
       'mainNumberUsed': mainNumberUsed,
       'extensionUsed': extensionUsed,
+      if (receiverNumber != null) 'receiverNumber': receiverNumber,
       if (linkedid != null) 'linkedid': linkedid,
       if (status != null) 'status': status,
       if (callForwardEnabled != null) 'callForwardEnabled': callForwardEnabled,
