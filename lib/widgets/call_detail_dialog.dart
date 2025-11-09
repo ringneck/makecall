@@ -30,6 +30,10 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
   String? _serverUrl; // ProfileDrawer 서버 설정
   String? _companyId;  // API 인증 - Company ID
   String? _appKey;     // API 인증 - App-Key
+  
+  // 🔽 접기/펼치기 상태
+  bool _isChannelInfoExpanded = false;  // 채널 정보 초기값: 접힘
+  bool _isSystemInfoExpanded = false;   // 시스템 정보 초기값: 접힘
 
   @override
   void initState() {
@@ -604,35 +608,59 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         }
         fields.add(const SizedBox(height: 16));
         
-        // 📡 채널 정보 섹션
-        fields.add(_buildGroupHeader('채널 정보', Icons.phone_in_talk, const Color(0xFFFF9800)));
-        if (cdr['channel'] != null) {
-          fields.add(_buildCompactInfoRow('발신 채널', cdr['channel'].toString(), Icons.phone_forwarded));
-        }
-        if (cdr['dstchannel'] != null) {
-          fields.add(_buildCompactInfoRow('수신 채널', cdr['dstchannel'].toString(), Icons.phone_callback));
-        }
-        if (cdr['lastapp'] != null) {
-          fields.add(_buildCompactInfoRow('마지막 앱', cdr['lastapp'].toString(), Icons.apps));
-        }
-        if (cdr['lastdata'] != null) {
-          fields.add(_buildCompactInfoRow('마지막 데이터', cdr['lastdata'].toString(), Icons.data_usage));
+        // 📡 채널 정보 섹션 (접기/펼치기)
+        fields.add(_buildExpandableGroupHeader(
+          title: '채널 정보',
+          icon: Icons.phone_in_talk,
+          color: const Color(0xFFFF9800),
+          isExpanded: _isChannelInfoExpanded,
+          onTap: () {
+            setState(() {
+              _isChannelInfoExpanded = !_isChannelInfoExpanded;
+            });
+          },
+        ));
+        if (_isChannelInfoExpanded) {
+          if (cdr['channel'] != null) {
+            fields.add(_buildCompactInfoRow('발신 채널', cdr['channel'].toString(), Icons.phone_forwarded));
+          }
+          if (cdr['dstchannel'] != null) {
+            fields.add(_buildCompactInfoRow('수신 채널', cdr['dstchannel'].toString(), Icons.phone_callback));
+          }
+          if (cdr['lastapp'] != null) {
+            fields.add(_buildCompactInfoRow('마지막 앱', cdr['lastapp'].toString(), Icons.apps));
+          }
+          if (cdr['lastdata'] != null) {
+            fields.add(_buildCompactInfoRow('마지막 데이터', cdr['lastdata'].toString(), Icons.data_usage));
+          }
         }
         fields.add(const SizedBox(height: 16));
         
-        // 🔑 시스템 ID 섹션
-        fields.add(_buildGroupHeader('시스템 정보', Icons.fingerprint, const Color(0xFF9C27B0)));
-        if (cdr['uniqueid'] != null) {
-          fields.add(_buildCompactInfoRow('Unique ID', cdr['uniqueid'].toString(), Icons.fingerprint));
-        }
-        if (cdr['linkedid'] != null) {
-          fields.add(_buildCompactInfoRow('Linked ID', cdr['linkedid'].toString(), Icons.link));
-        }
-        if (cdr['accountcode'] != null) {
-          fields.add(_buildCompactInfoRow('계정 코드', cdr['accountcode'].toString(), Icons.account_box));
-        }
-        if (cdr['dcontext'] != null) {
-          fields.add(_buildCompactInfoRow('컨텍스트', cdr['dcontext'].toString(), Icons.code));
+        // 🔑 시스템 정보 섹션 (접기/펼치기)
+        fields.add(_buildExpandableGroupHeader(
+          title: '시스템 정보',
+          icon: Icons.fingerprint,
+          color: const Color(0xFF9C27B0),
+          isExpanded: _isSystemInfoExpanded,
+          onTap: () {
+            setState(() {
+              _isSystemInfoExpanded = !_isSystemInfoExpanded;
+            });
+          },
+        ));
+        if (_isSystemInfoExpanded) {
+          if (cdr['uniqueid'] != null) {
+            fields.add(_buildCompactInfoRow('Unique ID', cdr['uniqueid'].toString(), Icons.fingerprint));
+          }
+          if (cdr['linkedid'] != null) {
+            fields.add(_buildCompactInfoRow('Linked ID', cdr['linkedid'].toString(), Icons.link));
+          }
+          if (cdr['accountcode'] != null) {
+            fields.add(_buildCompactInfoRow('계정 코드', cdr['accountcode'].toString(), Icons.account_box));
+          }
+          if (cdr['dcontext'] != null) {
+            fields.add(_buildCompactInfoRow('컨텍스트', cdr['dcontext'].toString(), Icons.code));
+          }
         }
         fields.add(const SizedBox(height: 16));
         
@@ -681,6 +709,49 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
             ),
           ),
         ],
+      ),
+    );
+  }
+  
+  /// 접기/펼치기 가능한 그룹 헤더
+  Widget _buildExpandableGroupHeader({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required bool isExpanded,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ),
+            Icon(
+              isExpanded ? Icons.expand_less : Icons.expand_more,
+              size: 24,
+              color: color,
+            ),
+          ],
+        ),
       ),
     );
   }
