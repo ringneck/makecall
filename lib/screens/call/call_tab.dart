@@ -1016,9 +1016,6 @@ class _CallTabState extends State<CallTab> {
                           ],
                         ),
                       ),
-                      // 단말번호 정보 (클릭투콜 발신 시 착신전환 정보 포함)
-                      if (call.extensionUsed != null)
-                        _buildExtensionInfo(call),
                       // 수신번호 → 단말번호 배지 (착신 통화만)
                       if (call.callType == CallType.incoming && call.statusText.isNotEmpty)
                         Padding(
