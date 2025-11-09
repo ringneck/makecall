@@ -968,6 +968,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         'callerNumber': widget.callerNumber,
         'callerName': widget.callerName,
         'receiverNumber': widget.receiverNumber,
+        'extensionUsed': widget.receiverNumber, // 착신 통화의 경우 receiverNumber가 사용된 extension
         'channel': widget.channel,
         'linkedid': widget.linkedid,
         'callType': 'incoming',
