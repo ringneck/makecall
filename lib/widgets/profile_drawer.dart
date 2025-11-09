@@ -11,6 +11,7 @@ import '../services/api_service.dart';
 import '../services/database_service.dart';
 import '../services/account_manager_service.dart';
 import '../services/fcm_service.dart';
+import '../services/dcmiws_service.dart';
 import '../models/my_extension_model.dart';
 import '../models/saved_account_model.dart';
 import '../screens/profile/api_settings_dialog.dart';
@@ -1751,12 +1752,40 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
     if (confirmed == true) {
       try {
+        final authService = context.read<AuthService>();
+        final userModel = authService.currentUserModel;
         final dbService = DatabaseService();
         
-        // 1. my_extensions 컬렉션에서 삭제
+        // 🔥 1. 착신전환 비활성화 시도 (DCMIWS 웹소켓으로 전송)
+        try {
+          if (userModel != null &&
+              userModel.amiServerId != null && 
+              userModel.tenantId != null && 
+              extension.extensionId.isNotEmpty) {
+            final dcmiws = DCMIWSService();
+            await dcmiws.setCallForwardEnabled(
+              amiServerId: userModel.amiServerId!,
+              tenantId: userModel.tenantId!,
+              extensionId: extension.extensionId,
+              enabled: false,
+              diversionType: 'CFI',
+            );
+            
+            if (kDebugMode) {
+              debugPrint('✅ ProfileDrawer - 착신전환 비활성화 요청 전송: ${extension.extension}');
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️  ProfileDrawer - 착신전환 비활성화 실패: $e');
+          }
+          // 착신전환 비활성화 실패해도 삭제는 계속 진행
+        }
+        
+        // 2. my_extensions 컬렉션에서 삭제
         await dbService.deleteMyExtension(extension.id);
         
-        // 2. registered_extensions 컬렉션에서 등록 해제
+        // 3. registered_extensions 컬렉션에서 등록 해제
         await dbService.unregisterExtension(extension.extension);
         
         if (kDebugMode) {
@@ -1811,12 +1840,44 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
     if (confirmed == true) {
       try {
+        final authService = context.read<AuthService>();
+        final userModel = authService.currentUserModel;
         final dbService = DatabaseService();
         
-        // 1. my_extensions 컬렉션에서 전체 삭제
+        // 🔥 1. 모든 단말번호의 착신전환 비활성화 시도 (DCMIWS 웹소켓으로 전송)
+        if (userModel != null &&
+            userModel.amiServerId != null && 
+            userModel.tenantId != null) {
+          final dcmiws = DCMIWSService();
+          
+          for (final ext in snapshot) {
+            if (ext.extensionId.isNotEmpty) {
+              try {
+                await dcmiws.setCallForwardEnabled(
+                  amiServerId: userModel.amiServerId!,
+                  tenantId: userModel.tenantId!,
+                  extensionId: ext.extensionId,
+                  enabled: false,
+                  diversionType: 'CFI',
+                );
+                
+                if (kDebugMode) {
+                  debugPrint('✅ ProfileDrawer - 착신전환 비활성화 요청 전송: ${ext.extension}');
+                }
+              } catch (e) {
+                if (kDebugMode) {
+                  debugPrint('⚠️  ProfileDrawer - 착신전환 비활성화 실패 (${ext.extension}): $e');
+                }
+                // 착신전환 비활성화 실패해도 삭제는 계속 진행
+              }
+            }
+          }
+        }
+        
+        // 2. my_extensions 컬렉션에서 전체 삭제
         await dbService.deleteAllMyExtensions(userId);
         
-        // 2. registered_extensions에서 각 단말번호 등록 해제
+        // 3. registered_extensions에서 각 단말번호 등록 해제
         for (final extension in extensionNumbers) {
           await dbService.unregisterExtension(extension);
         }
