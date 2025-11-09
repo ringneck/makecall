@@ -890,11 +890,16 @@ class _CallTabState extends State<CallTab> {
                   ),
                 ],
               ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: InkWell(
                 onTap: () => _showCallDetailDialog(call), // 통화 상세 다이얼로그
-                // 🎨 컬러풀한 아이콘 (원형 배경)
-                leading: Container(
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 🎨 컬러풀한 아이콘 (원형 배경)
+                      Container(
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
@@ -921,8 +926,14 @@ class _CallTabState extends State<CallTab> {
                     size: 18,
                   ),
                 ),
-                // 📝 발신자 정보
-                title: Row(
+                const SizedBox(width: 12),
+                // 📝 발신자 정보 및 상세 내용 (Expanded로 감싸서 가용 공간 최대 활용)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 이름 및 통화 시간 배지
+                      Row(
                   children: [
                     Expanded(
                       child: Text(
@@ -967,12 +978,11 @@ class _CallTabState extends State<CallTab> {
                           ],
                         ),
                       ),
-                  ],
-                ),
-                // 📅 시간 및 단말번호 정보
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Column(
+                    ],
+                  ),
+                  // 📅 시간 및 단말번호 정보
+                  const SizedBox(height: 6),
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 통화 시간
@@ -1094,11 +1104,17 @@ class _CallTabState extends State<CallTab> {
                             ],
                           ),
                         ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
-                // 🎯 액션 버튼
-                trailing: Row(
+              ),
+              const SizedBox(width: 8),
+              // 🎯 액션 버튼
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // 연락처 추가 버튼
@@ -1151,11 +1167,16 @@ class _CallTabState extends State<CallTab> {
                         onPressed: () => _showCallMethodDialog(call.phoneNumber),
                         tooltip: '전화 걸기',
                       ),
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            );
+            ],
+          ),
+        ),
+      ),
+    );
           },
         );
       },
