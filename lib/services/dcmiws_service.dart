@@ -1229,6 +1229,7 @@ class DCMIWSService {
     
     // 5️⃣ 내 단말번호 정보 가져오기 (companyName, 외부발신 표시번호, 외부발신 이름/번호)
     String? myCompanyName;
+    String? myExtension; // 실제 내 단말번호 (예: 1010)
     String? myOutboundCid;
     String? myExternalCidName;
     String? myExternalCidNumber;
@@ -1272,6 +1273,7 @@ class DCMIWSService {
         if (querySnapshot.docs.isNotEmpty) {
           final extensionData = querySnapshot.docs.first.data() as Map<String, dynamic>;
           final docExten = extensionData['extension'] as String?;
+          myExtension = docExten; // 실제 내 단말번호 저장 (예: 1010)
           myOutboundCid = extensionData['outboundCID'] as String?;
           myExternalCidName = extensionData['externalCidName'] as String?;
           myExternalCidNumber = extensionData['externalCidNumber'] as String?;
@@ -1374,6 +1376,7 @@ class DCMIWSService {
           receiverNumber: receiverNumber,
           callType: callType,
           myCompanyName: myCompanyName,
+          myExtension: myExtension, // 실제 내 단말번호 (예: 1010)
           myOutboundCid: myOutboundCid,
           myExternalCidName: myExternalCidName,
           myExternalCidNumber: myExternalCidNumber,

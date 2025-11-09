@@ -15,6 +15,7 @@ class IncomingCallScreen extends StatefulWidget {
   final String receiverNumber;
   final String callType; // 'external' (외부 수신), 'internal' (내부 수신), 'unknown'
   final String? myCompanyName;
+  final String? myExtension; // 실제 내 단말번호 (예: 1010)
   final String? myOutboundCid;
   final String? myExternalCidName;
   final String? myExternalCidNumber;
@@ -34,6 +35,7 @@ class IncomingCallScreen extends StatefulWidget {
     required this.receiverNumber,
     required this.callType,
     this.myCompanyName,
+    this.myExtension, // 실제 내 단말번호 (예: 1010)
     this.myOutboundCid,
     this.myExternalCidName,
     this.myExternalCidNumber,
@@ -968,7 +970,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         'callerNumber': widget.callerNumber,
         'callerName': widget.callerName,
         'receiverNumber': widget.receiverNumber,
-        'extensionUsed': widget.receiverNumber, // 착신 통화의 경우 receiverNumber가 사용된 extension
+        'extensionUsed': widget.myExtension, // 실제 내 단말번호 (예: 1010)
         'channel': widget.channel,
         'linkedid': widget.linkedid,
         'callType': 'incoming',
