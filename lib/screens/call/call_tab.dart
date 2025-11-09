@@ -1518,6 +1518,27 @@ class _CallTabState extends State<CallTab> {
     final isForwardEnabled = call.callForwardEnabled == true;
     final destinationNumber = call.callForwardDestination ?? '';
     
+    // 상태에 따른 색상 결정
+    Color badgeColor;
+    Color textColor;
+    if (isForwardEnabled) {
+      // 착신전환 활성화: 주황색
+      badgeColor = Colors.orange.withOpacity(0.1);
+      textColor = Colors.orange[700]!;
+    } else if (call.status == 'device_answered') {
+      // 단말수신: 녹색
+      badgeColor = Colors.green.withOpacity(0.1);
+      textColor = Colors.green[700]!;
+    } else if (call.status == 'confirmed') {
+      // 알림확인: 파란색
+      badgeColor = Colors.blue.withOpacity(0.1);
+      textColor = Colors.blue[700]!;
+    } else {
+      // 기본: 파란색
+      badgeColor = Colors.blue.withOpacity(0.1);
+      textColor = Colors.blue[700]!;
+    }
+    
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
@@ -1528,9 +1549,7 @@ class _CallTabState extends State<CallTab> {
               vertical: 2,
             ),
             decoration: BoxDecoration(
-              color: isForwardEnabled 
-                  ? Colors.orange.withOpacity(0.1)
-                  : Colors.blue.withOpacity(0.1),
+              color: badgeColor,
               borderRadius: BorderRadius.circular(8),
               border: isForwardEnabled
                   ? Border.all(color: Colors.orange.withOpacity(0.3), width: 1)
@@ -1542,7 +1561,7 @@ class _CallTabState extends State<CallTab> {
                 Icon(
                   Icons.phone_android,
                   size: 10,
-                  color: isForwardEnabled ? Colors.orange[700] : Colors.blue[700],
+                  color: textColor,
                 ),
                 const SizedBox(width: 3),
                 Text(
@@ -1550,7 +1569,7 @@ class _CallTabState extends State<CallTab> {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: isForwardEnabled ? Colors.orange[700] : Colors.blue[700],
+                    color: textColor,
                   ),
                 ),
                 
