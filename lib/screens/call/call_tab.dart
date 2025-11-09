@@ -918,7 +918,7 @@ class _CallTabState extends State<CallTab> {
                   child: Icon(
                     callTypeIcon,
                     color: Colors.white,
-                    size: 24,
+                    size: 18,
                   ),
                 ),
                 // 📝 발신자 정보
@@ -1103,8 +1103,13 @@ class _CallTabState extends State<CallTab> {
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.person_add_rounded, size: 20),
+                        icon: const Icon(Icons.person_add_rounded, size: 14),
                         color: Colors.green[700],
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
                         onPressed: () => _showAddContactFromCallDialog(call),
                         tooltip: '연락처 추가',
                       ),
@@ -1131,8 +1136,13 @@ class _CallTabState extends State<CallTab> {
                         ],
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.phone, size: 20),
+                        icon: const Icon(Icons.phone, size: 14),
                         color: Colors.white,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
                         onPressed: () => _showCallMethodDialog(call.phoneNumber),
                         tooltip: '전화 걸기',
                       ),
