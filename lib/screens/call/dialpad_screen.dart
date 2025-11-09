@@ -134,12 +134,12 @@ class _DialpadScreenState extends State<DialpadScreen> {
           if (userModel != null &&
               userModel.amiServerId != null && 
               userModel.tenantId != null && 
-              selectedExtension.extensionId.isNotEmpty) {
+              selectedExtension.extension.isNotEmpty) {
             final dcmiws = DCMIWSService();
             await dcmiws.setCallForwardEnabled(
               amiServerId: userModel.amiServerId!,
               tenantId: userModel.tenantId!,
-              extensionId: selectedExtension.extensionId,
+              extensionId: selectedExtension.extension,  // ← 단말번호 사용
               enabled: false,
               diversionType: 'CFI',
             );

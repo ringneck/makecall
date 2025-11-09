@@ -1774,7 +1774,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           if (userModel != null &&
               userModel.amiServerId != null && 
               userModel.tenantId != null && 
-              extension.extensionId.isNotEmpty) {
+              extension.extension.isNotEmpty) {
             
             if (kDebugMode) {
               debugPrint('🔄 ProfileDrawer - 착신전환 비활성화 요청 전송 중...');
@@ -1784,7 +1784,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             final result = await dcmiws.setCallForwardEnabled(
               amiServerId: userModel.amiServerId!,
               tenantId: userModel.tenantId!,
-              extensionId: extension.extensionId,
+              extensionId: extension.extension,  // ← 단말번호 사용
               enabled: false,
               diversionType: 'CFI',
             );
@@ -1799,7 +1799,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               debugPrint('   - userModel null: ${userModel == null}');
               debugPrint('   - amiServerId null: ${userModel?.amiServerId == null}');
               debugPrint('   - tenantId null: ${userModel?.tenantId == null}');
-              debugPrint('   - extensionId empty: ${extension.extensionId.isEmpty}');
+              debugPrint('   - extension empty: ${extension.extension.isEmpty}');
             }
           }
         } catch (e, stackTrace) {
@@ -1893,11 +1893,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           for (final ext in snapshot) {
             if (kDebugMode) {
               debugPrint('🔄 단말번호 ${ext.extension} 처리 중...');
-              debugPrint('   - Extension ID: ${ext.extensionId}');
-              debugPrint('   - ID empty: ${ext.extensionId.isEmpty}');
+              debugPrint('   - Extension: ${ext.extension}');
+              debugPrint('   - Extension empty: ${ext.extension.isEmpty}');
             }
             
-            if (ext.extensionId.isNotEmpty) {
+            if (ext.extension.isNotEmpty) {
               try {
                 if (kDebugMode) {
                   debugPrint('   → 착신전환 비활성화 요청 전송 중...');
@@ -1906,7 +1906,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 final result = await dcmiws.setCallForwardEnabled(
                   amiServerId: userModel.amiServerId!,
                   tenantId: userModel.tenantId!,
-                  extensionId: ext.extensionId,
+                  extensionId: ext.extension,  // ← 단말번호 사용
                   enabled: false,
                   diversionType: 'CFI',
                 );
@@ -1924,7 +1924,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               }
             } else {
               if (kDebugMode) {
-                debugPrint('   ⚠️  Extension ID가 비어있어 건너뜀');
+                debugPrint('   ⚠️  Extension(단말번호)이 비어있어 건너뜀');
               }
             }
           }

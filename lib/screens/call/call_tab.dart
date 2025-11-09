@@ -1726,12 +1726,12 @@ class _CallTabState extends State<CallTab> {
           if (userModel != null &&
               userModel.amiServerId != null && 
               userModel.tenantId != null && 
-              selectedExtension.extensionId.isNotEmpty) {
+              selectedExtension.extension.isNotEmpty) {
             final dcmiws = DCMIWSService();
             await dcmiws.setCallForwardEnabled(
               amiServerId: userModel.amiServerId!,
               tenantId: userModel.tenantId!,
-              extensionId: selectedExtension.extensionId,
+              extensionId: selectedExtension.extension,  // ← 단말번호 사용
               enabled: false,
               diversionType: 'CFI',
             );
@@ -1874,12 +1874,12 @@ class _CallTabState extends State<CallTab> {
           if (userModel != null &&
               userModel.amiServerId != null && 
               userModel.tenantId != null && 
-              selectedExtension.extensionId.isNotEmpty) {
+              selectedExtension.extension.isNotEmpty) {
             final dcmiws = DCMIWSService();
             await dcmiws.setCallForwardEnabled(
               amiServerId: userModel.amiServerId!,
               tenantId: userModel.tenantId!,
-              extensionId: selectedExtension.extensionId,
+              extensionId: selectedExtension.extension,  // ← 단말번호 사용
               enabled: false,
               diversionType: 'CFI',
             );
