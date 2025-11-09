@@ -1051,9 +1051,7 @@ class _CallTabState extends State<CallTab> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      call.extensionUsed != null 
-                                        ? '${call.statusText}(${call.extensionUsed})'
-                                        : call.statusText,
+                                      call.statusText,
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
