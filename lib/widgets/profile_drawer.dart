@@ -1731,6 +1731,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 
   Future<void> _deleteExtension(BuildContext context, MyExtensionModel extension) async {
+    // 🔥 CRITICAL: context 사용 전에 필요한 데이터 미리 추출 (위젯 dispose 방지)
+    final authService = context.read<AuthService>();
+    final userModel = authService.currentUserModel;
+    
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1752,8 +1756,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
     if (confirmed == true) {
       try {
-        final authService = context.read<AuthService>();
-        final userModel = authService.currentUserModel;
         final dbService = DatabaseService();
         
         if (kDebugMode) {
@@ -1841,6 +1843,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 
   Future<void> _deleteAllExtensions(BuildContext context, String userId) async {
+    // 🔥 CRITICAL: context 사용 전에 필요한 데이터 미리 추출 (위젯 dispose 방지)
+    final authService = context.read<AuthService>();
+    final userModel = authService.currentUserModel;
+    
     // 현재 등록된 단말번호 목록 가져오기
     final snapshot = await DatabaseService().getMyExtensions(userId).first;
     final extensionNumbers = snapshot.map((e) => e.extension).toList();
@@ -1866,8 +1872,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
     if (confirmed == true) {
       try {
-        final authService = context.read<AuthService>();
-        final userModel = authService.currentUserModel;
         final dbService = DatabaseService();
         
         if (kDebugMode) {
