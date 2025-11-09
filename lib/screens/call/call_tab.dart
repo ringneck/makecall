@@ -1047,37 +1047,44 @@ class _CallTabState extends State<CallTab> {
                                   color: call.statusColor,
                                 ),
                                 const SizedBox(width: 4),
-                                // 수신번호 → 단말번호 형식으로 표시
-                                if (call.receiverNumber != null && call.receiverNumber!.isNotEmpty && call.extensionUsed != null)
-                                  Text(
-                                    '${call.receiverNumber} → ${call.extensionUsed}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: call.statusColor,
-                                      letterSpacing: -0.3,
-                                    ),
-                                  )
-                                else if (call.receiverNumber != null && call.receiverNumber!.isNotEmpty)
-                                  Text(
-                                    call.receiverNumber!,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: call.statusColor,
-                                      letterSpacing: -0.3,
-                                    ),
-                                  )
-                                else
-                                  Text(
-                                    call.statusText,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: call.statusColor,
-                                      letterSpacing: -0.3,
-                                    ),
-                                  ),
+                                // 수신번호 → 단말번호 형식으로 표시 (overflow 방지)
+                                Flexible(
+                                  child: call.receiverNumber != null && call.receiverNumber!.isNotEmpty && call.extensionUsed != null
+                                    ? Text(
+                                        '${call.receiverNumber} → ${call.extensionUsed}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: call.statusColor,
+                                          letterSpacing: -0.3,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      )
+                                    : call.receiverNumber != null && call.receiverNumber!.isNotEmpty
+                                      ? Text(
+                                          call.receiverNumber!,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: call.statusColor,
+                                            letterSpacing: -0.3,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        )
+                                      : Text(
+                                          call.statusText,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: call.statusColor,
+                                            letterSpacing: -0.3,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                ),
                               ],
                             ),
                           ),
