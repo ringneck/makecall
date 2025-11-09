@@ -967,6 +967,43 @@ class DCMIWSService {
         return;
       }
       
+      // 🔍 extension 정보 조회 (receiverNumber로부터)
+      String? extensionUsed;
+      try {
+        QuerySnapshot querySnapshot;
+        
+        if (callType == 'external') {
+          // 외부 수신: accountCode로 조회
+          querySnapshot = await firestore
+              .collection('my_extensions')
+              .where('userId', isEqualTo: userId)
+              .where('accountCode', isEqualTo: receiverNumber)
+              .limit(1)
+              .get();
+        } else {
+          // 내부 수신: extension으로 조회
+          querySnapshot = await firestore
+              .collection('my_extensions')
+              .where('userId', isEqualTo: userId)
+              .where('extension', isEqualTo: receiverNumber)
+              .limit(1)
+              .get();
+        }
+        
+        if (querySnapshot.docs.isNotEmpty) {
+          final extensionData = querySnapshot.docs.first.data() as Map<String, dynamic>;
+          extensionUsed = extensionData['extension'] as String?;
+          
+          if (kDebugMode) {
+            debugPrint('✅ extension 조회 성공: $extensionUsed');
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('⚠️ extension 조회 실패: $e');
+        }
+      }
+      
       // linkedid로 기존 통화 기록 확인
       final existingDoc = await firestore
           .collection('call_history')
@@ -975,17 +1012,25 @@ class DCMIWSService {
       
       if (existingDoc.exists) {
         // 기존 문서 업데이트 (단말 수신 확인으로 상태 변경)
+        final updateData = {
+          'status': 'device_answered', // 단말 수신 확인
+          'answeredAt': FieldValue.serverTimestamp(),
+        };
+        
+        // extensionUsed가 있으면 함께 업데이트
+        if (extensionUsed != null) {
+          updateData['extensionUsed'] = extensionUsed;
+        }
+        
         await firestore
             .collection('call_history')
             .doc(linkedid)
-            .update({
-          'status': 'device_answered', // 단말 수신 확인
-          'answeredAt': FieldValue.serverTimestamp(),
-        });
+            .update(updateData);
         
         if (kDebugMode) {
           debugPrint('✅ 통화 기록 업데이트 완료 (단말 수신 확인)');
           debugPrint('  Linkedid: $linkedid');
+          debugPrint('  extensionUsed: $extensionUsed');
         }
       } else {
         // 새 통화 기록 생성 (IncomingCallScreen에서 확인 버튼 누르지 않은 경우)
@@ -1004,6 +1049,11 @@ class DCMIWSService {
           'createdAt': FieldValue.serverTimestamp(),
         };
         
+        // extensionUsed가 있으면 추가
+        if (extensionUsed != null) {
+          callHistory['extensionUsed'] = extensionUsed;
+        }
+        
         await firestore
             .collection('call_history')
             .doc(linkedid)
@@ -1012,6 +1062,7 @@ class DCMIWSService {
         if (kDebugMode) {
           debugPrint('✅ 통화 기록 생성 완료 (단말 수신 확인)');
           debugPrint('  Linkedid: $linkedid');
+          debugPrint('  extensionUsed: $extensionUsed');
           debugPrint('  발신: $callerName ($callerNumber) → 수신: $receiverNumber');
         }
       }
