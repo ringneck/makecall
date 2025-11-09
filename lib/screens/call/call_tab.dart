@@ -1702,11 +1702,51 @@ class _CallTabState extends State<CallTab> {
 
     // 🔍 착신전환 상태 확인 (현재 선택된 단말번호 기준)
     try {
-      final userId = context.read<AuthService>().currentUser?.uid ?? '';
+      final authService = context.read<AuthService>();
+      final userId = authService.currentUser?.uid ?? '';
+      final userModel = authService.currentUserModel;
       final selectedExtension = context.read<SelectedExtensionProvider>().selectedExtension;
       
       if (selectedExtension == null) {
         throw Exception('선택된 단말번호가 없습니다.\n왼쪽 상단 프로필에서 단말번호를 등록해주세요.');
+      }
+
+      // 🔥 CRITICAL: DB에 단말번호가 실제로 존재하는지 확인
+      final dbExtensions = await _databaseService.getMyExtensions(userId).first;
+      final extensionExists = dbExtensions.any((ext) => ext.extension == selectedExtension.extension);
+      
+      if (!extensionExists) {
+        if (kDebugMode) {
+          debugPrint('❌ 단말번호가 DB에서 삭제됨: ${selectedExtension.extension}');
+          debugPrint('🔄 착신전환 비활성화 시도');
+        }
+        
+        // 착신전환 비활성화 시도 (DCMIWS 웹소켓으로 전송)
+        try {
+          if (userModel != null &&
+              userModel.amiServerId != null && 
+              userModel.tenantId != null && 
+              selectedExtension.extensionId.isNotEmpty) {
+            final dcmiws = DCMIWSService();
+            await dcmiws.setCallForwardEnabled(
+              amiServerId: userModel.amiServerId!,
+              tenantId: userModel.tenantId!,
+              extensionId: selectedExtension.extensionId,
+              enabled: false,
+              diversionType: 'CFI',
+            );
+            
+            if (kDebugMode) {
+              debugPrint('✅ 착신전환 비활성화 요청 전송 완료');
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️  착신전환 비활성화 실패: $e');
+          }
+        }
+        
+        throw Exception('등록된 단말번호가 없습니다.\n\n프로필 드로어에서 단말번호가 삭제되었습니다.\n다시 등록해주세요.');
       }
 
       final callForwardInfo = await _databaseService
@@ -1817,6 +1857,44 @@ class _CallTabState extends State<CallTab> {
       
       if (selectedExtension == null) {
         throw Exception('선택된 단말번호가 없습니다.\n왼쪽 상단 프로필에서 단말번호를 등록해주세요.');
+      }
+
+      // 🔥 CRITICAL: DB에 단말번호가 실제로 존재하는지 확인
+      final dbExtensions = await _databaseService.getMyExtensions(userId).first;
+      final extensionExists = dbExtensions.any((ext) => ext.extension == selectedExtension.extension);
+      
+      if (!extensionExists) {
+        if (kDebugMode) {
+          debugPrint('❌ 단말번호가 DB에서 삭제됨: ${selectedExtension.extension}');
+          debugPrint('🔄 착신전환 비활성화 시도');
+        }
+        
+        // 착신전환 비활성화 시도 (DCMIWS 웹소켓으로 전송)
+        try {
+          if (userModel != null &&
+              userModel.amiServerId != null && 
+              userModel.tenantId != null && 
+              selectedExtension.extensionId.isNotEmpty) {
+            final dcmiws = DCMIWSService();
+            await dcmiws.setCallForwardEnabled(
+              amiServerId: userModel.amiServerId!,
+              tenantId: userModel.tenantId!,
+              extensionId: selectedExtension.extensionId,
+              enabled: false,
+              diversionType: 'CFI',
+            );
+            
+            if (kDebugMode) {
+              debugPrint('✅ 착신전환 비활성화 요청 전송 완료');
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️  착신전환 비활성화 실패: $e');
+          }
+        }
+        
+        throw Exception('등록된 단말번호가 없습니다.\n\n프로필 드로어에서 단말번호가 삭제되었습니다.\n다시 등록해주세요.');
       }
 
       if (kDebugMode) {
