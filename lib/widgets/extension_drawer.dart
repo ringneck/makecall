@@ -104,16 +104,16 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
     final userId = authService.currentUser?.uid ?? '';
 
     return Drawer(
-      backgroundColor: const Color(0xFF263238), // 어두운 배경색
+      backgroundColor: Colors.white, // 하얀 배경색
       child: SafeArea(
         child: Container(
-          color: const Color(0xFF263238),
+          color: Colors.white,
           child: StreamBuilder<List<MyExtensionModel>>(
                   stream: _databaseService.getMyExtensions(userId),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
-                        child: CircularProgressIndicator(color: Colors.white70),
+                        child: CircularProgressIndicator(color: Colors.blue),
                       );
                   }
 
@@ -127,7 +127,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                           Text(
                             '오류가 발생했습니다: ${snapshot.error}',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white70),
+                            style: const TextStyle(color: Colors.black87),
                           ),
                         ],
                       ),
@@ -254,7 +254,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                     const Icon(
                                       Icons.phone_disabled,
                                       size: 64,
-                                      color: Colors.white54,
+                                      color: Colors.black38,
                                     ),
                                     const SizedBox(height: 24),
                                     const Text(
@@ -262,7 +262,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.white70,
+                                        color: Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 12),
@@ -271,7 +271,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: Colors.white60,
+                                        color: Colors.black54,
                                       ),
                                     ),
                                   ],
@@ -302,7 +302,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 16),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF37474F),
+                                        color: Colors.grey[100],
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
                                           color: const Color(0xFF2196F3).withAlpha(128),
@@ -313,12 +313,12 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                         child: DropdownButton<int>(
                                           value: _currentPage,
                                           isExpanded: true,
-                                          dropdownColor: const Color(0xFF37474F),
+                                          dropdownColor: Colors.grey[100],
                                           icon: const Icon(Icons.arrow_drop_down, size: 24, color: Color(0xFF2196F3)),
                                           style: const TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.white,
+                                            color: Colors.black87,
                                           ),
                                           onChanged: (int? newValue) {
                                             if (newValue != null) {
