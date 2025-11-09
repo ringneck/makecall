@@ -1041,7 +1041,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
         
         // 착신전환 비활성화 시도 (DCMIWS 웹소켓으로 전송)
         try {
-          if (userModel!.amiServerId != null && 
+          if (userModel != null &&
+              userModel.amiServerId != null && 
               userModel.tenantId != null && 
               selectedExtension.extensionId.isNotEmpty) {
             final dcmiws = DCMIWSService();
