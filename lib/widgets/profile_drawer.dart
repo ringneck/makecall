@@ -1756,14 +1756,30 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         final userModel = authService.currentUserModel;
         final dbService = DatabaseService();
         
+        if (kDebugMode) {
+          debugPrint('');
+          debugPrint('🗑️  ========== ProfileDrawer - 개별 삭제 시작 ==========');
+          debugPrint('   📱 단말번호: ${extension.extension}');
+          debugPrint('   🔑 Extension ID: ${extension.extensionId}');
+          debugPrint('   🏢 AMI Server ID: ${userModel?.amiServerId}');
+          debugPrint('   🏢 Tenant ID: ${userModel?.tenantId}');
+          debugPrint('======================================================');
+          debugPrint('');
+        }
+        
         // 🔥 1. 착신전환 비활성화 시도 (DCMIWS 웹소켓으로 전송)
         try {
           if (userModel != null &&
               userModel.amiServerId != null && 
               userModel.tenantId != null && 
               extension.extensionId.isNotEmpty) {
+            
+            if (kDebugMode) {
+              debugPrint('🔄 ProfileDrawer - 착신전환 비활성화 요청 전송 중...');
+            }
+            
             final dcmiws = DCMIWSService();
-            await dcmiws.setCallForwardEnabled(
+            final result = await dcmiws.setCallForwardEnabled(
               amiServerId: userModel.amiServerId!,
               tenantId: userModel.tenantId!,
               extensionId: extension.extensionId,
@@ -1772,12 +1788,22 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             );
             
             if (kDebugMode) {
-              debugPrint('✅ ProfileDrawer - 착신전환 비활성화 요청 전송: ${extension.extension}');
+              debugPrint('✅ ProfileDrawer - 착신전환 비활성화 요청 전송 완료: ${extension.extension}');
+              debugPrint('   📊 결과: $result');
+            }
+          } else {
+            if (kDebugMode) {
+              debugPrint('⚠️  ProfileDrawer - 착신전환 비활성화 건너뜀 (조건 불충족)');
+              debugPrint('   - userModel null: ${userModel == null}');
+              debugPrint('   - amiServerId null: ${userModel?.amiServerId == null}');
+              debugPrint('   - tenantId null: ${userModel?.tenantId == null}');
+              debugPrint('   - extensionId empty: ${extension.extensionId.isEmpty}');
             }
           }
-        } catch (e) {
+        } catch (e, stackTrace) {
           if (kDebugMode) {
-            debugPrint('⚠️  ProfileDrawer - 착신전환 비활성화 실패: $e');
+            debugPrint('❌ ProfileDrawer - 착신전환 비활성화 실패: $e');
+            debugPrint('   Stack trace: $stackTrace');
           }
           // 착신전환 비활성화 실패해도 삭제는 계속 진행
         }
@@ -1844,6 +1870,16 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         final userModel = authService.currentUserModel;
         final dbService = DatabaseService();
         
+        if (kDebugMode) {
+          debugPrint('');
+          debugPrint('🗑️  ========== ProfileDrawer - 전체 삭제 시작 ==========');
+          debugPrint('   📱 단말번호 개수: ${snapshot.length}');
+          debugPrint('   🏢 AMI Server ID: ${userModel?.amiServerId}');
+          debugPrint('   🏢 Tenant ID: ${userModel?.tenantId}');
+          debugPrint('======================================================');
+          debugPrint('');
+        }
+        
         // 🔥 1. 모든 단말번호의 착신전환 비활성화 시도 (DCMIWS 웹소켓으로 전송)
         if (userModel != null &&
             userModel.amiServerId != null && 
@@ -1851,9 +1887,19 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           final dcmiws = DCMIWSService();
           
           for (final ext in snapshot) {
+            if (kDebugMode) {
+              debugPrint('🔄 단말번호 ${ext.extension} 처리 중...');
+              debugPrint('   - Extension ID: ${ext.extensionId}');
+              debugPrint('   - ID empty: ${ext.extensionId.isEmpty}');
+            }
+            
             if (ext.extensionId.isNotEmpty) {
               try {
-                await dcmiws.setCallForwardEnabled(
+                if (kDebugMode) {
+                  debugPrint('   → 착신전환 비활성화 요청 전송 중...');
+                }
+                
+                final result = await dcmiws.setCallForwardEnabled(
                   amiServerId: userModel.amiServerId!,
                   tenantId: userModel.tenantId!,
                   extensionId: ext.extensionId,
@@ -1862,15 +1908,28 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 );
                 
                 if (kDebugMode) {
-                  debugPrint('✅ ProfileDrawer - 착신전환 비활성화 요청 전송: ${ext.extension}');
+                  debugPrint('   ✅ 착신전환 비활성화 요청 전송 완료: ${ext.extension}');
+                  debugPrint('      📊 결과: $result');
                 }
-              } catch (e) {
+              } catch (e, stackTrace) {
                 if (kDebugMode) {
-                  debugPrint('⚠️  ProfileDrawer - 착신전환 비활성화 실패 (${ext.extension}): $e');
+                  debugPrint('   ❌ 착신전환 비활성화 실패 (${ext.extension}): $e');
+                  debugPrint('      Stack trace: $stackTrace');
                 }
                 // 착신전환 비활성화 실패해도 삭제는 계속 진행
               }
+            } else {
+              if (kDebugMode) {
+                debugPrint('   ⚠️  Extension ID가 비어있어 건너뜀');
+              }
             }
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('⚠️  착신전환 비활성화 건너뜀 (조건 불충족)');
+            debugPrint('   - userModel null: ${userModel == null}');
+            debugPrint('   - amiServerId null: ${userModel?.amiServerId == null}');
+            debugPrint('   - tenantId null: ${userModel?.tenantId == null}');
           }
         }
         
