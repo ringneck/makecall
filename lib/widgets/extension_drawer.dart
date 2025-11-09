@@ -98,6 +98,52 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
     return 0;
   }
 
+  // 모든 단말번호의 착신전환 정보 사전 로드
+  Future<void> _preloadAllCallForwardInfo(List<MyExtensionModel> extensions, String userId) async {
+    if (extensions.isEmpty || userId.isEmpty) return;
+    
+    try {
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('🔄 ========== 모든 단말번호 착신전환 정보 사전 로드 시작 ==========');
+        debugPrint('   📊 단말번호 개수: ${extensions.length}');
+      }
+      
+      // 모든 단말번호의 착신전환 정보를 병렬로 로드
+      final loadTasks = extensions.map((extension) async {
+        try {
+          final stream = _databaseService.getCallForwardInfo(userId, extension.extension);
+          final info = await stream.first;
+          
+          if (kDebugMode) {
+            if (info != null) {
+              debugPrint('   ✅ ${extension.extension}: 활성화=${info.isEnabled}, 착신번호=${info.destinationNumber}');
+            } else {
+              debugPrint('   ⚠️  ${extension.extension}: 착신전환 정보 없음 (신규 단말번호)');
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('   ❌ ${extension.extension}: 로드 실패 - $e');
+          }
+        }
+      }).toList();
+      
+      // 모든 로드 작업 완료 대기
+      await Future.wait(loadTasks);
+      
+      if (kDebugMode) {
+        debugPrint('   ✅ 모든 착신전환 정보 사전 로드 완료');
+        debugPrint('========================================================');
+        debugPrint('');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 착신전환 정보 사전 로드 실패: $e');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
@@ -190,9 +236,13 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                         );
                       }
                       
+                      // 🔥 모든 단말번호의 착신전환 정보 사전 로드
+                      await _preloadAllCallForwardInfo(extensions, userId);
+                      
                       if (kDebugMode) {
                         debugPrint('   ✅ Provider에 단말번호 설정 완료');
                         debugPrint('   💾 마지막 선택 단말번호 저장 완료');
+                        debugPrint('   🔄 모든 단말번호의 착신전환 정보 사전 로드 완료');
                         debugPrint('================================================');
                         debugPrint('');
                       }
