@@ -31,18 +31,21 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Firebase 초기화 (중복 초기화 방지)
+  // Firebase 초기화 (Native에서 이미 초기화되었으므로 Flutter에서는 연결만)
   try {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-    }
+    // iOS: Native (AppDelegate)에서 이미 초기화됨
+    // Android: 여기서 초기화
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('✅ Firebase 초기화 완료 (Flutter)');
   } catch (e) {
-    // Native에서 이미 초기화된 경우 무시
-    if (e.toString().contains('duplicate-app')) {
-      debugPrint('⚠️ Firebase 이미 초기화됨 (Native에서)');
+    // Native에서 이미 초기화된 경우 무시 (정상 동작)
+    if (e.toString().contains('duplicate-app') || 
+        e.toString().contains('already created')) {
+      print('✅ Firebase 이미 초기화됨 (Native에서) - 정상');
     } else {
+      print('❌ Firebase 초기화 오류: $e');
       rethrow;
     }
   }
