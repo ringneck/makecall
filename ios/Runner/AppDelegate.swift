@@ -10,9 +10,9 @@ import FirebaseMessaging
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     print("")
-    print("="*80)
+    print(String(repeating: "=", count: 80))
     print("🚀 AppDelegate.application() 실행 시작")
-    print("="*80)
+    print(String(repeating: "=", count: 80))
     print("")
     
     // 환경 정보 출력
@@ -40,7 +40,7 @@ import FirebaseMessaging
         options: authOptions,
         completionHandler: { granted, error in
           print("")
-          print("="*60)
+          print(String(repeating: "=", count: 60))
           if granted {
             print("✅ iOS 알림 권한 허용됨")
           } else {
@@ -49,7 +49,7 @@ import FirebaseMessaging
               print("   오류: \(error.localizedDescription)")
             }
           }
-          print("="*60)
+          print(String(repeating: "=", count: 60))
           print("")
         }
       )
@@ -76,9 +76,9 @@ import FirebaseMessaging
     print("✅ Firebase Messaging 델리게이트 설정 완료")
     print("")
     
-    print("="*80)
+    print(String(repeating: "=", count: 80))
     print("✅ AppDelegate.application() 실행 완료")
-    print("="*80)
+    print(String(repeating: "=", count: 80))
     print("")
     
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -90,9 +90,9 @@ import FirebaseMessaging
     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
   ) {
     print("")
-    print("="*60)
+    print(String(repeating: "=", count: 60))
     print("🍎 APNs 토큰 수신 성공")
-    print("="*60)
+    print(String(repeating: "=", count: 60))
     let tokenString = deviceToken.map { String(format: "%02x", $0) }.joined()
     print("📱 토큰: \(tokenString)")
     print("📊 토큰 길이: \(tokenString.count) 문자")
@@ -104,7 +104,7 @@ import FirebaseMessaging
     
     print("✅ APNs 토큰 전달 완료")
     print("   → Firebase가 이제 FCM 토큰을 생성합니다")
-    print("="*60)
+    print(String(repeating: "=", count: 60))
     print("")
   }
   
@@ -114,9 +114,9 @@ import FirebaseMessaging
     didFailToRegisterForRemoteNotificationsWithError error: Error
   ) {
     print("")
-    print("="*60)
+    print(String(repeating: "=", count: 60))
     print("❌ APNs 토큰 수신 실패")
-    print("="*60)
+    print(String(repeating: "=", count: 60))
     print("오류: \(error.localizedDescription)")
     print("")
     print("📋 해결 방법:")
@@ -124,7 +124,7 @@ import FirebaseMessaging
     print("   2. Xcode: Capabilities → Push Notifications 추가")
     print("   3. 실제 iOS 기기에서 테스트 (시뮬레이터는 푸시 불가)")
     print("   4. 프로비저닝 프로파일에 Push Notification 권한 포함 확인")
-    print("="*60)
+    print(String(repeating: "=", count: 60))
     print("")
   }
   
@@ -170,9 +170,9 @@ import FirebaseMessaging
 extension AppDelegate {
   func printEnvironmentInfo() {
     print("")
-    print("="*80)
+    print(String(repeating: "=", count: 80))
     print("📊 iOS 환경 정보")
-    print("="*80)
+    print(String(repeating: "=", count: 80))
     print("iOS 버전: \(UIDevice.current.systemVersion)")
     print("기기 모델: \(UIDevice.current.model)")
     print("기기 이름: \(UIDevice.current.name)")
@@ -186,7 +186,7 @@ extension AppDelegate {
     print("   → APNs 토큰 획득 가능")
     #endif
     
-    print("="*80)
+    print(String(repeating: "=", count: 80))
     print("")
   }
 }
@@ -201,16 +201,16 @@ extension AppDelegate: MessagingDelegate {
     }
     
     print("")
-    print("="*60)
+    print(String(repeating: "=", count: 60))
     print("🔔 FCM 토큰 수신 (iOS)")
-    print("="*60)
+    print(String(repeating: "=", count: 60))
     print("📱 전체 토큰:")
     print(fcmToken)
     print("")
     print("📊 토큰 길이: \(fcmToken.count) 문자")
     print("✅ FCM 토큰 수신 완료")
     print("   → Flutter 앱에서 Firestore에 저장합니다")
-    print("="*60)
+    print(String(repeating: "=", count: 60))
     print("")
     
     // Flutter 채널로 토큰 전달 (선택사항)
