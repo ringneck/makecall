@@ -114,7 +114,7 @@ class SettingsTab extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.block, color: Colors.red),
             title: const Text('이용 중지'),
-            subtitle: const Text('계정을 삭제하고 모든 데이터를 제거합니다'),
+            subtitle: const Text('계정 로그인을 비활성화합니다 (데이터는 보존됨)'),
             onTap: () => _handleDeleteAccount(context),
           ),
         ],
@@ -179,8 +179,11 @@ class SettingsTab extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('이용 중지'),
         content: const Text(
-          '정말로 계정을 삭제하시겠습니까?\n\n'
-          '이 작업은 되돌릴 수 없으며, 모든 데이터가 영구적으로 삭제됩니다.',
+          '정말로 계정을 비활성화하시겠습니까?\n\n'
+          '⚠️ 주의사항:\n'
+          '• 로그인이 비활성화되어 앱 접속이 불가능합니다\n'
+          '• API 설정, WebSocket 설정 등 모든 데이터는 보존됩니다\n'
+          '• 계정 복구를 원하시면 관리자에게 문의하세요',
         ),
         actions: [
           TextButton(
@@ -190,7 +193,7 @@ class SettingsTab extends StatelessWidget {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('삭제'),
+            child: const Text('비활성화'),
           ),
         ],
       ),
@@ -201,7 +204,13 @@ class SettingsTab extends StatelessWidget {
         await context.read<AuthService>().deleteAccount();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('계정이 삭제되었습니다')),
+            const SnackBar(
+              content: Text(
+                '계정이 비활성화되었습니다\n'
+                '모든 설정 데이터는 보존되었습니다'
+              ),
+              duration: Duration(seconds: 4),
+            ),
           );
         }
       } catch (e) {
