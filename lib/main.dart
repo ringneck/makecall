@@ -164,6 +164,13 @@ class _MyAppState extends State<MyApp> {
             ),
             home: Consumer<AuthService>(
               builder: (context, authService, _) {
+                // 🔔 FCM BuildContext 설정 (수신 전화 화면 표시를 위해 필수)
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    FCMService.setContext(context);
+                  }
+                });
+                
                 // 🎯 고급 개발자 패턴: 최적화된 사용자 세션 전환 감지
                 // - 중복 실행 방지
                 // - 사용자 변경 시에만 실행

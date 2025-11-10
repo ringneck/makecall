@@ -623,34 +623,36 @@ class FCMService {
       return;
     }
     
-    // 📋 메시지 데이터에서 정보 추출 (없으면 기본값 사용)
+    // 📋 메시지 데이터에서 정보 추출 (없으면 임시 WebSocket 데이터 사용)
     final callerName = message.data['caller_name'] ?? 
                        message.data['callerName'] ?? 
                        message.notification?.title ?? 
-                       '알 수 없는 발신자';
+                       '홍길동 (테스트)'; // 임시 WebSocket 데이터
     
     final callerNumber = message.data['caller_number'] ?? 
                          message.data['callerNumber'] ?? 
                          message.notification?.body ?? 
-                         '';
+                         '010-1234-5678'; // 임시 WebSocket 데이터
     
     final callerAvatar = message.data['caller_avatar'] ?? 
                          message.data['callerAvatar'];
     
-    // 통화 관련 메타데이터
-    final channel = message.data['channel'] ?? 'FCM-PUSH';
+    // 통화 관련 메타데이터 (임시 WebSocket 데이터)
+    final channel = message.data['channel'] ?? 
+                    'SIP/1001-00000123'; // 임시 WebSocket 채널 데이터
+    
     final linkedid = message.data['linkedid'] ?? 
                      message.data['linkedId'] ?? 
-                     'fcm_${DateTime.now().millisecondsSinceEpoch}';
+                     '1731254400.123'; // 임시 WebSocket linkedid
     
     final receiverNumber = message.data['receiver_number'] ?? 
                            message.data['receiverNumber'] ?? 
                            message.data['extension'] ?? 
-                           '';
+                           '1001'; // 임시 내선번호 (WebSocket)
     
     final callType = message.data['call_type'] ?? 
                      message.data['callType'] ?? 
-                     'unknown';
+                     'external'; // 임시 통화 타입 (WebSocket)
     
     if (kDebugMode) {
       debugPrint('📞 [FCM] 수신 전화 화면 표시:');
