@@ -7,6 +7,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../screens/call/incoming_call_screen.dart';
 import '../models/fcm_token_model.dart';
+import '../main.dart' show navigatorKey; // GlobalKey for Navigation
 import 'dcmiws_service.dart';
 import 'auth_service.dart';
 import 'database_service.dart';
@@ -187,6 +188,17 @@ class FCMService {
           // 포그라운드 메시지 리스너
           FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
           
+          // 백그라운드/종료 상태에서 알림 클릭 시 처리 (중요!)
+          FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
+          
+          // 앱이 종료된 상태에서 알림 클릭으로 시작된 경우 처리
+          _messaging.getInitialMessage().then((RemoteMessage? message) {
+            if (message != null) {
+              debugPrint('🚀 [FCM] 앱이 종료 상태에서 알림 클릭으로 시작됨');
+              _handleMessageOpenedApp(message);
+            }
+          });
+          
           // 백그라운드 메시지 핸들러는 main.dart에서 설정
           
         } else {
@@ -359,6 +371,29 @@ class FCMService {
     // 📞 모든 푸시 메시지에 대해 수신 전화 화면 표시
     // (나중에 type 조건 추가 가능: type == 'incoming_call')
     debugPrint('📞 [FCM] 수신 전화 화면 표시 시작...');
+    
+    // WebSocket 연결 상태 확인 및 재연결
+    _ensureWebSocketConnection();
+    
+    // 풀스크린 수신 전화 화면 표시
+    _showIncomingCallScreen(message);
+  }
+  
+  /// 백그라운드/종료 상태에서 알림 클릭 시 처리
+  /// 
+  /// 사용자가 알림바에서 알림을 클릭하면 호출됩니다.
+  void _handleMessageOpenedApp(RemoteMessage message) {
+    debugPrint('🔔 [FCM] 백그라운드 알림 클릭됨: ${message.notification?.title}');
+    debugPrint('🔔 [FCM] 메시지 데이터: ${message.data}');
+    
+    // 🔐 강제 로그아웃 메시지 처리
+    if (message.data['type'] == 'force_logout') {
+      _handleForceLogout(message);
+      return;
+    }
+    
+    // 📞 수신 전화 화면 표시
+    debugPrint('📞 [FCM] 백그라운드에서 수신 전화 화면 표시 시작...');
     
     // WebSocket 연결 상태 확인 및 재연결
     _ensureWebSocketConnection();
@@ -617,11 +652,16 @@ class FCMService {
   
   /// 수신 전화 풀스크린 표시
   void _showIncomingCallScreen(RemoteMessage message) {
-    if (_context == null) {
-      debugPrint('❌ [FCM] BuildContext가 설정되지 않았습니다');
-      debugPrint('💡 main.dart에서 FCMService.setContext()를 호출하세요');
+    // BuildContext 또는 NavigatorKey 확인
+    final context = _context ?? navigatorKey.currentContext;
+    
+    if (context == null) {
+      debugPrint('❌ [FCM] BuildContext와 NavigatorKey 모두 사용 불가');
+      debugPrint('💡 main.dart에서 FCMService.setContext()를 호출하거나 앱이 완전히 시작될 때까지 기다리세요');
       return;
     }
+    
+    debugPrint('✅ [FCM] Context 확인 완료 (${_context != null ? "setContext" : "navigatorKey"} 사용)');
     
     // 📋 메시지 데이터에서 정보 추출 (없으면 임시 WebSocket 데이터 사용)
     final callerName = message.data['caller_name'] ?? 
@@ -666,7 +706,7 @@ class FCMService {
     }
     
     // 수신 전화 화면 표시 (fullscreenDialog로 전체 화면)
-    Navigator.of(_context!).push(
+    Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (context) => IncomingCallScreen(

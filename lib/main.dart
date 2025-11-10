@@ -23,6 +23,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
   
   debugPrint('🔔 백그라운드 메시지: ${message.notification?.title}');
+  debugPrint('🔔 백그라운드 메시지 데이터: ${message.data}');
+  
+  // 백그라운드에서는 알림을 시스템이 자동으로 표시함
+  // 앱이 다시 열리면 onMessageOpenedApp에서 처리됨
 }
 
 // 🔑 GlobalKey for Navigator (수신 전화 풀스크린 표시용)
