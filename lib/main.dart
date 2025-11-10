@@ -17,123 +17,44 @@ import 'screens/home/main_screen.dart';
 /// 백그라운드 FCM 메시지 핸들러 (Top-level function)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint('\n${'=' * 80}');
-  debugPrint('🔔 [BACKGROUND-001] 백그라운드 메시지 핸들러 실행');
-  debugPrint('📊 Timestamp: ${DateTime.now().toIso8601String()}');
-  debugPrint('${'=' * 80}');
-  
   // Firebase가 이미 초기화되었는지 확인
-  debugPrint('🔍 [BACKGROUND-002] Firebase 상태 체크');
-  debugPrint('   - Firebase.apps.isEmpty: ${Firebase.apps.isEmpty}');
-  debugPrint('   - Firebase.apps.length: ${Firebase.apps.length}');
-  
   if (Firebase.apps.isEmpty) {
-    debugPrint('⚠️  [BACKGROUND-003] Firebase 미초기화 감지 - 초기화 시작...');
-    try {
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-      debugPrint('✅ [BACKGROUND-004] Firebase 초기화 완료');
-    } catch (e) {
-      debugPrint('❌ [BACKGROUND-ERROR-004] Firebase 초기화 실패: $e');
-      rethrow;
-    }
-  } else {
-    debugPrint('✅ [BACKGROUND-003] Firebase 이미 초기화됨');
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   }
   
-  debugPrint('📨 [BACKGROUND-005] 메시지 상세:');
-  debugPrint('   - 제목: ${message.notification?.title}');
-  debugPrint('   - 내용: ${message.notification?.body}');
-  debugPrint('   - 데이터: ${message.data}');
-  debugPrint('${'=' * 80}\n');
-  
-  // 백그라운드에서는 로컬 알림만 표시
-  // 풀스크린은 앱이 포그라운드로 돌아왔을 때 표시
+  debugPrint('🔔 백그라운드 메시지: ${message.notification?.title}');
 }
 
 // 🔑 GlobalKey for Navigator (수신 전화 풀스크린 표시용)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  // 🚀 [TRACE-001] Flutter 엔진 초기화 시작
-  debugPrint('\n${'=' * 80}');
-  debugPrint('🚀 [TRACE-001] main() 실행 시작');
-  debugPrint('📊 Timestamp: ${DateTime.now().toIso8601String()}');
-  debugPrint('${'=' * 80}\n');
-  
   WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('✅ [TRACE-002] WidgetsFlutterBinding 초기화 완료\n');
   
-  // 🔍 [TRACE-003] Firebase 초기화 전 상태 확인
-  debugPrint('${'=' * 80}');
-  debugPrint('🔍 [TRACE-003] Firebase 초기화 전 상태 체크');
-  debugPrint('📊 Firebase.apps.length: ${Firebase.apps.length}');
-  debugPrint('📊 Firebase.apps.isEmpty: ${Firebase.apps.isEmpty}');
-  if (Firebase.apps.isNotEmpty) {
-    debugPrint('⚠️  WARNING: Firebase가 이미 초기화되어 있습니다!');
-    for (var app in Firebase.apps) {
-      debugPrint('   - App name: ${app.name}');
-      debugPrint('   - App options: ${app.options}');
-    }
-  }
-  debugPrint('${'=' * 80}\n');
-  
-  // 🔥 Firebase 초기화 (중복 초기화 방지)
+  // Firebase 초기화 (중복 초기화 방지)
   try {
-    debugPrint('🔥 [TRACE-004] Firebase.initializeApp() 호출 시작...');
-    
-    // 🔍 [CRITICAL FIX] Native에서 이미 초기화되었을 수 있으므로 체크
     if (Firebase.apps.isEmpty) {
-      debugPrint('📊 [TRACE-004-A] Firebase 미초기화 상태 - 초기화 진행');
-      final firebaseApp = await Firebase.initializeApp(
+      await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
-      debugPrint('✅ [TRACE-005] Firebase 초기화 완료!');
-      debugPrint('   - App name: ${firebaseApp.name}');
-      debugPrint('   - Project ID: ${firebaseApp.options.projectId}');
-      debugPrint('   - Platform: ${DefaultFirebaseOptions.currentPlatform}');
-      debugPrint('   - Firebase.apps.length: ${Firebase.apps.length}\n');
-    } else {
-      debugPrint('⚠️  [TRACE-004-B] Firebase 이미 초기화됨 (Native 레벨에서 초기화됨)');
-      debugPrint('   - Firebase.apps.length: ${Firebase.apps.length}');
-      for (var app in Firebase.apps) {
-        debugPrint('   - App name: ${app.name}');
-        debugPrint('   - Project ID: ${app.options.projectId}');
-      }
-      debugPrint('✅ [TRACE-005-ALT] 기존 Firebase 앱 사용\n');
     }
-  } catch (e, stackTrace) {
-    debugPrint('❌ [TRACE-ERROR-005] Firebase 초기화 실패!');
-    debugPrint('   Error: $e');
-    debugPrint('   StackTrace: $stackTrace\n');
-    
-    // 🔧 중복 초기화 오류는 무시하고 계속 진행
+  } catch (e) {
+    // Native에서 이미 초기화된 경우 무시
     if (e.toString().contains('duplicate-app')) {
-      debugPrint('⚠️  [TRACE-ERROR-RECOVERY] duplicate-app 오류 감지');
-      debugPrint('   Firebase가 이미 Native에서 초기화되었습니다.');
-      debugPrint('   기존 앱을 사용하여 계속 진행합니다.\n');
+      debugPrint('⚠️ Firebase 이미 초기화됨 (Native에서)');
     } else {
       rethrow;
     }
   }
   
-  // 🔔 FCM 백그라운드 핸들러 등록
-  debugPrint('🔔 [TRACE-006] FCM 백그라운드 핸들러 등록...');
+  // FCM 백그라운드 핸들러 등록
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  debugPrint('✅ [TRACE-007] FCM 백그라운드 핸들러 등록 완료\n');
   
-  // 🗄️ Hive 초기화 (로컬 데이터 저장소)
-  debugPrint('🗄️  [TRACE-008] Hive 초기화...');
+  // Hive 초기화
   await Hive.initFlutter();
-  debugPrint('✅ [TRACE-009] Hive 초기화 완료\n');
   
-  // 🎯 사용자 세션 관리자 초기화 (고급 개발자 패턴)
-  debugPrint('🎯 [TRACE-010] UserSessionManager 초기화...');
+  // 사용자 세션 관리자 초기화
   await UserSessionManager().loadLastUserId();
-  debugPrint('✅ [TRACE-011] UserSessionManager 초기화 완료\n');
-  
-  debugPrint('${'=' * 80}');
-  debugPrint('🎉 [TRACE-012] main() 초기화 완료 - runApp() 호출');
-  debugPrint('${'=' * 80}\n');
   
   runApp(const MyApp());
 }
@@ -158,37 +79,15 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     
-    debugPrint('\n${'=' * 80}');
-    debugPrint('🎨 [WIDGET-001] MyApp.initState() 실행');
-    debugPrint('📊 Timestamp: ${DateTime.now().toIso8601String()}');
-    debugPrint('${'=' * 80}');
-    
-    // 🔍 Firebase 상태 체크
-    debugPrint('🔍 [WIDGET-002] Firebase 상태:');
-    debugPrint('   - Firebase.apps.length: ${Firebase.apps.length}');
-    debugPrint('   - Firebase.apps.isEmpty: ${Firebase.apps.isEmpty}');
-    if (Firebase.apps.isNotEmpty) {
-      for (var app in Firebase.apps) {
-        debugPrint('   - App name: ${app.name}');
-      }
-    }
-    debugPrint('');
-    
-    // 🔑 NavigatorKey를 DCMIWSService에 등록
-    debugPrint('🔑 [WIDGET-003] NavigatorKey 등록...');
+    // NavigatorKey 등록
     DCMIWSService.setNavigatorKey(navigatorKey);
-    debugPrint('✅ [WIDGET-004] NavigatorKey 등록 완료\n');
     
-    // 🔐 FCM 강제 로그아웃 콜백 설정 (중복 로그인 방지)
-    debugPrint('🔐 [WIDGET-005] FCM 강제 로그아웃 콜백 설정...');
+    // FCM 강제 로그아웃 콜백 설정
     FCMService.setForceLogoutCallback(() async {
-      debugPrint('🚨 [WIDGET-CALLBACK] 강제 로그아웃 실행');
-      
       if (mounted) {
         final authService = context.read<AuthService>();
         await authService.signOut();
         
-        // 로그인 화면으로 이동
         if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -197,18 +96,11 @@ class _MyAppState extends State<MyApp> {
         }
       }
     });
-    debugPrint('✅ [WIDGET-006] FCM 강제 로그아웃 콜백 설정 완료\n');
     
-    // 🚀 WebSocket 연결 관리자 시작
-    debugPrint('🚀 [WIDGET-007] WebSocket 연결 관리자 시작 예약...');
+    // WebSocket 연결 관리자 시작
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      debugPrint('🔌 [WIDGET-POST-FRAME] WebSocket 연결 관리자 시작');
       _connectionManager.start();
     });
-    
-    debugPrint('${'=' * 80}');
-    debugPrint('✅ [WIDGET-008] MyApp.initState() 완료');
-    debugPrint('${'=' * 80}\n');
   }
   
   @override

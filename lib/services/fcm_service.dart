@@ -42,35 +42,7 @@ class FCMService {
   /// FCM 초기화
   Future<void> initialize(String userId) async {
     try {
-      if (kDebugMode) {
-        debugPrint('\n${'=' * 80}');
-        debugPrint('🔔 [FCM-001] FCM 서비스 초기화 시작');
-        debugPrint('📊 Timestamp: ${DateTime.now().toIso8601String()}');
-        debugPrint('📊 User ID: $userId');
-        debugPrint('📊 플랫폼: ${_getPlatformName()}');
-        debugPrint('${'=' * 80}');
-        
-        // 🔍 Firebase 상태 확인
-        debugPrint('\n🔍 [FCM-002] Firebase Messaging 인스턴스 상태:');
-        debugPrint('   - FirebaseMessaging instance: ${_messaging.hashCode}');
-        debugPrint('   - isSupported: ${await FirebaseMessaging.instance.isSupported()}');
-        
-        // iOS 전용 추가 디버깅
-        if (Platform.isIOS) {
-          debugPrint('\n${'=' * 80}');
-          debugPrint('🍎 [FCM-iOS-001] iOS FCM 초기화 상세 정보');
-          debugPrint('${'=' * 80}');
-          debugPrint('1️⃣  [FCM-iOS-002] requestPermission() 호출 전 상태');
-          debugPrint('   - 현재 시각: ${DateTime.now()}');
-          debugPrint('   - APNs 토큰 요청 준비...\n');
-        }
-      }
-      
       // 알림 권한 요청
-      if (kDebugMode) {
-        debugPrint('📱 [FCM-003] requestPermission() 호출 시작...');
-      }
-      
       NotificationSettings settings = await _messaging.requestPermission(
         alert: true,
         announcement: false,
@@ -81,118 +53,26 @@ class FCMService {
         sound: true,
       );
       
-      if (kDebugMode) {
-        debugPrint('✅ [FCM-004] requestPermission() 완료');
-        debugPrint('📱 알림 권한 상태: ${settings.authorizationStatus}');
-        debugPrint('   - alert: ${settings.alert}');
-        debugPrint('   - badge: ${settings.badge}');
-        debugPrint('   - sound: ${settings.sound}');
-        
-        // iOS 전용: APNs 토큰 확인
-        if (Platform.isIOS) {
-          debugPrint('\n🍎 [FCM-iOS-003] getAPNSToken() 호출 시작...');
-          final apnsToken = await _messaging.getAPNSToken();
-          debugPrint('🍎 [FCM-iOS-004] getAPNSToken() 완료');
-          
-          if (apnsToken != null) {
-            debugPrint('✅ [FCM-iOS-005] APNs 토큰 획득 성공!');
-            debugPrint('   - 전체 길이: ${apnsToken.length} 문자');
-            debugPrint('   - 토큰 앞부분: ${apnsToken.substring(0, 20)}...');
-            debugPrint('   - 토큰 타입: ${apnsToken.runtimeType}');
-          } else {
-            debugPrint('\n${'=' * 80}');
-            debugPrint('❌ [FCM-iOS-ERROR-005] APNs 토큰 획득 실패!');
-            debugPrint('${'=' * 80}');
-            debugPrint('🔴 iOS FCM 토큰을 받으려면 APNs 토큰이 먼저 필요합니다.');
-            debugPrint('');
-            debugPrint('📋 해결 방법:');
-            debugPrint('   1. Firebase Console에서 APNs 인증 키 업로드');
-            debugPrint('   2. Xcode에서 Push Notifications Capability 추가');
-            debugPrint('   3. 실제 iOS 기기에서 테스트 (시뮬레이터는 푸시 알림 불가)');
-            debugPrint('   4. AppDelegate.swift에서 registerForRemoteNotifications() 호출');
-            debugPrint('   5. Info.plist에 FirebaseAppDelegateProxyEnabled 설정');
-            debugPrint('');
-            debugPrint('🔍 추가 체크사항:');
-            debugPrint('   - APNs 토큰이 didRegisterForRemoteNotificationsWithDeviceToken에서 수신되었는가?');
-            debugPrint('   - Native 로그에서 APNs 토큰이 출력되었는가?');
-            debugPrint('   - Flutter 플러그인이 APNs 토큰을 자동으로 감지했는가?');
-            debugPrint('');
-            debugPrint('📄 상세 가이드: ios_fcm_diagnostic.md 참조');
-            debugPrint('${'=' * 80}\n');
-            return; // APNs 토큰 없으면 FCM 토큰 받을 수 없음
-          }
-        }
-      }
-      
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
         
         // FCM 토큰 가져오기
-        // 🌐 웹 플랫폼: VAPID 키 사용
         if (kIsWeb) {
-          // 웹 플랫폼에서 FCM을 사용하려면 VAPID 키가 필요합니다
-          // 
-          // VAPID 키 생성 방법:
-          // 1. Firebase Console (https://console.firebase.google.com)
-          // 2. 프로젝트 선택 → 프로젝트 설정 (톱니바퀴 아이콘)
-          // 3. 클라우드 메시징 탭 선택
-          // 4. 웹 구성 섹션으로 스크롤
-          // 5. 웹 푸시 인증서 탭에서 "키 쌍 생성" 버튼 클릭
-          // 6. 생성된 키 쌍을 아래 vapidKey 변수에 입력
-          // 
-          // 예시: 'BPv3xX9QR5aY...Wz8kL9mN0o' (88자 길이)
           const vapidKey = 'BM2qgTRRwT-mG4shgKLDr7CnVf5-xVs3DqNNcqY7zzHZXd5P5xWqvCLn8BxGnqJ3YKj0zcY6Kp0YwQ_Zr8vK2jM';
-          
           _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
         } else {
-          // 모바일 플랫폼: 일반 토큰 요청
-          if (kDebugMode) {
-            debugPrint('\n📱 [FCM-005] getToken() 호출 시작 (모바일 플랫폼)...');
-          }
           _fcmToken = await _messaging.getToken();
-          if (kDebugMode) {
-            debugPrint('✅ [FCM-006] getToken() 완료');
-          }
         }
         
         if (_fcmToken != null) {
-          if (kDebugMode) {
-            debugPrint('\n${'=' * 80}');
-            debugPrint('✅ [FCM-007] FCM 토큰 생성 완료!');
-            debugPrint('${'=' * 80}');
-            debugPrint('📱 전체 토큰:');
-            debugPrint(_fcmToken!);
-            debugPrint('');
-            debugPrint('📋 요약 정보:');
-            debugPrint('  - 토큰 길이: ${_fcmToken!.length} 문자');
-            debugPrint('  - 사용자 ID: $userId');
-            debugPrint('  - 플랫폼: ${_getPlatformName()}');
-            debugPrint('  - 기기 이름: ${await _getDeviceName()}');
-            debugPrint('  - 생성 시각: ${DateTime.now().toIso8601String()}');
-            debugPrint('');
-            debugPrint('💡 복사해서 테스트에 사용하세요:');
-            debugPrint('   Firebase Console → Messaging → Send test message');
-            debugPrint('   또는: python3 docs/fcm_testing/send_fcm_test_message.py');
-            debugPrint('${'=' * 80}\n');
-          }
+          debugPrint('✅ FCM 토큰 생성 완료: ${_fcmToken!.substring(0, 20)}...');
           
           // Firestore에 토큰 저장
           await _saveFCMToken(userId, _fcmToken!);
           
           // 토큰 갱신 리스너 등록
           _messaging.onTokenRefresh.listen((newToken) {
-            if (kDebugMode) {
-              debugPrint('');
-              debugPrint('🔄 FCM 토큰 갱신됨!');
-              debugPrint('='*60);
-              debugPrint('📱 새 토큰:');
-              debugPrint(newToken);
-              debugPrint('');
-              debugPrint('⚠️  이전 토큰은 더 이상 유효하지 않습니다.');
-              debugPrint('   새 토큰을 테스트에 사용하세요.');
-              debugPrint('='*60);
-              debugPrint('');
-            }
+            debugPrint('🔄 FCM 토큰 갱신: ${newToken.substring(0, 20)}...');
             _fcmToken = newToken;
             _saveFCMToken(userId, newToken);
           });
@@ -203,26 +83,13 @@ class FCMService {
           // 백그라운드 메시지 핸들러는 main.dart에서 설정
           
         } else {
-          if (kDebugMode) {
-            debugPrint('⚠️ FCM 토큰을 가져올 수 없습니다');
-            if (kIsWeb) {
-              debugPrint('💡 웹 플랫폼: VAPID 키가 필요합니다');
-              debugPrint('   Firebase Console → Cloud Messaging → Web Push certificates');
-            } else if (Platform.isIOS) {
-              debugPrint('💡 iOS 플랫폼: APNs 토큰이 필요합니다');
-              debugPrint('   상세 가이드: ios_fcm_diagnostic.md 참조');
-            }
-          }
+          debugPrint('⚠️ FCM 토큰을 가져올 수 없습니다');
         }
       } else {
-        if (kDebugMode) {
-          debugPrint('❌ 알림 권한이 거부되었습니다');
-        }
+        debugPrint('❌ 알림 권한이 거부되었습니다');
       }
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ FCM 초기화 오류: $e');
-      }
+      debugPrint('❌ FCM 초기화 오류: $e');
     }
   }
   
@@ -249,71 +116,16 @@ class FCMService {
       final deviceName = await _getDeviceName();
       final platform = _getPlatformName();
       
-      // ignore: avoid_print
-      print('');
-      // ignore: avoid_print
-      print('='*70);
-      // ignore: avoid_print
-      print('🔐 [중복 로그인 방지] FCM 토큰 저장 프로세스');
-      // ignore: avoid_print
-      print('='*70);
-      // ignore: avoid_print
-      print('   📱 사용자 ID: $userId');
-      // ignore: avoid_print
-      print('   📱 새 기기: $deviceName ($platform)');
-      // ignore: avoid_print
-      print('   📱 기기 ID: $deviceId');
-      
       // 1. 기존 활성 토큰 조회 (fcm_tokens 컬렉션에서만)
       final existingToken = await _databaseService.getActiveFcmToken(userId);
       
       if (existingToken != null && existingToken.deviceId != deviceId) {
-        // 다른 기기에서 로그인 감지
-        // ignore: avoid_print
-        print('');
-        // ignore: avoid_print
-        print('🚨 [중복 로그인 감지]');
-        // ignore: avoid_print
-        print('   🔴 기존 기기: ${existingToken.deviceName} (${existingToken.platform})');
-        // ignore: avoid_print
-        print('   🔴 기존 기기 ID: ${existingToken.deviceId}');
-        // ignore: avoid_print
-        print('   🔴 기존 토큰: ${existingToken.fcmToken.substring(0, 30)}...');
-        // ignore: avoid_print
-        print('');
-        // ignore: avoid_print
-        print('   ⚙️  중복 로그인 방지 동작:');
-        // ignore: avoid_print
-        print('   1️⃣  기존 기기에 강제 로그아웃 FCM 알림 전송');
-        // ignore: avoid_print
-        print('   2️⃣  기존 FCM 토큰만 비활성화 (fcm_tokens 컬렉션)');
-        // ignore: avoid_print
-        print('   3️⃣  사용자 데이터는 보존 (users 컬렉션 유지)');
-        
-        // 2. 기존 기기에 강제 로그아웃 알림 전송
+        // 다른 기기에서 로그인 감지 - 기존 기기에 강제 로그아웃 알림 전송
+        debugPrint('🚨 중복 로그인 감지: ${existingToken.deviceName} → $deviceName');
         await _sendForceLogoutNotification(existingToken.fcmToken, deviceName, platform);
-        
-        // ignore: avoid_print
-        print('');
-        // ignore: avoid_print
-        print('   ✅ 기존 기기에 강제 로그아웃 알림 전송 완료');
-        // ignore: avoid_print
-        print('   ✅ 기존 FCM 토큰 비활성화됨 (fcm_tokens/{userId}_{deviceId})');
-        // ignore: avoid_print
-        print('   ✅ 사용자 데이터는 온전히 보존됨 (users/{userId})');
-      } else if (existingToken != null) {
-        // ignore: avoid_print
-        print('');
-        // ignore: avoid_print
-        print('   ℹ️  동일 기기에서 토큰 갱신 (정상)');
-      } else {
-        // ignore: avoid_print
-        print('');
-        // ignore: avoid_print
-        print('   ℹ️  첫 로그인 (기존 활성 토큰 없음)');
       }
       
-      // 3. 새 토큰 모델 생성 및 저장
+      // 2. 새 토큰 모델 생성 및 저장
       final tokenModel = FcmTokenModel(
         userId: userId,
         fcmToken: token,
@@ -327,34 +139,10 @@ class FCMService {
       
       await _databaseService.saveFcmToken(tokenModel);
       
-      // ignore: avoid_print
-      print('');
-      // ignore: avoid_print
-      print('✅ [완료] 새 FCM 토큰 저장 성공');
-      // ignore: avoid_print
-      print('   📱 기기: $deviceName ($platform)');
-      // ignore: avoid_print
-      print('   🔑 토큰 길이: ${token.length} 문자');
-      // ignore: avoid_print
-      print('');
-      // ignore: avoid_print
-      print('💡 [중요] 사용자 데이터 보존 확인:');
-      // ignore: avoid_print
-      print('   ✓ users/{userId}: API/WebSocket 설정 유지');
-      // ignore: avoid_print
-      print('   ✓ my_extensions: 단말번호 정보 유지');
-      // ignore: avoid_print
-      print('   ✓ call_forward_info: 착신전환 설정 유지');
-      // ignore: avoid_print
-      print('   ✓ 재로그인 시 모든 데이터 정상 로드됨');
-      // ignore: avoid_print
-      print('='*70);
-      // ignore: avoid_print
-      print('');
+      debugPrint('✅ FCM 토큰 저장 완료: $deviceName ($platform)');
       
     } catch (e) {
-      // ignore: avoid_print
-      print('❌ [FCMService] FCM 토큰 저장 오류: $e');
+      debugPrint('❌ FCM 토큰 저장 오류: $e');
     }
   }
   
@@ -369,13 +157,6 @@ class FCMService {
     String newPlatform,
   ) async {
     try {
-      // ignore: avoid_print
-      print('📤 [FCMService] 강제 로그아웃 알림 전송 시작');
-      // ignore: avoid_print
-      print('   대상 토큰: ${targetToken.substring(0, 30)}...');
-      
-      // Cloud Functions를 통해 FCM 메시지 전송
-      // Cloud Functions에서 Firebase Admin SDK로 메시지 전송 처리
       await _firestore.collection('fcm_force_logout_queue').add({
         'targetToken': targetToken,
         'newDeviceName': newDeviceName,
@@ -389,40 +170,15 @@ class FCMService {
         'processed': false,
       });
       
-      // ignore: avoid_print
-      print('✅ [FCMService] 강제 로그아웃 알림 큐 등록 완료');
-      // ignore: avoid_print
-      print('   ℹ️  Cloud Functions가 실제 FCM 메시지를 전송합니다');
-      
+      debugPrint('✅ 강제 로그아웃 알림 큐 등록 완료');
     } catch (e) {
-      // ignore: avoid_print
-      print('❌ [FCMService] 강제 로그아웃 알림 전송 실패: $e');
-      // 에러 무시 (중요하지 않은 작업)
+      debugPrint('❌ 강제 로그아웃 알림 전송 실패: $e');
     }
   }
   
   /// 포그라운드 메시지 처리
   void _handleForegroundMessage(RemoteMessage message) {
-    // ignore: avoid_print
-    print('');
-    // ignore: avoid_print
-    print('='*60);
-    // ignore: avoid_print
-    print('📨 포그라운드 메시지 수신 (${_getPlatformName()})');
-    // ignore: avoid_print
-    print('='*60);
-    // ignore: avoid_print
-    print('  제목: ${message.notification?.title}');
-    // ignore: avoid_print
-    print('  내용: ${message.notification?.body}');
-    // ignore: avoid_print
-    print('  데이터: ${message.data}');
-    // ignore: avoid_print
-    print('  메시지 타입: ${message.data['type']}');
-    // ignore: avoid_print
-    print('='*60);
-    // ignore: avoid_print
-    print('');
+    debugPrint('📨 포그라운드 메시지: ${message.notification?.title}');
     
     // 🔐 강제 로그아웃 메시지 처리
     if (message.data['type'] == 'force_logout') {
@@ -449,14 +205,10 @@ class FCMService {
   /// 
   /// 다른 기기에서 로그인했을 때 현재 세션을 종료합니다.
   void _handleForceLogout(RemoteMessage message) {
-    // ignore: avoid_print
-    print('🚨 [FCMService] 강제 로그아웃 메시지 수신');
+    debugPrint('🚨 강제 로그아웃 메시지 수신');
     
     final newDeviceName = message.data['newDeviceName'] ?? '다른 기기';
     final newPlatform = message.data['newPlatform'] ?? 'unknown';
-    
-    // ignore: avoid_print
-    print('   새 로그인 기기: $newDeviceName ($newPlatform)');
     
     if (_context != null) {
       // 다이얼로그 표시
@@ -525,8 +277,7 @@ class FCMService {
       }
     }
     
-    // ignore: avoid_print
-    print('✅ [FCMService] 강제 로그아웃 처리 완료');
+    debugPrint('✅ 강제 로그아웃 처리 완료');
   }
   
   /// 웹 플랫폼 알림 표시
@@ -795,25 +546,11 @@ class FCMService {
     if (_fcmToken == null) return;
     
     try {
-      // ignore: avoid_print
-      print('🗑️  [FCMService] FCM 토큰 비활성화 시작');
-      // ignore: avoid_print
-      print('   ⚠️  주의: fcm_tokens 컬렉션만 삭제 (users 컬렉션 보존)');
-      
       final deviceId = await _getDeviceId();
       await _databaseService.deleteFcmToken(userId, deviceId);
-      
-      // ignore: avoid_print
-      print('✅ [FCMService] FCM 토큰 비활성화 완료');
-      // ignore: avoid_print
-      print('   ✓ users/{userId}: API/WebSocket 설정 보존됨');
-      // ignore: avoid_print
-      print('   ✓ my_extensions: 단말번호 정보 보존됨');
-      // ignore: avoid_print
-      print('   ✓ call_forward_info: 착신전환 설정 보존됨');
+      debugPrint('✅ FCM 토큰 비활성화 완료');
     } catch (e) {
-      // ignore: avoid_print
-      print('❌ [FCMService] FCM 토큰 비활성화 오류: $e');
+      debugPrint('❌ FCM 토큰 비활성화 오류: $e');
     }
   }
   
@@ -846,8 +583,7 @@ class FCMService {
       
       return 'unknown_device_${DateTime.now().millisecondsSinceEpoch}';
     } catch (e) {
-      // ignore: avoid_print
-      print('⚠️  [FCMService] 기기 ID 조회 실패: $e');
+      debugPrint('⚠️ 기기 ID 조회 실패: $e');
       return 'fallback_device_${DateTime.now().millisecondsSinceEpoch}';
     }
   }
@@ -888,8 +624,7 @@ class FCMService {
       
       return 'Unknown Device';
     } catch (e) {
-      // ignore: avoid_print
-      print('⚠️  [FCMService] 기기 이름 조회 실패: $e');
+      debugPrint('⚠️ 기기 이름 조회 실패: $e');
       
       // Fallback: 플랫폼 기본 이름
       if (kIsWeb) {
