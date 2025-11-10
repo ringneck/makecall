@@ -338,6 +338,7 @@ class FCMService {
   /// 포그라운드 메시지 처리
   void _handleForegroundMessage(RemoteMessage message) {
     debugPrint('📨 포그라운드 메시지: ${message.notification?.title}');
+    debugPrint('📨 메시지 데이터: ${message.data}');
     
     // 🔐 강제 로그아웃 메시지 처리
     if (message.data['type'] == 'force_logout') {
@@ -350,14 +351,20 @@ class FCMService {
       _showWebNotification(message);
     }
     
-    // 수신 전화 타입인 경우
-    if (message.data['type'] == 'incoming_call') {
-      // WebSocket 연결 상태 확인 및 재연결
-      _ensureWebSocketConnection();
-      
-      // 풀스크린 표시
-      _showIncomingCallScreen(message);
+    // 안드로이드 플랫폼: 로컬 알림 표시
+    if (Platform.isAndroid) {
+      _showAndroidNotification(message);
     }
+    
+    // 📞 모든 푸시 메시지에 대해 수신 전화 화면 표시
+    // (나중에 type 조건 추가 가능: type == 'incoming_call')
+    debugPrint('📞 [FCM] 수신 전화 화면 표시 시작...');
+    
+    // WebSocket 연결 상태 확인 및 재연결
+    _ensureWebSocketConnection();
+    
+    // 풀스크린 수신 전화 화면 표시
+    _showIncomingCallScreen(message);
   }
   
   /// 강제 로그아웃 메시지 처리
@@ -437,6 +444,58 @@ class FCMService {
     }
     
     debugPrint('✅ 강제 로그아웃 처리 완료');
+  }
+  
+  /// 안드로이드 로컬 알림 표시 (포그라운드 전용)
+  Future<void> _showAndroidNotification(RemoteMessage message) async {
+    if (!Platform.isAndroid) return;
+    
+    try {
+      final title = message.notification?.title ?? message.data['title'] ?? 'MAKECALL 알림';
+      final body = message.notification?.body ?? message.data['body'] ?? '새로운 알림이 있습니다.';
+      
+      if (kDebugMode) {
+        debugPrint('🔔 [FCM] 안드로이드 알림 표시 시작');
+        debugPrint('   제목: $title');
+        debugPrint('   내용: $body');
+      }
+      
+      final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+          FlutterLocalNotificationsPlugin();
+      
+      // 알림 상세 설정
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'high_importance_channel', // channelId (AndroidManifest.xml과 동일)
+        'High Importance Notifications', // channelName
+        channelDescription: 'This channel is used for important notifications.',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+        icon: '@mipmap/ic_launcher', // 앱 아이콘 사용
+      );
+      
+      const NotificationDetails notificationDetails = NotificationDetails(
+        android: androidDetails,
+      );
+      
+      // 알림 표시
+      await flutterLocalNotificationsPlugin.show(
+        message.hashCode, // 고유 알림 ID (메시지마다 다름)
+        title,
+        body,
+        notificationDetails,
+      );
+      
+      if (kDebugMode) {
+        debugPrint('✅ [FCM] 안드로이드 알림 표시 완료');
+      }
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [FCM] 안드로이드 알림 표시 오류: $e');
+      }
+    }
   }
   
   /// 웹 플랫폼 알림 표시
@@ -559,25 +618,52 @@ class FCMService {
   /// 수신 전화 풀스크린 표시
   void _showIncomingCallScreen(RemoteMessage message) {
     if (_context == null) {
-      debugPrint('❌ BuildContext가 설정되지 않았습니다');
+      debugPrint('❌ [FCM] BuildContext가 설정되지 않았습니다');
+      debugPrint('💡 main.dart에서 FCMService.setContext()를 호출하세요');
       return;
     }
     
-    final callerName = message.data['caller_name'] ?? message.notification?.title ?? '알 수 없음';
-    final callerNumber = message.data['caller_number'] ?? message.notification?.body ?? '';
-    final callerAvatar = message.data['caller_avatar'];
+    // 📋 메시지 데이터에서 정보 추출 (없으면 기본값 사용)
+    final callerName = message.data['caller_name'] ?? 
+                       message.data['callerName'] ?? 
+                       message.notification?.title ?? 
+                       '알 수 없는 발신자';
+    
+    final callerNumber = message.data['caller_number'] ?? 
+                         message.data['callerNumber'] ?? 
+                         message.notification?.body ?? 
+                         '';
+    
+    final callerAvatar = message.data['caller_avatar'] ?? 
+                         message.data['callerAvatar'];
+    
+    // 통화 관련 메타데이터
+    final channel = message.data['channel'] ?? 'FCM-PUSH';
+    final linkedid = message.data['linkedid'] ?? 
+                     message.data['linkedId'] ?? 
+                     'fcm_${DateTime.now().millisecondsSinceEpoch}';
+    
+    final receiverNumber = message.data['receiver_number'] ?? 
+                           message.data['receiverNumber'] ?? 
+                           message.data['extension'] ?? 
+                           '';
+    
+    final callType = message.data['call_type'] ?? 
+                     message.data['callType'] ?? 
+                     'unknown';
     
     if (kDebugMode) {
-      debugPrint('📞 수신 전화 화면 표시:');
-      debugPrint('  발신자: $callerName');
-      debugPrint('  번호: $callerNumber');
+      debugPrint('📞 [FCM] 수신 전화 화면 표시:');
+      debugPrint('   발신자: $callerName');
+      debugPrint('   번호: $callerNumber');
+      debugPrint('   아바타: ${callerAvatar ?? "없음"}');
+      debugPrint('   채널: $channel');
+      debugPrint('   링크ID: $linkedid');
+      debugPrint('   수신번호: $receiverNumber');
+      debugPrint('   통화타입: $callType');
     }
     
-    // FCM에서는 channel과 linkedid가 없으므로 기본값 사용
-    final channel = message.data['channel'] ?? 'FCM-PUSH';
-    final linkedid = message.data['linkedid'] ?? 'fcm_${DateTime.now().millisecondsSinceEpoch}';
-    final receiverNumber = message.data['receiver_number'] ?? '';
-    
+    // 수신 전화 화면 표시 (fullscreenDialog로 전체 화면)
     Navigator.of(_context!).push(
       MaterialPageRoute(
         fullscreenDialog: true,
@@ -588,24 +674,59 @@ class FCMService {
           channel: channel,
           linkedid: linkedid,
           receiverNumber: receiverNumber,
-          callType: 'unknown', // FCM 푸시는 통화 타입 감지 불가
+          callType: callType,
           onAccept: () {
-            Navigator.of(context).pop();
-            // TODO: 전화 수락 로직 (SIP 연결 등)
             if (kDebugMode) {
-              debugPrint('✅ 전화 수락됨: $callerNumber');
+              debugPrint('✅ [FCM] 전화 수락됨');
+              debugPrint('   발신자: $callerName ($callerNumber)');
+              debugPrint('   링크ID: $linkedid');
             }
+            
+            Navigator.of(context).pop();
+            
+            // TODO: 전화 수락 로직 구현
+            // 1. SIP 연결 시작
+            // 2. WebSocket으로 서버에 수락 알림
+            // 3. 통화 화면으로 전환
+            
+            // 임시: 스낵바로 알림
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('📞 전화 수락: $callerName'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
           },
           onReject: () {
-            Navigator.of(context).pop();
-            // TODO: 전화 거절 로직 (서버 통신 등)
             if (kDebugMode) {
-              debugPrint('❌ 전화 거절됨: $callerNumber');
+              debugPrint('❌ [FCM] 전화 거절됨');
+              debugPrint('   발신자: $callerName ($callerNumber)');
+              debugPrint('   링크ID: $linkedid');
             }
+            
+            Navigator.of(context).pop();
+            
+            // TODO: 전화 거절 로직 구현
+            // 1. WebSocket으로 서버에 거절 알림
+            // 2. 통화 로그에 부재중 전화 기록
+            
+            // 임시: 스낵바로 알림
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('📵 전화 거절: $callerName'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 2),
+              ),
+            );
           },
         ),
       ),
     );
+    
+    if (kDebugMode) {
+      debugPrint('✅ [FCM] 수신 전화 화면 표시 완료');
+    }
   }
   
   /// 사용자 알림 설정 가져오기
