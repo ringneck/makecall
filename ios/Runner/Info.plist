@@ -87,15 +87,20 @@
 	
 	<!-- 🔥 Firebase 설정 -->
 	<!-- 
-	🔍 [ADVANCED DEBUG] FirebaseAppDelegateProxyEnabled 테스트
-	- false: Firebase가 AppDelegate 메서드를 자동으로 swizzle하지 않음
-	- true: Firebase가 자동으로 메서드를 가로채고 처리 (기본 동작)
+	🔍 [ROOT CAUSE IDENTIFIED] GULAppDelegateSwizzler가 중복 호출 발생
 	
-	⚠️ 현재 설정: true로 변경하여 Firebase 플러그인의 자동 처리 활성화
-	   이것이 APNs 토큰 중복 호출 문제와 관련이 있을 수 있음
+	문제:
+	- FirebaseAppDelegateProxyEnabled: true일 때
+	- GULAppDelegateSwizzler가 didRegisterForRemoteNotificationsWithDeviceToken을 2번 호출
+	- Firebase가 Native에서 자동 초기화 → Flutter에서 중복 초기화 시도 → duplicate-app 오류
+	
+	해결:
+	- false로 설정하여 Firebase 자동 swizzling 비활성화
+	- Flutter가 Firebase 초기화 전체 제어
+	- APNs 토큰은 Flutter 플러그인이 method channel을 통해 자동 감지
 	-->
 	<key>FirebaseAppDelegateProxyEnabled</key>
-	<true/>
+	<false/>
 	
 	<!-- 📱 Firebase Cloud Messaging -->
 	<key>FirebaseMessagingAutoInitEnabled</key>

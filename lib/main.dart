@@ -77,22 +77,43 @@ void main() async {
   }
   debugPrint('${'=' * 80}\n');
   
-  // 🔥 Firebase 초기화
+  // 🔥 Firebase 초기화 (중복 초기화 방지)
   try {
     debugPrint('🔥 [TRACE-004] Firebase.initializeApp() 호출 시작...');
-    final firebaseApp = await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    debugPrint('✅ [TRACE-005] Firebase 초기화 완료!');
-    debugPrint('   - App name: ${firebaseApp.name}');
-    debugPrint('   - Project ID: ${firebaseApp.options.projectId}');
-    debugPrint('   - Platform: ${DefaultFirebaseOptions.currentPlatform}');
-    debugPrint('   - Firebase.apps.length: ${Firebase.apps.length}\n');
+    
+    // 🔍 [CRITICAL FIX] Native에서 이미 초기화되었을 수 있으므로 체크
+    if (Firebase.apps.isEmpty) {
+      debugPrint('📊 [TRACE-004-A] Firebase 미초기화 상태 - 초기화 진행');
+      final firebaseApp = await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      debugPrint('✅ [TRACE-005] Firebase 초기화 완료!');
+      debugPrint('   - App name: ${firebaseApp.name}');
+      debugPrint('   - Project ID: ${firebaseApp.options.projectId}');
+      debugPrint('   - Platform: ${DefaultFirebaseOptions.currentPlatform}');
+      debugPrint('   - Firebase.apps.length: ${Firebase.apps.length}\n');
+    } else {
+      debugPrint('⚠️  [TRACE-004-B] Firebase 이미 초기화됨 (Native 레벨에서 초기화됨)');
+      debugPrint('   - Firebase.apps.length: ${Firebase.apps.length}');
+      for (var app in Firebase.apps) {
+        debugPrint('   - App name: ${app.name}');
+        debugPrint('   - Project ID: ${app.options.projectId}');
+      }
+      debugPrint('✅ [TRACE-005-ALT] 기존 Firebase 앱 사용\n');
+    }
   } catch (e, stackTrace) {
     debugPrint('❌ [TRACE-ERROR-005] Firebase 초기화 실패!');
     debugPrint('   Error: $e');
     debugPrint('   StackTrace: $stackTrace\n');
-    rethrow;
+    
+    // 🔧 중복 초기화 오류는 무시하고 계속 진행
+    if (e.toString().contains('duplicate-app')) {
+      debugPrint('⚠️  [TRACE-ERROR-RECOVERY] duplicate-app 오류 감지');
+      debugPrint('   Firebase가 이미 Native에서 초기화되었습니다.');
+      debugPrint('   기존 앱을 사용하여 계속 진행합니다.\n');
+    } else {
+      rethrow;
+    }
   }
   
   // 🔔 FCM 백그라운드 핸들러 등록
