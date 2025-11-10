@@ -93,6 +93,14 @@ import FirebaseMessaging
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
+    let userInfo = response.notification.request.content.userInfo
+    
+    // FCM 메시지 데이터 출력
+    print("📬 [NOTIFICATION] 알림 탭됨")
+    print("   - Title: \(response.notification.request.content.title)")
+    print("   - Body: \(response.notification.request.content.body)")
+    print("   - UserInfo: \(userInfo)")
+    
     completionHandler()
   }
 }
