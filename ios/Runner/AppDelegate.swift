@@ -94,15 +94,20 @@ import FirebaseMessaging
     print("📱 토큰: \(tokenString)")
     print("📊 토큰 길이: \(tokenString.count) 문자")
     print("")
-    print("✅ Firebase에 APNs 토큰 전달 중...")
     
-    // Firebase에 APNs 토큰 전달
-    Messaging.messaging().apnsToken = deviceToken
+    // ⚠️ Flutter 플러그인이 자동으로 APNs 토큰을 Firebase에 전달
+    // Native에서 Messaging.messaging().apnsToken을 설정하면
+    // Firebase 초기화 전에 호출되어 중복 초기화 오류 발생
+    // Messaging.messaging().apnsToken = deviceToken ← 제거됨
     
-    print("✅ APNs 토큰 전달 완료")
-    print("   → Firebase가 이제 FCM 토큰을 생성합니다")
+    print("📱 Flutter Firebase Messaging 플러그인이 자동으로 처리합니다")
+    print("   → APNs 토큰을 Firebase에 자동 전달")
+    print("   → FCM 토큰 자동 생성")
     print(String(repeating: "=", count: 60))
     print("")
+    
+    // Flutter 플러그인이 처리할 수 있도록 super 호출
+    super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
   }
   
   // APNs 토큰 수신 실패
