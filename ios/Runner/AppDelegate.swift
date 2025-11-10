@@ -9,13 +9,29 @@ import FirebaseMessaging
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    print("")
+    print("="*80)
+    print("🚀 AppDelegate.application() 실행 시작")
+    print("="*80)
+    print("")
+    
+    // 환경 정보 출력
+    printEnvironmentInfo()
+    
     // Firebase 초기화
+    print("🔥 Firebase 초기화 중...")
     FirebaseApp.configure()
+    print("✅ Firebase 초기화 완료")
+    print("")
     
     // Flutter 플러그인 등록
+    print("📱 Flutter 플러그인 등록 중...")
     GeneratedPluginRegistrant.register(with: self)
+    print("✅ Flutter 플러그인 등록 완료")
+    print("")
     
     // iOS 알림 설정
+    print("🔔 iOS 알림 권한 요청 중...")
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self
       
@@ -23,24 +39,47 @@ import FirebaseMessaging
       UNUserNotificationCenter.current().requestAuthorization(
         options: authOptions,
         completionHandler: { granted, error in
+          print("")
+          print("="*60)
           if granted {
             print("✅ iOS 알림 권한 허용됨")
           } else {
-            print("❌ iOS 알림 권한 거부됨: \(error?.localizedDescription ?? "unknown")")
+            print("❌ iOS 알림 권한 거부됨")
+            if let error = error {
+              print("   오류: \(error.localizedDescription)")
+            }
           }
+          print("="*60)
+          print("")
         }
       )
     } else {
       // iOS 9 이하
+      print("⚠️ iOS 9 이하 버전 감지")
       let settings: UIUserNotificationSettings =
         UIUserNotificationSettings(types: [.alert, .badge, .sound], categories: nil)
       application.registerUserNotificationSettings(settings)
     }
+    print("✅ 알림 권한 요청 완료")
+    print("")
     
+    print("🍎 APNs 원격 알림 등록 시작...")
     application.registerForRemoteNotifications()
+    print("✅ APNs 등록 요청 전송 완료")
+    print("   → didRegisterForRemoteNotificationsWithDeviceToken() 또는")
+    print("   → didFailToRegisterForRemoteNotificationsWithError() 호출 대기 중...")
+    print("")
     
     // Firebase Messaging 델리게이트 설정
+    print("🔥 Firebase Messaging 델리게이트 설정 중...")
     Messaging.messaging().delegate = self
+    print("✅ Firebase Messaging 델리게이트 설정 완료")
+    print("")
+    
+    print("="*80)
+    print("✅ AppDelegate.application() 실행 완료")
+    print("="*80)
+    print("")
     
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
@@ -124,6 +163,31 @@ import FirebaseMessaging
     print("   데이터: \(userInfo)")
     
     completionHandler()
+  }
+}
+
+// 🔧 앱 시작 시 환경 정보 출력
+extension AppDelegate {
+  func printEnvironmentInfo() {
+    print("")
+    print("="*80)
+    print("📊 iOS 환경 정보")
+    print("="*80)
+    print("iOS 버전: \(UIDevice.current.systemVersion)")
+    print("기기 모델: \(UIDevice.current.model)")
+    print("기기 이름: \(UIDevice.current.name)")
+    
+    #if targetEnvironment(simulator)
+    print("⚠️ 실행 환경: iOS 시뮬레이터")
+    print("   → 시뮬레이터는 APNs를 지원하지 않습니다!")
+    print("   → 실제 iOS 기기에서 테스트하세요.")
+    #else
+    print("✅ 실행 환경: 실제 iOS 기기")
+    print("   → APNs 토큰 획득 가능")
+    #endif
+    
+    print("="*80)
+    print("")
   }
 }
 
