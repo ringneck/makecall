@@ -1,6 +1,5 @@
 import UIKit
 import Flutter
-import Firebase
 import FirebaseMessaging
 
 @main
@@ -18,11 +17,9 @@ import FirebaseMessaging
     // 환경 정보 출력
     printEnvironmentInfo()
     
-    // Firebase 초기화
-    print("🔥 Firebase 초기화 중...")
-    FirebaseApp.configure()
-    print("✅ Firebase 초기화 완료")
-    print("")
+    // ⚠️ Firebase 초기화는 Flutter에서 처리 (main.dart)
+    // Native에서 초기화하면 중복 초기화 오류 발생
+    // FirebaseApp.configure() ← 제거됨
     
     // Flutter 플러그인 등록
     print("📱 Flutter 플러그인 등록 중...")
@@ -70,10 +67,10 @@ import FirebaseMessaging
     print("   → didFailToRegisterForRemoteNotificationsWithError() 호출 대기 중...")
     print("")
     
-    // Firebase Messaging 델리게이트 설정
-    print("🔥 Firebase Messaging 델리게이트 설정 중...")
-    Messaging.messaging().delegate = self
-    print("✅ Firebase Messaging 델리게이트 설정 완료")
+    // ⚠️ Firebase Messaging 델리게이트는 Flutter 플러그인이 자동 설정
+    // Native에서 설정하면 Flutter 초기화 전이라 문제 발생 가능
+    // Messaging.messaging().delegate = self ← 제거됨 (Flutter가 처리)
+    print("📱 Firebase Messaging은 Flutter 플러그인이 자동 초기화합니다")
     print("")
     
     print(String(repeating: "=", count: 80))
