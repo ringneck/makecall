@@ -259,23 +259,27 @@ class AuthService extends ChangeNotifier {
         
         // FCM 초기화 (로그인 성공 후)
         try {
-          if (kDebugMode) {
-            debugPrint('');
-            debugPrint('🔔 로그인 성공 - FCM 초기화 시작...');
-            if (kIsWeb) {
-              debugPrint('   💡 웹 플랫폼: FCM 중복 로그인 방지 비활성화 (모바일에서만 지원)');
-            }
-          }
+          // ignore: avoid_print
+          print('');
+          // ignore: avoid_print
+          print('🔔 [AUTH] 로그인 성공 - FCM 초기화 시작...');
+          // ignore: avoid_print
+          print('   User ID: ${credential.user!.uid}');
+          // ignore: avoid_print
+          print('   Platform: ${kIsWeb ? "Web" : "Mobile"}');
+          
           final fcmService = FCMService();
           await fcmService.initialize(credential.user!.uid);
-          if (kDebugMode) {
-            debugPrint('✅ FCM 초기화 완료');
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('⚠️  FCM 초기화 오류 (로그인은 정상): $e');
-            debugPrint('   💡 웹 플랫폼에서는 FCM 오류가 정상입니다 (중복 로그인 방지는 모바일 전용)');
-          }
+          
+          // ignore: avoid_print
+          print('✅ [AUTH] FCM 초기화 완료');
+        } catch (e, stackTrace) {
+          // ignore: avoid_print
+          print('❌ [AUTH] FCM 초기화 오류: $e');
+          // ignore: avoid_print
+          print('Stack trace:');
+          // ignore: avoid_print
+          print(stackTrace);
         }
       }
       

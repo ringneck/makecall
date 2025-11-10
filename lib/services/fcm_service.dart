@@ -42,10 +42,16 @@ class FCMService {
   /// FCM 초기화
   Future<void> initialize(String userId) async {
     try {
-      debugPrint('🔔 FCM 초기화 시작: userId=$userId');
+      // ignore: avoid_print
+      print('🔔 [FCM] 초기화 시작');
+      // ignore: avoid_print
+      print('   User ID: $userId');
+      // ignore: avoid_print
+      print('   Platform: ${_getPlatformName()}');
       
       // 알림 권한 요청
-      debugPrint('📱 알림 권한 요청 중...');
+      // ignore: avoid_print
+      print('📱 [FCM] 알림 권한 요청 중...');
       NotificationSettings settings = await _messaging.requestPermission(
         alert: true,
         announcement: false,
@@ -56,50 +62,75 @@ class FCMService {
         sound: true,
       );
       
-      debugPrint('✅ 알림 권한 응답: ${settings.authorizationStatus}');
+      // ignore: avoid_print
+      print('✅ [FCM] 알림 권한 응답: ${settings.authorizationStatus}');
       
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
         
         // FCM 토큰 가져오기
-        debugPrint('🔑 FCM 토큰 요청 시작...');
+        // ignore: avoid_print
+        print('🔑 [FCM] 토큰 요청 시작...');
         
         if (kIsWeb) {
-          debugPrint('🌐 웹 플랫폼: VAPID 키 사용');
+          // ignore: avoid_print
+          print('🌐 [FCM] 웹 플랫폼: VAPID 키 사용');
           const vapidKey = 'BM2qgTRRwT-mG4shgKLDr7CnVf5-xVs3DqNNcqY7zzHZXd5P5xWqvCLn8BxGnqJ3YKj0zcY6Kp0YwQ_Zr8vK2jM';
           _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
         } else {
-          debugPrint('📱 모바일 플랫폼: 일반 토큰 요청');
+          // ignore: avoid_print
+          print('📱 [FCM] 모바일 플랫폼: 일반 토큰 요청');
           
           // iOS 전용: APNs 토큰 확인
           if (Platform.isIOS) {
-            debugPrint('🍎 iOS 플랫폼: APNs 토큰 확인 중...');
+            // ignore: avoid_print
+            print('🍎 [FCM] iOS: APNs 토큰 확인 중...');
             final apnsToken = await _messaging.getAPNSToken();
             if (apnsToken != null) {
-              debugPrint('✅ APNs 토큰 존재: ${apnsToken.substring(0, 20)}...');
+              // ignore: avoid_print
+              print('✅ [FCM] APNs 토큰 존재: ${apnsToken.substring(0, 20)}...');
             } else {
-              debugPrint('❌ APNs 토큰 없음 - FCM 토큰 생성 실패 예상');
-              debugPrint('💡 해결방법:');
-              debugPrint('   1. 실제 iOS 기기에서 테스트 (시뮬레이터 X)');
-              debugPrint('   2. Firebase Console에서 APNs 인증 키 업로드');
-              debugPrint('   3. Xcode에서 Push Notifications Capability 추가');
-              debugPrint('   4. 네트워크 연결 확인 (Wi-Fi/셀룰러)');
+              // ignore: avoid_print
+              print('❌ [FCM] APNs 토큰 없음 - FCM 토큰 생성 실패');
+              // ignore: avoid_print
+              print('💡 해결방법:');
+              // ignore: avoid_print
+              print('   1. 실제 iOS 기기에서 테스트 (시뮬레이터 X)');
+              // ignore: avoid_print
+              print('   2. Firebase Console에서 APNs 인증 키 업로드');
+              // ignore: avoid_print
+              print('   3. Xcode에서 Push Notifications Capability 추가');
+              // ignore: avoid_print
+              print('   4. 네트워크 연결 확인 (Wi-Fi/셀룰러)');
               return;
             }
           }
           
+          // ignore: avoid_print
+          print('🔄 [FCM] getToken() 호출 중...');
           _fcmToken = await _messaging.getToken();
+          // ignore: avoid_print
+          print('🔄 [FCM] getToken() 완료');
         }
         
         if (_fcmToken != null) {
-          debugPrint('✅ FCM 토큰 생성 완료: ${_fcmToken!.substring(0, 20)}...');
-          debugPrint('📊 토큰 정보:');
-          debugPrint('   - 전체 길이: ${_fcmToken!.length}자');
-          debugPrint('   - 플랫폼: ${_getPlatformName()}');
-          debugPrint('   - 사용자 ID: $userId');
+          // ignore: avoid_print
+          print('✅ [FCM] 토큰 생성 완료!');
+          // ignore: avoid_print
+          print('   - 토큰 앞부분: ${_fcmToken!.substring(0, 20)}...');
+          // ignore: avoid_print
+          print('   - 전체 길이: ${_fcmToken!.length}자');
+          // ignore: avoid_print
+          print('   - 플랫폼: ${_getPlatformName()}');
+          // ignore: avoid_print
+          print('   - 사용자 ID: $userId');
           
           // Firestore에 토큰 저장
+          // ignore: avoid_print
+          print('💾 [FCM] Firestore 저장 시작...');
           await _saveFCMToken(userId, _fcmToken!);
+          // ignore: avoid_print
+          print('✅ [FCM] Firestore 저장 완료');
           
           // 토큰 갱신 리스너 등록
           _messaging.onTokenRefresh.listen((newToken) {
@@ -114,20 +145,32 @@ class FCMService {
           // 백그라운드 메시지 핸들러는 main.dart에서 설정
           
         } else {
-          debugPrint('❌ FCM 토큰 생성 실패');
-          debugPrint('🔍 가능한 원인:');
-          debugPrint('   1. 네트워크 연결 오류 (현재 오류 확인됨)');
-          debugPrint('   2. Firebase 설정 오류');
+          // ignore: avoid_print
+          print('❌ [FCM] 토큰 생성 실패 (null 반환)');
+          // ignore: avoid_print
+          print('🔍 가능한 원인:');
+          // ignore: avoid_print
+          print('   1. 네트워크 연결 오류');
+          // ignore: avoid_print
+          print('   2. Firebase 설정 오류 (GoogleService-Info.plist)');
           if (Platform.isIOS) {
-            debugPrint('   3. APNs 토큰 없음 (iOS 시뮬레이터는 지원 안 됨)');
-            debugPrint('   4. iOS 네트워크 권한 거부');
+            // ignore: avoid_print
+            print('   3. APNs 토큰 없음 (iOS 시뮬레이터는 지원 안 됨)');
+            // ignore: avoid_print
+            print('   4. iOS 네트워크 권한 거부');
           }
         }
       } else {
-        debugPrint('❌ 알림 권한이 거부되었습니다');
+        // ignore: avoid_print
+        print('❌ [FCM] 알림 권한 거부됨: ${settings.authorizationStatus}');
       }
-    } catch (e) {
-      debugPrint('❌ FCM 초기화 오류: $e');
+    } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('❌ [FCM] 초기화 예외 발생: $e');
+      // ignore: avoid_print
+      print('Stack trace:');
+      // ignore: avoid_print
+      print(stackTrace);
     }
   }
   
@@ -150,17 +193,36 @@ class FCMService {
   /// - fcm_tokens/{userId}_{deviceId}: 이전 기기의 FCM 토큰만 (세션 관리용)
   Future<void> _saveFCMToken(String userId, String token) async {
     try {
+      // ignore: avoid_print
+      print('💾 [FCM-SAVE] 토큰 저장 시작');
+      
       final deviceId = await _getDeviceId();
       final deviceName = await _getDeviceName();
       final platform = _getPlatformName();
       
+      // ignore: avoid_print
+      print('   - Device ID: $deviceId');
+      // ignore: avoid_print
+      print('   - Device Name: $deviceName');
+      // ignore: avoid_print
+      print('   - Platform: $platform');
+      
       // 1. 기존 활성 토큰 조회 (fcm_tokens 컬렉션에서만)
+      // ignore: avoid_print
+      print('🔍 [FCM-SAVE] 기존 토큰 조회 중...');
       final existingToken = await _databaseService.getActiveFcmToken(userId);
       
       if (existingToken != null && existingToken.deviceId != deviceId) {
         // 다른 기기에서 로그인 감지 - 기존 기기에 강제 로그아웃 알림 전송
-        debugPrint('🚨 중복 로그인 감지: ${existingToken.deviceName} → $deviceName');
+        // ignore: avoid_print
+        print('🚨 [FCM-SAVE] 중복 로그인 감지: ${existingToken.deviceName} → $deviceName');
         await _sendForceLogoutNotification(existingToken.fcmToken, deviceName, platform);
+      } else if (existingToken != null) {
+        // ignore: avoid_print
+        print('ℹ️ [FCM-SAVE] 동일 기기 토큰 갱신');
+      } else {
+        // ignore: avoid_print
+        print('ℹ️ [FCM-SAVE] 첫 로그인');
       }
       
       // 2. 새 토큰 모델 생성 및 저장
@@ -175,12 +237,26 @@ class FCMService {
         isActive: true,
       );
       
+      // ignore: avoid_print
+      print('💾 [FCM-SAVE] DatabaseService.saveFcmToken() 호출 중...');
       await _databaseService.saveFcmToken(tokenModel);
       
-      debugPrint('✅ FCM 토큰 저장 완료: $deviceName ($platform)');
+      // ignore: avoid_print
+      print('✅ [FCM-SAVE] Firestore 저장 완료!');
+      // ignore: avoid_print
+      print('   - 컬렉션: fcm_tokens');
+      // ignore: avoid_print
+      print('   - 문서 ID: ${userId}_$deviceId');
+      // ignore: avoid_print
+      print('   - 기기: $deviceName ($platform)');
       
-    } catch (e) {
-      debugPrint('❌ FCM 토큰 저장 오류: $e');
+    } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('❌ [FCM-SAVE] 토큰 저장 오류: $e');
+      // ignore: avoid_print
+      print('Stack trace:');
+      // ignore: avoid_print
+      print(stackTrace);
     }
   }
   
