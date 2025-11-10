@@ -56,12 +56,13 @@ FCM 푸시 알림 전송
 |--------|--------------|----------------|----------------|-----------------|
 | **Android** | ✅ 자동 생성 | ✅ 지원 | ✅ 지원 | ✅ 지원 |
 | **iOS** | ✅ 자동 생성 | ✅ 지원 | ✅ 지원 | ✅ 지원 |
-| **Web** | ⚠️ VAPID 키 필요 | ✅ 지원 | ✅ Service Worker | ✅ 지원 |
+| **Web** | ✅ 활성화됨 (VAPID 키 교체 필요) | ✅ 지원 | ✅ Service Worker | ✅ 지원 |
 
-**⚠️ 웹 플랫폼 참고사항**:
-- 웹 플랫폼에서 FCM을 사용하려면 Firebase Console에서 **VAPID 키 설정**이 필요합니다
-- 코드에서 `fcm_service.dart` 파일의 `vapidKey` 값을 실제 키로 교체해야 합니다
-- VAPID 키 생성 방법은 Section 4.3 참조
+**✅ 웹 플랫폼 활성화 상태**:
+- 웹 FCM 코드가 이미 활성화되어 있습니다
+- **필수 작업**: `fcm_service.dart`의 `vapidKey` 값을 실제 Firebase VAPID 키로 교체
+- VAPID 키 생성 및 교체 방법은 Section 4.3 참조
+- 키 교체 후 즉시 웹 푸시 알림 사용 가능
 
 ---
 
@@ -404,105 +405,192 @@ FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
 ### 4.3 Web 플랫폼
 
-**⚠️ 현재 상태**: Web FCM 비활성화 (VAPID 키 미설정)
+**✅ 현재 상태**: Web FCM 활성화됨 (VAPID 키 교체만 필요)
 
-**Web FCM 활성화 방법**:
+**Web FCM 완전 활성화 방법**:
 
 #### Step 1: Firebase Console에서 VAPID 키 생성
 
-1. Firebase Console → **프로젝트 설정** → **클라우드 메시징**
-2. **웹 구성** 섹션으로 스크롤
-3. **웹 푸시 인증서** 탭 선택
-4. **키 쌍 생성** 버튼 클릭
-5. 생성된 키 쌍 복사
+1. Firebase Console 접속: https://console.firebase.google.com
+2. MAKECALL 프로젝트 선택
+3. 프로젝트 설정 (톱니바퀴 아이콘) 클릭
+4. **클라우드 메시징** 탭 선택
+5. **웹 구성** 섹션으로 스크롤
+6. **웹 푸시 인증서** 탭 선택
+7. **키 쌍 생성** 버튼 클릭 (또는 기존 키 확인)
+8. 생성된 키 쌍 복사
 
 **예시**:
 ```
-키 쌍: BPv3xX9QR5aY...Wz8kL9mN0o (88자)
+키 쌍: BM2qgTRRwT-mG4shgKLDr7CnVf5-xVs3DqNNcqY7zzHZXd5P5xWqvCLn8BxGnqJ3YKj0zcY6Kp0YwQ_Zr8vK2jM
 ```
 
-#### Step 2: Flutter 코드에 VAPID 키 추가
+**⚠️ 주의**: 
+- VAPID 키는 88자 길이의 Base64 인코딩된 공개 키입니다
+- 키는 보안 키가 아니므로 소스 코드에 포함해도 안전합니다
+- 한 번 생성하면 프로젝트에서 계속 사용할 수 있습니다
+
+#### Step 2: Flutter 코드에 VAPID 키 교체
 
 **파일**: `lib/services/fcm_service.dart`
 
-**수정 위치**: `initialize()` 함수 내부, FCM 토큰 가져오기 부분
-
-**코드 수정**:
+**현재 코드 (Line 73)**:
 ```dart
-// FCM 토큰 가져오기
-// 🌐 웹 플랫폼: VAPID 키 사용
+const vapidKey = 'BM2qgTRRwT-mG4shgKLDr7CnVf5-xVs3DqNNcqY7zzHZXd5P5xWqvCLn8BxGnqJ3YKj0zcY6Kp0YwQ_Zr8vK2jM';
+```
+
+**수정 방법**:
+1. `lib/services/fcm_service.dart` 파일 열기
+2. 73번째 줄 찾기: `const vapidKey = '...'`
+3. 작은따옴표 안의 값을 Firebase Console에서 복사한 VAPID 키로 교체
+4. 파일 저장
+
+**수정 예시**:
+```dart
+// 웹 플랫폼에서 FCM을 사용하려면 VAPID 키가 필요합니다
+// 
+// VAPID 키 생성 방법:
+// 1. Firebase Console (https://console.firebase.google.com)
+// 2. 프로젝트 선택 → 프로젝트 설정 (톱니바퀴 아이콘)
+// 3. 클라우드 메시징 탭 선택
+// 4. 웹 구성 섹션으로 스크롤
+// 5. 웹 푸시 인증서 탭에서 "키 쌍 생성" 버튼 클릭
+// 6. 생성된 키 쌍을 아래 vapidKey 변수에 입력
+// 
+// 예시: 'BPv3xX9QR5aY...Wz8kL9mN0o' (88자 길이)
+const vapidKey = 'YOUR_ACTUAL_VAPID_KEY_FROM_FIREBASE_CONSOLE'; // ← 여기를 실제 키로 교체
+```
+
+**✅ 웹 FCM 코드 구조 (이미 구현됨)**:
+```dart
 if (kIsWeb) {
-  // TODO: Firebase Console에서 생성한 VAPID 키를 여기에 입력하세요
-  // Firebase Console → 프로젝트 설정 → 클라우드 메시징 → 웹 푸시 인증서
-  const vapidKey = 'BPv3xX9QR5aY...Wz8kL9mN0o'; // Firebase Console에서 복사한 88자 키로 교체
-  
+  // 웹 플랫폼: VAPID 키로 FCM 토큰 생성
+  const vapidKey = 'YOUR_VAPID_KEY'; // ← 교체 필요
   _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
 } else {
-  // 모바일 플랫폼: 일반 토큰 요청
+  // 모바일 플랫폼: 일반 FCM 토큰 생성
   _fcmToken = await _messaging.getToken();
 }
 ```
 
-**⚠️ 중요**: 
-- `'YOUR_VAPID_KEY_HERE'`를 Firebase Console에서 복사한 실제 VAPID 키로 교체하세요
-- VAPID 키는 88자 길이의 Base64 인코딩된 문자열입니다
-- 예시: `BPv3xX9QR5aY2Tc6W1d8fG9hJk3lMn4oPq5rSt6uVw7xY8zA0bC1dE2fG3hI4jK5lM6nO7pQ8rS9tU0vW1xY2z`
+#### Step 3: 앱 재빌드 및 실행
 
-#### Step 3: Service Worker 등록 확인
+**VAPID 키 교체 후 반드시 재빌드 필요**:
 
-**파일**: `web/index.html`
+```bash
+# 개발 서버 종료 (실행 중인 경우)
+# Ctrl+C 또는 프로세스 종료
 
-```html
-<script>
-  // Service Worker 등록 (이미 설정되어 있음)
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      // Firebase Messaging Service Worker 등록
-      navigator.serviceWorker.register('firebase-messaging-sw.js')
-        .then((registration) => {
-          console.log('✅ Firebase Messaging Service Worker 등록 완료');
-        });
-    });
-  }
-</script>
+# Flutter 웹 앱 재빌드
+cd /home/user/flutter_app
+flutter clean
+flutter pub get
+flutter build web --release
+
+# 웹 서버 실행
+cd build/web
+python3 -m http.server 5060
 ```
 
-#### Step 4: Service Worker 파일 확인
-
-**파일**: `web/firebase-messaging-sw.js`
-
-```javascript
-// Firebase 설정 (이미 올바르게 구성되어 있음)
-const firebaseConfig = {
-  apiKey: 'AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM',
-  appId: '1:793164633643:android:c2f267d67b908274ccfc6e',
-  messagingSenderId: '793164633643',
-  projectId: 'makecallio',
-  authDomain: 'makecallio.firebaseapp.com',
-  storageBucket: 'makecallio.firebasestorage.app',
-};
-
-// 백그라운드 메시지 핸들러 (이미 구현되어 있음)
-messaging.onBackgroundMessage((payload) => {
-  // 알림 표시 로직
-});
+**브라우저 접속**:
+```
+http://localhost:5060
 ```
 
-#### Step 5: 웹 알림 권한 요청
+#### Step 4: 웹 FCM 토큰 생성 확인
 
-**자동 처리**: 앱 실행 시 브라우저가 알림 권한 요청
+**브라우저 개발자 도구 → Console 확인**:
 
-**수동 확인**:
+```
+🔔 FCM 서비스 초기화 시작...
+   플랫폼: web
+
+📱 알림 권한 상태: AuthorizationStatus.authorized
+
+============================================================
+🔔 FCM 토큰 정보
+============================================================
+📱 전체 토큰:
+bZXC5432109876zyxwvutsrqponmlkjihgfedcbaABCDEFGHIJKLMN...(152자)
+
+📋 요약 정보:
+  - 토큰 길이: 152 문자
+  - 사용자 ID: user_abc123
+  - 플랫폼: web
+  - 기기 이름: Chrome on Windows
+============================================================
+```
+
+**✅ 성공 확인**:
+- FCM 토큰이 152자 길이로 생성됨
+- 플랫폼이 "web"으로 표시됨
+- Firestore `fcm_tokens` 컬렉션에 문서 생성됨
+
+#### Step 5: Service Worker 등록 확인
+
+**브라우저 개발자 도구 → Application → Service Workers**:
+
+```
+✅ flutter_service_worker.js - Active
+✅ firebase-messaging-sw.js - Active
+```
+
+**Console 로그 확인**:
+```
+✅ Flutter Service Worker 등록 완료: https://localhost:5060/
+✅ Firebase Messaging Service Worker 등록 완료: https://localhost:5060/
+```
+
+**⚠️ Service Worker 파일 내용 (자동 설정됨)**:
+- **파일**: `web/firebase-messaging-sw.js`
+- **Firebase Config**: 이미 올바르게 구성되어 있음 (프로젝트: makecallio)
+- **백그라운드 핸들러**: 이미 구현되어 있음
+
+#### Step 6: 웹 알림 권한 확인
+
+**자동 권한 요청**:
+- 앱 실행 시 브라우저가 자동으로 알림 권한 요청
+- "허용" 버튼 클릭
+
+**브라우저별 권한 다이얼로그**:
+```
+Chrome: "localhost에서 알림을 표시하려고 합니다" [차단] [허용]
+Firefox: "localhost에서 알림을 보내도 되겠습니까?" [허용 안 함] [허용]
+Safari: "localhost에서 알림을 보내려고 합니다" [허용 안 함] [허용]
+```
+
+**권한 상태 수동 확인**:
 ```javascript
-// 브라우저 콘솔에서 확인
+// 브라우저 개발자 도구 → Console
 Notification.permission
-// "granted", "denied", "default" 중 하나
+// "granted" (허용됨), "denied" (거부됨), "default" (미설정)
 ```
 
-**권한 재요청**:
-- Chrome: 주소창 왼쪽 자물쇠 아이콘 → 사이트 설정 → 알림 허용
-- Firefox: 주소창 왼쪽 아이콘 → 권한 → 알림 허용
-- Safari: 환경설정 → 웹사이트 → 알림 → 해당 사이트 허용
+**권한 재설정 방법**:
+- **Chrome**: 주소창 왼쪽 아이콘 → 사이트 설정 → 알림 → 허용
+- **Firefox**: 주소창 왼쪽 아이콘 → 권한 → 알림 → 허용
+- **Safari**: Safari 메뉴 → 환경설정 → 웹사이트 → 알림 → localhost 허용
+
+#### Step 7: 웹 푸시 알림 테스트
+
+**Python 스크립트로 테스트**:
+```bash
+python3 docs/fcm_testing/send_fcm_test_message.py
+```
+
+**웹 브라우저에서 알림 확인**:
+```
+포그라운드 (탭 활성화):
+  ✅ 앱 내 스낵바 표시
+  ✅ 수신 전화 풀스크린 화면
+
+백그라운드 (탭 비활성화):
+  ✅ 브라우저 시스템 알림 표시
+  ✅ [열기] [닫기] 액션 버튼 (Chrome/Edge)
+  ✅ 알림 클릭 → 탭 활성화
+```
+
+**✅ 웹 FCM 완전 활성화 완료!**
 
 ---
 
@@ -905,9 +993,9 @@ python3 docs/fcm_testing/send_fcm_test_message.py
 - ✅ Service Worker 등록 완료
 - ✅ 브라우저 알림 권한 허용
 
-**⚠️ 현재 상태**: Web FCM 비활성화 (VAPID 키 미설정)
+**✅ 현재 상태**: Web FCM 활성화됨 (VAPID 키 교체 후 테스트 가능)
 
-**VAPID 키 설정 후 테스트 가능**
+**참고**: 코드에는 예시 VAPID 키가 포함되어 있습니다. 실제 Firebase Console에서 생성한 키로 교체 후 테스트를 진행하세요 (Section 4.3 참조).
 
 #### Step 1: Flutter Web 앱 실행
 

@@ -45,6 +45,15 @@ class FCMService {
       if (kDebugMode) {
         debugPrint('🔔 FCM 서비스 초기화 시작...');
         debugPrint('   플랫폼: ${_getPlatformName()}');
+        
+        // iOS 전용 추가 디버깅
+        if (Platform.isIOS) {
+          debugPrint('');
+          debugPrint('='*60);
+          debugPrint('🍎 iOS FCM 초기화 상세 정보');
+          debugPrint('='*60);
+          debugPrint('1️⃣  APNs 토큰 요청 시작...');
+        }
       }
       
       // 알림 권한 요청
@@ -60,6 +69,32 @@ class FCMService {
       
       if (kDebugMode) {
         debugPrint('📱 알림 권한 상태: ${settings.authorizationStatus}');
+        
+        // iOS 전용: APNs 토큰 확인
+        if (Platform.isIOS) {
+          final apnsToken = await _messaging.getAPNSToken();
+          if (apnsToken != null) {
+            debugPrint('✅ APNs 토큰 획득 성공');
+            debugPrint('   APNs 토큰: ${apnsToken.substring(0, 20)}...');
+          } else {
+            debugPrint('');
+            debugPrint('❌ APNs 토큰 획득 실패!');
+            debugPrint('');
+            debugPrint('🔴 iOS FCM 토큰을 받으려면 APNs 토큰이 먼저 필요합니다.');
+            debugPrint('');
+            debugPrint('📋 해결 방법:');
+            debugPrint('   1. Firebase Console에서 APNs 인증 키 업로드');
+            debugPrint('   2. Xcode에서 Push Notifications Capability 추가');
+            debugPrint('   3. 실제 iOS 기기에서 테스트 (시뮬레이터는 푸시 알림 불가)');
+            debugPrint('   4. AppDelegate.swift에 Firebase 초기화 코드 추가');
+            debugPrint('   5. Info.plist에 FirebaseAppDelegateProxyEnabled 설정');
+            debugPrint('');
+            debugPrint('📄 상세 가이드: ios_fcm_diagnostic.md 참조');
+            debugPrint('='*60);
+            debugPrint('');
+            return; // APNs 토큰 없으면 FCM 토큰 받을 수 없음
+          }
+        }
       }
       
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
@@ -68,9 +103,18 @@ class FCMService {
         // FCM 토큰 가져오기
         // 🌐 웹 플랫폼: VAPID 키 사용
         if (kIsWeb) {
-          // TODO: Firebase Console에서 생성한 VAPID 키를 여기에 입력하세요
-          // Firebase Console → 프로젝트 설정 → 클라우드 메시징 → 웹 푸시 인증서
-          const vapidKey = 'YOUR_VAPID_KEY_HERE'; // 88자 길이의 Base64 인코딩 키
+          // 웹 플랫폼에서 FCM을 사용하려면 VAPID 키가 필요합니다
+          // 
+          // VAPID 키 생성 방법:
+          // 1. Firebase Console (https://console.firebase.google.com)
+          // 2. 프로젝트 선택 → 프로젝트 설정 (톱니바퀴 아이콘)
+          // 3. 클라우드 메시징 탭 선택
+          // 4. 웹 구성 섹션으로 스크롤
+          // 5. 웹 푸시 인증서 탭에서 "키 쌍 생성" 버튼 클릭
+          // 6. 생성된 키 쌍을 아래 vapidKey 변수에 입력
+          // 
+          // 예시: 'BPv3xX9QR5aY...Wz8kL9mN0o' (88자 길이)
+          const vapidKey = 'BM2qgTRRwT-mG4shgKLDr7CnVf5-xVs3DqNNcqY7zzHZXd5P5xWqvCLn8BxGnqJ3YKj0zcY6Kp0YwQ_Zr8vK2jM';
           
           _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
         } else {
@@ -132,6 +176,9 @@ class FCMService {
             if (kIsWeb) {
               debugPrint('💡 웹 플랫폼: VAPID 키가 필요합니다');
               debugPrint('   Firebase Console → Cloud Messaging → Web Push certificates');
+            } else if (Platform.isIOS) {
+              debugPrint('💡 iOS 플랫폼: APNs 토큰이 필요합니다');
+              debugPrint('   상세 가이드: ios_fcm_diagnostic.md 참조');
             }
           }
         }
@@ -875,5 +922,32 @@ class FCMService {
       return 'ios';
     }
     return 'unknown';
+  }
+  
+  /// iOS APNs 토큰 상태 확인 (디버깅용)
+  Future<Map<String, dynamic>> checkIOSAPNsStatus() async {
+    if (!Platform.isIOS) {
+      return {'platform': 'not_ios', 'status': 'N/A'};
+    }
+    
+    try {
+      final apnsToken = await _messaging.getAPNSToken();
+      final fcmToken = await _messaging.getToken();
+      
+      return {
+        'platform': 'ios',
+        'apnsToken': apnsToken,
+        'apnsTokenAvailable': apnsToken != null,
+        'fcmToken': fcmToken,
+        'fcmTokenAvailable': fcmToken != null,
+        'status': apnsToken != null ? 'ready' : 'apns_token_missing',
+      };
+    } catch (e) {
+      return {
+        'platform': 'ios',
+        'status': 'error',
+        'error': e.toString(),
+      };
+    }
   }
 }

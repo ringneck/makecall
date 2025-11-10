@@ -15,7 +15,7 @@
 
 const {onDocumentCreated, onDocumentUpdated} = require("firebase-functions/v2/firestore");
 const {onCall, HttpsError, onRequest} = require("firebase-functions/v2/https");
-const {logger} = require("firebase-functions/logger");
+const {logger} = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 
 // Firebase Admin 초기화

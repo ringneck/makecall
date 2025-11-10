@@ -52,9 +52,11 @@
 	<key>UIStatusBarHidden</key>
 	<false/>
 	
-	<!-- 🎯 메모리 최적화 -->
+	<!-- 🎯 메모리 최적화 & 백그라운드 푸시 알림 -->
 	<key>UIBackgroundModes</key>
-	<array/>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	
 	<!-- 🔋 배터리 최적화 -->
 	<key>UIRequiresPersistentWiFi</key>
@@ -78,5 +80,17 @@
 	<!-- Contacts Privacy Description -->
 	<key>NSContactsUsageDescription</key>
 	<string>장치 연락처를 불러오기 위해 연락처 접근 권한이 필요합니다.</string>
+	
+	<!-- 🔔 Push Notification Privacy Description -->
+	<key>NSUserNotificationUsageDescription</key>
+	<string>전화 착신 알림을 받으려면 알림 권한이 필요합니다.</string>
+	
+	<!-- 🔥 Firebase 설정 -->
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
+	
+	<!-- 📱 Firebase Cloud Messaging -->
+	<key>FirebaseMessagingAutoInitEnabled</key>
+	<true/>
 </dict>
 </plist>
