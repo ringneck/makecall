@@ -86,8 +86,16 @@
 	<string>전화 착신 알림을 받으려면 알림 권한이 필요합니다.</string>
 	
 	<!-- 🔥 Firebase 설정 -->
+	<!-- 
+	🔍 [ADVANCED DEBUG] FirebaseAppDelegateProxyEnabled 테스트
+	- false: Firebase가 AppDelegate 메서드를 자동으로 swizzle하지 않음
+	- true: Firebase가 자동으로 메서드를 가로채고 처리 (기본 동작)
+	
+	⚠️ 현재 설정: true로 변경하여 Firebase 플러그인의 자동 처리 활성화
+	   이것이 APNs 토큰 중복 호출 문제와 관련이 있을 수 있음
+	-->
 	<key>FirebaseAppDelegateProxyEnabled</key>
-	<false/>
+	<true/>
 	
 	<!-- 📱 Firebase Cloud Messaging -->
 	<key>FirebaseMessagingAutoInitEnabled</key>

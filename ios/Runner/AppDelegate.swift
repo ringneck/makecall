@@ -4,14 +4,30 @@ import FirebaseMessaging
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
+  // 🔍 호출 카운터 (고급 디버깅)
+  private var apnsTokenCallCount = 0
+  private var didFinishLaunchingCallCount = 0
+  
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    didFinishLaunchingCallCount += 1
+    
     print("")
     print(String(repeating: "=", count: 80))
-    print("🚀 AppDelegate.application() 실행 시작")
+    print("🚀 [NATIVE-001] AppDelegate.didFinishLaunching 실행 시작")
+    print("📊 호출 횟수: \(didFinishLaunchingCallCount)")
+    print("📊 Thread: \(Thread.current)")
+    print("📊 Timestamp: \(Date())")
     print(String(repeating: "=", count: 80))
+    print("")
+    
+    // 🔍 호출 스택 추적 (고급 디버깅)
+    print("🔍 [NATIVE-002] 호출 스택 추적:")
+    Thread.callStackSymbols.prefix(10).forEach { symbol in
+      print("   \(symbol)")
+    }
     print("")
     
     // 환경 정보 출력
@@ -74,11 +90,23 @@ import FirebaseMessaging
     print("")
     
     print(String(repeating: "=", count: 80))
-    print("✅ AppDelegate.application() 실행 완료")
+    print("✅ [NATIVE-FINISH] AppDelegate.didFinishLaunching 실행 완료")
+    print("📊 호출 횟수: \(didFinishLaunchingCallCount)")
+    print("")
+    print("🔍 [NATIVE-SUPER] super.application() 호출 예정...")
     print(String(repeating: "=", count: 80))
     print("")
     
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    let result = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    
+    print("")
+    print(String(repeating: "=", count: 80))
+    print("✅ [NATIVE-COMPLETE] super.application() 반환 완료")
+    print("📊 결과: \(result)")
+    print(String(repeating: "=", count: 80))
+    print("")
+    
+    return result
   }
   
   // APNs 토큰 수신 성공
@@ -86,24 +114,52 @@ import FirebaseMessaging
     _ application: UIApplication,
     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
   ) {
+    apnsTokenCallCount += 1
+    
     print("")
-    print(String(repeating: "=", count: 60))
-    print("🍎 APNs 토큰 수신 성공")
-    print(String(repeating: "=", count: 60))
+    print(String(repeating: "=", count: 80))
+    print("🍎 [NATIVE-APNS-001] APNs 토큰 수신 - 호출 #\(apnsTokenCallCount)")
+    print("📊 Thread: \(Thread.current)")
+    print("📊 Timestamp: \(Date())")
+    print("📊 DispatchQueue: \(DispatchQueue.currentLabel)")
+    print(String(repeating: "=", count: 80))
+    
+    // 🔍 호출 스택 추적 (고급 디버깅 - 누가 이 메서드를 호출했는지 확인)
+    print("")
+    print("🔍 [NATIVE-APNS-002] 호출 스택 추적 (첫 15개):")
+    Thread.callStackSymbols.prefix(15).enumerated().forEach { index, symbol in
+      print("   [\(index)] \(symbol)")
+    }
+    print("")
+    
     let tokenString = deviceToken.map { String(format: "%02x", $0) }.joined()
-    print("📱 토큰: \(tokenString)")
-    print("📊 토큰 길이: \(tokenString.count) 문자")
+    print("📱 [NATIVE-APNS-003] 토큰 정보:")
+    print("   - 토큰: \(tokenString)")
+    print("   - 길이: \(tokenString.count) 문자")
+    print("   - 바이트: \(deviceToken.count) bytes")
     print("")
     
-    // ⚠️ Flutter 플러그인이 자동으로 APNs 토큰을 Firebase에 전달
-    // Native에서 Messaging.messaging().apnsToken을 설정하면
-    // Firebase 초기화 전에 호출되어 중복 초기화 오류 발생
-    // Messaging.messaging().apnsToken = deviceToken ← 제거됨
+    // ⚠️ 중복 호출 경고
+    if apnsTokenCallCount > 1 {
+      print("⚠️⚠️⚠️  [NATIVE-APNS-WARNING] ⚠️⚠️⚠️")
+      print("🚨 중복 호출 감지! 이 메서드가 \(apnsTokenCallCount)번 호출되었습니다!")
+      print("🚨 APNs 토큰은 앱 생명주기 동안 한 번만 수신되어야 합니다!")
+      print("🚨 호출 스택을 확인하여 중복 호출 원인을 파악하세요!")
+      print("⚠️⚠️⚠️  [NATIVE-APNS-WARNING] ⚠️⚠️⚠️")
+      print("")
+    }
     
-    print("📱 Flutter Firebase Messaging 플러그인이 자동으로 처리합니다")
+    // 🔍 Firebase 상태 확인 (고급 디버깅)
+    print("🔍 [NATIVE-APNS-004] 현재 상태 체크:")
+    print("   - 이 메서드는 override 되었습니까? YES")
+    print("   - super.application() 호출 예정? NO (의도적으로 제거됨)")
+    print("   - Flutter 플러그인 자동 감지 예상: YES")
+    print("")
+    
+    print("📱 [NATIVE-APNS-005] Flutter Firebase Messaging 플러그인이 자동으로 처리합니다")
     print("   → APNs 토큰을 Firebase에 자동 전달")
     print("   → FCM 토큰 자동 생성")
-    print(String(repeating: "=", count: 60))
+    print(String(repeating: "=", count: 80))
     print("")
     
     // ✅ 아무것도 하지 않음!
@@ -111,10 +167,12 @@ import FirebaseMessaging
     // 자동으로 APNs 토큰을 감지하고 Firebase에 전달합니다.
     // 
     // ❌ super.application() 호출 금지!
-    // → FlutterAppDelegate가 이 메서드를 다시 호출하여 무한 재귀 발생
-    // → APNs 토큰이 두 번 출력되는 원인
-    //
-    // super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken) ← 제거됨
+    // ❌ Messaging.messaging().apnsToken 설정 금지!
+    // 
+    // 모든 처리는 Flutter 플러그인이 자동으로 수행합니다.
+    
+    print("✅ [NATIVE-APNS-006] 메서드 종료 - 아무 작업도 수행하지 않음")
+    print("${'=' * 80}\n")
   }
   
   // APNs 토큰 수신 실패
@@ -172,6 +230,13 @@ import FirebaseMessaging
     print("   데이터: \(userInfo)")
     
     completionHandler()
+  }
+}
+
+// 🔧 DispatchQueue 헬퍼
+extension DispatchQueue {
+  static var currentLabel: String {
+    return String(cString: __dispatch_queue_get_label(nil), encoding: .utf8) ?? "Unknown Queue"
   }
 }
 

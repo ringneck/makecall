@@ -43,20 +43,34 @@ class FCMService {
   Future<void> initialize(String userId) async {
     try {
       if (kDebugMode) {
-        debugPrint('🔔 FCM 서비스 초기화 시작...');
-        debugPrint('   플랫폼: ${_getPlatformName()}');
+        debugPrint('\n${'=' * 80}');
+        debugPrint('🔔 [FCM-001] FCM 서비스 초기화 시작');
+        debugPrint('📊 Timestamp: ${DateTime.now().toIso8601String()}');
+        debugPrint('📊 User ID: $userId');
+        debugPrint('📊 플랫폼: ${_getPlatformName()}');
+        debugPrint('${'=' * 80}');
+        
+        // 🔍 Firebase 상태 확인
+        debugPrint('\n🔍 [FCM-002] Firebase Messaging 인스턴스 상태:');
+        debugPrint('   - FirebaseMessaging instance: ${_messaging.hashCode}');
+        debugPrint('   - isSupported: ${await FirebaseMessaging.instance.isSupported()}');
         
         // iOS 전용 추가 디버깅
         if (Platform.isIOS) {
-          debugPrint('');
-          debugPrint('='*60);
-          debugPrint('🍎 iOS FCM 초기화 상세 정보');
-          debugPrint('='*60);
-          debugPrint('1️⃣  APNs 토큰 요청 시작...');
+          debugPrint('\n${'=' * 80}');
+          debugPrint('🍎 [FCM-iOS-001] iOS FCM 초기화 상세 정보');
+          debugPrint('${'=' * 80}');
+          debugPrint('1️⃣  [FCM-iOS-002] requestPermission() 호출 전 상태');
+          debugPrint('   - 현재 시각: ${DateTime.now()}');
+          debugPrint('   - APNs 토큰 요청 준비...\n');
         }
       }
       
       // 알림 권한 요청
+      if (kDebugMode) {
+        debugPrint('📱 [FCM-003] requestPermission() 호출 시작...');
+      }
+      
       NotificationSettings settings = await _messaging.requestPermission(
         alert: true,
         announcement: false,
@@ -68,30 +82,43 @@ class FCMService {
       );
       
       if (kDebugMode) {
+        debugPrint('✅ [FCM-004] requestPermission() 완료');
         debugPrint('📱 알림 권한 상태: ${settings.authorizationStatus}');
+        debugPrint('   - alert: ${settings.alert}');
+        debugPrint('   - badge: ${settings.badge}');
+        debugPrint('   - sound: ${settings.sound}');
         
         // iOS 전용: APNs 토큰 확인
         if (Platform.isIOS) {
+          debugPrint('\n🍎 [FCM-iOS-003] getAPNSToken() 호출 시작...');
           final apnsToken = await _messaging.getAPNSToken();
+          debugPrint('🍎 [FCM-iOS-004] getAPNSToken() 완료');
+          
           if (apnsToken != null) {
-            debugPrint('✅ APNs 토큰 획득 성공');
-            debugPrint('   APNs 토큰: ${apnsToken.substring(0, 20)}...');
+            debugPrint('✅ [FCM-iOS-005] APNs 토큰 획득 성공!');
+            debugPrint('   - 전체 길이: ${apnsToken.length} 문자');
+            debugPrint('   - 토큰 앞부분: ${apnsToken.substring(0, 20)}...');
+            debugPrint('   - 토큰 타입: ${apnsToken.runtimeType}');
           } else {
-            debugPrint('');
-            debugPrint('❌ APNs 토큰 획득 실패!');
-            debugPrint('');
+            debugPrint('\n${'=' * 80}');
+            debugPrint('❌ [FCM-iOS-ERROR-005] APNs 토큰 획득 실패!');
+            debugPrint('${'=' * 80}');
             debugPrint('🔴 iOS FCM 토큰을 받으려면 APNs 토큰이 먼저 필요합니다.');
             debugPrint('');
             debugPrint('📋 해결 방법:');
             debugPrint('   1. Firebase Console에서 APNs 인증 키 업로드');
             debugPrint('   2. Xcode에서 Push Notifications Capability 추가');
             debugPrint('   3. 실제 iOS 기기에서 테스트 (시뮬레이터는 푸시 알림 불가)');
-            debugPrint('   4. AppDelegate.swift에 Firebase 초기화 코드 추가');
+            debugPrint('   4. AppDelegate.swift에서 registerForRemoteNotifications() 호출');
             debugPrint('   5. Info.plist에 FirebaseAppDelegateProxyEnabled 설정');
             debugPrint('');
-            debugPrint('📄 상세 가이드: ios_fcm_diagnostic.md 참조');
-            debugPrint('='*60);
+            debugPrint('🔍 추가 체크사항:');
+            debugPrint('   - APNs 토큰이 didRegisterForRemoteNotificationsWithDeviceToken에서 수신되었는가?');
+            debugPrint('   - Native 로그에서 APNs 토큰이 출력되었는가?');
+            debugPrint('   - Flutter 플러그인이 APNs 토큰을 자동으로 감지했는가?');
             debugPrint('');
+            debugPrint('📄 상세 가이드: ios_fcm_diagnostic.md 참조');
+            debugPrint('${'=' * 80}\n');
             return; // APNs 토큰 없으면 FCM 토큰 받을 수 없음
           }
         }
@@ -119,15 +146,20 @@ class FCMService {
           _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
         } else {
           // 모바일 플랫폼: 일반 토큰 요청
+          if (kDebugMode) {
+            debugPrint('\n📱 [FCM-005] getToken() 호출 시작 (모바일 플랫폼)...');
+          }
           _fcmToken = await _messaging.getToken();
+          if (kDebugMode) {
+            debugPrint('✅ [FCM-006] getToken() 완료');
+          }
         }
         
         if (_fcmToken != null) {
           if (kDebugMode) {
-            debugPrint('');
-            debugPrint('='*60);
-            debugPrint('🔔 FCM 토큰 정보');
-            debugPrint('='*60);
+            debugPrint('\n${'=' * 80}');
+            debugPrint('✅ [FCM-007] FCM 토큰 생성 완료!');
+            debugPrint('${'=' * 80}');
             debugPrint('📱 전체 토큰:');
             debugPrint(_fcmToken!);
             debugPrint('');
@@ -136,12 +168,12 @@ class FCMService {
             debugPrint('  - 사용자 ID: $userId');
             debugPrint('  - 플랫폼: ${_getPlatformName()}');
             debugPrint('  - 기기 이름: ${await _getDeviceName()}');
+            debugPrint('  - 생성 시각: ${DateTime.now().toIso8601String()}');
             debugPrint('');
             debugPrint('💡 복사해서 테스트에 사용하세요:');
             debugPrint('   Firebase Console → Messaging → Send test message');
             debugPrint('   또는: python3 docs/fcm_testing/send_fcm_test_message.py');
-            debugPrint('='*60);
-            debugPrint('');
+            debugPrint('${'=' * 80}\n');
           }
           
           // Firestore에 토큰 저장
