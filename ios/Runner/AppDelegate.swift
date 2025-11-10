@@ -1,5 +1,6 @@
 import UIKit
 import Flutter
+import FirebaseCore
 import FirebaseMessaging
 
 @main
@@ -13,6 +14,15 @@ import FirebaseMessaging
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     didFinishLaunchingCallCount += 1
+    
+    // 🔥 Firebase 초기화 (FirebaseAppDelegateProxyEnabled = false이므로 수동 초기화 필요)
+    if FirebaseApp.app() == nil {
+      FirebaseApp.configure()
+      print("✅ Firebase 초기화 완료 (Native)")
+    }
+    
+    // Firebase Messaging 델리게이트 설정
+    Messaging.messaging().delegate = self
     
     // Flutter 플러그인 등록
     GeneratedPluginRegistrant.register(with: self)
