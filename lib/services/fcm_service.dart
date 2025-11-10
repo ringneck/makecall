@@ -51,8 +51,33 @@ class FCMService {
       // ignore: avoid_print
       print('   Platform: ${_getPlatformName()}');
       
-      // Android 알림 채널 생성
+      // Android 로컬 알림 플러그인 초기화 및 알림 채널 생성
       if (Platform.isAndroid) {
+        // ignore: avoid_print
+        print('🤖 [FCM] Android: flutter_local_notifications 초기화 중...');
+        
+        final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+            FlutterLocalNotificationsPlugin();
+        
+        // Android 초기화 설정
+        const AndroidInitializationSettings initializationSettingsAndroid =
+            AndroidInitializationSettings('@mipmap/ic_launcher');
+        
+        const InitializationSettings initializationSettings =
+            InitializationSettings(android: initializationSettingsAndroid);
+        
+        await flutterLocalNotificationsPlugin.initialize(
+          initializationSettings,
+          onDidReceiveNotificationResponse: (NotificationResponse response) {
+            debugPrint('🔔 [FCM] 로컬 알림 클릭됨: ${response.payload}');
+            // 알림 클릭 시 추가 동작 가능
+          },
+        );
+        
+        // ignore: avoid_print
+        print('✅ [FCM] flutter_local_notifications 초기화 완료');
+        
+        // 알림 채널 생성
         // ignore: avoid_print
         print('🤖 [FCM] Android: 알림 채널 생성 중...');
         
@@ -64,9 +89,6 @@ class FCMService {
           playSound: true,
           enableVibration: true,
         );
-        
-        final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-            FlutterLocalNotificationsPlugin();
         
         await flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<
@@ -392,14 +414,38 @@ class FCMService {
       return;
     }
     
-    // 📞 수신 전화 화면 표시
+    // 📞 수신 전화 화면 표시 (약간의 딜레이로 Context 초기화 대기)
     debugPrint('📞 [FCM] 백그라운드에서 수신 전화 화면 표시 시작...');
     
-    // WebSocket 연결 상태 확인 및 재연결
-    _ensureWebSocketConnection();
+    // Context가 준비될 때까지 대기 (최대 3초)
+    _waitForContextAndShowScreen(message);
+  }
+  
+  /// Context가 준비될 때까지 대기 후 IncomingCallScreen 표시
+  Future<void> _waitForContextAndShowScreen(RemoteMessage message) async {
+    int retryCount = 0;
+    const maxRetries = 30; // 3초 (100ms * 30)
     
-    // 풀스크린 수신 전화 화면 표시
-    _showIncomingCallScreen(message);
+    while (retryCount < maxRetries) {
+      final context = _context ?? navigatorKey.currentContext;
+      
+      if (context != null) {
+        debugPrint('✅ [FCM] Context 준비 완료 (${retryCount * 100}ms 대기)');
+        
+        // WebSocket 연결 상태 확인 및 재연결
+        _ensureWebSocketConnection();
+        
+        // 풀스크린 수신 전화 화면 표시
+        _showIncomingCallScreen(message);
+        return;
+      }
+      
+      debugPrint('⏳ [FCM] Context 대기 중... (${retryCount + 1}/$maxRetries)');
+      await Future.delayed(const Duration(milliseconds: 100));
+      retryCount++;
+    }
+    
+    debugPrint('❌ [FCM] Context 타임아웃 (3초 대기 후에도 Context 없음)');
   }
   
   /// 강제 로그아웃 메시지 처리
