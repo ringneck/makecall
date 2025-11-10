@@ -1,5 +1,11 @@
 # FCM iOS 통합 수정 완료
 
+## 🎯 중요 업데이트 (2024-11-10)
+
+**"No app has been configured yet" 오류의 근본 원인을 찾아 해결했습니다!**
+
+문제는 `firebase_options.dart` 파일의 iOS 설정이 **Android 값**을 사용하고 있었던 것입니다. GoogleService-Info.plist 파일은 올바르게 등록되어 있었지만, Flutter 코드에서 잘못된 API Key와 App ID를 사용하여 Firebase 초기화에 실패했습니다.
+
 ## 🔴 해결된 문제들
 
 ### 1. ❌ "Could not locate configuration file: 'GoogleService-Info.plist'" 오류
@@ -42,9 +48,31 @@
 ```
 
 ### 3. ❌ "No app has been configured yet" Firebase 초기화 오류
-**원인**: GoogleService-Info.plist를 찾지 못해 Firebase가 초기화되지 않음
+**원인**: `firebase_options.dart`에 iOS API Key와 App ID가 잘못 설정됨 (Android 값 사용)
 
-**해결**: 위의 1번 문제 해결로 자동 해결됨 ✅
+**해결**:
+- `lib/firebase_options.dart` 파일에서 iOS 설정 수정
+- iOS apiKey: `AIzaSyBnZSVzdthE2oa82Vjv8Uy0Wgefx6nGAWs` (GoogleService-Info.plist와 일치)
+- iOS appId: `1:793164633643:ios:1e2ec90f03abf1abccfc6e` (올바른 iOS App ID)
+- macOS 설정도 동일하게 수정 ✅
+
+**수정 전 (잘못된 값)**:
+```dart
+static const FirebaseOptions ios = FirebaseOptions(
+  apiKey: 'AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM',  // ❌ Android 키
+  appId: '1:793164633643:ios:c2f267d67b908274ccfc6e',  // ❌ 잘못된 ID
+  ...
+);
+```
+
+**수정 후 (올바른 값)**:
+```dart
+static const FirebaseOptions ios = FirebaseOptions(
+  apiKey: 'AIzaSyBnZSVzdthE2oa82Vjv8Uy0Wgefx6nGAWs',  // ✅ iOS 키
+  appId: '1:793164633643:ios:1e2ec90f03abf1abccfc6e',  // ✅ 올바른 iOS ID
+  ...
+);
+```
 
 ---
 
@@ -159,6 +187,8 @@ flutter run --release
 ## 📊 Git 커밋 히스토리
 
 ```
+224729b - CRITICAL FIX: Correct iOS Firebase configuration (API key and App ID)
+0be6d23 - docs: Add FCM iOS integration fixes documentation
 015c25b - Fix: Add GoogleService-Info.plist and APNs entitlements to Xcode project
 9a5132c - CRITICAL FIX: Restore corrupted Xcode project.pbxproj
 150ce0b - Fix: Copy GoogleService-Info.plist to ios/ root for Xcode build
@@ -173,6 +203,7 @@ flutter run --release
 - [x] GoogleService-Info.plist Xcode 프로젝트 등록
 - [x] Runner.entitlements 생성 및 등록
 - [x] CODE_SIGN_ENTITLEMENTS 설정 추가 (Debug/Release/Profile)
+- [x] firebase_options.dart iOS 설정 수정 (올바른 API Key와 App ID)
 - [x] Git 커밋 및 GitHub 푸시
 - [x] 문서 작성
 
