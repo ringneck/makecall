@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../screens/call/incoming_call_screen.dart';
 import '../models/fcm_token_model.dart';
 import 'dcmiws_service.dart';
@@ -48,6 +49,32 @@ class FCMService {
       print('   User ID: $userId');
       // ignore: avoid_print
       print('   Platform: ${_getPlatformName()}');
+      
+      // Android 알림 채널 생성
+      if (Platform.isAndroid) {
+        // ignore: avoid_print
+        print('🤖 [FCM] Android: 알림 채널 생성 중...');
+        
+        const AndroidNotificationChannel channel = AndroidNotificationChannel(
+          'high_importance_channel', // id
+          'High Importance Notifications', // name
+          description: 'This channel is used for important notifications.',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        );
+        
+        final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+            FlutterLocalNotificationsPlugin();
+        
+        await flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>()
+            ?.createNotificationChannel(channel);
+        
+        // ignore: avoid_print
+        print('✅ [FCM] Android: 알림 채널 생성 완료');
+      }
       
       // 알림 권한 요청
       // ignore: avoid_print

@@ -41,6 +41,7 @@ dependencies:
   firebase_messaging: 15.1.3
   firebase_storage: 12.3.2
   cloud_functions: 5.1.3  # Cloud Functions for remote logout
+  flutter_local_notifications: ^17.2.3  # Android notification channels
   
   # State Management
   provider: 6.1.5+1
