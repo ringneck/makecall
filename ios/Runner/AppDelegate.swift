@@ -124,6 +124,18 @@ import FirebaseMessaging
     print("📊 DispatchQueue: \(DispatchQueue.currentLabel)")
     print(String(repeating: "=", count: 80))
     
+    // 🔒 [CRITICAL FIX] 중복 호출 차단
+    guard apnsTokenCallCount == 1 else {
+      print("")
+      print("🛑 [NATIVE-APNS-BLOCKED] 중복 호출 차단!")
+      print("   이 메서드는 이미 \(apnsTokenCallCount - 1)번 실행되었습니다.")
+      print("   첫 번째 호출만 처리하고 나머지는 무시합니다.")
+      print("   iOS 시스템 또는 Flutter 프레임워크가 메서드를 재호출하고 있습니다.")
+      print(String(repeating: "=", count: 80))
+      print("")
+      return  // ← 조기 종료
+    }
+    
     // 🔍 호출 스택 추적 (고급 디버깅 - 누가 이 메서드를 호출했는지 확인)
     print("")
     print("🔍 [NATIVE-APNS-002] 호출 스택 추적 (첫 15개):")
