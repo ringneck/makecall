@@ -17,7 +17,10 @@ import 'screens/home/main_screen.dart';
 /// 백그라운드 FCM 메시지 핸들러 (Top-level function)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Firebase가 이미 초기화되었는지 확인
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
   
   debugPrint('🔔 백그라운드 메시지 수신:');
   debugPrint('  제목: ${message.notification?.title}');
