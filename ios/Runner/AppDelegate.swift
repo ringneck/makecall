@@ -106,8 +106,15 @@ import FirebaseMessaging
     print(String(repeating: "=", count: 60))
     print("")
     
-    // Flutter 플러그인이 처리할 수 있도록 super 호출
-    super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+    // ✅ 아무것도 하지 않음!
+    // Flutter Firebase Messaging 플러그인이 method channel을 통해
+    // 자동으로 APNs 토큰을 감지하고 Firebase에 전달합니다.
+    // 
+    // ❌ super.application() 호출 금지!
+    // → FlutterAppDelegate가 이 메서드를 다시 호출하여 무한 재귀 발생
+    // → APNs 토큰이 두 번 출력되는 원인
+    //
+    // super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken) ← 제거됨
   }
   
   // APNs 토큰 수신 실패
