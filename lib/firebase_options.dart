@@ -61,8 +61,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM',
-    appId: '1:793164633643:ios:c2f267d67b908274ccfc6e',
+    apiKey: 'AIzaSyBnZSVzdthE2oa82Vjv8Uy0Wgefx6nGAWs',
+    appId: '1:793164633643:ios:1e2ec90f03abf1abccfc6e',
     messagingSenderId: '793164633643',
     projectId: 'makecallio',
     storageBucket: 'makecallio.firebasestorage.app',
@@ -70,8 +70,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM',
-    appId: '1:793164633643:ios:c2f267d67b908274ccfc6e',
+    apiKey: 'AIzaSyBnZSVzdthE2oa82Vjv8Uy0Wgefx6nGAWs',
+    appId: '1:793164633643:ios:1e2ec90f03abf1abccfc6e',
     messagingSenderId: '793164633643',
     projectId: 'makecallio',
     storageBucket: 'makecallio.firebasestorage.app',
