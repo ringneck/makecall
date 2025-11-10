@@ -81,11 +81,27 @@ class FCMService {
           // ignore: avoid_print
           print('📱 [FCM] 모바일 플랫폼: 일반 토큰 요청');
           
-          // iOS 전용: APNs 토큰 확인
+          // iOS 전용: APNs 토큰 확인 (재시도 로직 포함)
           if (Platform.isIOS) {
             // ignore: avoid_print
             print('🍎 [FCM] iOS: APNs 토큰 확인 중...');
-            final apnsToken = await _messaging.getAPNSToken();
+            
+            String? apnsToken;
+            int retryCount = 0;
+            const maxRetries = 5;
+            
+            // APNs 토큰이 준비될 때까지 재시도
+            while (apnsToken == null && retryCount < maxRetries) {
+              apnsToken = await _messaging.getAPNSToken();
+              
+              if (apnsToken == null) {
+                retryCount++;
+                // ignore: avoid_print
+                print('⏳ [FCM] APNs 토큰 대기 중... (시도 $retryCount/$maxRetries)');
+                await Future.delayed(const Duration(milliseconds: 500));
+              }
+            }
+            
             if (apnsToken != null) {
               // ignore: avoid_print
               print('✅ [FCM] APNs 토큰 존재: ${apnsToken.substring(0, 20)}...');
@@ -102,6 +118,8 @@ class FCMService {
               print('   3. Xcode에서 Push Notifications Capability 추가');
               // ignore: avoid_print
               print('   4. 네트워크 연결 확인 (Wi-Fi/셀룰러)');
+              // ignore: avoid_print
+              print('   5. 앱을 완전히 종료하고 재시작');
               return;
             }
           }
