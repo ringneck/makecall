@@ -69,6 +69,16 @@
 		<true/>
 	</dict>
 	
+	<!-- 🌐 Local Network Permission (FCM 연결 필수) -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Firebase Cloud Messaging 서비스를 사용하기 위해 네트워크 접근 권한이 필요합니다.</string>
+	
+	<!-- 📡 Bonjour Services (Optional - Firebase에서 사용할 수 있음) -->
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_googlecast._tcp</string>
+	</array>
+	
 	<!-- Camera & Photo Library Privacy Descriptions -->
 	<key>NSCameraUsageDescription</key>
 	<string>프로필 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.</string>

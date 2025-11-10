@@ -42,7 +42,10 @@ class FCMService {
   /// FCM 초기화
   Future<void> initialize(String userId) async {
     try {
+      debugPrint('🔔 FCM 초기화 시작: userId=$userId');
+      
       // 알림 권한 요청
+      debugPrint('📱 알림 권한 요청 중...');
       NotificationSettings settings = await _messaging.requestPermission(
         alert: true,
         announcement: false,
@@ -53,19 +56,47 @@ class FCMService {
         sound: true,
       );
       
+      debugPrint('✅ 알림 권한 응답: ${settings.authorizationStatus}');
+      
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
         
         // FCM 토큰 가져오기
+        debugPrint('🔑 FCM 토큰 요청 시작...');
+        
         if (kIsWeb) {
+          debugPrint('🌐 웹 플랫폼: VAPID 키 사용');
           const vapidKey = 'BM2qgTRRwT-mG4shgKLDr7CnVf5-xVs3DqNNcqY7zzHZXd5P5xWqvCLn8BxGnqJ3YKj0zcY6Kp0YwQ_Zr8vK2jM';
           _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
         } else {
+          debugPrint('📱 모바일 플랫폼: 일반 토큰 요청');
+          
+          // iOS 전용: APNs 토큰 확인
+          if (Platform.isIOS) {
+            debugPrint('🍎 iOS 플랫폼: APNs 토큰 확인 중...');
+            final apnsToken = await _messaging.getAPNSToken();
+            if (apnsToken != null) {
+              debugPrint('✅ APNs 토큰 존재: ${apnsToken.substring(0, 20)}...');
+            } else {
+              debugPrint('❌ APNs 토큰 없음 - FCM 토큰 생성 실패 예상');
+              debugPrint('💡 해결방법:');
+              debugPrint('   1. 실제 iOS 기기에서 테스트 (시뮬레이터 X)');
+              debugPrint('   2. Firebase Console에서 APNs 인증 키 업로드');
+              debugPrint('   3. Xcode에서 Push Notifications Capability 추가');
+              debugPrint('   4. 네트워크 연결 확인 (Wi-Fi/셀룰러)');
+              return;
+            }
+          }
+          
           _fcmToken = await _messaging.getToken();
         }
         
         if (_fcmToken != null) {
           debugPrint('✅ FCM 토큰 생성 완료: ${_fcmToken!.substring(0, 20)}...');
+          debugPrint('📊 토큰 정보:');
+          debugPrint('   - 전체 길이: ${_fcmToken!.length}자');
+          debugPrint('   - 플랫폼: ${_getPlatformName()}');
+          debugPrint('   - 사용자 ID: $userId');
           
           // Firestore에 토큰 저장
           await _saveFCMToken(userId, _fcmToken!);
@@ -83,7 +114,14 @@ class FCMService {
           // 백그라운드 메시지 핸들러는 main.dart에서 설정
           
         } else {
-          debugPrint('⚠️ FCM 토큰을 가져올 수 없습니다');
+          debugPrint('❌ FCM 토큰 생성 실패');
+          debugPrint('🔍 가능한 원인:');
+          debugPrint('   1. 네트워크 연결 오류 (현재 오류 확인됨)');
+          debugPrint('   2. Firebase 설정 오류');
+          if (Platform.isIOS) {
+            debugPrint('   3. APNs 토큰 없음 (iOS 시뮬레이터는 지원 안 됨)');
+            debugPrint('   4. iOS 네트워크 권한 거부');
+          }
         }
       } else {
         debugPrint('❌ 알림 권한이 거부되었습니다');
