@@ -15,11 +15,9 @@ import FirebaseMessaging
   ) -> Bool {
     didFinishLaunchingCallCount += 1
     
-    // 🔥 Firebase 초기화 (FirebaseAppDelegateProxyEnabled = false이므로 수동 초기화 필요)
-    if FirebaseApp.app() == nil {
-      FirebaseApp.configure()
-      print("✅ Firebase 초기화 완료 (Native)")
-    }
+    // 🔥 Firebase 초기화 (반드시 가장 먼저!)
+    FirebaseApp.configure()
+    print("✅ Firebase 초기화 완료 (Native)")
     
     // Firebase Messaging 델리게이트 설정
     Messaging.messaging().delegate = self
@@ -63,7 +61,9 @@ import FirebaseMessaging
     let tokenString = deviceToken.map { String(format: "%02x", $0) }.joined()
     print("✅ APNs 토큰 수신: \(tokenString)")
     
-    // Flutter Firebase Messaging 플러그인이 자동으로 처리
+    // 🔥 CRITICAL: APNs 토큰을 Firebase Messaging에 수동으로 설정
+    Messaging.messaging().apnsToken = deviceToken
+    print("✅ APNs 토큰을 Firebase Messaging에 설정 완료")
   }
   
   // APNs 토큰 수신 실패
