@@ -286,15 +286,25 @@ class FCMService {
       // ignore: avoid_print
       print('   - Platform: $platform');
       
-      // 1. 기존 활성 토큰 조회 (fcm_tokens 컬렉션에서만)
+      // 1. 모든 기존 활성 토큰 조회 (다중 기기 지원)
       // ignore: avoid_print
-      print('🔍 [FCM-SAVE] 기존 토큰 조회 중...');
-      final existingToken = await _databaseService.getActiveFcmToken(userId);
+      print('🔍 [FCM-SAVE] 모든 활성 토큰 조회 중...');
+      final existingTokens = await _databaseService.getAllActiveFcmTokens(userId);
       
-      if (existingToken != null && existingToken.deviceId != deviceId) {
-        // 다른 기기에서 로그인 감지 - 기존 기기에 승인 요청 전송
+      // 현재 기기를 제외한 다른 기기들 필터링
+      final otherDevices = existingTokens
+          .where((token) => token.deviceId != deviceId)
+          .toList();
+      
+      if (otherDevices.isNotEmpty) {
+        // 다른 기기에서 로그인 감지 - 모든 기존 기기에 승인 요청 전송
         // ignore: avoid_print
-        print('🔔 [FCM-SAVE] 새 기기 로그인 감지: ${existingToken.deviceName} → $deviceName');
+        print('🔔 [FCM-SAVE] 새 기기 로그인 감지!');
+        // ignore: avoid_print
+        print('   - 새 기기: $deviceName ($platform)');
+        // ignore: avoid_print
+        print('   - 기존 기기 ${otherDevices.length}개에 알림 전송 예정');
+        
         await _sendDeviceApprovalRequest(
           userId: userId,
           newDeviceId: deviceId,
@@ -302,12 +312,12 @@ class FCMService {
           newPlatform: platform,
           newDeviceToken: token,
         );
-      } else if (existingToken != null) {
+      } else if (existingTokens.any((token) => token.deviceId == deviceId)) {
         // ignore: avoid_print
         print('ℹ️ [FCM-SAVE] 동일 기기 토큰 갱신');
       } else {
         // ignore: avoid_print
-        print('ℹ️ [FCM-SAVE] 첫 로그인');
+        print('ℹ️ [FCM-SAVE] 첫 로그인 (다른 활성 기기 없음)');
       }
       
       // 2. 새 토큰 모델 생성 및 저장
@@ -360,21 +370,26 @@ class FCMService {
       // ignore: avoid_print
       print('📤 [FCM-APPROVAL] 기기 승인 요청 생성 시작');
       
-      // 기존 활성 기기들의 토큰 조회
+      // 기존 활성 기기들의 토큰 조회 (새 기기 제외)
       final existingTokens = await _firestore
           .collection('fcm_tokens')
           .where('userId', isEqualTo: userId)
           .where('isActive', isEqualTo: true)
           .get();
       
-      if (existingTokens.docs.isEmpty) {
+      // 새 기기를 제외한 기존 기기들만 필터링
+      final otherDeviceTokens = existingTokens.docs
+          .where((doc) => doc.data()['deviceId'] != newDeviceId)
+          .toList();
+      
+      if (otherDeviceTokens.isEmpty) {
         // ignore: avoid_print
-        print('ℹ️ [FCM-APPROVAL] 기존 활성 기기 없음 - 승인 요청 불필요');
+        print('ℹ️ [FCM-APPROVAL] 다른 활성 기기 없음 - 승인 요청 불필요');
         return;
       }
       
       // ignore: avoid_print
-      print('📋 [FCM-APPROVAL] 기존 활성 기기 ${existingTokens.docs.length}개 발견');
+      print('📋 [FCM-APPROVAL] 다른 활성 기기 ${otherDeviceTokens.length}개 발견');
       
       // Firestore에 승인 요청 저장 (5분 TTL)
       final approvalDoc = await _firestore.collection('device_approval_requests').add({
@@ -391,8 +406,8 @@ class FCMService {
       // ignore: avoid_print
       print('✅ [FCM-APPROVAL] 승인 요청 문서 생성: ${approvalDoc.id}');
       
-      // 모든 기존 기기에 FCM 알림 전송
-      for (var tokenDoc in existingTokens.docs) {
+      // 모든 기존 기기에 FCM 알림 전송 (새 기기 제외)
+      for (var tokenDoc in otherDeviceTokens) {
         final tokenData = tokenDoc.data();
         final targetToken = tokenData['fcmToken'] as String?;
         final targetDeviceName = tokenData['deviceName'] as String? ?? 'Unknown Device';

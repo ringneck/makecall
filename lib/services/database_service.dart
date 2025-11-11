@@ -1049,6 +1049,48 @@ class DatabaseService {
     }
   }
 
+  /// 사용자의 모든 활성 FCM 토큰 조회 (다중 기기 지원)
+  /// 
+  /// @param userId 사용자 ID
+  /// @return 활성 FCM 토큰 모델 리스트
+  Future<List<FcmTokenModel>> getAllActiveFcmTokens(String userId) async {
+    try {
+      // ignore: avoid_print
+      print('🔍 [DatabaseService] 모든 활성 FCM 토큰 조회');
+      // ignore: avoid_print
+      print('   userId: $userId');
+
+      final querySnapshot = await _firestore
+          .collection('fcm_tokens')
+          .where('userId', isEqualTo: userId)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        // ignore: avoid_print
+        print('   ⚠️  활성 FCM 토큰 없음');
+        return [];
+      }
+
+      final tokens = querySnapshot.docs
+          .map((doc) => FcmTokenModel.fromFirestore(doc))
+          .toList();
+      
+      // ignore: avoid_print
+      print('   ✅ 활성 FCM 토큰 ${tokens.length}개 발견');
+      for (var token in tokens) {
+        // ignore: avoid_print
+        print('      - ${token.deviceName} (${token.platform})');
+      }
+
+      return tokens;
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ [DatabaseService] 모든 FCM 토큰 조회 실패: $e');
+      return [];
+    }
+  }
+
   /// 특정 기기의 FCM 토큰 조회
   /// 
   /// @param userId 사용자 ID
