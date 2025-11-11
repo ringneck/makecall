@@ -77,7 +77,7 @@ import FirebaseMessaging
     print("❌ APNs 등록 실패: \(error.localizedDescription)")
   }
   
-  // 포그라운드에서 알림 수신 - Method Channel로 직접 전달
+  // 포그라운드에서 알림 수신 - Firebase SDK가 자동으로 Flutter로 전달
   override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     willPresent notification: UNNotification,
@@ -87,35 +87,17 @@ import FirebaseMessaging
     
     print("📨 [iOS-FCM] 포그라운드 알림 수신: \(notification.request.content.title)")
     
-    if let channel = fcmChannel {
-      var messageData: [String: Any] = [:]
-      for (key, value) in userInfo {
-        if let keyString = key as? String {
-          messageData[keyString] = value
-        }
-      }
-      
-      messageData["notification_title"] = notification.request.content.title
-      messageData["notification_body"] = notification.request.content.body
-      messageData["message_type"] = "foreground"
-      
-      channel.invokeMethod("handleFCMMessage", arguments: messageData) { result in
-        if let error = result as? FlutterError {
-          print("❌ [iOS-FCM] Flutter 전달 오류: \(error.message ?? "Unknown")")
-        } else {
-          print("✅ [iOS-FCM] Flutter 전달 완료")
-        }
-      }
-    } else {
-      print("❌ [iOS-FCM] Method Channel 미초기화")
-    }
+    // ✅ Firebase Messaging이 자동으로 Flutter의 FirebaseMessaging.onMessage로 전달
+    // Method Channel 제거 - Firebase SDK의 기본 동작 사용
     
     // ⚠️ iOS 네이티브 알림을 표시하지 않음 (Flutter에서 사용자 설정 확인 후 처리)
     // 사용자가 푸시 알림을 비활성화했을 수 있으므로, Flutter 레벨에서 제어
     completionHandler([[]])  // 빈 옵션 = 알림 표시 안 함
+    
+    print("✅ [iOS-FCM] Firebase SDK가 Flutter로 자동 전달 (네이티브 알림 표시 안 함)")
   }
   
-  // 알림 탭했을 때 - Method Channel로 직접 전달
+  // 알림 탭했을 때 - Firebase SDK가 자동으로 Flutter로 전달
   override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,
@@ -125,28 +107,10 @@ import FirebaseMessaging
     
     print("📬 [iOS-FCM] 알림 탭: \(response.notification.request.content.title)")
     
-    if let channel = fcmChannel {
-      var messageData: [String: Any] = [:]
-      for (key, value) in userInfo {
-        if let keyString = key as? String {
-          messageData[keyString] = value
-        }
-      }
-      
-      messageData["notification_title"] = response.notification.request.content.title
-      messageData["notification_body"] = response.notification.request.content.body
-      messageData["message_type"] = "notification_tap"
-      
-      channel.invokeMethod("handleFCMMessage", arguments: messageData) { result in
-        if let error = result as? FlutterError {
-          print("❌ [iOS-FCM] Flutter 전달 오류: \(error.message ?? "Unknown")")
-        } else {
-          print("✅ [iOS-FCM] Flutter 전달 완료")
-        }
-      }
-    } else {
-      print("❌ [iOS-FCM] Method Channel 미초기화")
-    }
+    // ✅ Firebase Messaging이 자동으로 Flutter의 FirebaseMessaging.onMessageOpenedApp로 전달
+    // Method Channel 제거 - Firebase SDK의 기본 동작 사용
+    
+    print("✅ [iOS-FCM] Firebase SDK가 Flutter로 자동 전달")
     
     completionHandler()
   }
