@@ -1,9 +1,11 @@
+// ✅ dotenv를 사용하여 .env 파일 로드 (배포 시 필수)
+require("dotenv").config();
+
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 
 // ✅ 마이그레이션: functions.config() → process.env (dotenv)
-// Firebase Cloud Functions는 자동으로 .env 파일을 로드합니다 (Node.js 18+)
 const gmailEmail = process.env.GMAIL_EMAIL;
 const gmailPassword = process.env.GMAIL_PASSWORD;
 
