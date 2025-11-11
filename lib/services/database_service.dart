@@ -978,29 +978,21 @@ class DatabaseService {
       // ignore: avoid_print
       print('   platform: ${tokenModel.platform}');
 
-      // 1. 해당 사용자의 기존 활성 토큰들을 모두 비활성화
-      final existingTokens = await _firestore
+      // 1. 다중 기기 로그인 허용 - 동일 기기의 기존 토큰만 확인
+      // ignore: avoid_print
+      print('   🔄 [다중 기기 지원] 동일 기기의 토큰만 업데이트');
+      
+      final sameDeviceDoc = await _firestore
           .collection('fcm_tokens')
-          .where('userId', isEqualTo: tokenModel.userId)
-          .where('isActive', isEqualTo: true)
+          .doc('${tokenModel.userId}_${tokenModel.deviceId}')
           .get();
 
-      // ignore: avoid_print
-      print('   기존 활성 토큰 수: ${existingTokens.docs.length}');
-
-      // 기존 토큰들을 비활성화
-      final batch = _firestore.batch();
-      for (var doc in existingTokens.docs) {
-        batch.update(doc.reference, {
-          'isActive': false,
-          'lastActiveAt': FieldValue.serverTimestamp(),
-        });
-      }
-      await batch.commit();
-
-      if (existingTokens.docs.isNotEmpty) {
+      if (sameDeviceDoc.exists) {
         // ignore: avoid_print
-        print('   ✅ ${existingTokens.docs.length}개의 기존 토큰 비활성화 완료');
+        print('   ℹ️ 동일 기기 토큰 갱신');
+      } else {
+        // ignore: avoid_print
+        print('   ℹ️ 새 기기 토큰 추가 (중복 로그인 허용)');
       }
 
       // 2. 새 토큰 저장 (deviceId를 문서 ID로 사용하여 중복 방지)

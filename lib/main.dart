@@ -9,10 +9,12 @@ import 'services/fcm_service.dart';
 import 'services/user_session_manager.dart';
 import 'services/dcmiws_service.dart';
 import 'services/dcmiws_connection_manager.dart';
+import 'services/inactivity_service.dart';
 import 'providers/selected_extension_provider.dart';
 import 'providers/dcmiws_event_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/main_screen.dart';
+import 'screens/splash/splash_screen.dart';
 
 /// 백그라운드 FCM 메시지 핸들러 (Top-level function)
 @pragma('vm:entry-point')
@@ -81,6 +83,12 @@ class _MyAppState extends State<MyApp> {
   
   // 🚀 WebSocket 연결 관리자
   final DCMIWSConnectionManager _connectionManager = DCMIWSConnectionManager();
+  
+  // ⏱️ 비활성 자동 로그아웃 서비스
+  final InactivityService _inactivityService = InactivityService();
+  
+  // 💡 스플래시 스크린 표시 상태
+  bool _isInitializing = true;
 
   @override
   void initState() {
@@ -107,13 +115,41 @@ class _MyAppState extends State<MyApp> {
     // WebSocket 연결 관리자 시작
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _connectionManager.start();
+      _initializeApp();
     });
+  }
+  
+  /// 앱 초기화 (스플래시 스크린 표시 후 Firebase Auth 세션 체크)
+  Future<void> _initializeApp() async {
+    try {
+      debugPrint('🚀 [스플래시] 앱 초기화 시작');
+      
+      // Firebase Auth 세션 확인 대기 (최대 2초)
+      await Future.delayed(const Duration(seconds: 2));
+      
+      debugPrint('✅ [스플래시] Firebase Auth 세션 확인 완료');
+      
+      if (mounted) {
+        setState(() {
+          _isInitializing = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ [스플래시] 초기화 오류: $e');
+      if (mounted) {
+        setState(() {
+          _isInitializing = false;
+        });
+      }
+    }
   }
   
   @override
   void dispose() {
     // 🛑 WebSocket 연결 관리자 중지
     _connectionManager.stop();
+    // 🛑 비활성 서비스 정리
+    _inactivityService.dispose();
     super.dispose();
   }
 
@@ -166,45 +202,96 @@ class _MyAppState extends State<MyApp> {
                 ),
               ),
             ),
-            home: Consumer<AuthService>(
-              builder: (context, authService, _) {
-                // 🔔 FCM BuildContext 설정 (수신 전화 화면 표시를 위해 필수)
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    FCMService.setContext(context);
-                  }
-                });
-                
-                // 🎯 고급 개발자 패턴: 최적화된 사용자 세션 전환 감지
-                // - 중복 실행 방지
-                // - 사용자 변경 시에만 실행
-                // - 비동기 안전성 보장
-                final currentUserId = authService.currentUser?.uid;
-                
-                // 사용자 변경 시에만 세션 체크 실행
-                if (!_isSessionCheckScheduled && _lastCheckedUserId != currentUserId) {
-                  _isSessionCheckScheduled = true;
-                  _lastCheckedUserId = currentUserId;
-                  
-                  WidgetsBinding.instance.addPostFrameCallback((_) async {
-                    if (mounted) {
-                      await UserSessionManager().checkAndInitializeSession(currentUserId);
-                      if (mounted) {
-                        setState(() {
-                          _isSessionCheckScheduled = false;
+            home: _isInitializing
+                ? const SplashScreen() // 💡 스플래시 스크린 표시
+                : Consumer<AuthService>(
+                    builder: (context, authService, _) {
+                      // 🔔 FCM BuildContext 설정 (수신 전화 화면 표시를 위해 필수)
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          FCMService.setContext(context);
+                        }
+                      });
+                      
+                      // 🎯 고급 개발자 패턴: 최적화된 사용자 세션 전환 감지
+                      // - 중복 실행 방지
+                      // - 사용자 변경 시에만 실행
+                      // - 비동기 안전성 보장
+                      final currentUserId = authService.currentUser?.uid;
+                      
+                      // 사용자 변경 시에만 세션 체크 실행
+                      if (!_isSessionCheckScheduled && _lastCheckedUserId != currentUserId) {
+                        _isSessionCheckScheduled = true;
+                        _lastCheckedUserId = currentUserId;
+                        
+                        WidgetsBinding.instance.addPostFrameCallback((_) async {
+                          if (mounted) {
+                            await UserSessionManager().checkAndInitializeSession(currentUserId);
+                            
+                            // ⏱️ 비활성 서비스 초기화 (로그인 시에만)
+                            if (currentUserId != null && authService.isAuthenticated) {
+                              _inactivityService.initialize(
+                                authService: authService,
+                                onWarning: () {
+                                  // 5분 전 경고 다이얼로그
+                                  if (mounted && navigatorKey.currentContext != null) {
+                                    showDialog(
+                                      context: navigatorKey.currentContext!,
+                                      barrierDismissible: false,
+                                      builder: (context) => AlertDialog(
+                                        title: const Row(
+                                          children: [
+                                            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                                            SizedBox(width: 12),
+                                            Text('비활성 경고'),
+                                          ],
+                                        ),
+                                        content: const Text(
+                                          '5분 후 자동 로그아웃됩니다.\n계속 사용하시려면 확인을 클릭하세요.',
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                              _inactivityService.updateActivity(); // 활동 갱신
+                                            },
+                                            child: const Text('확인'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                },
+                                onTimeout: () {
+                                  // 30분 후 자동 로그아웃 (핸들러에서 처리)
+                                  debugPrint('⏰ [비활성] 30분 경과 - 자동 로그아웃');
+                                },
+                              );
+                            }
+                            
+                            if (mounted) {
+                              setState(() {
+                                _isSessionCheckScheduled = false;
+                              });
+                            }
+                          }
                         });
                       }
-                    }
-                  });
-                }
 
-                if (authService.isAuthenticated) {
-                  return const MainScreen(); // 로그인 후 MAKECALL 메인 화면으로 이동
-                } else {
-                  return const LoginScreen();
-                }
-              },
-            ),
+                      if (authService.isAuthenticated) {
+                        // ⏱️ 사용자 활동 감지 (GestureDetector로 전체 앱 감싸기)
+                        return GestureDetector(
+                          onTap: () => _inactivityService.updateActivity(),
+                          onPanDown: (_) => _inactivityService.updateActivity(),
+                          behavior: HitTestBehavior.translucent,
+                          child: const MainScreen(), // 로그인 후 MAKECALL 메인 화면으로 이동
+                        );
+                      } else {
+                        return const LoginScreen();
+                      }
+                    },
+                  ),
           );
         },
       ),

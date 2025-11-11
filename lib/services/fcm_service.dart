@@ -15,10 +15,10 @@ import 'package:provider/provider.dart';
 
 /// FCM(Firebase Cloud Messaging) 서비스
 /// 
-/// 중복 로그인 방지 기능 포함:
-/// - 새 기기에서 로그인 시 이전 세션 강제 로그아웃
-/// - FCM 메시지를 통한 세션 만료 알림
-/// - 한 사용자당 하나의 활성 세션만 유지
+/// 다중 기기 로그인 지원 기능 포함:
+/// - 새 기기에서 로그인 시 기존 기기에 승인 요청
+/// - FCM 메시지를 통한 기기 승인/거부 알림
+/// - 여러 기기에서 동시 로그인 가능
 class FCMService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -292,10 +292,16 @@ class FCMService {
       final existingToken = await _databaseService.getActiveFcmToken(userId);
       
       if (existingToken != null && existingToken.deviceId != deviceId) {
-        // 다른 기기에서 로그인 감지 - 기존 기기에 강제 로그아웃 알림 전송
+        // 다른 기기에서 로그인 감지 - 기존 기기에 승인 요청 전송
         // ignore: avoid_print
-        print('🚨 [FCM-SAVE] 중복 로그인 감지: ${existingToken.deviceName} → $deviceName');
-        await _sendForceLogoutNotification(existingToken.fcmToken, deviceName, platform);
+        print('🔔 [FCM-SAVE] 새 기기 로그인 감지: ${existingToken.deviceName} → $deviceName');
+        await _sendDeviceApprovalRequest(
+          userId: userId,
+          newDeviceId: deviceId,
+          newDeviceName: deviceName,
+          newPlatform: platform,
+          newDeviceToken: token,
+        );
       } else if (existingToken != null) {
         // ignore: avoid_print
         print('ℹ️ [FCM-SAVE] 동일 기기 토큰 갱신');
@@ -339,33 +345,98 @@ class FCMService {
     }
   }
   
-  /// 기존 기기에 강제 로그아웃 FCM 메시지 전송
+  /// 기존 기기에 기기 승인 요청 FCM 메시지 전송
   /// 
-  /// @param targetToken 대상 기기의 FCM 토큰
-  /// @param newDeviceName 새로 로그인한 기기 이름
-  /// @param newPlatform 새로 로그인한 플랫폼
-  Future<void> _sendForceLogoutNotification(
-    String targetToken,
-    String newDeviceName,
-    String newPlatform,
-  ) async {
+  /// 새 기기에서 로그인 시도 시 기존 기기에 승인 요청을 보냅니다.
+  /// 기존 기기에서 승인하면 새 기기 로그인이 완료됩니다.
+  Future<void> _sendDeviceApprovalRequest({
+    required String userId,
+    required String newDeviceId,
+    required String newDeviceName,
+    required String newPlatform,
+    required String newDeviceToken,
+  }) async {
     try {
-      await _firestore.collection('fcm_force_logout_queue').add({
-        'targetToken': targetToken,
+      // ignore: avoid_print
+      print('📤 [FCM-APPROVAL] 기기 승인 요청 생성 시작');
+      
+      // 기존 활성 기기들의 토큰 조회
+      final existingTokens = await _firestore
+          .collection('fcm_tokens')
+          .where('userId', isEqualTo: userId)
+          .where('isActive', isEqualTo: true)
+          .get();
+      
+      if (existingTokens.docs.isEmpty) {
+        // ignore: avoid_print
+        print('ℹ️ [FCM-APPROVAL] 기존 활성 기기 없음 - 승인 요청 불필요');
+        return;
+      }
+      
+      // ignore: avoid_print
+      print('📋 [FCM-APPROVAL] 기존 활성 기기 ${existingTokens.docs.length}개 발견');
+      
+      // Firestore에 승인 요청 저장 (5분 TTL)
+      final approvalDoc = await _firestore.collection('device_approval_requests').add({
+        'userId': userId,
+        'newDeviceId': newDeviceId,
         'newDeviceName': newDeviceName,
         'newPlatform': newPlatform,
-        'message': {
-          'type': 'force_logout',
-          'title': '다른 기기에서 로그인됨',
-          'body': '$newDeviceName에서 로그인되어 현재 세션이 종료됩니다.',
-        },
+        'newDeviceToken': newDeviceToken,
+        'status': 'pending', // pending, approved, rejected, expired
         'createdAt': FieldValue.serverTimestamp(),
-        'processed': false,
+        'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(minutes: 5))),
       });
       
-      debugPrint('✅ 강제 로그아웃 알림 큐 등록 완료');
-    } catch (e) {
-      debugPrint('❌ 강제 로그아웃 알림 전송 실패: $e');
+      // ignore: avoid_print
+      print('✅ [FCM-APPROVAL] 승인 요청 문서 생성: ${approvalDoc.id}');
+      
+      // 모든 기존 기기에 FCM 알림 전송
+      for (var tokenDoc in existingTokens.docs) {
+        final tokenData = tokenDoc.data();
+        final targetToken = tokenData['fcmToken'] as String?;
+        final targetDeviceName = tokenData['deviceName'] as String? ?? 'Unknown Device';
+        
+        if (targetToken == null || targetToken.isEmpty) {
+          // ignore: avoid_print
+          print('⚠️ [FCM-APPROVAL] FCM 토큰 없음: ${tokenDoc.id}');
+          continue;
+        }
+        
+        // ignore: avoid_print
+        print('📤 [FCM-APPROVAL] 승인 요청 알림 전송: $targetDeviceName');
+        
+        // FCM 알림 큐에 추가
+        await _firestore.collection('fcm_approval_notification_queue').add({
+          'targetToken': targetToken,
+          'targetDeviceName': targetDeviceName,
+          'approvalRequestId': approvalDoc.id,
+          'newDeviceName': newDeviceName,
+          'newPlatform': newPlatform,
+          'message': {
+            'type': 'device_approval_request',
+            'title': '🔐 새 기기 로그인 감지',
+            'body': '$newDeviceName ($newPlatform)에서 로그인 시도',
+            'approvalRequestId': approvalDoc.id,
+          },
+          'createdAt': FieldValue.serverTimestamp(),
+          'processed': false,
+        });
+        
+        // ignore: avoid_print
+        print('✅ [FCM-APPROVAL] 알림 큐 등록 완료: $targetDeviceName');
+      }
+      
+      // ignore: avoid_print
+      print('✅ [FCM-APPROVAL] 모든 기존 기기에 승인 요청 전송 완료');
+      
+    } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('❌ [FCM-APPROVAL] 승인 요청 전송 실패: $e');
+      // ignore: avoid_print
+      print('Stack trace:');
+      // ignore: avoid_print
+      print(stackTrace);
     }
   }
   
@@ -374,9 +445,21 @@ class FCMService {
     debugPrint('📨 포그라운드 메시지: ${message.notification?.title}');
     debugPrint('📨 메시지 데이터: ${message.data}');
     
-    // 🔐 강제 로그아웃 메시지 처리
+    // 🔐 강제 로그아웃 메시지 처리 (레거시)
     if (message.data['type'] == 'force_logout') {
       _handleForceLogout(message);
+      return;
+    }
+    
+    // 🔔 기기 승인 요청 메시지 처리
+    if (message.data['type'] == 'device_approval_request') {
+      _handleDeviceApprovalRequest(message);
+      return;
+    }
+    
+    // ✅ 기기 승인 응답 메시지 처리
+    if (message.data['type'] == 'device_approval_response') {
+      _handleDeviceApprovalResponse(message);
       return;
     }
     
@@ -408,9 +491,21 @@ class FCMService {
     debugPrint('🔔 [FCM] 백그라운드 알림 클릭됨: ${message.notification?.title}');
     debugPrint('🔔 [FCM] 메시지 데이터: ${message.data}');
     
-    // 🔐 강제 로그아웃 메시지 처리
+    // 🔐 강제 로그아웃 메시지 처리 (레거시)
     if (message.data['type'] == 'force_logout') {
       _handleForceLogout(message);
+      return;
+    }
+    
+    // 🔔 기기 승인 요청 메시지 처리
+    if (message.data['type'] == 'device_approval_request') {
+      _handleDeviceApprovalRequest(message);
+      return;
+    }
+    
+    // ✅ 기기 승인 응답 메시지 처리
+    if (message.data['type'] == 'device_approval_response') {
+      _handleDeviceApprovalResponse(message);
       return;
     }
     
@@ -448,11 +543,11 @@ class FCMService {
     debugPrint('❌ [FCM] Context 타임아웃 (3초 대기 후에도 Context 없음)');
   }
   
-  /// 강제 로그아웃 메시지 처리
+  /// 강제 로그아웃 메시지 처리 (레거시 - 하위 호환성 유지)
   /// 
   /// 다른 기기에서 로그인했을 때 현재 세션을 종료합니다.
   void _handleForceLogout(RemoteMessage message) {
-    debugPrint('🚨 강제 로그아웃 메시지 수신');
+    debugPrint('🚨 강제 로그아웃 메시지 수신 (레거시)');
     
     final newDeviceName = message.data['newDeviceName'] ?? '다른 기기';
     final newPlatform = message.data['newPlatform'] ?? 'unknown';
@@ -525,6 +620,207 @@ class FCMService {
     }
     
     debugPrint('✅ 강제 로그아웃 처리 완료');
+  }
+  
+  /// 기기 승인 요청 메시지 처리
+  /// 
+  /// 새 기기에서 로그인 시도 시 기존 기기에서 승인 다이얼로그를 표시합니다.
+  void _handleDeviceApprovalRequest(RemoteMessage message) {
+    debugPrint('🔔 [FCM] 기기 승인 요청 메시지 수신');
+    
+    final approvalRequestId = message.data['approvalRequestId'] as String?;
+    final newDeviceName = message.data['newDeviceName'] ?? '알 수 없는 기기';
+    final newPlatform = message.data['newPlatform'] ?? 'unknown';
+    
+    if (approvalRequestId == null) {
+      debugPrint('❌ [FCM] approvalRequestId 없음');
+      return;
+    }
+    
+    final context = _context ?? navigatorKey.currentContext;
+    if (context == null) {
+      debugPrint('❌ [FCM] BuildContext 없음');
+      return;
+    }
+    
+    debugPrint('✅ [FCM] 기기 승인 다이얼로그 표시');
+    
+    // 기기 승인 다이얼로그 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.security, color: Colors.blue, size: 28),
+            SizedBox(width: 12),
+            Text('🔐 새 기기 로그인 감지'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '새 기기에서 로그인을 시도하고 있습니다.',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.blue.withOpacity(0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.devices, size: 16, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '기기: $newDeviceName',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.phone_android, size: 16, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Text(
+                        '플랫폼: $newPlatform',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '본인이 맞다면 승인 버튼을 클릭하세요.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              debugPrint('❌ [FCM] 기기 승인 거부됨');
+              await _rejectDeviceApproval(approvalRequestId);
+            },
+            child: const Text('거부', style: TextStyle(color: Colors.red)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              debugPrint('✅ [FCM] 기기 승인됨');
+              await _approveDeviceApproval(approvalRequestId);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+            ),
+            child: const Text('승인', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 기기 승인 응답 메시지 처리
+  /// 
+  /// 새 기기에서 기존 기기의 승인 결과를 수신합니다.
+  void _handleDeviceApprovalResponse(RemoteMessage message) {
+    debugPrint('✅ [FCM] 기기 승인 응답 메시지 수신');
+    
+    final approved = message.data['approved'] == 'true';
+    final deviceName = message.data['deviceName'] ?? '기존 기기';
+    
+    final context = _context ?? navigatorKey.currentContext;
+    if (context == null) {
+      debugPrint('❌ [FCM] BuildContext 없음');
+      return;
+    }
+    
+    if (approved) {
+      debugPrint('✅ [FCM] 기기 승인 완료 - 로그인 진행');
+      
+      // 승인 완료 스낵바
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ $deviceName에서 승인되었습니다'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      debugPrint('❌ [FCM] 기기 승인 거부됨 - 로그인 취소');
+      
+      // 거부 스낵바
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ $deviceName에서 거부되었습니다'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      
+      // 로그아웃 처리
+      if (_onForceLogout != null) {
+        _onForceLogout!();
+      }
+    }
+  }
+  
+  /// 기기 승인 처리
+  Future<void> _approveDeviceApproval(String approvalRequestId) async {
+    try {
+      debugPrint('✅ [FCM] 기기 승인 처리 시작: $approvalRequestId');
+      
+      // Firestore에서 승인 요청 문서 업데이트
+      await _firestore.collection('device_approval_requests').doc(approvalRequestId).update({
+        'status': 'approved',
+        'approvedAt': FieldValue.serverTimestamp(),
+      });
+      
+      debugPrint('✅ [FCM] Firestore 승인 완료');
+      
+      // 승인 응답 알림 전송 준비는 Cloud Functions에서 처리
+      
+    } catch (e, stackTrace) {
+      debugPrint('❌ [FCM] 기기 승인 처리 오류: $e');
+      debugPrint('Stack trace: $stackTrace');
+    }
+  }
+  
+  /// 기기 승인 거부 처리
+  Future<void> _rejectDeviceApproval(String approvalRequestId) async {
+    try {
+      debugPrint('❌ [FCM] 기기 승인 거부 처리 시작: $approvalRequestId');
+      
+      // Firestore에서 승인 요청 문서 업데이트
+      await _firestore.collection('device_approval_requests').doc(approvalRequestId).update({
+        'status': 'rejected',
+        'rejectedAt': FieldValue.serverTimestamp(),
+      });
+      
+      debugPrint('✅ [FCM] Firestore 거부 완료');
+      
+      // 거부 응답 알림 전송 준비는 Cloud Functions에서 처리
+      
+    } catch (e, stackTrace) {
+      debugPrint('❌ [FCM] 기기 승인 거부 처리 오류: $e');
+      debugPrint('Stack trace: $stackTrace');
+    }
   }
   
   /// 안드로이드 로컬 알림 표시 (포그라운드 전용)
