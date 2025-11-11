@@ -42,6 +42,23 @@ class FCMService {
     _onForceLogout = callback;
   }
   
+  /// ✅ OPTION 1: iOS Method Channel에서 호출하는 공개 메서드
+  /// RemoteMessage를 받아서 포그라운드/백그라운드 핸들러로 전달
+  Future<void> handleRemoteMessage(RemoteMessage message, {required bool isForeground}) async {
+    // ignore: avoid_print
+    print('📨 [FCM-PUBLIC] handleRemoteMessage() 호출됨');
+    // ignore: avoid_print
+    print('   - isForeground: $isForeground');
+    // ignore: avoid_print
+    print('   - messageId: ${message.messageId}');
+    
+    if (isForeground) {
+      _handleForegroundMessage(message);
+    } else {
+      _handleMessageOpenedApp(message);
+    }
+  }
+  
   /// FCM 초기화
   Future<void> initialize(String userId) async {
     try {

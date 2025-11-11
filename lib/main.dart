@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'dart:io' show Platform;
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/fcm_service.dart';
@@ -50,6 +52,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 // 🔑 GlobalKey for Navigator (수신 전화 풀스크린 표시용)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+// ✅ OPTION 1: iOS FCM Method Channel
+MethodChannel? _fcmChannel;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -72,6 +77,13 @@ void main() async {
     }
   }
   
+  // ✅ OPTION 1: iOS Method Channel 설정
+  if (Platform.isIOS) {
+    _fcmChannel = const MethodChannel('com.makecall.app/fcm');
+    _fcmChannel!.setMethodCallHandler(_handleMethodCall);
+    print('✅ [METHOD-CHANNEL] iOS FCM Method Channel 리스너 등록 완료');
+  }
+  
   // FCM 백그라운드 핸들러 등록
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   
@@ -82,6 +94,68 @@ void main() async {
   await UserSessionManager().loadLastUserId();
   
   runApp(const MyApp());
+}
+
+/// ✅ OPTION 1: iOS Native에서 Method Channel을 통해 FCM 메시지를 수신
+Future<void> _handleMethodCall(MethodCall call) async {
+  print('');
+  print('═══════════════════════════════════════════════');
+  print('📲 [FLUTTER-METHOD-CHANNEL] iOS Native로부터 메시지 수신!');
+  print('═══════════════════════════════════════════════');
+  print('   - Method: ${call.method}');
+  print('   - Arguments type: ${call.arguments.runtimeType}');
+  
+  if (call.method == 'handleFCMMessage') {
+    try {
+      final Map<String, dynamic> data = Map<String, dynamic>.from(call.arguments as Map);
+      
+      print('📦 [METHOD-CHANNEL] 수신한 데이터:');
+      print('   - Keys: ${data.keys.toList()}');
+      print('   - message_type: ${data['message_type']}');
+      print('   - linkedid: ${data['linkedid']}');
+      print('   - call_type: ${data['call_type']}');
+      print('   - notification_title: ${data['notification_title']}');
+      print('   - notification_body: ${data['notification_body']}');
+      
+      // RemoteMessage 객체 생성 (FCM 서비스와 호환되도록)
+      final messageType = data['message_type'] as String?;
+      
+      // notification_title, notification_body, message_type 제거 (FCM data 필드가 아님)
+      final fcmData = Map<String, dynamic>.from(data);
+      fcmData.remove('notification_title');
+      fcmData.remove('notification_body');
+      fcmData.remove('message_type');
+      
+      // RemoteMessage 형식으로 변환
+      final remoteMessage = RemoteMessage(
+        data: fcmData,
+        notification: RemoteNotification(
+          title: data['notification_title'] as String?,
+          body: data['notification_body'] as String?,
+        ),
+        messageId: data['gcm.message_id'] as String?,
+      );
+      
+      print('🔄 [METHOD-CHANNEL] FCM 서비스로 메시지 전달 시작...');
+      
+      // FCM 서비스로 전달
+      if (messageType == 'foreground') {
+        // 포그라운드 메시지로 처리
+        print('   - 처리 유형: 포그라운드');
+        await FCMService().handleRemoteMessage(remoteMessage, isForeground: true);
+      } else if (messageType == 'notification_tap') {
+        // 알림 탭으로 처리
+        print('   - 처리 유형: 알림 탭');
+        await FCMService().handleRemoteMessage(remoteMessage, isForeground: false);
+      }
+      
+      print('✅ [METHOD-CHANNEL] 메시지 처리 완료');
+      
+    } catch (e, stackTrace) {
+      print('❌ [METHOD-CHANNEL] 메시지 처리 오류: $e');
+      print('Stack trace: $stackTrace');
+    }
+  }
 }
 
 class MyApp extends StatefulWidget {

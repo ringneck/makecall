@@ -9,6 +9,9 @@ import FirebaseMessaging
   private var apnsTokenCallCount = 0
   private var didFinishLaunchingCallCount = 0
   
+  // ✅ Flutter Method Channel for FCM
+  private var fcmChannel: FlutterMethodChannel?
+  
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -24,6 +27,14 @@ import FirebaseMessaging
     
     // Flutter 플러그인 등록
     GeneratedPluginRegistrant.register(with: self)
+    
+    // ✅ OPTION 1: Flutter Method Channel 설정
+    let controller = window?.rootViewController as! FlutterViewController
+    fcmChannel = FlutterMethodChannel(
+      name: "com.makecall.app/fcm",
+      binaryMessenger: controller.binaryMessenger
+    )
+    print("✅ [METHOD-CHANNEL] FCM Method Channel 생성 완료")
     
     // iOS 알림 설정
     if #available(iOS 10.0, *) {
@@ -74,38 +85,23 @@ import FirebaseMessaging
     print("❌ APNs 등록 실패: \(error.localizedDescription)")
   }
   
-  // 🔥 CRITICAL: 원격 알림 수신 핸들러 (Firebase Messaging Plugin 필수!)
-  // 이 메서드가 없으면 Flutter의 FirebaseMessaging.onMessage가 트리거되지 않음
+  // 🔥 원격 알림 수신 핸들러 (Option 2용 - 호출되지 않음)
   override func application(
     _ application: UIApplication,
     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
   ) {
     print("📲 [REMOTE] 원격 알림 수신 (didReceiveRemoteNotification)")
+    print("   ⚠️ 이 메서드는 iOS에서 호출하지 않음 - UNNotification만 사용됨")
     print("   - UserInfo: \(userInfo)")
     
-    // 앱 상태 확인
-    let appState = application.applicationState
-    switch appState {
-    case .active:
-      print("   - 앱 상태: 포그라운드 (Active)")
-    case .inactive:
-      print("   - 앱 상태: 비활성 (Inactive)")
-    case .background:
-      print("   - 앱 상태: 백그라운드 (Background)")
-    @unknown default:
-      print("   - 앱 상태: 알 수 없음")
-    }
-    
-    // ✅ Firebase Messaging Plugin에 메시지 전달
-    // 이 호출이 Flutter의 FirebaseMessaging.onMessage를 트리거함
+    // Firebase Messaging Plugin 전달 (동작 안 함)
     Messaging.messaging().appDidReceiveMessage(userInfo)
-    print("✅ [REMOTE] Firebase Messaging Plugin으로 전달 완료")
     
     completionHandler(.newData)
   }
   
-  // 포그라운드에서 알림 수신
+  // ✅ OPTION 1: 포그라운드에서 알림 수신 - Method Channel로 직접 전달
   override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     willPresent notification: UNNotification,
@@ -113,17 +109,44 @@ import FirebaseMessaging
   ) {
     let userInfo = notification.request.content.userInfo
     
-    print("📨 [FOREGROUND-UNNotification] 포그라운드 알림 수신")
+    print("")
+    print("═══════════════════════════════════════════════")
+    print("📨 [OPTION-1] 포그라운드 알림 수신 (UNNotification)")
+    print("═══════════════════════════════════════════════")
     print("   - Title: \(notification.request.content.title)")
     print("   - Body: \(notification.request.content.body)")
-    print("   - UserInfo: \(userInfo)")
+    print("   - UserInfo keys: \(userInfo.keys)")
     
-    // ✅ Firebase Messaging Plugin에 메시지 전달
-    // 주의: didReceiveRemoteNotification이 이미 호출되었을 수 있으므로
-    // 여기서는 UI 표시만 담당
-    print("🔄 [FOREGROUND-UNNotification] Firebase Messaging Plugin 전달")
-    Messaging.messaging().appDidReceiveMessage(userInfo)
-    print("✅ [FOREGROUND-UNNotification] 전달 완료")
+    // ✅ Option 1: Flutter Method Channel로 직접 전달
+    if let channel = fcmChannel {
+      print("🔄 [OPTION-1] Flutter Method Channel 호출 시작")
+      
+      // UserInfo를 String Dictionary로 변환
+      var messageData: [String: Any] = [:]
+      for (key, value) in userInfo {
+        if let keyString = key as? String {
+          messageData[keyString] = value
+        }
+      }
+      
+      // Notification 정보 추가
+      messageData["notification_title"] = notification.request.content.title
+      messageData["notification_body"] = notification.request.content.body
+      messageData["message_type"] = "foreground"
+      
+      print("   - 전달할 데이터: \(messageData.keys)")
+      
+      // Flutter Method Channel 호출
+      channel.invokeMethod("handleFCMMessage", arguments: messageData) { result in
+        if let error = result as? FlutterError {
+          print("❌ [OPTION-1] Flutter Method Channel 오류: \(error.message ?? "Unknown")")
+        } else {
+          print("✅ [OPTION-1] Flutter Method Channel 호출 완료")
+        }
+      }
+    } else {
+      print("❌ [OPTION-1] Method Channel이 초기화되지 않음!")
+    }
     
     // 포그라운드에서도 알림 배너 표시
     if #available(iOS 14.0, *) {
@@ -133,7 +156,7 @@ import FirebaseMessaging
     }
   }
   
-  // 알림 탭했을 때
+  // ✅ OPTION 1: 알림 탭했을 때 - Method Channel로 직접 전달
   override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,
@@ -141,16 +164,44 @@ import FirebaseMessaging
   ) {
     let userInfo = response.notification.request.content.userInfo
     
-    print("📬 [NOTIFICATION-TAP] 알림 탭됨")
+    print("")
+    print("═══════════════════════════════════════════════")
+    print("📬 [OPTION-1] 알림 탭됨 (UNNotification)")
+    print("═══════════════════════════════════════════════")
     print("   - Title: \(response.notification.request.content.title)")
     print("   - Body: \(response.notification.request.content.body)")
-    print("   - UserInfo: \(userInfo)")
+    print("   - UserInfo keys: \(userInfo.keys)")
     
-    // ✅ Firebase Messaging Plugin에 메시지 전달
-    // 이 호출이 Flutter의 FirebaseMessaging.onMessageOpenedApp을 트리거함
-    print("🔄 [NOTIFICATION-TAP] Firebase Messaging Plugin 전달")
-    Messaging.messaging().appDidReceiveMessage(userInfo)
-    print("✅ [NOTIFICATION-TAP] 전달 완료")
+    // ✅ Option 1: Flutter Method Channel로 직접 전달
+    if let channel = fcmChannel {
+      print("🔄 [OPTION-1] Flutter Method Channel 호출 시작")
+      
+      // UserInfo를 String Dictionary로 변환
+      var messageData: [String: Any] = [:]
+      for (key, value) in userInfo {
+        if let keyString = key as? String {
+          messageData[keyString] = value
+        }
+      }
+      
+      // Notification 정보 추가
+      messageData["notification_title"] = response.notification.request.content.title
+      messageData["notification_body"] = response.notification.request.content.body
+      messageData["message_type"] = "notification_tap"
+      
+      print("   - 전달할 데이터: \(messageData.keys)")
+      
+      // Flutter Method Channel 호출
+      channel.invokeMethod("handleFCMMessage", arguments: messageData) { result in
+        if let error = result as? FlutterError {
+          print("❌ [OPTION-1] Flutter Method Channel 오류: \(error.message ?? "Unknown")")
+        } else {
+          print("✅ [OPTION-1] Flutter Method Channel 호출 완료")
+        }
+      }
+    } else {
+      print("❌ [OPTION-1] Method Channel이 초기화되지 않음!")
+    }
     
     completionHandler()
   }
