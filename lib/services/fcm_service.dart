@@ -478,8 +478,19 @@ class FCMService {
       return;
     }
     
-    // 📞 수신 전화 메시지 처리 (신규 추가)
-    if (message.data['type'] == 'incoming_call') {
+    // 📞 수신 전화 메시지 처리 (Android와 iOS 모두 지원)
+    // Android: type == 'incoming_call'
+    // iOS: linkedid가 있으면 수신 전화로 간주
+    final hasIncomingCallType = message.data['type'] == 'incoming_call';
+    final hasLinkedId = message.data['linkedid'] != null && 
+                        (message.data['linkedid'] as String).isNotEmpty;
+    final hasCallType = message.data['call_type'] != null;
+    
+    if (hasIncomingCallType || (hasLinkedId && hasCallType)) {
+      debugPrint('📞 [FCM] 수신 전화 감지:');
+      debugPrint('   - type: ${message.data['type']}');
+      debugPrint('   - linkedid: ${message.data['linkedid']}');
+      debugPrint('   - call_type: ${message.data['call_type']}');
       _handleIncomingCallFCM(message);
       return;
     }
@@ -520,9 +531,19 @@ class FCMService {
       return;
     }
     
-    // 📞 수신 전화 메시지 처리 (신규 추가)
-    if (message.data['type'] == 'incoming_call') {
+    // 📞 수신 전화 메시지 처리 (Android와 iOS 모두 지원)
+    // Android: type == 'incoming_call'
+    // iOS: linkedid가 있으면 수신 전화로 간주
+    final hasIncomingCallType = message.data['type'] == 'incoming_call';
+    final hasLinkedId = message.data['linkedid'] != null && 
+                        (message.data['linkedid'] as String).isNotEmpty;
+    final hasCallType = message.data['call_type'] != null;
+    
+    if (hasIncomingCallType || (hasLinkedId && hasCallType)) {
       debugPrint('📞 [FCM] 백그라운드에서 수신 전화 화면 표시 시작...');
+      debugPrint('   - type: ${message.data['type']}');
+      debugPrint('   - linkedid: ${message.data['linkedid']}');
+      debugPrint('   - call_type: ${message.data['call_type']}');
       _waitForContextAndShowIncomingCall(message);
       return;
     }
