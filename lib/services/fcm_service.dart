@@ -531,7 +531,7 @@ class FCMService {
   /// FCM 수신 전화 메시지 처리
   /// 
   /// DCMIWS 웹소켓 연결이 중지되었을 때 FCM으로 수신전화를 처리합니다.
-  void _handleIncomingCallFCM(RemoteMessage message) {
+  Future<void> _handleIncomingCallFCM(RemoteMessage message) async {
     debugPrint('📞 [FCM-INCOMING] 수신 전화 FCM 메시지 처리');
     
     // WebSocket 연결 상태 확인
@@ -543,8 +543,8 @@ class FCMService {
     
     debugPrint('⚠️ [FCM-INCOMING] WebSocket 연결 없음 - FCM으로 처리');
     
-    // 풀스크린 수신 전화 화면 표시
-    _showIncomingCallScreen(message);
+    // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함)
+    await _showIncomingCallScreen(message);
   }
   
   /// Context가 준비될 때까지 대기 후 수신전화 화면 표시 (백그라운드용)
@@ -565,8 +565,8 @@ class FCMService {
           return;
         }
         
-        // 풀스크린 수신 전화 화면 표시
-        _showIncomingCallScreen(message);
+        // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함)
+        await _showIncomingCallScreen(message);
         return;
       }
       
@@ -1028,7 +1028,7 @@ class FCMService {
   }
   
   /// 수신 전화 풀스크린 표시
-  void _showIncomingCallScreen(RemoteMessage message) {
+  Future<void> _showIncomingCallScreen(RemoteMessage message) async {
     // BuildContext 또는 NavigatorKey 확인
     final context = _context ?? navigatorKey.currentContext;
     
@@ -1040,36 +1040,40 @@ class FCMService {
     
     debugPrint('✅ [FCM] Context 확인 완료 (${_context != null ? "setContext" : "navigatorKey"} 사용)');
     
-    // 📋 메시지 데이터에서 정보 추출 (없으면 임시 WebSocket 데이터 사용)
+    // 📋 메시지 데이터에서 정보 추출
+    // iOS와 Android 모두 지원 (caller_num, caller_name 등)
     final callerName = message.data['caller_name'] ?? 
                        message.data['callerName'] ?? 
-                       message.notification?.title ?? 
-                       '홍길동 (테스트)'; // 임시 WebSocket 데이터
+                       message.notification?.title?.split(' ').first ?? 
+                       '알 수 없음';
     
-    final callerNumber = message.data['caller_number'] ?? 
+    final callerNumber = message.data['caller_num'] ?? 
+                         message.data['caller_number'] ?? 
                          message.data['callerNumber'] ?? 
-                         message.notification?.body ?? 
-                         '010-1234-5678'; // 임시 WebSocket 데이터
+                         _extractPhoneNumber(message.notification?.title) ??
+                         _extractPhoneNumber(message.notification?.body) ??
+                         '번호 없음';
     
     final callerAvatar = message.data['caller_avatar'] ?? 
                          message.data['callerAvatar'];
     
-    // 통화 관련 메타데이터 (임시 WebSocket 데이터)
-    final channel = message.data['channel'] ?? 
-                    'SIP/1001-00000123'; // 임시 WebSocket 채널 데이터
+    // 통화 관련 메타데이터
+    final channel = message.data['channel'] ?? '';
     
     final linkedid = message.data['linkedid'] ?? 
                      message.data['linkedId'] ?? 
-                     '1731254400.123'; // 임시 WebSocket linkedid
+                     DateTime.now().millisecondsSinceEpoch.toString();
     
     final receiverNumber = message.data['receiver_number'] ?? 
                            message.data['receiverNumber'] ?? 
-                           message.data['extension'] ?? 
-                           '1001'; // 임시 내선번호 (WebSocket)
+                           message.data['extension'] ??
+                           message.data['did'] ??
+                           '';
     
     final callType = message.data['call_type'] ?? 
                      message.data['callType'] ?? 
-                     'external'; // 임시 통화 타입 (WebSocket)
+                     message.data['type'] ??
+                     'voice'; // iOS FCM에서는 voice로 전송됨
     
     if (kDebugMode) {
       debugPrint('📞 [FCM] 수신 전화 화면 표시:');
@@ -1081,6 +1085,16 @@ class FCMService {
       debugPrint('   수신번호: $receiverNumber');
       debugPrint('   통화타입: $callType');
     }
+    
+    // 💾 통화 기록 생성 (call_history)
+    await _createCallHistory(
+      callerNumber: callerNumber,
+      callerName: callerName,
+      receiverNumber: receiverNumber,
+      linkedid: linkedid,
+      channel: channel,
+      callType: callType,
+    );
     
     // 수신 전화 화면 표시 (fullscreenDialog로 전체 화면)
     Navigator.of(context).push(
@@ -1414,6 +1428,91 @@ class FCMService {
         'status': 'error',
         'error': e.toString(),
       };
+    }
+  }
+  
+  /// 문자열에서 전화번호 추출 (정규식 사용)
+  String? _extractPhoneNumber(String? text) {
+    if (text == null) return null;
+    
+    // 한국 전화번호 패턴 매칭 (010-xxxx-xxxx, 01012345678, 02-1234-5678 등)
+    final phonePattern = RegExp(r'0\d{1,2}[-\s]?\d{3,4}[-\s]?\d{4}');
+    final match = phonePattern.firstMatch(text);
+    
+    return match?.group(0);
+  }
+  
+  /// FCM 수신 전화에 대한 통화 기록 생성
+  /// 
+  /// Firebase Functions에서 이미 생성한 경우 중복 방지
+  Future<void> _createCallHistory({
+    required String callerNumber,
+    required String callerName,
+    required String receiverNumber,
+    required String linkedid,
+    required String channel,
+    required String callType,
+  }) async {
+    try {
+      final authService = AuthService();
+      final userId = authService.currentUser?.uid;
+      
+      if (userId == null) {
+        debugPrint('⚠️ [FCM-CALLHIST] 사용자 인증 없음 - 통화 기록 생성 스킵');
+        return;
+      }
+      
+      debugPrint('💾 [FCM-CALLHIST] 통화 기록 생성 시작');
+      debugPrint('   linkedid: $linkedid');
+      
+      // linkedid로 기존 통화 기록 확인 (중복 방지)
+      final existingDoc = await _firestore
+          .collection('call_history')
+          .doc(linkedid)
+          .get();
+      
+      if (existingDoc.exists) {
+        debugPrint('ℹ️ [FCM-CALLHIST] 이미 존재하는 통화 기록 (Firebase Functions에서 생성됨)');
+        debugPrint('   linkedid: $linkedid');
+        
+        // 상태만 업데이트 (FCM 수신 확인)
+        await _firestore.collection('call_history').doc(linkedid).update({
+          'fcmReceived': true,
+          'fcmReceivedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        
+        debugPrint('✅ [FCM-CALLHIST] 기존 기록 업데이트 완료');
+        return;
+      }
+      
+      // 새 통화 기록 생성 (Firebase Functions에서 생성되지 않은 경우)
+      debugPrint('📝 [FCM-CALLHIST] 새 통화 기록 생성');
+      
+      await _firestore.collection('call_history').doc(linkedid).set({
+        'userId': userId,
+        'callerNumber': callerNumber,
+        'callerName': callerName,
+        'receiverNumber': receiverNumber,
+        'channel': channel,
+        'linkedid': linkedid,
+        'callType': 'incoming',
+        'callSubType': callType == 'voice' ? 'external' : callType,
+        'status': 'fcm_received', // FCM으로 수신됨
+        'fcmReceived': true,
+        'timestamp': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      debugPrint('✅ [FCM-CALLHIST] 새 통화 기록 생성 완료');
+      debugPrint('   linkedid: $linkedid');
+      debugPrint('   발신자: $callerName ($callerNumber)');
+      debugPrint('   수신자: $receiverNumber');
+      
+    } catch (e, stackTrace) {
+      debugPrint('❌ [FCM-CALLHIST] 통화 기록 생성 실패: $e');
+      debugPrint('Stack trace: $stackTrace');
     }
   }
 }
