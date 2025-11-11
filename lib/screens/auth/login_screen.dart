@@ -53,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final autoLogin = prefs.getBool(_keyAutoLogin) ?? false;
       
       // 계정 전환 대상 이메일 확인
+      // 🚫 멀티 계정 기능 비활성화
       final switchTargetEmail = await AccountManagerService().getSwitchTargetEmail();
       
       if (kDebugMode) {
@@ -62,7 +63,8 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       
       // 자동 로그인 시도 (계정 전환 시)
-      if (switchTargetEmail != null && switchTargetEmail.isNotEmpty) {
+      // 🚫 멀티 계정 기능 비활성화
+      /* if (switchTargetEmail != null && switchTargetEmail.isNotEmpty) {
         setState(() => _isAutoLoginAttempting = true);
         
         final success = await _tryAutoLogin(switchTargetEmail);
@@ -74,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
           }
           return; // LoginScreen을 표시하지 않고 종료
         }
-      }
+      } */
       
       // 자동 로그인 실패 또는 시도하지 않음 - LoginScreen 표시
       if (mounted) {
@@ -108,7 +110,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
   
   // 자동 로그인 시도 (성공 여부 반환)
-  Future<bool> _tryAutoLogin(String email) async {
+  // 🚫 멀티 계정 기능 비활성화
+  /* Future<bool> _tryAutoLogin(String email) async {
     try {
       // 자동 로그인 설정 확인
       final autoLoginEnabled = await AccountManagerService().getKeepLoginEnabled();
@@ -176,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
       
       return false; // 실패
     }
-  }
+  } */
   
   // 이메일 저장 설정
   Future<void> _saveCredentials() async {

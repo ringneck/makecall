@@ -808,6 +808,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           // 📱 등록된 계정 목록 (모든 사용자)
           // Premium: 모든 계정 표시
           // 무료: 현재 계정만 표시
+          // 🚫 멀티 계정 기능 비활성화
           FutureBuilder<List<SavedAccountModel>>(
             future: AccountManagerService().getSavedAccounts(),
             builder: (context, snapshot) {
@@ -823,9 +824,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               // 🎯 Premium 여부에 따라 계정 목록 필터링
               // Premium: 모든 계정 표시
               // 무료: 현재 계정만 표시
-              final accounts = _isPremium 
+              // 🚫 멀티 계정 기능 비활성화: 항상 현재 계정만 표시
+              final accounts = /* _isPremium 
                   ? allAccounts 
-                  : allAccounts.where((account) => account.isCurrentAccount).toList();
+                  : */ allAccounts.where((account) => account.isCurrentAccount).toList();
               
               if (accounts.isEmpty) {
                 return Padding(
@@ -965,15 +967,16 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                 tooltip: '로그아웃',
                                 iconSize: 24,
                               )
-                            : IconButton(
+                            : /* 🚫 멀티 계정 기능 비활성화 */ null,
+                            /* : IconButton(
                                 onPressed: () => _handleDeleteAccount(context, account),
                                 icon: const Icon(Icons.delete_outline, size: 20),
                                 color: Colors.red,
                                 tooltip: '계정 삭제',
-                              ),
-                        onTap: account.isCurrentAccount 
+                              ), */
+                        onTap: /* account.isCurrentAccount 
                             ? null 
-                            : () => _handleSwitchAccount(context, account),
+                            : () => _handleSwitchAccount(context, account), */ null,
                       ),
                     );
                   }),
@@ -991,7 +994,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           ),
           
           // 🎯 Premium 전용: 자동 로그인 스위치
-          if (_isPremium) ...[
+          // 🚫 멀티 계정 기능 비활성화
+          /* if (_isPremium) ...[
             _buildSwitchTile(
               icon: Icons.lock_clock,
               title: '자동 로그인',
@@ -1017,10 +1021,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               },
             ),
             const SizedBox(height: 8),
-          ],
+          ], */
           
           // 🎯 Premium 전용: 사용자 계정 추가
-          if (_isPremium)
+          // 🚫 멀티 계정 기능 비활성화
+          /* if (_isPremium)
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
               leading: const Icon(Icons.person_add, color: Colors.green, size: 22),
@@ -1031,10 +1036,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               ),
               trailing: const Icon(Icons.chevron_right, size: 20),
               onTap: () => _handleAddAccount(context),
-            ),
+            ), */
           
           // 🔒 무료 사용자: Premium 안내 메시지
-          if (!_isPremium)
+          // 🚫 멀티 계정 기능 비활성화
+          /* if (!_isPremium)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Container(
@@ -1078,7 +1084,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   ],
                 ),
               ),
-            ),
+            ), */
           
           const SizedBox(height: 24),
           
@@ -2239,7 +2245,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     );
   }
 
-  Future<void> _handleAddAccount(BuildContext context) async {
+  // 🚫 멀티 계정 기능 비활성화
+  /* Future<void> _handleAddAccount(BuildContext context) async {
     final authService = context.read<AuthService>();
     final currentEmail = authService.currentUserModel?.email ?? '없음';
     
@@ -2290,9 +2297,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         }
       }
     }
-  }
+  } */
 
-  Future<void> _handleSwitchAccount(BuildContext context, SavedAccountModel account) async {
+  // 🚫 멀티 계정 기능 비활성화
+  /* Future<void> _handleSwitchAccount(BuildContext context, SavedAccountModel account) async {
     // 자동 로그인 옵션 확인
     final autoLoginEnabled = await AccountManagerService().getKeepLoginEnabled();
     
@@ -2379,7 +2387,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         );
       }
     }
-  }
+  } */
 
 
 
