@@ -22,10 +22,12 @@ import '../../widgets/extension_drawer.dart';
 
 class CallTab extends StatefulWidget {
   final bool autoOpenProfileForNewUser; // 신규 사용자 자동 ProfileDrawer 열기
+  final int? initialTabIndex; // 초기 탭 인덱스 (FCM에서 지정 가능)
   
   const CallTab({
     super.key,
     this.autoOpenProfileForNewUser = false,
+    this.initialTabIndex,
   });
 
   @override
@@ -33,7 +35,7 @@ class CallTab extends StatefulWidget {
 }
 
 class _CallTabState extends State<CallTab> {
-  int _currentTabIndex = 2; // 현재 선택된 탭 인덱스 (초기값: 키패드)
+  late int _currentTabIndex; // 현재 선택된 탭 인덱스
   final DatabaseService _databaseService = DatabaseService();
   final MobileContactsService _mobileContactsService = MobileContactsService();
   final TextEditingController _searchController = TextEditingController();
@@ -62,6 +64,9 @@ class _CallTabState extends State<CallTab> {
   @override
   void initState() {
     super.initState();
+    
+    // ✅ FCM에서 지정한 탭 인덱스 또는 기본값 (키패드) 사용
+    _currentTabIndex = widget.initialTabIndex ?? 2; // 기본값: 2 (키패드)
     
     // 🚀 고급 개발자 패턴: 순차적 초기화 체인
     // 1️⃣ 설정 확인 먼저 → 2️⃣ 설정 완료 시에만 단말번호 조회

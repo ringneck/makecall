@@ -1259,11 +1259,10 @@ class FCMService {
     // ignore: avoid_print
     print('📝 [FCM-SCREEN] 통화 기록 생성 완료 (또는 실패)');
     
-    // ignore: avoid_print
-    print('🎬 [FCM-SCREEN] Navigator.push() 호출 - 수신 전화 화면 표시');
+    print('🎬 [FCM] 수신 전화 화면 표시');
     
     // 수신 전화 화면 표시 (fullscreenDialog로 전체 화면)
-    Navigator.of(context).push(
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (context) => IncomingCallScreen(
@@ -1275,20 +1274,10 @@ class FCMService {
           receiverNumber: receiverNumber,
           callType: callType,
           onAccept: () {
-            if (kDebugMode) {
-              debugPrint('✅ [FCM] 전화 수락됨');
-              debugPrint('   발신자: $callerName ($callerNumber)');
-              debugPrint('   링크ID: $linkedid');
-            }
-            
+            debugPrint('✅ [FCM] 전화 수락: $callerName');
             Navigator.of(context).pop();
             
             // TODO: 전화 수락 로직 구현
-            // 1. SIP 연결 시작
-            // 2. WebSocket으로 서버에 수락 알림
-            // 3. 통화 화면으로 전환
-            
-            // 임시: 스낵바로 알림
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('📞 전화 수락: $callerName'),
@@ -1298,19 +1287,10 @@ class FCMService {
             );
           },
           onReject: () {
-            if (kDebugMode) {
-              debugPrint('❌ [FCM] 전화 거절됨');
-              debugPrint('   발신자: $callerName ($callerNumber)');
-              debugPrint('   링크ID: $linkedid');
-            }
-            
+            debugPrint('❌ [FCM] 전화 거절: $callerName');
             Navigator.of(context).pop();
             
             // TODO: 전화 거절 로직 구현
-            // 1. WebSocket으로 서버에 거절 알림
-            // 2. 통화 로그에 부재중 전화 기록
-            
-            // 임시: 스낵바로 알림
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('📵 전화 거절: $callerName'),
@@ -1323,12 +1303,23 @@ class FCMService {
       ),
     );
     
-    // ignore: avoid_print
-    print('✅ [FCM-SCREEN] 수신 전화 화면 표시 완료');
-    // ignore: avoid_print
-    print('   발신자: $callerName');
-    // ignore: avoid_print
-    print('   번호: $callerNumber');
+    // ✅ 수신 알림 화면에서 "확인" 버튼 눌렀을 때 최근통화 탭으로 이동
+    if (result != null && result['moveToTab'] != null) {
+      final targetTabIndex = result['moveToTab'] as int;
+      print('📲 [FCM] 최근통화 탭으로 이동 요청: index=$targetTabIndex');
+      
+      // CallTab으로 이동하기 위해 현재 route를 최근통화 탭으로 교체
+      if (context.mounted) {
+        // Navigator의 현재 route를 MainScreen으로 교체하되, 인자로 탭 인덱스 전달
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const MainScreen(initialTabIndex: 1), // 1 = 최근통화 탭
+          ),
+        );
+      }
+    }
+    
+    print('✅ [FCM] 수신 전화 처리 완료');
   }
   
   /// 사용자 알림 설정 가져오기
