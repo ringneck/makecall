@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/dialog_utils.dart';
 import '../models/contact_model.dart';
 import '../services/database_service.dart';
 
@@ -329,12 +330,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
 
         if (context.mounted) {
           Navigator.pop(context, true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('연락처가 수정되었습니다'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          await DialogUtils.showSuccess(context, '연락처가 수정되었습니다', duration: const Duration(seconds: 2));
         }
       } else {
         // 추가

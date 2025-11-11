@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
 import '../../services/account_manager_service.dart';
+import '../../utils/dialog_utils.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -169,11 +170,9 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('자동 로그인 실패: 비밀번호를 입력해주세요.'),
-            backgroundColor: Colors.orange,
-          ),
+        await DialogUtils.showWarning(
+          context,
+          '자동 로그인 실패: 비밀번호를 입력해주세요.',
         );
       }
       
@@ -212,11 +211,9 @@ class _LoginScreenState extends State<LoginScreen> {
       // ✏️ 비밀번호는 AuthService.signIn()에서 자동으로 저장됨
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.read<AuthService>().getErrorMessage(e.code)),
-            backgroundColor: Colors.red,
-          ),
+        await DialogUtils.showError(
+          context,
+          context.read<AuthService>().getErrorMessage(e.code),
         );
       }
     } finally {
@@ -231,21 +228,17 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('이메일을 입력해주세요'),
-          backgroundColor: Colors.orange,
-        ),
+      await DialogUtils.showWarning(
+        context,
+        '이메일을 입력해주세요',
       );
       return;
     }
     
     if (!email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('올바른 이메일 형식이 아닙니다'),
-          backgroundColor: Colors.orange,
-        ),
+      await DialogUtils.showWarning(
+        context,
+        '올바른 이메일 형식이 아닙니다',
       );
       return;
     }
@@ -279,21 +272,17 @@ class _LoginScreenState extends State<LoginScreen> {
       await authService.resetPassword(email);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('비밀번호 재설정 이메일을 전송했습니다. 이메일을 확인해주세요.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 5),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          '비밀번호 재설정 이메일을 전송했습니다. 이메일을 확인해주세요.',
+          duration: const Duration(seconds: 5),
         );
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.read<AuthService>().getErrorMessage(e.code)),
-            backgroundColor: Colors.red,
-          ),
+        await DialogUtils.showError(
+          context,
+          context.read<AuthService>().getErrorMessage(e.code),
         );
       }
     }

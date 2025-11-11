@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/dialog_utils.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
@@ -168,9 +169,7 @@ class _ExtensionManagementScreenState extends State<ExtensionManagementScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('단말번호를 불러왔습니다')),
-        );
+        await DialogUtils.showInfo(context, '단말번호를 불러왔습니다', duration: const Duration(seconds: 2));
       }
     } catch (e) {
       if (mounted) {

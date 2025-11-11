@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/dialog_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -1336,13 +1337,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           Navigator.pop(context); // 로딩 다이얼로그 닫기
           
           if (imageUrl != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('프로필 사진이 업데이트되었습니다')),
-            );
+            await DialogUtils.showInfo(context, '프로필 사진이 업데이트되었습니다', duration: const Duration(seconds: 2));
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('이미지 업로드에 실패했습니다')),
-            );
+            await DialogUtils.showInfo(context, '이미지 업로드에 실패했습니다', duration: const Duration(seconds: 2));
           }
         }
       }
@@ -1369,9 +1366,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('프로필 사진이 삭제되었습니다')),
-        );
+        await DialogUtils.showInfo(context, '프로필 사진이 삭제되었습니다', duration: const Duration(seconds: 2));
       }
     } catch (e) {
       if (mounted) {
@@ -1716,12 +1711,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
       // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
       if (mounted && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('단말번호가 등록되었습니다'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        await DialogUtils.showSuccess(context, '단말번호가 등록되었습니다', duration: const Duration(seconds: 2));
       }
     } catch (e) {
       if (kDebugMode) {
@@ -1830,9 +1820,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         
         // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
         if (mounted && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('단말번호가 삭제되었습니다')),
-          );
+          await DialogUtils.showInfo(context, '단말번호가 삭제되었습니다', duration: const Duration(seconds: 2));
         }
       } catch (e) {
         if (kDebugMode) {
@@ -1959,9 +1947,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         
         // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
         if (mounted && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('모든 단말번호가 삭제되었습니다')),
-          );
+          await DialogUtils.showInfo(context, '모든 단말번호가 삭제되었습니다', duration: const Duration(seconds: 2));
         }
       } catch (e) {
         if (kDebugMode) {
@@ -2279,12 +2265,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         await context.read<AuthService>().signOut();
         if (mounted) {
           Navigator.pop(context); // Drawer 닫기
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('로그아웃되었습니다. 새로운 계정으로 로그인해주세요.'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          await DialogUtils.showSuccess(context, '로그아웃되었습니다. 새로운 계정으로 로그인해주세요.', duration: const Duration(seconds: 2));
         }
       } catch (e) {
         if (mounted) {
@@ -2478,12 +2459,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   Future<void> _handleDeleteAccount(BuildContext context, SavedAccountModel account) async {
     // 현재 로그인된 계정인지 다시 확인 (안전장치)
     if (account.isCurrentAccount) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('현재 로그인된 계정은 삭제할 수 없습니다. 로그아웃 후 삭제해주세요.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      await DialogUtils.showWarning(context, '현재 로그인된 계정은 삭제할 수 없습니다. 로그아웃 후 삭제해주세요.', duration: const Duration(seconds: 2));
       return;
     }
     
@@ -3386,12 +3362,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       
       if (userId == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('로그인이 필요합니다'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          await DialogUtils.showError(context, '로그인이 필요합니다', duration: const Duration(seconds: 3));
         }
         return;
       }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_service.dart';
+import '../../utils/dialog_utils.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -32,11 +33,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!_formKey.currentState!.validate()) return;
     
     if (!_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('이용약관에 동의해주세요'),
-          backgroundColor: Colors.orange,
-        ),
+      await DialogUtils.showWarning(
+        context,
+        '이용약관에 동의해주세요',
       );
       return;
     }
@@ -52,20 +51,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
       
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('회원가입이 완료되었습니다'),
-            backgroundColor: Colors.green,
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          '회원가입이 완료되었습니다',
         );
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.read<AuthService>().getErrorMessage(e.code)),
-            backgroundColor: Colors.red,
-          ),
+        await DialogUtils.showError(
+          context,
+          context.read<AuthService>().getErrorMessage(e.code),
         );
       }
     } finally {

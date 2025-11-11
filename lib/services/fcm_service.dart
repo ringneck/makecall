@@ -14,6 +14,7 @@ import 'dcmiws_service.dart';
 import 'auth_service.dart';
 import 'database_service.dart';
 import 'package:provider/provider.dart';
+import '../utils/dialog_utils.dart';
 
 /// FCM(Firebase Cloud Messaging) 서비스
 /// 
@@ -912,7 +913,7 @@ class FCMService {
   /// 기기 승인 응답 메시지 처리
   /// 
   /// 새 기기에서 기존 기기의 승인 결과를 수신합니다.
-  void _handleDeviceApprovalResponse(RemoteMessage message) {
+  Future<void> _handleDeviceApprovalResponse(RemoteMessage message) async {
     debugPrint('✅ [FCM] 기기 승인 응답 메시지 수신');
     
     final approved = message.data['approved'] == 'true';
@@ -927,24 +928,20 @@ class FCMService {
     if (approved) {
       debugPrint('✅ [FCM] 기기 승인 완료 - 로그인 진행');
       
-      // 승인 완료 스낵바
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✅ $deviceName에서 승인되었습니다'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
+      // 승인 완료 다이얼로그
+      await DialogUtils.showSuccess(
+        context,
+        '$deviceName에서 승인되었습니다',
+        duration: const Duration(seconds: 2),
       );
     } else {
       debugPrint('❌ [FCM] 기기 승인 거부됨 - 로그인 취소');
       
-      // 거부 스낵바
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ $deviceName에서 거부되었습니다'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 2),
-        ),
+      // 거부 다이얼로그
+      await DialogUtils.showError(
+        context,
+        '$deviceName에서 거부되었습니다',
+        duration: const Duration(seconds: 2),
       );
       
       // 로그아웃 처리
@@ -1049,7 +1046,7 @@ class FCMService {
   }
   
   /// 웹 플랫폼 알림 표시
-  void _showWebNotification(RemoteMessage message) {
+  Future<void> _showWebNotification(RemoteMessage message) async {
     if (!kIsWeb) return;
     
     try {
@@ -1061,32 +1058,13 @@ class FCMService {
       }
       
       // 웹 알림은 서비스 워커에서 처리됨
-      // 여기서는 앱 내 스낵바나 다이얼로그로 표시 가능
+      // 여기서는 앱 내 다이얼로그로 표시
       if (_context != null) {
-        ScaffoldMessenger.of(_context!).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(body, style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-            duration: const Duration(seconds: 5),
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: '확인',
-              onPressed: () {},
-            ),
-          ),
+        await DialogUtils.showInfo(
+          _context!,
+          body,
+          title: title,
+          duration: const Duration(seconds: 5),
         );
       }
     } catch (e) {
@@ -1274,30 +1252,26 @@ class FCMService {
           linkedid: linkedid,
           receiverNumber: receiverNumber,
           callType: callType,
-          onAccept: () {
+          onAccept: () async {
             debugPrint('✅ [FCM] 전화 수락: $callerName');
             Navigator.of(context).pop();
             
             // TODO: 전화 수락 로직 구현
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('📞 전화 수락: $callerName'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 2),
-              ),
+            await DialogUtils.showSuccess(
+              context,
+              '전화 수락: $callerName',
+              duration: const Duration(seconds: 2),
             );
           },
-          onReject: () {
+          onReject: () async {
             debugPrint('❌ [FCM] 전화 거절: $callerName');
             Navigator.of(context).pop();
             
             // TODO: 전화 거절 로직 구현
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('📵 전화 거절: $callerName'),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 2),
-              ),
+            await DialogUtils.showError(
+              context,
+              '전화 거절: $callerName',
+              duration: const Duration(seconds: 2),
             );
           },
         ),

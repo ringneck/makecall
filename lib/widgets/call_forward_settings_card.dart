@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/dialog_utils.dart';
 import 'package:flutter/foundation.dart';
 import '../services/dcmiws_service.dart';
 import '../services/database_service.dart';
@@ -417,17 +418,12 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
             child: const Text('취소'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final number = controller.text.trim();
               if (number.isEmpty) {
                 // 다이얼로그 내부에서는 try-catch로 안전하게 처리
                 try {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('착신번호를 입력하세요'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  await DialogUtils.showError(context, '착신번호를 입력하세요', duration: const Duration(seconds: 3));
                 } catch (e) {
                   if (kDebugMode) {
                     debugPrint('⚠️ Dialog SnackBar 건너뜀: $e');

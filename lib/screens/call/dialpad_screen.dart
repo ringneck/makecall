@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/dialog_utils.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode, debugPrint;
 import 'package:provider/provider.dart';
@@ -49,11 +50,9 @@ class _DialpadScreenState extends State<DialpadScreen> {
     return phoneNumber.startsWith('*');
   }
 
-  void _onCall() {
+  Future<void> _onCall() async {
     if (_phoneNumber.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('전화번호를 입력해주세요')),
-      );
+      await DialogUtils.showInfo(context, '전화번호를 입력해주세요', duration: const Duration(seconds: 2));
       return;
     }
 

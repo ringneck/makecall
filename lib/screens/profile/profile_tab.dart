@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/dialog_utils.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -1274,12 +1275,7 @@ class _ProfileTabState extends State<ProfileTab> {
         }
         
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('단말번호가 삭제되었습니다.'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          await DialogUtils.showSuccess(context, '단말번호가 삭제되었습니다.', duration: const Duration(seconds: 2));
         }
       } catch (e) {
         if (kDebugMode) {
@@ -1346,12 +1342,7 @@ class _ProfileTabState extends State<ProfileTab> {
         }
         
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('모든 단말번호가 삭제되었습니다.'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          await DialogUtils.showSuccess(context, '모든 단말번호가 삭제되었습니다.', duration: const Duration(seconds: 2));
         }
       } catch (e) {
         if (kDebugMode) {
@@ -1748,12 +1739,7 @@ class _ProfileTabState extends State<ProfileTab> {
         await authService.deleteProfileImage();
         
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('프로필 사진이 삭제되었습니다'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          await DialogUtils.showSuccess(context, '프로필 사진이 삭제되었습니다', duration: const Duration(seconds: 2));
         }
       } catch (e) {
         if (context.mounted) {

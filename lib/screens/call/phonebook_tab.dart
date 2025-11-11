@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../utils/dialog_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -1769,12 +1770,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
         await launchUrl(uri);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('SMS 앱을 실행할 수 없습니다'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          await DialogUtils.showError(context, 'SMS 앱을 실행할 수 없습니다', duration: const Duration(seconds: 3));
         }
       }
     } catch (e) {
@@ -1800,12 +1796,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
         await launchUrl(uri);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('이메일 앱을 실행할 수 없습니다'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          await DialogUtils.showError(context, '이메일 앱을 실행할 수 없습니다', duration: const Duration(seconds: 3));
         }
       }
     } catch (e) {

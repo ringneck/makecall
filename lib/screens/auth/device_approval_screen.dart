@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import '../../utils/dialog_utils.dart';
 
 /// 기기 승인 대기 화면
 /// 
@@ -86,20 +87,18 @@ class _DeviceApprovalScreenState extends State<DeviceApprovalScreen> {
   }
 
   /// 승인 성공 처리
-  void _handleApprovalSuccess() {
+  Future<void> _handleApprovalSuccess() async {
     if (!mounted) return;
     
     setState(() {
       _isWaitingForApproval = false;
     });
     
-    // 성공 스낵바
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('✅ 기기 승인 완료!'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
+    // 성공 다이얼로그
+    await DialogUtils.showSuccess(
+      context,
+      '기기 승인 완료!',
+      duration: const Duration(seconds: 2),
     );
     
     // 메인 화면으로 이동 (Navigator를 완전히 교체)
@@ -205,12 +204,10 @@ class _DeviceApprovalScreenState extends State<DeviceApprovalScreen> {
       debugPrint('✅ [EMAIL] 인증 코드 전송 요청 완료');
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('📧 이메일로 인증 코드를 전송했습니다 (1-3분 소요)'),
-            backgroundColor: Colors.blue,
-            duration: Duration(seconds: 3),
-          ),
+        await DialogUtils.showInfo(
+          context,
+          '이메일로 인증 코드를 전송했습니다 (1-3분 소요)',
+          duration: const Duration(seconds: 3),
         );
       }
       
