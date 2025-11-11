@@ -4,6 +4,7 @@
   "description": "MAKECALL Firebase Cloud Functions for email verification and FCM notifications",
   "main": "index.js",
   "scripts": {
+    "lint": "eslint .",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
