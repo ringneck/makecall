@@ -1001,28 +1001,65 @@ class FCMService {
       final title = message.notification?.title ?? message.data['title'] ?? 'MAKECALL 알림';
       final body = message.notification?.body ?? message.data['body'] ?? '새로운 알림이 있습니다.';
       
-      if (kDebugMode) {
-        debugPrint('🔔 [FCM] 안드로이드 알림 표시 시작');
-        debugPrint('   제목: $title');
-        debugPrint('   내용: $body');
+      debugPrint('🔔 [FCM] 안드로이드 알림 표시 시작');
+      debugPrint('   제목: $title');
+      debugPrint('   내용: $body');
+      
+      // 📥 사용자 알림 설정 가져오기
+      String? userId;
+      
+      // _context가 있으면 AuthService에서 userId 가져오기
+      if (_context != null) {
+        try {
+          final authService = Provider.of<AuthService>(_context!, listen: false);
+          userId = authService.currentUser?.uid;
+        } catch (e) {
+          debugPrint('⚠️ [FCM-알림설정] AuthService 접근 실패: $e');
+        }
+      }
+      
+      Map<String, dynamic>? settings;
+      
+      if (userId != null) {
+        settings = await getUserNotificationSettings(userId);
+        debugPrint('📦 [FCM-알림설정] 사용자 설정: $settings');
+      } else {
+        debugPrint('⚠️ [FCM-알림설정] userId 없음 - 기본 설정 사용');
+      }
+      
+      // 알림 설정 적용 (기본값: 모두 켜짐)
+      final pushEnabled = settings?['pushEnabled'] ?? true;
+      final soundEnabled = settings?['soundEnabled'] ?? true;
+      final vibrationEnabled = settings?['vibrationEnabled'] ?? true;
+      
+      debugPrint('🔧 [FCM-알림설정] 적용:');
+      debugPrint('   - 푸시 알림: $pushEnabled');
+      debugPrint('   - 알림음: $soundEnabled');
+      debugPrint('   - 진동: $vibrationEnabled');
+      
+      // 푸시 알림이 꺼져있으면 알림 표시 안함
+      if (!pushEnabled) {
+        debugPrint('⏭️ [FCM] 푸시 알림이 비활성화되어 알림 표시 건너뜀');
+        return;
       }
       
       final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
           FlutterLocalNotificationsPlugin();
       
-      // 알림 상세 설정
-      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      // 알림 상세 설정 (사용자 설정 적용)
+      final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
         'high_importance_channel', // channelId (AndroidManifest.xml과 동일)
         'High Importance Notifications', // channelName
         channelDescription: 'This channel is used for important notifications.',
         importance: Importance.high,
         priority: Priority.high,
-        playSound: true,
-        enableVibration: true,
+        playSound: soundEnabled, // 🔊 사용자 설정 적용
+        enableVibration: vibrationEnabled, // 📳 사용자 설정 적용
         icon: '@mipmap/ic_launcher', // 앱 아이콘 사용
       );
       
-      const NotificationDetails notificationDetails = NotificationDetails(
+      // ✅ const 제거: androidDetails가 런타임에 계산되므로 const 사용 불가
+      final NotificationDetails notificationDetails = NotificationDetails(
         android: androidDetails,
       );
       
@@ -1034,14 +1071,10 @@ class FCMService {
         notificationDetails,
       );
       
-      if (kDebugMode) {
-        debugPrint('✅ [FCM] 안드로이드 알림 표시 완료');
-      }
+      debugPrint('✅ [FCM] 안드로이드 알림 표시 완료 (진동: $vibrationEnabled)');
       
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ [FCM] 안드로이드 알림 표시 오류: $e');
-      }
+      debugPrint('❌ [FCM] 안드로이드 알림 표시 오류: $e');
     }
   }
   
