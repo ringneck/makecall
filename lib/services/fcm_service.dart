@@ -478,6 +478,12 @@ class FCMService {
       return;
     }
     
+    // 📞 수신 전화 메시지 처리 (신규 추가)
+    if (message.data['type'] == 'incoming_call') {
+      _handleIncomingCallFCM(message);
+      return;
+    }
+    
     // 웹 플랫폼: 브라우저 알림 표시
     if (kIsWeb) {
       _showWebNotification(message);
@@ -487,16 +493,6 @@ class FCMService {
     if (Platform.isAndroid) {
       _showAndroidNotification(message);
     }
-    
-    // 📞 모든 푸시 메시지에 대해 수신 전화 화면 표시
-    // (나중에 type 조건 추가 가능: type == 'incoming_call')
-    debugPrint('📞 [FCM] 수신 전화 화면 표시 시작...');
-    
-    // WebSocket 연결 상태 확인 및 재연결
-    _ensureWebSocketConnection();
-    
-    // 풀스크린 수신 전화 화면 표시
-    _showIncomingCallScreen(message);
   }
   
   /// 백그라운드/종료 상태에서 알림 클릭 시 처리
@@ -524,15 +520,35 @@ class FCMService {
       return;
     }
     
-    // 📞 수신 전화 화면 표시 (약간의 딜레이로 Context 초기화 대기)
-    debugPrint('📞 [FCM] 백그라운드에서 수신 전화 화면 표시 시작...');
-    
-    // Context가 준비될 때까지 대기 (최대 3초)
-    _waitForContextAndShowScreen(message);
+    // 📞 수신 전화 메시지 처리 (신규 추가)
+    if (message.data['type'] == 'incoming_call') {
+      debugPrint('📞 [FCM] 백그라운드에서 수신 전화 화면 표시 시작...');
+      _waitForContextAndShowIncomingCall(message);
+      return;
+    }
   }
   
-  /// Context가 준비될 때까지 대기 후 IncomingCallScreen 표시
-  Future<void> _waitForContextAndShowScreen(RemoteMessage message) async {
+  /// FCM 수신 전화 메시지 처리
+  /// 
+  /// DCMIWS 웹소켓 연결이 중지되었을 때 FCM으로 수신전화를 처리합니다.
+  void _handleIncomingCallFCM(RemoteMessage message) {
+    debugPrint('📞 [FCM-INCOMING] 수신 전화 FCM 메시지 처리');
+    
+    // WebSocket 연결 상태 확인
+    final dcmiwsService = DCMIWSService();
+    if (dcmiwsService.isConnected) {
+      debugPrint('✅ [FCM-INCOMING] WebSocket 연결 활성 - 웹소켓으로 처리 (FCM 무시)');
+      return; // WebSocket이 활성이면 FCM 무시
+    }
+    
+    debugPrint('⚠️ [FCM-INCOMING] WebSocket 연결 없음 - FCM으로 처리');
+    
+    // 풀스크린 수신 전화 화면 표시
+    _showIncomingCallScreen(message);
+  }
+  
+  /// Context가 준비될 때까지 대기 후 수신전화 화면 표시 (백그라운드용)
+  Future<void> _waitForContextAndShowIncomingCall(RemoteMessage message) async {
     int retryCount = 0;
     const maxRetries = 30; // 3초 (100ms * 30)
     
@@ -540,22 +556,26 @@ class FCMService {
       final context = _context ?? navigatorKey.currentContext;
       
       if (context != null) {
-        debugPrint('✅ [FCM] Context 준비 완료 (${retryCount * 100}ms 대기)');
+        debugPrint('✅ [FCM-INCOMING] Context 준비 완료 (${retryCount * 100}ms 대기)');
         
-        // WebSocket 연결 상태 확인 및 재연결
-        _ensureWebSocketConnection();
+        // WebSocket 연결 상태 확인
+        final dcmiwsService = DCMIWSService();
+        if (dcmiwsService.isConnected) {
+          debugPrint('✅ [FCM-INCOMING] WebSocket 연결 활성 - FCM 무시');
+          return;
+        }
         
         // 풀스크린 수신 전화 화면 표시
         _showIncomingCallScreen(message);
         return;
       }
       
-      debugPrint('⏳ [FCM] Context 대기 중... (${retryCount + 1}/$maxRetries)');
+      debugPrint('⏳ [FCM-INCOMING] Context 대기 중... (${retryCount + 1}/$maxRetries)');
       await Future.delayed(const Duration(milliseconds: 100));
       retryCount++;
     }
     
-    debugPrint('❌ [FCM] Context 타임아웃 (3초 대기 후에도 Context 없음)');
+    debugPrint('❌ [FCM-INCOMING] Context 타임아웃 (3초 대기 후에도 Context 없음)');
   }
   
   /// 강제 로그아웃 메시지 처리 (레거시 - 하위 호환성 유지)

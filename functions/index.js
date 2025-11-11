@@ -297,3 +297,228 @@ exports.cleanupExpiredRequests = functions.pubsub
         console.error("❌ 정리 작업 오류:", error);
       }
     });
+
+/**
+ * FCM 수신전화 푸시 알림 전송 Cloud Function
+ *
+ * HTTP POST 요청으로 호출됩니다.
+ * DCMIWS에서 Newchannel 이벤트 발생 시 호출하여 FCM 푸시를 전송합니다.
+ *
+ * Request Body:
+ * {
+ *   "callerNumber": "16682471",
+ *   "callerName": "얼쑤팩토리",
+ *   "receiverNumber": "07045144801",
+ *   "linkedid": "1762843210.1787",
+ *   "channel": "PJSIP/DKCT-00000460",
+ *   "callType": "external"
+ * }
+ */
+exports.sendIncomingCallNotification = functions.https.onRequest(
+    async (req, res) => {
+      // CORS 헤더 설정 (Flutter 앱에서 호출 가능하도록)
+      res.set("Access-Control-Allow-Origin", "*");
+      res.set("Access-Control-Allow-Methods", "POST");
+      res.set("Access-Control-Allow-Headers", "Content-Type");
+
+      // OPTIONS 요청 처리 (CORS preflight)
+      if (req.method === "OPTIONS") {
+        res.status(204).send("");
+        return;
+      }
+
+      // POST 요청만 허용
+      if (req.method !== "POST") {
+        res.status(405).json({error: "Method Not Allowed"});
+        return;
+      }
+
+      try {
+        const {
+          callerNumber,
+          callerName,
+          receiverNumber,
+          linkedid,
+          channel,
+          callType,
+        } = req.body;
+
+        console.log("📞 [FCM-INCOMING] 수신전화 FCM 요청 수신");
+        console.log(`   발신번호: ${callerNumber}`);
+        console.log(`   발신자: ${callerName}`);
+        console.log(`   수신번호: ${receiverNumber}`);
+        console.log(`   Linkedid: ${linkedid}`);
+        console.log(`   통화타입: ${callType}`);
+
+        // 필수 파라미터 검증
+        if (!callerNumber || !receiverNumber || !linkedid) {
+          console.error("❌ [FCM-INCOMING] 필수 파라미터 누락");
+          res.status(400).json({
+            error: "Missing required parameters",
+            required: ["callerNumber", "receiverNumber", "linkedid"],
+          });
+          return;
+        }
+
+        // 1. receiverNumber로 my_extensions 조회 → userId 찾기
+        console.log("🔍 [FCM-INCOMING] my_extensions 조회 중...");
+
+        // 외부 수신: accountCode로 조회
+        let extensionSnapshot = await admin.firestore()
+            .collection("my_extensions")
+            .where("accountCode", "==", receiverNumber)
+            .limit(1)
+            .get();
+
+        // 내부 수신: extension으로 조회
+        if (extensionSnapshot.empty) {
+          extensionSnapshot = await admin.firestore()
+              .collection("my_extensions")
+              .where("extension", "==", receiverNumber)
+              .limit(1)
+              .get();
+        }
+
+        if (extensionSnapshot.empty) {
+          console.error(`❌ [FCM-INCOMING] 내선번호 없음: ${receiverNumber}`);
+          res.status(404).json({
+            error: "Extension not found",
+            receiverNumber: receiverNumber,
+          });
+          return;
+        }
+
+        const userId = extensionSnapshot.docs[0].data().userId;
+        const extensionUsed = extensionSnapshot.docs[0].data().extension;
+
+        console.log(`✅ [FCM-INCOMING] userId 확인: ${userId}`);
+        console.log(`   내선번호: ${extensionUsed}`);
+
+        // 2. 해당 사용자의 활성 FCM 토큰 조회
+        console.log("🔍 [FCM-INCOMING] FCM 토큰 조회 중...");
+
+        const tokensSnapshot = await admin.firestore()
+            .collection("fcm_tokens")
+            .where("userId", "==", userId)
+            .where("isActive", "==", true)
+            .get();
+
+        if (tokensSnapshot.empty) {
+          console.error(`❌ [FCM-INCOMING] 활성 FCM 토큰 없음: ${userId}`);
+          res.status(404).json({
+            error: "No active FCM tokens",
+            userId: userId,
+          });
+          return;
+        }
+
+        const tokens = tokensSnapshot.docs.map((doc) => doc.data().fcmToken);
+
+        console.log(`✅ [FCM-INCOMING] FCM 토큰 ${tokens.length}개 발견`);
+
+        // 3. Firestore call_history 컬렉션에 통화 기록 생성
+        console.log("💾 [FCM-INCOMING] call_history 생성 중...");
+
+        const callHistoryRef = admin.firestore()
+            .collection("call_history")
+            .doc(linkedid);
+
+        // 기존 통화 기록 확인 (중복 방지)
+        const existingHistory = await callHistoryRef.get();
+
+        if (existingHistory.exists) {
+          console.log(`⚠️ [FCM-INCOMING] 이미 존재하는 linkedid: ${linkedid}`);
+          console.log("   → FCM 푸시만 전송하고 통화 기록은 생성하지 않음");
+        } else {
+          // 새 통화 기록 생성
+          await callHistoryRef.set({
+            userId: userId,
+            callerNumber: callerNumber,
+            callerName: callerName || callerNumber,
+            receiverNumber: receiverNumber,
+            channel: channel || "",
+            linkedid: linkedid,
+            callType: "incoming",
+            callSubType: callType || "external",
+            status: "fcm_notification", // FCM으로 받은 알림
+            extensionUsed: extensionUsed,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          console.log(`✅ [FCM-INCOMING] call_history 생성 완료`);
+          console.log(`   문서 ID: ${linkedid}`);
+        }
+
+        // 4. FCM 푸시 메시지 구성
+        console.log("📤 [FCM-INCOMING] FCM 푸시 전송 중...");
+
+        const message = {
+          notification: {
+            title: "수신전화",
+            body: `${callerName || callerNumber}`,
+          },
+          data: {
+            type: "incoming_call",
+            caller_number: callerNumber,
+            caller_name: callerName || callerNumber,
+            receiver_number: receiverNumber,
+            linkedid: linkedid,
+            channel: channel || "",
+            call_type: callType || "external",
+            timestamp: new Date().toISOString(),
+          },
+          android: {
+            priority: "high",
+            notification: {
+              channelId: "incoming_call_channel",
+              sound: "default",
+              priority: "high",
+            },
+          },
+          apns: {
+            payload: {
+              aps: {
+                sound: "default",
+                badge: 1,
+              },
+            },
+          },
+        };
+
+        // 5. FCM 멀티캐스트 전송
+        const response = await admin.messaging().sendEachForMulticast({
+          tokens: tokens,
+          ...message,
+        });
+
+        console.log(`✅ [FCM-INCOMING] FCM 전송 완료`);
+        console.log(`   성공: ${response.successCount}/${tokens.length}`);
+
+        if (response.failureCount > 0) {
+          console.error(`⚠️ [FCM-INCOMING] 실패: ${response.failureCount}개`);
+          response.responses.forEach((resp, idx) => {
+            if (!resp.success) {
+              console.error(`   토큰 ${idx + 1}: ${resp.error}`);
+            }
+          });
+        }
+
+        res.status(200).json({
+          success: true,
+          linkedid: linkedid,
+          userId: userId,
+          sentCount: response.successCount,
+          failureCount: response.failureCount,
+          totalTokens: tokens.length,
+          callHistoryCreated: !existingHistory.exists,
+        });
+      } catch (error) {
+        console.error("❌ [FCM-INCOMING] FCM 전송 오류:", error);
+        res.status(500).json({
+          error: error.message,
+          stack: error.stack,
+        });
+      }
+    },
+);

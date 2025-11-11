@@ -79,6 +79,14 @@ class InactivityService {
       debugPrint('⚠️ [InactivityService] 비활성 경고 - 5분 후 자동 로그아웃');
     }
     
+    // ✅ 로그인 상태 확인 (로그아웃 후 경고 방지)
+    if (_authService == null || !_authService!.isAuthenticated) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [InactivityService] 로그인되지 않음 - 경고 취소');
+      }
+      return;
+    }
+    
     if (_onWarning != null) {
       _onWarning!();
     }
@@ -90,23 +98,29 @@ class InactivityService {
       debugPrint('🔒 [InactivityService] 비활성 타임아웃 - 자동 로그아웃 실행');
     }
     
-    // 사용자 정의 콜백 호출
+    // ✅ 로그인 상태 확인 (이미 로그아웃된 경우 스킵)
+    if (_authService == null || !_authService!.isAuthenticated) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [InactivityService] 이미 로그아웃됨 - 타임아웃 처리 스킵');
+      }
+      return;
+    }
+    
+    // 사용자 정의 콜백 호출 (자동 로그아웃 알림 팝업)
     if (_onTimeout != null) {
       _onTimeout!();
     }
     
     // 자동 로그아웃
-    if (_authService != null && _authService!.isAuthenticated) {
-      try {
-        await _authService!.signOut();
-        
-        if (kDebugMode) {
-          debugPrint('✅ [InactivityService] 자동 로그아웃 완료');
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('❌ [InactivityService] 자동 로그아웃 실패: $e');
-        }
+    try {
+      await _authService!.signOut();
+      
+      if (kDebugMode) {
+        debugPrint('✅ [InactivityService] 자동 로그아웃 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [InactivityService] 자동 로그아웃 실패: $e');
       }
     }
   }

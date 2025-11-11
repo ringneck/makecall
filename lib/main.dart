@@ -233,6 +233,12 @@ class _MyAppState extends State<MyApp> {
                               _inactivityService.initialize(
                                 authService: authService,
                                 onWarning: () {
+                                  // ✅ 로그인 상태 재확인 (로그아웃 후 팝업 방지)
+                                  if (!authService.isAuthenticated) {
+                                    debugPrint('⚠️ [비활성] 로그인되지 않음 - 경고 팝업 표시 안 함');
+                                    return;
+                                  }
+                                  
                                   // 5분 전 경고 다이얼로그
                                   if (mounted && navigatorKey.currentContext != null) {
                                     showDialog(
@@ -266,6 +272,13 @@ class _MyAppState extends State<MyApp> {
                                 onTimeout: () {
                                   // 30분 후 자동 로그아웃 (핸들러에서 처리)
                                   debugPrint('⏰ [비활성] 30분 경과 - 자동 로그아웃');
+                                  
+                                  // ✅ 기존 경고 팝업 모두 닫기
+                                  if (navigatorKey.currentContext != null) {
+                                    // 현재 화면에 표시된 다이얼로그 모두 닫기
+                                    Navigator.of(navigatorKey.currentContext!, rootNavigator: true)
+                                        .popUntil((route) => route is! DialogRoute);
+                                  }
                                   
                                   // 자동 로그아웃 알림 팝업
                                   if (context.mounted) {

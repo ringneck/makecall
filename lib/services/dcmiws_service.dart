@@ -8,6 +8,7 @@ import '../screens/call/incoming_call_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/contact_helper.dart';
+import 'package:http/http.dart' as http;
 
 /// DCMIWS WebSocket 서비스
 /// 
@@ -416,6 +417,22 @@ class DCMIWSService {
       };
       
       _showIncomingCallScreen(callerNumber, calleeNumber, channel, linkedid, data, callType);
+      
+      // 🔔 Firebase Functions에 FCM 전송 요청 (비동기, 백그라운드)
+      // WebSocket이 활성이더라도 FCM 백업 전송 (다른 기기 알림용)
+      _sendIncomingCallFCM(
+        callerNumber: callerNumber,
+        callerName: eventData['CallerIDName'] as String? ?? callerNumber,
+        receiverNumber: calleeNumber,
+        linkedid: linkedid,
+        channel: channel,
+        callType: callType,
+      ).catchError((error) {
+        // FCM 전송 실패는 무시 (WebSocket 처리가 우선)
+        if (kDebugMode) {
+          debugPrint('⚠️ FCM 전송 실패 (WebSocket 처리는 정상): $error');
+        }
+      });
       
     } catch (e) {
       if (kDebugMode) {
@@ -1011,6 +1028,18 @@ class DCMIWSService {
           .get();
       
       if (existingDoc.exists) {
+        // 🔍 FCM으로 이미 생성된 기록인지 확인
+        final existingData = existingDoc.data() as Map<String, dynamic>;
+        final existingStatus = existingData['status'] as String?;
+        
+        if (existingStatus == 'fcm_notification') {
+          if (kDebugMode) {
+            debugPrint('📞 [DCMIWS-BRIDGE] FCM으로 이미 생성된 통화 기록 발견');
+            debugPrint('   Linkedid: $linkedid');
+            debugPrint('   → 상태만 업데이트 (device_answered)');
+          }
+        }
+        
         // 기존 문서 업데이트 (단말 수신 확인으로 상태 변경)
         final updateData = {
           'status': 'device_answered', // 단말 수신 확인
@@ -1033,7 +1062,13 @@ class DCMIWSService {
           debugPrint('  extensionUsed: $extensionUsed');
         }
       } else {
-        // 새 통화 기록 생성 (IncomingCallScreen에서 확인 버튼 누르지 않은 경우)
+        // 새 통화 기록 생성 (FCM으로 생성되지 않은 경우)
+        if (kDebugMode) {
+          debugPrint('📞 [DCMIWS-BRIDGE] 새 통화 기록 생성');
+          debugPrint('   Linkedid: $linkedid');
+          debugPrint('   → FCM 기록 없음, 새로 생성');
+        }
+        
         final callHistory = {
           'userId': userId,
           'callerNumber': callerNumber,
@@ -1979,6 +2014,79 @@ class DCMIWSService {
     }
   }
 
+  /// Firebase Functions에 수신전화 FCM 전송 요청
+  /// 
+  /// DCMIWS Newchannel 이벤트 발생 시 호출하여 FCM 푸시를 전송합니다.
+  /// WebSocket이 활성이더라도 FCM 백업 전송 (다른 기기 알림용)
+  Future<void> _sendIncomingCallFCM({
+    required String callerNumber,
+    required String callerName,
+    required String receiverNumber,
+    required String linkedid,
+    required String channel,
+    required String callType,
+  }) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('='*60);
+        debugPrint('📤 [DCMIWS-FCM] Firebase Functions FCM 전송 요청');
+        debugPrint('='*60);
+        debugPrint('  발신번호: $callerNumber');
+        debugPrint('  발신자: $callerName');
+        debugPrint('  수신번호: $receiverNumber');
+        debugPrint('  Linkedid: $linkedid');
+        debugPrint('  통화타입: $callType');
+      }
+      
+      // Firebase Functions URL
+      // TODO: 배포 후 실제 URL로 변경 필요
+      const functionsUrl = 'https://YOUR_REGION-YOUR_PROJECT.cloudfunctions.net/sendIncomingCallNotification';
+      
+      final response = await http.post(
+        Uri.parse(functionsUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'callerNumber': callerNumber,
+          'callerName': callerName,
+          'receiverNumber': receiverNumber,
+          'linkedid': linkedid,
+          'channel': channel,
+          'callType': callType,
+        }),
+      ).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw TimeoutException('FCM 전송 요청 타임아웃 (5초)');
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body) as Map<String, dynamic>;
+        if (kDebugMode) {
+          debugPrint('✅ [DCMIWS-FCM] FCM 전송 요청 성공');
+          debugPrint('   전송 성공: ${responseData['sentCount']}/${responseData['totalTokens']}');
+          debugPrint('   통화기록 생성: ${responseData['callHistoryCreated']}');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('❌ [DCMIWS-FCM] FCM 전송 요청 실패: ${response.statusCode}');
+          debugPrint('   응답: ${response.body}');
+        }
+      }
+      
+      if (kDebugMode) {
+        debugPrint('='*60);
+        debugPrint('');
+      }
+    } catch (e) {
+      // FCM 전송 실패는 치명적이지 않음 (WebSocket 처리가 우선)
+      if (kDebugMode) {
+        debugPrint('⚠️ [DCMIWS-FCM] FCM 전송 오류 (무시): $e');
+      }
+    }
+  }
+  
   /// 서비스 정리
   void dispose() {
     disconnect();
