@@ -121,6 +121,81 @@ service cloud.firestore {
     }
     
     // ============================================
+    // 전화번호부 (Phonebooks)
+    // ============================================
+    match /phonebooks/{phonebookId} {
+      // 로그인한 사용자만 자신의 전화번호부 읽기/쓰기 가능
+      allow read: if request.auth != null && 
+                     resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && 
+                       request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && 
+                       resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && 
+                       resource.data.userId == request.auth.uid;
+    }
+    
+    // ============================================
+    // 연락처 (Contacts)
+    // ============================================
+    match /contacts/{contactId} {
+      // 로그인한 사용자만 자신의 연락처 읽기/쓰기 가능
+      allow read: if request.auth != null && 
+                     resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && 
+                       request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && 
+                       resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && 
+                       resource.data.userId == request.auth.uid;
+    }
+    
+    // ============================================
+    // 통화 기록 (Call History)
+    // ============================================
+    match /call_history/{historyId} {
+      // 로그인한 사용자만 자신의 통화 기록 읽기/쓰기 가능
+      allow read: if request.auth != null && 
+                     resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && 
+                       request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && 
+                       resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && 
+                       resource.data.userId == request.auth.uid;
+    }
+    
+    // ============================================
+    // 내선번호 (Extensions)
+    // ============================================
+    match /extensions/{extensionId} {
+      // 로그인한 사용자는 모든 내선번호 읽기 가능 (조직 내 공유)
+      allow read: if request.auth != null;
+      // 쓰기는 관리자만 가능 (현재는 차단)
+      allow write: if false;
+    }
+    
+    // ============================================
+    // 등록된 내선번호 (Registered Extensions)
+    // ============================================
+    match /registered_extensions/{extensionId} {
+      // 로그인한 사용자는 모든 등록된 내선번호 읽기 가능
+      allow read: if request.auth != null;
+      // 쓰기는 제한
+      allow write: if false;
+    }
+    
+    // ============================================
+    // 대표번호 (Main Numbers)
+    // ============================================
+    match /main_numbers/{numberId} {
+      // 로그인한 사용자는 모든 대표번호 읽기 가능
+      allow read: if request.auth != null;
+      // 쓰기는 관리자만 가능 (현재는 차단)
+      allow write: if false;
+    }
+    
+    // ============================================
     // 기본 규칙 (모든 다른 컬렉션 차단)
     // ============================================
     match /{document=**} {
