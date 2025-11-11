@@ -80,6 +80,27 @@ import FirebaseMessaging
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
+    let userInfo = notification.request.content.userInfo
+    
+    print("📨 [FOREGROUND] 포그라운드 알림 수신")
+    print("   - Title: \(notification.request.content.title)")
+    print("   - Body: \(notification.request.content.body)")
+    print("   - UserInfo: \(userInfo)")
+    
+    // ✅ CRITICAL: Flutter로 포그라운드 알림 데이터 전달
+    // Firebase Messaging이 자동으로 Flutter의 onMessage를 트리거하도록 함
+    if let messageID = userInfo["gcm.message_id"] as? String {
+      print("🔄 [FOREGROUND] Flutter FCM 핸들러로 전달 시작")
+      print("   - Message ID: \(messageID)")
+      
+      // Messaging.messaging().appDidReceiveMessage를 호출하여 Flutter로 전달
+      Messaging.messaging().appDidReceiveMessage(userInfo)
+      print("✅ [FOREGROUND] Flutter FCM 핸들러로 전달 완료")
+    } else {
+      print("⚠️ [FOREGROUND] FCM 메시지 ID 없음 - Flutter 전달 스킵")
+    }
+    
+    // 포그라운드에서도 알림 배너 표시
     if #available(iOS 14.0, *) {
       completionHandler([[.banner, .badge, .sound]])
     } else {
@@ -100,6 +121,19 @@ import FirebaseMessaging
     print("   - Title: \(response.notification.request.content.title)")
     print("   - Body: \(response.notification.request.content.body)")
     print("   - UserInfo: \(userInfo)")
+    
+    // ✅ CRITICAL: Flutter로 알림 데이터 전달
+    // Firebase Messaging이 자동으로 Flutter의 onMessageOpenedApp을 트리거하도록 함
+    if let messageID = userInfo["gcm.message_id"] as? String {
+      print("🔄 [NOTIFICATION] Flutter FCM 핸들러로 전달 시작")
+      print("   - Message ID: \(messageID)")
+      
+      // Messaging.messaging().appDidReceiveMessage를 호출하여 Flutter로 전달
+      Messaging.messaging().appDidReceiveMessage(userInfo)
+      print("✅ [NOTIFICATION] Flutter FCM 핸들러로 전달 완료")
+    } else {
+      print("⚠️ [NOTIFICATION] FCM 메시지 ID 없음 - Flutter 전달 스킵")
+    }
     
     completionHandler()
   }
