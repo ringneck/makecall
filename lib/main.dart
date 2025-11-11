@@ -266,6 +266,35 @@ class _MyAppState extends State<MyApp> {
                                 onTimeout: () {
                                   // 30분 후 자동 로그아웃 (핸들러에서 처리)
                                   debugPrint('⏰ [비활성] 30분 경과 - 자동 로그아웃');
+                                  
+                                  // 자동 로그아웃 알림 팝업
+                                  if (context.mounted) {
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (context) => AlertDialog(
+                                        title: const Row(
+                                          children: [
+                                            Icon(Icons.info_outline, color: Colors.blue, size: 28),
+                                            SizedBox(width: 12),
+                                            Text('자동 로그아웃'),
+                                          ],
+                                        ),
+                                        content: const Text(
+                                          '로그인을 연장하지 않아 자동 로그아웃되었습니다.',
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: const Text('확인'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
                                 },
                               );
                             }
