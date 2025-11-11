@@ -159,6 +159,9 @@ class _MyAppState extends State<MyApp> {
   
   // 💡 스플래시 스크린 표시 상태
   bool _isInitializing = true;
+  
+  // 🔒 로그인 유지 다이얼로그 표시 여부
+  bool _isLoginKeepDialogShowing = false;
 
   @override
   void initState() {
@@ -326,74 +329,95 @@ class _MyAppState extends State<MyApp> {
                                   }
                                   
                                   // 5분 전 경고 다이얼로그
-                                  if (mounted && navigatorKey.currentContext != null) {
+                                  if (mounted && navigatorKey.currentContext != null && !_isLoginKeepDialogShowing) {
+                                    _isLoginKeepDialogShowing = true;
+                                    debugPrint('🔔 [비활성] 로그인 유지 다이얼로그 표시');
+                                    
                                     showDialog(
                                       context: navigatorKey.currentContext!,
                                       barrierDismissible: false,
-                                      builder: (context) => AlertDialog(
-                                        title: const Row(
-                                          children: [
-                                            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-                                            SizedBox(width: 12),
-                                            Text('로그인 연장'),
+                                      builder: (dialogContext) => WillPopScope(
+                                        onWillPop: () async => false,
+                                        child: AlertDialog(
+                                          title: const Row(
+                                            children: [
+                                              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                                              SizedBox(width: 12),
+                                              Text('로그인 연장'),
+                                            ],
+                                          ),
+                                          content: const Text(
+                                            '5분 후 자동 로그아웃됩니다.\n계속 사용하시려면 연장을 클릭하세요.',
+                                            style: TextStyle(fontSize: 14),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                _isLoginKeepDialogShowing = false;
+                                                Navigator.of(dialogContext).pop();
+                                                _inactivityService.updateActivity(); // 활동 갱신
+                                                debugPrint('✅ [비활성] 로그인 연장 - 다이얼로그 닫음');
+                                              },
+                                              child: const Text('연장'),
+                                            ),
                                           ],
                                         ),
-                                        content: const Text(
-                                          '5분 후 자동 로그아웃됩니다.\n계속 사용하시려면 연장을 클릭하세요.',
-                                          style: TextStyle(fontSize: 14),
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.of(context).pop();
-                                              _inactivityService.updateActivity(); // 활동 갱신
-                                            },
-                                            child: const Text('연장'),
-                                          ),
-                                        ],
                                       ),
-                                    );
+                                    ).then((_) {
+                                      // 다이얼로그가 어떤 방식으로든 닫히면 플래그 리셋
+                                      _isLoginKeepDialogShowing = false;
+                                    });
                                   }
                                 },
                                 onTimeout: () {
                                   // 30분 후 자동 로그아웃 (핸들러에서 처리)
                                   debugPrint('⏰ [비활성] 30분 경과 - 자동 로그아웃');
                                   
-                                  // ✅ 기존 경고 팝업 모두 닫기
-                                  if (navigatorKey.currentContext != null) {
-                                    // 현재 화면에 표시된 다이얼로그 모두 닫기
-                                    Navigator.of(navigatorKey.currentContext!, rootNavigator: true)
-                                        .popUntil((route) => route is! DialogRoute);
+                                  // ✅ 로그인 유지 다이얼로그가 표시 중이면 명시적으로 닫기
+                                  if (_isLoginKeepDialogShowing && navigatorKey.currentContext != null) {
+                                    try {
+                                      Navigator.of(navigatorKey.currentContext!, rootNavigator: true).pop();
+                                      _isLoginKeepDialogShowing = false;
+                                      debugPrint('✅ [비활성] 로그인 유지 다이얼로그 닫음 (플래그 기반)');
+                                    } catch (e) {
+                                      debugPrint('⚠️ [비활성] 다이얼로그 닫기 실패: $e');
+                                      _isLoginKeepDialogShowing = false; // 실패해도 플래그 리셋
+                                    }
                                   }
                                   
-                                  // 자동 로그아웃 알림 팝업
-                                  if (context.mounted) {
-                                    showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (context) => AlertDialog(
-                                        title: const Row(
-                                          children: [
-                                            Icon(Icons.info_outline, color: Colors.blue, size: 28),
-                                            SizedBox(width: 12),
-                                            Text('자동 로그아웃'),
-                                          ],
-                                        ),
-                                        content: const Text(
-                                          '로그인을 연장하지 않아 자동 로그아웃되었습니다.',
-                                          style: TextStyle(fontSize: 14),
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.of(context).pop();
-                                            },
-                                            child: const Text('확인'),
+                                  // 자동 로그아웃 알림 팝업 (딜레이 후 표시)
+                                  Future.delayed(const Duration(milliseconds: 300), () {
+                                    if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
+                                      showDialog(
+                                        context: navigatorKey.currentContext!,
+                                        barrierDismissible: false,
+                                        builder: (dialogContext) => WillPopScope(
+                                          onWillPop: () async => false,
+                                          child: AlertDialog(
+                                            title: const Row(
+                                              children: [
+                                                Icon(Icons.info_outline, color: Colors.blue, size: 28),
+                                                SizedBox(width: 12),
+                                                Text('자동 로그아웃'),
+                                              ],
+                                            ),
+                                            content: const Text(
+                                              '로그인을 연장하지 않아 자동 로그아웃되었습니다.',
+                                              style: TextStyle(fontSize: 14),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () {
+                                                  Navigator.of(dialogContext).pop();
+                                                },
+                                                child: const Text('확인'),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    );
-                                  }
+                                        ),
+                                      );
+                                    }
+                                  });
                                 },
                               );
                             }

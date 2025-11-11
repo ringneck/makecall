@@ -7,6 +7,7 @@ import 'dart:async'; // TimeoutException 사용을 위해 필요
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../screens/call/incoming_call_screen.dart';
+import '../screens/home/main_screen.dart'; // MainScreen import 추가
 import '../models/fcm_token_model.dart';
 import '../main.dart' show navigatorKey; // GlobalKey for Navigation
 import 'dcmiws_service.dart';
