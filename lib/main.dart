@@ -243,7 +243,7 @@ class _MyAppState extends State<MyApp> {
                                           children: [
                                             Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
                                             SizedBox(width: 12),
-                                            Text('비활성 경고'),
+                                            Text('로그인 연장'),
                                           ],
                                         ),
                                         content: const Text(
@@ -256,7 +256,7 @@ class _MyAppState extends State<MyApp> {
                                               Navigator.of(context).pop();
                                               _inactivityService.updateActivity(); // 활동 갱신
                                             },
-                                            child: const Text('확인'),
+                                            child: const Text('연장'),
                                           ),
                                         ],
                                       ),
