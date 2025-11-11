@@ -247,7 +247,7 @@ class _MyAppState extends State<MyApp> {
                                           ],
                                         ),
                                         content: const Text(
-                                          '5분 후 자동 로그아웃됩니다.\n계속 사용하시려면 확인을 클릭하세요.',
+                                          '5분 후 자동 로그아웃됩니다.\n계속 사용하시려면 연장을 클릭하세요.',
                                           style: TextStyle(fontSize: 14),
                                         ),
                                         actions: [
