@@ -576,6 +576,9 @@ class FCMService {
       print('⚠️ [FCM-DEBUG] 수신 전화 조건 불만족 - 일반 알림으로 처리');
     }
     
+    // 📥 사용자 알림 설정 확인 (알림 표시 전 체크) - 동기 함수에서 비동기 호출 불가능하므로 주석 처리
+    // 대신 _showAndroidNotification(), _showWebNotification(), _showIOSNotification() 내부에서 체크
+    
     // 웹 플랫폼: 브라우저 알림 표시
     if (kIsWeb) {
       _showWebNotification(message);
@@ -584,6 +587,11 @@ class FCMService {
     // 안드로이드 플랫폼: 로컬 알림 표시
     if (Platform.isAndroid) {
       _showAndroidNotification(message);
+    }
+    
+    // iOS 플랫폼: DialogUtils로 알림 표시 (네이티브 알림은 AppDelegate에서 비활성화됨)
+    if (Platform.isIOS) {
+      _showIOSNotification(message);
     }
   }
   
@@ -1104,6 +1112,70 @@ class FCMService {
       if (kDebugMode) {
         debugPrint('❌ 웹 알림 표시 오류: $e');
       }
+    }
+  }
+  
+  /// iOS 플랫폼 알림 표시 (DialogUtils 사용)
+  Future<void> _showIOSNotification(RemoteMessage message) async {
+    if (!Platform.isIOS) return;
+    
+    try {
+      final title = message.notification?.title ?? message.data['title'] ?? 'MAKECALL 알림';
+      final body = message.notification?.body ?? message.data['body'] ?? '새로운 알림이 있습니다.';
+      
+      debugPrint('🍎 [FCM] iOS 알림 표시 시작');
+      debugPrint('   제목: $title');
+      debugPrint('   내용: $body');
+      
+      // 📥 사용자 알림 설정 가져오기
+      String? userId;
+      
+      // _context가 있으면 AuthService에서 userId 가져오기
+      if (_context != null) {
+        try {
+          final authService = Provider.of<AuthService>(_context!, listen: false);
+          userId = authService.currentUser?.uid;
+        } catch (e) {
+          debugPrint('⚠️ [FCM-알림설정-iOS] AuthService 접근 실패: $e');
+        }
+      }
+      
+      Map<String, dynamic>? settings;
+      
+      if (userId != null) {
+        settings = await getUserNotificationSettings(userId);
+        debugPrint('📦 [FCM-알림설정-iOS] 사용자 설정: $settings');
+      } else {
+        debugPrint('⚠️ [FCM-알림설정-iOS] userId 없음 - 기본 설정 사용');
+      }
+      
+      // 알림 설정 적용 (기본값: 모두 켜짐)
+      final pushEnabled = settings?['pushEnabled'] ?? true;
+      
+      debugPrint('🔧 [FCM-알림설정-iOS] 적용:');
+      debugPrint('   - 푸시 알림: $pushEnabled');
+      
+      // 푸시 알림이 꺼져있으면 알림 표시 안함
+      if (!pushEnabled) {
+        debugPrint('⏭️ [FCM-iOS] 푸시 알림이 비활성화되어 알림 표시 건너뜀');
+        return;
+      }
+      
+      // _context가 있으면 DialogUtils로 알림 표시
+      if (_context != null) {
+        await DialogUtils.showInfo(
+          _context!,
+          body,
+          title: title,
+          duration: const Duration(seconds: 5),
+        );
+        debugPrint('✅ [FCM-iOS] 알림 다이얼로그 표시 완료');
+      } else {
+        debugPrint('⚠️ [FCM-iOS] BuildContext 없음 - 알림 표시 불가');
+      }
+      
+    } catch (e) {
+      debugPrint('❌ [FCM-iOS] 알림 표시 오류: $e');
     }
   }
   

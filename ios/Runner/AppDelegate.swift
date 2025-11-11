@@ -110,11 +110,9 @@ import FirebaseMessaging
       print("❌ [iOS-FCM] Method Channel 미초기화")
     }
     
-    if #available(iOS 14.0, *) {
-      completionHandler([[.banner, .badge, .sound]])
-    } else {
-      completionHandler([[.alert, .badge, .sound]])
-    }
+    // ⚠️ iOS 네이티브 알림을 표시하지 않음 (Flutter에서 사용자 설정 확인 후 처리)
+    // 사용자가 푸시 알림을 비활성화했을 수 있으므로, Flutter 레벨에서 제어
+    completionHandler([[]])  // 빈 옵션 = 알림 표시 안 함
   }
   
   // 알림 탭했을 때 - Method Channel로 직접 전달
