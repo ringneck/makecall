@@ -4,7 +4,6 @@ import '../../models/fcm_token_model.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 
 /// 활성 세션 관리 화면
 /// 
@@ -258,7 +257,13 @@ class _ActiveSessionsScreenState extends State<ActiveSessionsScreen> {
     } else if (difference.inDays < 7) {
       return '${difference.inDays}일 전';
     } else {
-      return DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+      // Flutter 기본 기능으로 날짜 포맷팅 (intl 패키지 불필요)
+      final year = dateTime.year;
+      final month = dateTime.month.toString().padLeft(2, '0');
+      final day = dateTime.day.toString().padLeft(2, '0');
+      final hour = dateTime.hour.toString().padLeft(2, '0');
+      final minute = dateTime.minute.toString().padLeft(2, '0');
+      return '$year-$month-$day $hour:$minute';
     }
   }
 
