@@ -2,11 +2,20 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
 
-admin.initializeApp();
+// ✅ 마이그레이션: functions.config() → process.env (dotenv)
+// Firebase Cloud Functions는 자동으로 .env 파일을 로드합니다 (Node.js 18+)
+const gmailEmail = process.env.GMAIL_EMAIL;
+const gmailPassword = process.env.GMAIL_PASSWORD;
 
-// Gmail SMTP 설정
-const gmailEmail = functions.config().gmail.email;
-const gmailPassword = functions.config().gmail.password;
+// 환경 변수 검증 (배포 시 오류 방지)
+if (!gmailEmail || !gmailPassword) {
+  throw new Error(
+    '❌ Gmail 환경 변수가 설정되지 않았습니다. ' +
+    'functions/.env 파일에 GMAIL_EMAIL과 GMAIL_PASSWORD를 설정하세요.'
+  );
+}
+
+admin.initializeApp();
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',

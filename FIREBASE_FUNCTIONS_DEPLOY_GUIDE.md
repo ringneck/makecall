@@ -1,5 +1,24 @@
 # 🚀 MAKECALL Firebase Functions 배포 가이드
 
+## ⚠️ 중요 업데이트 (2025년 1월)
+
+**✅ 최신 환경 변수 방식 사용 (.env)**
+
+이 가이드는 Firebase의 **최신 환경 변수 관리 방식**을 사용합니다:
+
+- ✅ **권장**: `.env` 파일 사용 (Node.js 18+ 자동 지원)
+- ❌ **지원 중단**: `functions.config()` API (2026년 3월 이후 사용 불가)
+
+**마이그레이션 완료:**
+- `functions.config()` API → `process.env` (dotenv) 방식으로 변경
+- `.env.example` 템플릿 파일 제공
+- `.gitignore`에 `.env` 자동 제외 설정
+
+**참고 문서:**
+- [Firebase 공식 마이그레이션 가이드](https://firebase.google.com/docs/functions/config-env#migrate-to-dotenv)
+
+---
+
 ## 📋 개요
 
 이 문서는 MAKECALL 앱의 Firebase Cloud Functions를 배포하는 방법을 설명합니다.
@@ -136,54 +155,93 @@ cd ~/Documents/makecall
 
 ---
 
-## 📧 Step 4: Gmail 환경 변수 설정
+## 📧 Step 4: Gmail 환경 변수 설정 (.env 파일)
 
-### 4.1 Firebase Functions Config 설정
+### 4.1 .env 파일 생성
 
-**명령어:**
+**functions 디렉토리에서 .env.example 파일을 복사:**
+
 ```bash
-firebase functions:config:set gmail.email="YOUR_EMAIL@gmail.com"
-firebase functions:config:set gmail.password="YOUR_APP_PASSWORD"
+cd functions
+cp .env.example .env
 ```
 
-**예시:**
+**성공 확인:**
 ```bash
-firebase functions:config:set gmail.email="makecall.notifications@gmail.com"
-firebase functions:config:set gmail.password="abcd efgh ijkl mnop"
+ls -la .env
+# 출력: -rw-r--r-- 1 user user 687 Jan  1 12:00 .env
 ```
 
-**성공 메시지:**
+### 4.2 .env 파일 편집
+
+**텍스트 에디터로 .env 파일 열기:**
+
+**Windows (메모장):**
+```powershell
+notepad .env
 ```
-✔  Functions config updated.
 
-Please deploy your functions for the change to take effect by running:
-   firebase deploy --only functions
-```
-
-### 4.2 설정 확인
-
-**명령어:**
+**macOS/Linux (nano):**
 ```bash
-firebase functions:config:get
+nano .env
+```
+
+**macOS/Linux (vim):**
+```bash
+vim .env
+```
+
+**실제 Gmail 정보 입력:**
+```bash
+# Gmail 이메일 주소
+GMAIL_EMAIL=makecall.notifications@gmail.com
+
+# Gmail 앱 비밀번호 (16자리, 공백 포함)
+GMAIL_PASSWORD=abcd efgh ijkl mnop
+```
+
+### 4.3 .env 파일 저장
+
+**nano 사용 시:**
+- `Ctrl + X` → `Y` → `Enter`
+
+**vim 사용 시:**
+- `Esc` → `:wq` → `Enter`
+
+**메모장 사용 시:**
+- `파일` → `저장`
+
+### 4.4 설정 확인
+
+**환경 변수 파일이 올바르게 생성되었는지 확인:**
+
+```bash
+cat .env
 ```
 
 **출력 예시:**
-```json
-{
-  "gmail": {
-    "email": "makecall.notifications@gmail.com",
-    "password": "abcd efgh ijkl mnop"
-  }
-}
+```
+GMAIL_EMAIL=makecall.notifications@gmail.com
+GMAIL_PASSWORD=abcd efgh ijkl mnop
 ```
 
-⚠️ **주의**: 비밀번호는 마스킹되어 표시되지만 정상적으로 저장되어 있습니다.
+**상위 디렉토리로 복귀:**
+```bash
+cd ..
+```
+
+⚠️ **중요 보안 주의사항:**
+- `.env` 파일은 **절대 Git에 커밋하지 마세요**! (`.gitignore`에 자동 포함됨)
+- `.env` 파일은 민감한 정보를 포함하므로 안전하게 보관하세요
+- 다른 사람과 공유하지 마세요
 
 ---
 
 ## 📦 Step 5: npm 패키지 설치
 
 ### 5.1 Functions 디렉토리로 이동
+
+**⚠️ Step 4에서 이미 functions 디렉토리에 있다면 이 단계 생략**
 
 ```bash
 cd functions
@@ -215,6 +273,8 @@ found 0 vulnerabilities
 ```bash
 cd ..
 ```
+
+**⚠️ 중요: 이제 프로젝트 루트 디렉토리에 있어야 합니다** (`makecall/`)
 
 ---
 
@@ -357,9 +417,15 @@ Error: Invalid login: 535-5.7.8 Username and Password not accepted.
 **해결:**
 1. Gmail 앱 비밀번호 재생성
 2. 공백 포함 정확히 16자리 확인
-3. 환경 변수 재설정:
+3. `.env` 파일 수정:
    ```bash
-   firebase functions:config:set gmail.password="새-비밀번호"
+   cd functions
+   nano .env  # 또는 vim, notepad 사용
+   # GMAIL_PASSWORD를 새 비밀번호로 수정
+   ```
+4. Functions 재배포:
+   ```bash
+   cd ..
    firebase deploy --only functions
    ```
 
@@ -525,9 +591,11 @@ npm ERR! syscall open
 ## 🔒 보안 권장 사항
 
 ### 1. Gmail 앱 비밀번호 보안
-- ✅ Firebase Functions Config에만 저장
+- ✅ `.env` 파일에만 저장 (로컬 환경)
+- ✅ `.env` 파일은 `.gitignore`에 자동 포함됨
 - ❌ 절대 코드에 하드코딩하지 않기
-- ❌ Git에 커밋하지 않기
+- ❌ Git에 커밋하지 않기 (중요!)
+- ❌ 다른 사람과 `.env` 파일 공유 금지
 - ✅ 정기적으로 비밀번호 변경
 
 ### 2. Firestore 보안 규칙
@@ -536,9 +604,14 @@ npm ERR! syscall open
 - ✅ 읽기/쓰기 권한 최소화
 
 ### 3. Functions 보안
-- ✅ 환경 변수만 사용
+- ✅ `.env` 파일로 환경 변수 관리 (권장)
 - ✅ 입력 데이터 검증
 - ✅ 오류 로깅 및 모니터링
+
+### 4. 환경 변수 백업
+- ✅ `.env` 파일을 안전한 곳에 백업
+- ✅ 팀원과 공유 시 암호화된 채널 사용
+- ✅ 프로덕션과 개발 환경 분리
 
 ---
 
@@ -547,7 +620,8 @@ npm ERR! syscall open
 **공식 문서:**
 - [Firebase Functions 시작하기](https://firebase.google.com/docs/functions/get-started)
 - [Nodemailer Gmail 설정](https://nodemailer.com/usage/using-gmail/)
-- [Firebase Functions Config](https://firebase.google.com/docs/functions/config-env)
+- [Firebase Functions 환경 변수 (.env)](https://firebase.google.com/docs/functions/config-env#migrate-to-dotenv)
+- ⚠️ **중요**: `functions.config()` API는 2026년 3월 이후 지원 중단
 
 **프로젝트 문서:**
 - `firebase_setup/FIREBASE_SETUP_README.md` - 빠른 시작
@@ -559,7 +633,8 @@ npm ERR! syscall open
 
 - [ ] Gmail 앱 비밀번호 생성 완료
 - [ ] Firebase CLI 설치 및 로그인 완료
-- [ ] Gmail 환경 변수 설정 완료
+- [ ] `.env` 파일 생성 및 Gmail 환경 변수 설정 완료
+- [ ] `.env` 파일이 Git에 커밋되지 않았는지 확인 완료
 - [ ] npm 패키지 설치 완료
 - [ ] Functions 배포 완료
 - [ ] Firestore 보안 규칙 배포 완료

@@ -1,5 +1,19 @@
 # 📧 MAKECALL Firebase 이메일 인증 시스템 설치 가이드
 
+## ⚠️ 중요 업데이트 (2025년 1월)
+
+**✅ 최신 환경 변수 방식 사용 (.env)**
+
+이 가이드는 Firebase의 **최신 환경 변수 관리 방식**을 사용합니다:
+
+- ✅ **권장**: `.env` 파일 사용 (Node.js 18+ 자동 지원)
+- ❌ **지원 중단**: `functions.config()` API (2026년 3월 이후 사용 불가)
+
+**참고 문서:**
+- [Firebase 공식 마이그레이션 가이드](https://firebase.google.com/docs/functions/config-env#migrate-to-dotenv)
+
+---
+
 ## 🚀 빠른 시작
 
 ### 1. 자동 설치 (추천)
@@ -80,8 +94,25 @@ cd /home/user/flutter_app/functions
 npm install
 ```
 
-### Step 5: Gmail 환경 변수 설정
+### Step 5: Gmail 환경 변수 설정 (.env 파일)
+
+**✅ 최신 방식 (.env 파일 사용 - 권장):**
+
 ```bash
+cd /home/user/flutter_app/functions
+cp .env.example .env
+nano .env  # 또는 vim, notepad로 편집
+```
+
+**.env 파일 내용:**
+```bash
+GMAIL_EMAIL=your-email@gmail.com
+GMAIL_PASSWORD=your-16-digit-app-password
+```
+
+**❌ 구식 방식 (2026년 3월 이후 작동 안 함):**
+```bash
+# 더 이상 사용하지 마세요
 firebase functions:config:set gmail.email="your-email@gmail.com"
 firebase functions:config:set gmail.password="your-16-digit-app-password"
 ```
@@ -158,8 +189,10 @@ firebase emulators:start
 
 ### 보안
 - Gmail 앱 비밀번호 절대 코드에 하드코딩 금지
-- Firebase Functions Config 사용 필수
-- `.env` 파일 사용 금지
+- ✅ **최신 방식**: `.env` 파일 사용 (권장)
+- ✅ `.env` 파일은 `.gitignore`에 자동 포함됨
+- ❌ `.env` 파일을 Git에 커밋하지 마세요
+- ❌ 구식 방식: `functions.config()` (2026년 3월 이후 지원 중단)
 
 ### Functions 콜드 스타트
 - 첫 호출 시 3-5초 지연 가능
@@ -190,7 +223,12 @@ firebase functions:log --only sendVerificationEmail
 **원인**: Gmail 앱 비밀번호 오류
 **해결**:
 ```bash
-firebase functions:config:set gmail.password="새-비밀번호"
+# .env 파일 편집
+cd /home/user/flutter_app/functions
+nano .env  # GMAIL_PASSWORD 수정
+
+# Functions 재배포
+cd ..
 firebase deploy --only functions
 ```
 
@@ -214,8 +252,9 @@ firebase deploy --only functions
 
 - [Firebase Cloud Functions 공식 문서](https://firebase.google.com/docs/functions)
 - [Nodemailer Gmail 가이드](https://nodemailer.com/usage/using-gmail/)
-- [Firebase Functions Config](https://firebase.google.com/docs/functions/config-env)
+- [Firebase Functions 환경 변수 (.env)](https://firebase.google.com/docs/functions/config-env#migrate-to-dotenv)
 - [Gmail SMTP 설정](https://support.google.com/mail/answer/7126229)
+- ⚠️ **중요**: [functions.config() 지원 중단 공지](https://firebase.google.com/docs/functions/config-env)
 
 ---
 
@@ -223,7 +262,8 @@ firebase deploy --only functions
 
 - [ ] Functions 배포 성공
 - [ ] Firestore 보안 규칙 배포 성공
-- [ ] Gmail 환경 변수 설정 완료
+- [ ] `.env` 파일 생성 및 Gmail 환경 변수 설정 완료
+- [ ] `.env` 파일이 Git에 커밋되지 않았는지 확인
 - [ ] 테스트 이메일 전송 성공
 - [ ] FCM 푸시 알림 테스트 성공
 - [ ] Flutter 앱에서 전체 플로우 테스트 완료

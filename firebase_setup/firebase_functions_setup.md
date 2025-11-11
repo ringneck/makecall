@@ -49,32 +49,68 @@ cd functions
 npm install nodemailer
 ```
 
-### Step 3: 환경 변수 설정 (Gmail 계정 정보)
+### Step 3: 환경 변수 설정 (Gmail 계정 정보) - ✅ 최신 방식
+
+**⚠️ 중요**: `functions.config()` API는 2026년 3월 이후 지원 중단됩니다. 
+아래 **최신 .env 방식**을 사용하세요.
+
+#### **최신 방식: .env 파일 사용 (권장)**
+
 ```bash
-# Firebase 프로젝트에 Gmail 계정 정보 저장
+# functions 디렉토리에서 .env.example을 복사
+cd functions
+cp .env.example .env
+
+# 텍스트 에디터로 .env 파일 편집
+nano .env  # 또는 vim, notepad 사용
+```
+
+**.env 파일 내용:**
+```bash
+# Gmail 이메일 주소
+GMAIL_EMAIL=makecall.notifications@gmail.com
+
+# Gmail 앱 비밀번호 (16자리, 공백 포함)
+GMAIL_PASSWORD=abcd efgh ijkl mnop
+```
+
+**중요 사항:**
+- ✅ `.env` 파일은 `.gitignore`에 자동 포함됨
+- ❌ `.env` 파일을 Git에 커밋하지 마세요
+- ✅ `.env.example` 파일만 Git에 커밋됨
+
+#### **구식 방식: functions.config() (지원 중단)**
+
+**❌ 사용하지 마세요 - 2026년 3월 이후 작동 안 함**
+
+```bash
+# 더 이상 사용하지 않음
 firebase functions:config:set gmail.email="your-email@gmail.com"
 firebase functions:config:set gmail.password="your-16-digit-app-password"
 ```
 
-**예시:**
-```bash
-firebase functions:config:set gmail.email="makecall.notifications@gmail.com"
-firebase functions:config:set gmail.password="abcd efgh ijkl mnop"
-```
-
 ### Step 4: Cloud Functions 코드 작성
 
-#### **functions/index.js** (JavaScript 버전)
+#### **functions/index.js** (JavaScript 버전) - ✅ 최신 코드
+
 ```javascript
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
 
-admin.initializeApp();
+// ✅ 최신 방식: process.env 사용 (.env 파일에서 자동 로드)
+const gmailEmail = process.env.GMAIL_EMAIL;
+const gmailPassword = process.env.GMAIL_PASSWORD;
 
-// Gmail SMTP 설정
-const gmailEmail = functions.config().gmail.email;
-const gmailPassword = functions.config().gmail.password;
+// 환경 변수 검증 (배포 시 오류 방지)
+if (!gmailEmail || !gmailPassword) {
+  throw new Error(
+    '❌ Gmail 환경 변수가 설정되지 않았습니다. ' +
+    'functions/.env 파일에 GMAIL_EMAIL과 GMAIL_PASSWORD를 설정하세요.'
+  );
+}
+
+admin.initializeApp();
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',

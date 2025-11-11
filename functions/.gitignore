@@ -11,5 +11,10 @@ node_modules/
 # Package lock file
 package-lock.json
 
-# Firebase configuration
+# Firebase configuration (deprecated)
 .runtimeconfig.json
+
+# ✅ 환경 변수 파일 (중요: Git에 커밋하지 않기!)
+.env
+.env.local
+.env.*.local
