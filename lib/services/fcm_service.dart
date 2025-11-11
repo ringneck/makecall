@@ -459,6 +459,13 @@ class FCMService {
   void _handleForegroundMessage(RemoteMessage message) {
     debugPrint('📨 포그라운드 메시지: ${message.notification?.title}');
     debugPrint('📨 메시지 데이터: ${message.data}');
+    debugPrint('🔍 [FCM-DEBUG] 전체 메시지 구조:');
+    debugPrint('   - notification.title: ${message.notification?.title}');
+    debugPrint('   - notification.body: ${message.notification?.body}');
+    debugPrint('   - data keys: ${message.data.keys.toList()}');
+    message.data.forEach((key, value) {
+      debugPrint('   - data[$key]: $value (${value.runtimeType})');
+    });
     
     // 🔐 강제 로그아웃 메시지 처리 (레거시)
     if (message.data['type'] == 'force_logout') {
@@ -486,6 +493,12 @@ class FCMService {
                         (message.data['linkedid'] as String).isNotEmpty;
     final hasCallType = message.data['call_type'] != null;
     
+    debugPrint('🔍 [FCM-DEBUG] 수신 전화 조건 체크:');
+    debugPrint('   - hasIncomingCallType: $hasIncomingCallType (type=${message.data['type']})');
+    debugPrint('   - hasLinkedId: $hasLinkedId (linkedid=${message.data['linkedid']})');
+    debugPrint('   - hasCallType: $hasCallType (call_type=${message.data['call_type']})');
+    debugPrint('   - 최종 조건: ${hasIncomingCallType || (hasLinkedId && hasCallType)}');
+    
     if (hasIncomingCallType || (hasLinkedId && hasCallType)) {
       debugPrint('📞 [FCM] 수신 전화 감지:');
       debugPrint('   - type: ${message.data['type']}');
@@ -493,6 +506,8 @@ class FCMService {
       debugPrint('   - call_type: ${message.data['call_type']}');
       _handleIncomingCallFCM(message);
       return;
+    } else {
+      debugPrint('⚠️ [FCM-DEBUG] 수신 전화 조건 불만족 - 일반 알림으로 처리');
     }
     
     // 웹 플랫폼: 브라우저 알림 표시
@@ -553,19 +568,30 @@ class FCMService {
   /// 
   /// DCMIWS 웹소켓 연결이 중지되었을 때 FCM으로 수신전화를 처리합니다.
   Future<void> _handleIncomingCallFCM(RemoteMessage message) async {
-    debugPrint('📞 [FCM-INCOMING] 수신 전화 FCM 메시지 처리');
+    debugPrint('📞 [FCM-INCOMING] 수신 전화 FCM 메시지 처리 시작');
+    debugPrint('   - Platform: ${Platform.isAndroid ? 'Android' : (Platform.isIOS ? 'iOS' : 'Other')}');
     
     // WebSocket 연결 상태 확인
     final dcmiwsService = DCMIWSService();
-    if (dcmiwsService.isConnected) {
+    final isConnected = dcmiwsService.isConnected;
+    debugPrint('🔍 [FCM-INCOMING] WebSocket 연결 상태: $isConnected');
+    
+    if (isConnected) {
       debugPrint('✅ [FCM-INCOMING] WebSocket 연결 활성 - 웹소켓으로 처리 (FCM 무시)');
       return; // WebSocket이 활성이면 FCM 무시
     }
     
     debugPrint('⚠️ [FCM-INCOMING] WebSocket 연결 없음 - FCM으로 처리');
+    debugPrint('📞 [FCM-INCOMING] _showIncomingCallScreen() 호출 시작...');
     
-    // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함)
-    await _showIncomingCallScreen(message);
+    try {
+      // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함)
+      await _showIncomingCallScreen(message);
+      debugPrint('✅ [FCM-INCOMING] _showIncomingCallScreen() 호출 완료');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [FCM-INCOMING] _showIncomingCallScreen() 오류: $e');
+      debugPrint('Stack trace: $stackTrace');
+    }
   }
   
   /// Context가 준비될 때까지 대기 후 수신전화 화면 표시 (백그라운드용)
@@ -1050,16 +1076,23 @@ class FCMService {
   
   /// 수신 전화 풀스크린 표시
   Future<void> _showIncomingCallScreen(RemoteMessage message) async {
+    debugPrint('🎬 [FCM-SCREEN] _showIncomingCallScreen() 시작');
+    debugPrint('   - _context: ${_context != null ? '있음' : '없음'}');
+    debugPrint('   - navigatorKey.currentContext: ${navigatorKey.currentContext != null ? '있음' : '없음'}');
+    
     // BuildContext 또는 NavigatorKey 확인
     final context = _context ?? navigatorKey.currentContext;
     
     if (context == null) {
-      debugPrint('❌ [FCM] BuildContext와 NavigatorKey 모두 사용 불가');
+      debugPrint('❌ [FCM-SCREEN] BuildContext와 NavigatorKey 모두 사용 불가');
       debugPrint('💡 main.dart에서 FCMService.setContext()를 호출하거나 앱이 완전히 시작될 때까지 기다리세요');
+      debugPrint('🔧 해결 방법:');
+      debugPrint('   1. main.dart에서 FCMService.setContext(context) 호출 확인');
+      debugPrint('   2. navigatorKey가 MaterialApp에 설정되었는지 확인');
       return;
     }
     
-    debugPrint('✅ [FCM] Context 확인 완료 (${_context != null ? "setContext" : "navigatorKey"} 사용)');
+    debugPrint('✅ [FCM-SCREEN] Context 확인 완료 (${_context != null ? "setContext" : "navigatorKey"} 사용)');
     
     // 📋 메시지 데이터에서 정보 추출
     // iOS와 Android 모두 지원 (caller_num, caller_name 등)

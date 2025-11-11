@@ -27,8 +27,24 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('🔔 백그라운드 메시지: ${message.notification?.title}');
   debugPrint('🔔 백그라운드 메시지 데이터: ${message.data}');
   
-  // 백그라운드에서는 알림을 시스템이 자동으로 표시함
-  // 앱이 다시 열리면 onMessageOpenedApp에서 처리됨
+  // 📞 수신 전화 감지 (Android와 iOS 모두 지원)
+  final hasIncomingCallType = message.data['type'] == 'incoming_call';
+  final hasLinkedId = message.data['linkedid'] != null && 
+                      (message.data['linkedid'] as String).isNotEmpty;
+  final hasCallType = message.data['call_type'] != null;
+  
+  if (hasIncomingCallType || (hasLinkedId && hasCallType)) {
+    debugPrint('📞 [FCM-BG] 백그라운드에서 수신 전화 감지:');
+    debugPrint('   - type: ${message.data['type']}');
+    debugPrint('   - linkedid: ${message.data['linkedid']}');
+    debugPrint('   - call_type: ${message.data['call_type']}');
+    debugPrint('   - caller_num: ${message.data['caller_num']}');
+    
+    // 백그라운드에서는 알림을 시스템이 자동으로 표시함
+    // 사용자가 알림을 탭하면 onMessageOpenedApp에서 수신 전화 화면 표시
+  } else {
+    debugPrint('ℹ️ [FCM-BG] 일반 메시지 (수신 전화 아님)');
+  }
 }
 
 // 🔑 GlobalKey for Navigator (수신 전화 풀스크린 표시용)
