@@ -114,13 +114,22 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   // FCM 알림 설정 불러오기
   Future<void> _loadNotificationSettings() async {
     try {
+      debugPrint('📥 [iOS-알림설정] 로드 시작');
+      
       final authService = context.read<AuthService>();
       final userId = authService.currentUser?.uid;
       
-      if (userId == null) return;
+      if (userId == null) {
+        debugPrint('❌ [iOS-알림설정] userId가 null입니다');
+        return;
+      }
+      
+      debugPrint('✓ [iOS-알림설정] userId: $userId');
       
       final fcmService = FCMService();
       final settings = await fcmService.getUserNotificationSettings(userId);
+      
+      debugPrint('📦 [iOS-알림설정] Firestore에서 가져온 설정: $settings');
       
       if (settings != null && mounted) {
         setState(() {
@@ -129,51 +138,54 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           _vibrationEnabled = settings['vibrationEnabled'] ?? true;
         });
         
-        if (kDebugMode) {
-          debugPrint('🔔 알림 설정 불러오기 완료');
-          debugPrint('   - 푸시 알림: $_pushEnabled');
-          debugPrint('   - 알림음: $_soundEnabled');
-          debugPrint('   - 진동: $_vibrationEnabled');
-        }
+        debugPrint('✅ [iOS-알림설정] 로드 완료 및 UI 업데이트:');
+        debugPrint('   - 푸시 알림: $_pushEnabled');
+        debugPrint('   - 알림음: $_soundEnabled');
+        debugPrint('   - 진동: $_vibrationEnabled');
+      } else {
+        debugPrint('⚠️ [iOS-알림설정] settings가 null이거나 widget이 unmounted됨');
       }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ 알림 설정 불러오기 오류: $e');
-      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ [iOS-알림설정] 로드 오류: $e');
+      debugPrint('   스택 트레이스: $stackTrace');
     }
   }
 
   // FCM 알림 설정 업데이트
   Future<void> _updateNotificationSetting(String key, bool value) async {
     try {
+      debugPrint('🔧 [iOS-알림설정] 업데이트 시작: $key = $value');
+      
       final authService = context.read<AuthService>();
       final userId = authService.currentUser?.uid;
       
-      if (userId == null) return;
+      if (userId == null) {
+        debugPrint('❌ [iOS-알림설정] userId가 null입니다');
+        return;
+      }
+      
+      debugPrint('✓ [iOS-알림설정] userId: $userId');
       
       final fcmService = FCMService();
       await fcmService.updateSingleSetting(userId, key, value);
       
-      if (kDebugMode) {
-        debugPrint('✅ 알림 설정 업데이트: $key = $value');
-      }
+      debugPrint('✅ [iOS-알림설정] Firestore 업데이트 성공: $key = $value');
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('설정이 저장되었습니다'),
-            duration: Duration(seconds: 1),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          '설정이 저장되었습니다',
+          duration: const Duration(seconds: 1),
         );
       }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ 알림 설정 업데이트 오류: $e');
-      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ [iOS-알림설정] 업데이트 오류: $e');
+      debugPrint('   스택 트레이스: $stackTrace');
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('설정 저장 실패: $e')),
+        await DialogUtils.showError(
+          context,
+          '설정 저장 실패: $e',
         );
       }
     }
@@ -577,9 +589,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.blue[100]!),
               ),
-              child: const Column(
+              child: Column(
                 children: [
-                  ListTile(
+                  const ListTile(
                     leading: Icon(Icons.notifications, color: Color(0xFF2196F3)),
                     title: Text(
                       '푸시 알림',
@@ -587,7 +599,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     ),
                     subtitle: Text('알림 수신 설정', style: TextStyle(fontSize: 12)),
                   ),
-                  Divider(height: 1, indent: 72),
+                  const Divider(height: 1, indent: 72),
                 ],
               ),
             ),
@@ -599,9 +611,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             subtitle: '새로운 통화 및 메시지 알림',
             value: _pushEnabled,
             onChanged: (value) {
+              debugPrint('🔄 [iOS-푸시알림] 토글 변경: $_pushEnabled -> $value');
               setState(() {
                 _pushEnabled = value;
               });
+              debugPrint('✓ [iOS-푸시알림] setState 완료, Firestore 업데이트 시작');
               _updateNotificationSetting('pushEnabled', value);
             },
           ),
@@ -612,6 +626,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             subtitle: '알림 수신 시 소리',
             value: _soundEnabled,
             onChanged: (value) {
+              debugPrint('🔄 [iOS-알림음] 토글 변경: $_soundEnabled -> $value');
               setState(() {
                 _soundEnabled = value;
               });
@@ -625,12 +640,59 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             subtitle: '알림 수신 시 진동',
             value: _vibrationEnabled,
             onChanged: (value) {
+              debugPrint('🔄 [iOS-진동] 토글 변경: $_vibrationEnabled -> $value');
               setState(() {
                 _vibrationEnabled = value;
               });
               _updateNotificationSetting('vibrationEnabled', value);
             },
           ),
+          
+          // iOS 시스템 알림 설정 안내 (iOS에서만 표시)
+          if (!kIsWeb && Platform.isIOS)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber[200]!),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.amber, size: 20),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'iOS 시스템 알림 권한도 확인해주세요',
+                        style: TextStyle(fontSize: 12, color: Colors.black87),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        debugPrint('📱 [iOS] 시스템 설정 열기 시도');
+                        // iOS 시스템 설정 열기는 url_launcher 패키지 필요
+                        // 임시로 안내 다이얼로그 표시
+                        if (mounted) {
+                          await DialogUtils.showInfo(
+                            context,
+                            'iOS 설정 > 알림 > MakeCall에서\n알림 권한을 허용해주세요.',
+                            title: 'iOS 시스템 알림 설정',
+                          );
+                        }
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text('확인', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           
           const SizedBox(height: 16),
           const Divider(thickness: 1),
