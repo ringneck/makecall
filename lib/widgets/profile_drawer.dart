@@ -594,10 +594,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   const ListTile(
                     leading: Icon(Icons.notifications, color: Color(0xFF2196F3)),
                     title: Text(
-                      '푸시 알림',
+                      '알림 설정',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    subtitle: Text('알림 수신 설정', style: TextStyle(fontSize: 12)),
+                    subtitle: Text('알림음 및 진동 설정', style: TextStyle(fontSize: 12)),
                   ),
                   const Divider(height: 1, indent: 72),
                 ],
@@ -605,94 +605,84 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             ),
           ),
           
-          _buildSwitchTile(
-            icon: Icons.notifications_active,
-            title: '푸시 알림 표시',
-            subtitle: '새로운 통화 및 메시지 알림',
-            value: _pushEnabled,
-            onChanged: (value) {
-              debugPrint('🔄 [iOS-푸시알림] 토글 변경: $_pushEnabled -> $value');
-              setState(() {
-                _pushEnabled = value;
-              });
-              debugPrint('✓ [iOS-푸시알림] setState 완료, Firestore 업데이트 시작');
-              _updateNotificationSetting('pushEnabled', value);
-            },
-          ),
-          
-          _buildSwitchTile(
-            icon: Icons.volume_up,
-            title: '알림음',
-            subtitle: '알림 수신 시 소리',
-            value: _soundEnabled,
-            onChanged: (value) {
-              debugPrint('🔄 [iOS-알림음] 토글 변경: $_soundEnabled -> $value');
-              setState(() {
-                _soundEnabled = value;
-              });
-              _updateNotificationSetting('soundEnabled', value);
-            },
-          ),
-          
-          _buildSwitchTile(
-            icon: Icons.vibration,
-            title: '진동',
-            subtitle: '알림 수신 시 진동',
-            value: _vibrationEnabled,
-            onChanged: (value) {
-              debugPrint('🔄 [iOS-진동] 토글 변경: $_vibrationEnabled -> $value');
-              setState(() {
-                _vibrationEnabled = value;
-              });
-              _updateNotificationSetting('vibrationEnabled', value);
-            },
-          ),
-          
-          // iOS 시스템 알림 설정 안내 (iOS에서만 표시)
+          // iOS 시스템 알림 켜기/끄기 안내
           if (!kIsWeb && Platform.isIOS)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.amber[50],
+                  color: Colors.orange[50],
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber[200]!),
+                  border: Border.all(color: Colors.orange[200]!),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline, color: Colors.amber, size: 20),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'iOS 시스템 알림 권한도 확인해주세요',
-                        style: TextStyle(fontSize: 12, color: Colors.black87),
-                      ),
+                    Row(
+                      children: [
+                        Icon(Icons.settings, color: Colors.orange[700], size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '푸시 알림 켜기/끄기',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.orange[900],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    TextButton(
+                    const SizedBox(height: 12),
+                    const Text(
+                      'iOS 설정 → MAKECALL → 알림에서\n푸시 알림을 완전히 켜거나 끌 수 있습니다.',
+                      style: TextStyle(fontSize: 13, height: 1.4),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
                       onPressed: () async {
-                        debugPrint('📱 [iOS] 시스템 설정 열기 시도');
-                        // iOS 시스템 설정 열기는 url_launcher 패키지 필요
-                        // 임시로 안내 다이얼로그 표시
+                        debugPrint('📱 [iOS] 시스템 설정 안내');
                         if (mounted) {
                           await DialogUtils.showInfo(
                             context,
-                            'iOS 설정 > 알림 > MakeCall에서\n알림 권한을 허용해주세요.',
-                            title: 'iOS 시스템 알림 설정',
+                            '설정 앱을 열고\n\nMAKECALL → 알림\n\n메뉴에서 푸시 알림을 켜거나 끌 수 있습니다.',
+                            title: 'iOS 시스템 설정',
                           );
                         }
                       },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      icon: const Icon(Icons.launch, size: 18),
+                      label: const Text('설정 방법 보기'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange[700],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
-                      child: const Text('확인', style: TextStyle(fontSize: 12)),
                     ),
                   ],
                 ),
               ),
             ),
+          
+          // 알림음 & 진동 통합 설정
+          _buildSwitchTile(
+            icon: Icons.volume_up,
+            title: '알림음 & 진동',
+            subtitle: '알림 수신 시 소리 및 진동 활성화',
+            value: _soundEnabled && _vibrationEnabled,
+            onChanged: (value) {
+              debugPrint('🔄 [알림음&진동] 토글 변경: ${_soundEnabled && _vibrationEnabled} -> $value');
+              setState(() {
+                _soundEnabled = value;
+                _vibrationEnabled = value;
+              });
+              // 두 설정을 동시에 업데이트
+              _updateNotificationSetting('soundEnabled', value);
+              _updateNotificationSetting('vibrationEnabled', value);
+              debugPrint('✓ [알림음&진동] 업데이트 완료: soundEnabled=$value, vibrationEnabled=$value');
+            },
+          ),
           
           const SizedBox(height: 16),
           const Divider(thickness: 1),
