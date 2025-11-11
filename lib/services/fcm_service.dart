@@ -1313,7 +1313,7 @@ class FCMService {
         // Navigator의 현재 route를 MainScreen으로 교체하되, 인자로 탭 인덱스 전달
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => const MainScreen(initialTabIndex: 1), // 1 = 최근통화 탭
+            builder: (context) => MainScreen(initialTabIndex: targetTabIndex), // const 제거
           ),
         );
       }
