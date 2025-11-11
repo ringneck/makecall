@@ -568,29 +568,45 @@ class FCMService {
   /// 
   /// DCMIWS 웹소켓 연결이 중지되었을 때 FCM으로 수신전화를 처리합니다.
   Future<void> _handleIncomingCallFCM(RemoteMessage message) async {
-    debugPrint('📞 [FCM-INCOMING] 수신 전화 FCM 메시지 처리 시작');
-    debugPrint('   - Platform: ${Platform.isAndroid ? 'Android' : (Platform.isIOS ? 'iOS' : 'Other')}');
+    // ignore: avoid_print
+    print('📞 [FCM-INCOMING] 수신 전화 FCM 메시지 처리 시작');
+    // ignore: avoid_print
+    print('   - Platform: ${Platform.isAndroid ? 'Android' : (Platform.isIOS ? 'iOS' : 'Other')}');
+    // ignore: avoid_print
+    print('   - Message data: ${message.data}');
     
     // WebSocket 연결 상태 확인
-    final dcmiwsService = DCMIWSService();
-    final isConnected = dcmiwsService.isConnected;
-    debugPrint('🔍 [FCM-INCOMING] WebSocket 연결 상태: $isConnected');
-    
-    if (isConnected) {
-      debugPrint('✅ [FCM-INCOMING] WebSocket 연결 활성 - 웹소켓으로 처리 (FCM 무시)');
-      return; // WebSocket이 활성이면 FCM 무시
+    try {
+      final dcmiwsService = DCMIWSService();
+      final isConnected = dcmiwsService.isConnected;
+      // ignore: avoid_print
+      print('🔍 [FCM-INCOMING] WebSocket 연결 상태: $isConnected');
+      
+      if (isConnected) {
+        // ignore: avoid_print
+        print('✅ [FCM-INCOMING] WebSocket 연결 활성 - 웹소켓으로 처리 (FCM 무시)');
+        return; // WebSocket이 활성이면 FCM 무시
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-INCOMING] WebSocket 상태 확인 오류 (무시하고 계속): $e');
     }
     
-    debugPrint('⚠️ [FCM-INCOMING] WebSocket 연결 없음 - FCM으로 처리');
-    debugPrint('📞 [FCM-INCOMING] _showIncomingCallScreen() 호출 시작...');
+    // ignore: avoid_print
+    print('⚠️ [FCM-INCOMING] WebSocket 연결 없음 - FCM으로 처리');
+    // ignore: avoid_print
+    print('📞 [FCM-INCOMING] _showIncomingCallScreen() 호출 시작...');
     
     try {
       // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함)
       await _showIncomingCallScreen(message);
-      debugPrint('✅ [FCM-INCOMING] _showIncomingCallScreen() 호출 완료');
+      // ignore: avoid_print
+      print('✅ [FCM-INCOMING] _showIncomingCallScreen() 호출 완료');
     } catch (e, stackTrace) {
-      debugPrint('❌ [FCM-INCOMING] _showIncomingCallScreen() 오류: $e');
-      debugPrint('Stack trace: $stackTrace');
+      // ignore: avoid_print
+      print('❌ [FCM-INCOMING] _showIncomingCallScreen() 오류: $e');
+      // ignore: avoid_print
+      print('Stack trace: $stackTrace');
     }
   }
   
@@ -1076,23 +1092,32 @@ class FCMService {
   
   /// 수신 전화 풀스크린 표시
   Future<void> _showIncomingCallScreen(RemoteMessage message) async {
-    debugPrint('🎬 [FCM-SCREEN] _showIncomingCallScreen() 시작');
-    debugPrint('   - _context: ${_context != null ? '있음' : '없음'}');
-    debugPrint('   - navigatorKey.currentContext: ${navigatorKey.currentContext != null ? '있음' : '없음'}');
+    // ignore: avoid_print
+    print('🎬 [FCM-SCREEN] _showIncomingCallScreen() 시작');
+    // ignore: avoid_print
+    print('   - _context: ${_context != null ? '있음' : '없음'}');
+    // ignore: avoid_print
+    print('   - navigatorKey.currentContext: ${navigatorKey.currentContext != null ? '있음' : '없음'}');
     
     // BuildContext 또는 NavigatorKey 확인
     final context = _context ?? navigatorKey.currentContext;
     
     if (context == null) {
-      debugPrint('❌ [FCM-SCREEN] BuildContext와 NavigatorKey 모두 사용 불가');
-      debugPrint('💡 main.dart에서 FCMService.setContext()를 호출하거나 앱이 완전히 시작될 때까지 기다리세요');
-      debugPrint('🔧 해결 방법:');
-      debugPrint('   1. main.dart에서 FCMService.setContext(context) 호출 확인');
-      debugPrint('   2. navigatorKey가 MaterialApp에 설정되었는지 확인');
+      // ignore: avoid_print
+      print('❌ [FCM-SCREEN] BuildContext와 NavigatorKey 모두 사용 불가');
+      // ignore: avoid_print
+      print('💡 main.dart에서 FCMService.setContext()를 호출하거나 앱이 완전히 시작될 때까지 기다리세요');
+      // ignore: avoid_print
+      print('🔧 해결 방법:');
+      // ignore: avoid_print
+      print('   1. main.dart에서 FCMService.setContext(context) 호출 확인');
+      // ignore: avoid_print
+      print('   2. navigatorKey가 MaterialApp에 설정되었는지 확인');
       return;
     }
     
-    debugPrint('✅ [FCM-SCREEN] Context 확인 완료 (${_context != null ? "setContext" : "navigatorKey"} 사용)');
+    // ignore: avoid_print
+    print('✅ [FCM-SCREEN] Context 확인 완료 (${_context != null ? "setContext" : "navigatorKey"} 사용)');
     
     // 📋 메시지 데이터에서 정보 추출
     // iOS와 Android 모두 지원 (caller_num, caller_name 등)
@@ -1129,18 +1154,26 @@ class FCMService {
                      message.data['type'] ??
                      'voice'; // iOS FCM에서는 voice로 전송됨
     
-    if (kDebugMode) {
-      debugPrint('📞 [FCM] 수신 전화 화면 표시:');
-      debugPrint('   발신자: $callerName');
-      debugPrint('   번호: $callerNumber');
-      debugPrint('   아바타: ${callerAvatar ?? "없음"}');
-      debugPrint('   채널: $channel');
-      debugPrint('   링크ID: $linkedid');
-      debugPrint('   수신번호: $receiverNumber');
-      debugPrint('   통화타입: $callType');
-    }
+    // ignore: avoid_print
+    print('📞 [FCM-SCREEN] 수신 전화 데이터 추출:');
+    // ignore: avoid_print
+    print('   발신자: $callerName');
+    // ignore: avoid_print
+    print('   번호: $callerNumber');
+    // ignore: avoid_print
+    print('   아바타: ${callerAvatar ?? "없음"}');
+    // ignore: avoid_print
+    print('   채널: $channel');
+    // ignore: avoid_print
+    print('   링크ID: $linkedid');
+    // ignore: avoid_print
+    print('   수신번호: $receiverNumber');
+    // ignore: avoid_print
+    print('   통화타입: $callType');
     
-    // 💾 통화 기록 생성 (call_history)
+    // 💾 통화 기록 생성 (call_history) - 네트워크 오류에도 불구하고 화면은 표시
+    // ignore: avoid_print
+    print('📝 [FCM-SCREEN] 통화 기록 생성 시도 중...');
     await _createCallHistory(
       callerNumber: callerNumber,
       callerName: callerName,
@@ -1149,6 +1182,11 @@ class FCMService {
       channel: channel,
       callType: callType,
     );
+    // ignore: avoid_print
+    print('📝 [FCM-SCREEN] 통화 기록 생성 완료 (또는 실패)');
+    
+    // ignore: avoid_print
+    print('🎬 [FCM-SCREEN] Navigator.push() 호출 - 수신 전화 화면 표시');
     
     // 수신 전화 화면 표시 (fullscreenDialog로 전체 화면)
     Navigator.of(context).push(
@@ -1211,9 +1249,12 @@ class FCMService {
       ),
     );
     
-    if (kDebugMode) {
-      debugPrint('✅ [FCM] 수신 전화 화면 표시 완료');
-    }
+    // ignore: avoid_print
+    print('✅ [FCM-SCREEN] 수신 전화 화면 표시 완료');
+    // ignore: avoid_print
+    print('   발신자: $callerName');
+    // ignore: avoid_print
+    print('   번호: $callerNumber');
   }
   
   /// 사용자 알림 설정 가져오기
@@ -1499,6 +1540,10 @@ class FCMService {
   /// FCM 수신 전화에 대한 통화 기록 생성
   /// 
   /// Firebase Functions에서 이미 생성한 경우 중복 방지
+  /// 
+  /// ⚠️ iOS 네트워크 이슈 대응:
+  /// - Firestore 연결 실패 시에도 수신 전화 화면은 표시
+  /// - 통화 기록은 네트워크 복구 후 생성 시도
   Future<void> _createCallHistory({
     required String callerNumber,
     required String callerName,
@@ -1512,36 +1557,62 @@ class FCMService {
       final userId = authService.currentUser?.uid;
       
       if (userId == null) {
-        debugPrint('⚠️ [FCM-CALLHIST] 사용자 인증 없음 - 통화 기록 생성 스킵');
+        // ignore: avoid_print
+        print('⚠️ [FCM-CALLHIST] 사용자 인증 없음 - 통화 기록 생성 스킵');
         return;
       }
       
-      debugPrint('💾 [FCM-CALLHIST] 통화 기록 생성 시작');
-      debugPrint('   linkedid: $linkedid');
+      // ignore: avoid_print
+      print('💾 [FCM-CALLHIST] 통화 기록 생성 시작');
+      // ignore: avoid_print
+      print('   linkedid: $linkedid');
+      // ignore: avoid_print
+      print('   발신자: $callerName ($callerNumber)');
+      // ignore: avoid_print
+      print('   수신자: $receiverNumber');
       
-      // linkedid로 기존 통화 기록 확인 (중복 방지)
+      // linkedid로 기존 통화 기록 확인 (중복 방지) - 타임아웃 5초
       final existingDoc = await _firestore
           .collection('call_history')
           .doc(linkedid)
-          .get();
+          .get()
+          .timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              // ignore: avoid_print
+              print('⏱️ [FCM-CALLHIST] Firestore 조회 타임아웃 (5초)');
+              throw TimeoutException('Firestore get timeout');
+            },
+          );
       
       if (existingDoc.exists) {
-        debugPrint('ℹ️ [FCM-CALLHIST] 이미 존재하는 통화 기록 (Firebase Functions에서 생성됨)');
-        debugPrint('   linkedid: $linkedid');
+        // ignore: avoid_print
+        print('ℹ️ [FCM-CALLHIST] 이미 존재하는 통화 기록 (Firebase Functions에서 생성됨)');
+        // ignore: avoid_print
+        print('   linkedid: $linkedid');
         
-        // 상태만 업데이트 (FCM 수신 확인)
+        // 상태만 업데이트 (FCM 수신 확인) - 타임아웃 5초
         await _firestore.collection('call_history').doc(linkedid).update({
           'fcmReceived': true,
           'fcmReceivedAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
-        });
+        }).timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            // ignore: avoid_print
+            print('⏱️ [FCM-CALLHIST] Firestore 업데이트 타임아웃 (5초)');
+            throw TimeoutException('Firestore update timeout');
+          },
+        );
         
-        debugPrint('✅ [FCM-CALLHIST] 기존 기록 업데이트 완료');
+        // ignore: avoid_print
+        print('✅ [FCM-CALLHIST] 기존 기록 업데이트 완료');
         return;
       }
       
       // 새 통화 기록 생성 (Firebase Functions에서 생성되지 않은 경우)
-      debugPrint('📝 [FCM-CALLHIST] 새 통화 기록 생성');
+      // ignore: avoid_print
+      print('📝 [FCM-CALLHIST] 새 통화 기록 생성');
       
       await _firestore.collection('call_history').doc(linkedid).set({
         'userId': userId,
@@ -1557,16 +1628,45 @@ class FCMService {
         'timestamp': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          // ignore: avoid_print
+          print('⏱️ [FCM-CALLHIST] Firestore 생성 타임아웃 (5초)');
+          throw TimeoutException('Firestore set timeout');
+        },
+      );
       
-      debugPrint('✅ [FCM-CALLHIST] 새 통화 기록 생성 완료');
-      debugPrint('   linkedid: $linkedid');
-      debugPrint('   발신자: $callerName ($callerNumber)');
-      debugPrint('   수신자: $receiverNumber');
+      // ignore: avoid_print
+      print('✅ [FCM-CALLHIST] 새 통화 기록 생성 완료');
+      // ignore: avoid_print
+      print('   linkedid: $linkedid');
+      // ignore: avoid_print
+      print('   발신자: $callerName ($callerNumber)');
+      // ignore: avoid_print
+      print('   수신자: $receiverNumber');
       
+    } on TimeoutException catch (e) {
+      // ignore: avoid_print
+      print('⏱️ [FCM-CALLHIST] Firestore 타임아웃: $e');
+      // ignore: avoid_print
+      print('   ⚠️ 네트워크 불안정 - 통화 기록 생성 실패');
+      // ignore: avoid_print
+      print('   ℹ️ 수신 전화 화면은 정상 표시됨');
+    } on FirebaseException catch (e) {
+      // ignore: avoid_print
+      print('❌ [FCM-CALLHIST] Firebase 오류: ${e.code} - ${e.message}');
+      // ignore: avoid_print
+      print('   ⚠️ Firestore 연결 실패 - 통화 기록 생성 실패');
+      // ignore: avoid_print
+      print('   ℹ️ 수신 전화 화면은 정상 표시됨');
     } catch (e, stackTrace) {
-      debugPrint('❌ [FCM-CALLHIST] 통화 기록 생성 실패: $e');
-      debugPrint('Stack trace: $stackTrace');
+      // ignore: avoid_print
+      print('❌ [FCM-CALLHIST] 통화 기록 생성 실패: $e');
+      // ignore: avoid_print
+      print('   Type: ${e.runtimeType}');
+      // ignore: avoid_print
+      print('Stack trace: $stackTrace');
     }
   }
 }
