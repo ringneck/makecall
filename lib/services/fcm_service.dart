@@ -52,6 +52,34 @@ class FCMService {
       // ignore: avoid_print
       print('   Platform: ${_getPlatformName()}');
       
+      // ✅ STEP 1: 메시지 리스너를 가장 먼저 등록! (메시지 누락 방지)
+      // ignore: avoid_print
+      print('📡 [FCM] 메시지 리스너 등록 시작 (최우선)');
+      
+      // 포그라운드 메시지 리스너
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      // ignore: avoid_print
+      print('✅ [FCM] onMessage 리스너 등록 완료');
+      
+      // 백그라운드/종료 상태에서 알림 클릭 시 처리
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
+      // ignore: avoid_print
+      print('✅ [FCM] onMessageOpenedApp 리스너 등록 완료');
+      
+      // 앱이 종료된 상태에서 알림 클릭으로 시작된 경우 처리
+      _messaging.getInitialMessage().then((RemoteMessage? message) {
+        if (message != null) {
+          // ignore: avoid_print
+          print('🚀 [FCM] 앱이 종료 상태에서 알림 클릭으로 시작됨');
+          _handleMessageOpenedApp(message);
+        }
+      });
+      // ignore: avoid_print
+      print('✅ [FCM] getInitialMessage 설정 완료');
+      
+      // ignore: avoid_print
+      print('🎯 [FCM] 모든 메시지 리스너 등록 완료! 이제 토큰 생성 시작');
+      
       // Android 로컬 알림 플러그인 초기화 및 알림 채널 생성
       if (Platform.isAndroid) {
         // ignore: avoid_print
@@ -203,25 +231,16 @@ class FCMService {
           
           // 토큰 갱신 리스너 등록
           _messaging.onTokenRefresh.listen((newToken) {
-            debugPrint('🔄 FCM 토큰 갱신: ${newToken.substring(0, 20)}...');
+            // ignore: avoid_print
+            print('🔄 FCM 토큰 갱신: ${newToken.substring(0, 20)}...');
             _fcmToken = newToken;
             _saveFCMToken(userId, newToken);
           });
           
-          // 포그라운드 메시지 리스너
-          FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+          // ignore: avoid_print
+          print('✅ [FCM] 토큰 갱신 리스너 등록 완료');
           
-          // 백그라운드/종료 상태에서 알림 클릭 시 처리 (중요!)
-          FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
-          
-          // 앱이 종료된 상태에서 알림 클릭으로 시작된 경우 처리
-          _messaging.getInitialMessage().then((RemoteMessage? message) {
-            if (message != null) {
-              debugPrint('🚀 [FCM] 앱이 종료 상태에서 알림 클릭으로 시작됨');
-              _handleMessageOpenedApp(message);
-            }
-          });
-          
+          // ℹ️ 메시지 리스너는 이미 초기화 최상단에서 등록 완료됨
           // 백그라운드 메시지 핸들러는 main.dart에서 설정
           
         } else {
@@ -458,14 +477,31 @@ class FCMService {
   
   /// 포그라운드 메시지 처리
   void _handleForegroundMessage(RemoteMessage message) {
-    debugPrint('📨 포그라운드 메시지: ${message.notification?.title}');
-    debugPrint('📨 메시지 데이터: ${message.data}');
-    debugPrint('🔍 [FCM-DEBUG] 전체 메시지 구조:');
-    debugPrint('   - notification.title: ${message.notification?.title}');
-    debugPrint('   - notification.body: ${message.notification?.body}');
-    debugPrint('   - data keys: ${message.data.keys.toList()}');
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('📨 [FLUTTER-FCM] _handleForegroundMessage() 호출됨!');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('📨 포그라운드 메시지: ${message.notification?.title}');
+    // ignore: avoid_print
+    print('📨 메시지 데이터: ${message.data}');
+    // ignore: avoid_print
+    print('🔍 [FCM-DEBUG] 전체 메시지 구조:');
+    // ignore: avoid_print
+    print('   - messageId: ${message.messageId}');
+    // ignore: avoid_print
+    print('   - notification.title: ${message.notification?.title}');
+    // ignore: avoid_print
+    print('   - notification.body: ${message.notification?.body}');
+    // ignore: avoid_print
+    print('   - data keys: ${message.data.keys.toList()}');
     message.data.forEach((key, value) {
-      debugPrint('   - data[$key]: $value (${value.runtimeType})');
+      // ignore: avoid_print
+      print('   - data[$key]: $value (${value.runtimeType})');
     });
     
     // 🔐 강제 로그아웃 메시지 처리 (레거시)
@@ -494,21 +530,31 @@ class FCMService {
                         (message.data['linkedid'] as String).isNotEmpty;
     final hasCallType = message.data['call_type'] != null;
     
-    debugPrint('🔍 [FCM-DEBUG] 수신 전화 조건 체크:');
-    debugPrint('   - hasIncomingCallType: $hasIncomingCallType (type=${message.data['type']})');
-    debugPrint('   - hasLinkedId: $hasLinkedId (linkedid=${message.data['linkedid']})');
-    debugPrint('   - hasCallType: $hasCallType (call_type=${message.data['call_type']})');
-    debugPrint('   - 최종 조건: ${hasIncomingCallType || (hasLinkedId && hasCallType)}');
+    // ignore: avoid_print
+    print('🔍 [FCM-DEBUG] 수신 전화 조건 체크:');
+    // ignore: avoid_print
+    print('   - hasIncomingCallType: $hasIncomingCallType (type=${message.data['type']})');
+    // ignore: avoid_print
+    print('   - hasLinkedId: $hasLinkedId (linkedid=${message.data['linkedid']})');
+    // ignore: avoid_print
+    print('   - hasCallType: $hasCallType (call_type=${message.data['call_type']})');
+    // ignore: avoid_print
+    print('   - 최종 조건: ${hasIncomingCallType || (hasLinkedId && hasCallType)}');
     
     if (hasIncomingCallType || (hasLinkedId && hasCallType)) {
-      debugPrint('📞 [FCM] 수신 전화 감지:');
-      debugPrint('   - type: ${message.data['type']}');
-      debugPrint('   - linkedid: ${message.data['linkedid']}');
-      debugPrint('   - call_type: ${message.data['call_type']}');
+      // ignore: avoid_print
+      print('📞 [FCM] 수신 전화 감지:');
+      // ignore: avoid_print
+      print('   - type: ${message.data['type']}');
+      // ignore: avoid_print
+      print('   - linkedid: ${message.data['linkedid']}');
+      // ignore: avoid_print
+      print('   - call_type: ${message.data['call_type']}');
       _handleIncomingCallFCM(message);
       return;
     } else {
-      debugPrint('⚠️ [FCM-DEBUG] 수신 전화 조건 불만족 - 일반 알림으로 처리');
+      // ignore: avoid_print
+      print('⚠️ [FCM-DEBUG] 수신 전화 조건 불만족 - 일반 알림으로 처리');
     }
     
     // 웹 플랫폼: 브라우저 알림 표시
@@ -526,8 +572,18 @@ class FCMService {
   /// 
   /// 사용자가 알림바에서 알림을 클릭하면 호출됩니다.
   void _handleMessageOpenedApp(RemoteMessage message) {
-    debugPrint('🔔 [FCM] 백그라운드 알림 클릭됨: ${message.notification?.title}');
-    debugPrint('🔔 [FCM] 메시지 데이터: ${message.data}');
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('🔔 [FLUTTER-FCM] _handleMessageOpenedApp() 호출됨!');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('🔔 [FCM] 백그라운드 알림 클릭됨: ${message.notification?.title}');
+    // ignore: avoid_print
+    print('🔔 [FCM] 메시지 데이터: ${message.data}');
     
     // 🔐 강제 로그아웃 메시지 처리 (레거시)
     if (message.data['type'] == 'force_logout') {

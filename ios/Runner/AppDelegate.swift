@@ -74,6 +74,37 @@ import FirebaseMessaging
     print("❌ APNs 등록 실패: \(error.localizedDescription)")
   }
   
+  // 🔥 CRITICAL: 원격 알림 수신 핸들러 (Firebase Messaging Plugin 필수!)
+  // 이 메서드가 없으면 Flutter의 FirebaseMessaging.onMessage가 트리거되지 않음
+  override func application(
+    _ application: UIApplication,
+    didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+    fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+  ) {
+    print("📲 [REMOTE] 원격 알림 수신 (didReceiveRemoteNotification)")
+    print("   - UserInfo: \(userInfo)")
+    
+    // 앱 상태 확인
+    let appState = application.applicationState
+    switch appState {
+    case .active:
+      print("   - 앱 상태: 포그라운드 (Active)")
+    case .inactive:
+      print("   - 앱 상태: 비활성 (Inactive)")
+    case .background:
+      print("   - 앱 상태: 백그라운드 (Background)")
+    @unknown default:
+      print("   - 앱 상태: 알 수 없음")
+    }
+    
+    // ✅ Firebase Messaging Plugin에 메시지 전달
+    // 이 호출이 Flutter의 FirebaseMessaging.onMessage를 트리거함
+    Messaging.messaging().appDidReceiveMessage(userInfo)
+    print("✅ [REMOTE] Firebase Messaging Plugin으로 전달 완료")
+    
+    completionHandler(.newData)
+  }
+  
   // 포그라운드에서 알림 수신
   override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
@@ -82,23 +113,17 @@ import FirebaseMessaging
   ) {
     let userInfo = notification.request.content.userInfo
     
-    print("📨 [FOREGROUND] 포그라운드 알림 수신")
+    print("📨 [FOREGROUND-UNNotification] 포그라운드 알림 수신")
     print("   - Title: \(notification.request.content.title)")
     print("   - Body: \(notification.request.content.body)")
     print("   - UserInfo: \(userInfo)")
     
-    // ✅ CRITICAL: Flutter로 포그라운드 알림 데이터 전달
-    // Firebase Messaging이 자동으로 Flutter의 onMessage를 트리거하도록 함
-    if let messageID = userInfo["gcm.message_id"] as? String {
-      print("🔄 [FOREGROUND] Flutter FCM 핸들러로 전달 시작")
-      print("   - Message ID: \(messageID)")
-      
-      // Messaging.messaging().appDidReceiveMessage를 호출하여 Flutter로 전달
-      Messaging.messaging().appDidReceiveMessage(userInfo)
-      print("✅ [FOREGROUND] Flutter FCM 핸들러로 전달 완료")
-    } else {
-      print("⚠️ [FOREGROUND] FCM 메시지 ID 없음 - Flutter 전달 스킵")
-    }
+    // ✅ Firebase Messaging Plugin에 메시지 전달
+    // 주의: didReceiveRemoteNotification이 이미 호출되었을 수 있으므로
+    // 여기서는 UI 표시만 담당
+    print("🔄 [FOREGROUND-UNNotification] Firebase Messaging Plugin 전달")
+    Messaging.messaging().appDidReceiveMessage(userInfo)
+    print("✅ [FOREGROUND-UNNotification] 전달 완료")
     
     // 포그라운드에서도 알림 배너 표시
     if #available(iOS 14.0, *) {
@@ -116,24 +141,16 @@ import FirebaseMessaging
   ) {
     let userInfo = response.notification.request.content.userInfo
     
-    // FCM 메시지 데이터 출력
-    print("📬 [NOTIFICATION] 알림 탭됨")
+    print("📬 [NOTIFICATION-TAP] 알림 탭됨")
     print("   - Title: \(response.notification.request.content.title)")
     print("   - Body: \(response.notification.request.content.body)")
     print("   - UserInfo: \(userInfo)")
     
-    // ✅ CRITICAL: Flutter로 알림 데이터 전달
-    // Firebase Messaging이 자동으로 Flutter의 onMessageOpenedApp을 트리거하도록 함
-    if let messageID = userInfo["gcm.message_id"] as? String {
-      print("🔄 [NOTIFICATION] Flutter FCM 핸들러로 전달 시작")
-      print("   - Message ID: \(messageID)")
-      
-      // Messaging.messaging().appDidReceiveMessage를 호출하여 Flutter로 전달
-      Messaging.messaging().appDidReceiveMessage(userInfo)
-      print("✅ [NOTIFICATION] Flutter FCM 핸들러로 전달 완료")
-    } else {
-      print("⚠️ [NOTIFICATION] FCM 메시지 ID 없음 - Flutter 전달 스킵")
-    }
+    // ✅ Firebase Messaging Plugin에 메시지 전달
+    // 이 호출이 Flutter의 FirebaseMessaging.onMessageOpenedApp을 트리거함
+    print("🔄 [NOTIFICATION-TAP] Firebase Messaging Plugin 전달")
+    Messaging.messaging().appDidReceiveMessage(userInfo)
+    print("✅ [NOTIFICATION-TAP] 전달 완료")
     
     completionHandler()
   }
