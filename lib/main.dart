@@ -244,6 +244,22 @@ class _MyAppState extends State<MyApp> {
                           if (mounted) {
                             await UserSessionManager().checkAndInitializeSession(currentUserId);
                             
+                            // 🔔 FCM 자동 초기화 (앱 업데이트 후 자동 로그인 시)
+                            if (currentUserId != null && authService.isAuthenticated) {
+                              try {
+                                debugPrint('🔔 [MAIN] 자동 로그인 감지 - FCM 초기화 시작');
+                                debugPrint('   User ID: $currentUserId');
+                                
+                                final fcmService = FCMService();
+                                await fcmService.initialize(currentUserId);
+                                
+                                debugPrint('✅ [MAIN] FCM 초기화 완료 (앱 시작 시)');
+                              } catch (e, stackTrace) {
+                                debugPrint('❌ [MAIN] FCM 초기화 오류: $e');
+                                debugPrint('Stack trace: $stackTrace');
+                              }
+                            }
+                            
                             // ⏱️ 비활성 서비스 초기화 (로그인 시에만)
                             if (currentUserId != null && authService.isAuthenticated) {
                               _inactivityService.initialize(
