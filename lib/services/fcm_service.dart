@@ -544,12 +544,14 @@ class FCMService {
     }
     
     // 🔔 기기 승인 요청 메시지 처리
+    // ⚠️ 포그라운드에서는 로컬 알림만 표시 (다이얼로그는 알림 클릭 시)
     if (message.data['type'] == 'device_approval_request') {
-      _handleDeviceApprovalRequest(message);
-      return;
+      // 포그라운드에서는 알림만 표시하고 return하지 않음
+      // 아래 로컬 알림 표시 코드가 실행되도록 함
+      debugPrint('🔔 [FCM] 기기 승인 요청 - 포그라운드 알림 표시 예정');
     }
     
-    // ✅ 기기 승인 응답 메시지 처리
+    // ✅ 기기 승인 응답 메시지 처리 (즉시 처리)
     if (message.data['type'] == 'device_approval_response') {
       _handleDeviceApprovalResponse(message);
       return;
@@ -632,8 +634,9 @@ class FCMService {
       return;
     }
     
-    // 🔔 기기 승인 요청 메시지 처리
+    // 🔔 기기 승인 요청 메시지 처리 (알림 클릭 시 다이얼로그 표시)
     if (message.data['type'] == 'device_approval_request') {
+      debugPrint('🔔 [FCM] 기기 승인 요청 알림 클릭 - 다이얼로그 표시');
       _handleDeviceApprovalRequest(message);
       return;
     }
