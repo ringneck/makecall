@@ -175,24 +175,10 @@ class _DialpadScreenState extends State<DialpadScreen> {
 
       // 로딩 표시
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-                SizedBox(width: 16),
-                Text('기능번호 발신 중...'),
-              ],
-            ),
-            duration: Duration(seconds: 2),
-          ),
+        await DialogUtils.showInfo(
+          context,
+          '기능번호 발신 중...',
+          duration: const Duration(seconds: 2),
         );
       }
 
@@ -263,26 +249,14 @@ class _DialpadScreenState extends State<DialpadScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '🌟 기능번호 발신 완료',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text('단말: ${selectedExtension.name.isEmpty ? selectedExtension.extension : selectedExtension.name}'),
-                Text('기능번호: $phoneNumber'),
-              ],
-            ),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-          ),
+        final extensionDisplay = selectedExtension.name.isEmpty 
+            ? selectedExtension.extension 
+            : selectedExtension.name;
+
+        await DialogUtils.showSuccess(
+          context,
+          '🌟 기능번호 발신 완료\n\n단말: $extensionDisplay\n기능번호: $phoneNumber',
+          duration: const Duration(seconds: 3),
         );
         
         // 발신 후 번호 초기화
@@ -299,13 +273,10 @@ class _DialpadScreenState extends State<DialpadScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('기능번호 발신 실패: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        await DialogUtils.showError(
+          context,
+          '기능번호 발신 실패: $e',
+          duration: const Duration(seconds: 4),
         );
       }
       
