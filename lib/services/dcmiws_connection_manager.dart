@@ -57,6 +57,9 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
   bool? _cachedDcmiwsEnabled; // ⭐ dcmiwsEnabled 캐시 추가
   
   /// 연결 관리자 시작
+  /// 
+  /// ⭐ CRITICAL: dcmiwsEnabled 설정을 먼저 확인하여 PUSH 모드일 때는
+  /// 웹소켓 연결을 시도하지 않습니다.
   Future<void> start() async {
     if (_isManagerActive) {
       if (kDebugMode) {
@@ -80,8 +83,28 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
     // 3. 사용자 인증 상태 변경 감지 시작
     _startAuthMonitoring();
     
-    // 4. 초기 연결 시도
-    await _attemptConnection();
+    // 4. ⭐ CRITICAL: dcmiwsEnabled 설정 먼저 확인
+    // PUSH 모드일 때는 초기 연결 시도를 건너뜀
+    if (kDebugMode) {
+      debugPrint('🔍 DCMIWSConnectionManager: Checking dcmiwsEnabled setting...');
+    }
+    
+    // Firestore에서 dcmiwsEnabled 설정 확인
+    final isDcmiwsEnabled = await _loadServerSettings();
+    
+    if (isDcmiwsEnabled) {
+      if (kDebugMode) {
+        debugPrint('✅ DCMIWSConnectionManager: DCMIWS mode - attempting initial connection');
+      }
+      // DCMIWS 모드: 초기 연결 시도
+      await _attemptConnection();
+    } else {
+      if (kDebugMode) {
+        debugPrint('⏭️ DCMIWSConnectionManager: PUSH mode - skipping initial connection');
+        debugPrint('   - User prefers FCM push notifications');
+        debugPrint('   - WebSocket connection will not be established');
+      }
+    }
     
     if (kDebugMode) {
       debugPrint('✅ DCMIWSConnectionManager: Started successfully');
@@ -334,32 +357,35 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
       return;
     }
     
-    // 네트워크 상태 확인
-    final connectivityResult = await _connectivity.checkConnectivity();
-    if (connectivityResult.every((result) => result == ConnectivityResult.none)) {
-      if (kDebugMode) {
-        debugPrint('📵 DCMIWSConnectionManager: No network, skipping connection');
-      }
-      return;
-    }
-    
-    if (kDebugMode) {
-      debugPrint('🔌 DCMIWSConnectionManager: Attempting connection (attempt ${_reconnectAttempts + 1}/$_maxReconnectAttempts)');
-    }
-    
     try {
-      // 서버 설정 가져오기 (returns true if DCMIWS enabled, false if PUSH mode)
+      // ⭐ CRITICAL: dcmiwsEnabled 설정을 제일 먼저 확인
+      // 네트워크 체크나 로그 출력보다 먼저 실행하여 불필요한 로그 방지
       final isDcmiwsEnabled = await _loadServerSettings();
       
-      // PUSH 모드일 때는 재시도하지 않음
+      // ⭐ PUSH 모드일 때는 즉시 종료 (재시도 없음)
       if (!isDcmiwsEnabled) {
         if (kDebugMode) {
-          debugPrint('⏹️ DCMIWSConnectionManager: PUSH mode - no reconnection needed');
+          debugPrint('⏹️ DCMIWSConnectionManager: PUSH mode - no connection needed');
         }
         // 재연결 타이머 취소 및 카운터 리셋
         _reconnectTimer?.cancel();
         _reconnectAttempts = 0;
+        return;  // ✅ 즉시 종료 - 네트워크 체크나 연결 시도 없음
+      }
+      
+      // ✅ DCMIWS 모드 확인됨 - 연결 절차 진행
+      
+      // 네트워크 상태 확인
+      final connectivityResult = await _connectivity.checkConnectivity();
+      if (connectivityResult.every((result) => result == ConnectivityResult.none)) {
+        if (kDebugMode) {
+          debugPrint('📵 DCMIWSConnectionManager: No network, skipping connection');
+        }
         return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('🔌 DCMIWSConnectionManager: Attempting connection (attempt ${_reconnectAttempts + 1}/$_maxReconnectAttempts)');
       }
       
       if (_cachedServerAddress == null) {
