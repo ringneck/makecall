@@ -494,12 +494,25 @@ class FCMService {
       print('✅ [FCM-APPROVAL] 모든 기존 기기에 승인 요청 전송 완료');
       
     } catch (e, stackTrace) {
-      // ignore: avoid_print
-      print('❌ [FCM-APPROVAL] 승인 요청 전송 실패: $e');
-      // ignore: avoid_print
-      print('Stack trace:');
-      // ignore: avoid_print
-      print(stackTrace);
+      // 권한 오류는 일반적 - Firestore 규칙 설정 필요
+      if (e.toString().contains('permission-denied')) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [FCM-APPROVAL] Firestore 권한 없음 - 기기 승인 기능 비활성화');
+          debugPrint('   해결: Firestore 보안 규칙에서 다음 컬렉션에 쓰기 권한 추가:');
+          debugPrint('   - fcm_approval_notification_queue');
+          debugPrint('   - device_approval_requests');
+          debugPrint('   현재는 기기 승인 없이 로그인 허용됨');
+        }
+      } else {
+        // ignore: avoid_print
+        print('❌ [FCM-APPROVAL] 승인 요청 전송 실패: $e');
+        if (kDebugMode) {
+          // ignore: avoid_print
+          print('Stack trace:');
+          // ignore: avoid_print
+          print(stackTrace);
+        }
+      }
     }
   }
   
