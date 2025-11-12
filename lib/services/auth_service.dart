@@ -280,6 +280,32 @@ class AuthService extends ChangeNotifier {
           print('Stack trace:');
           // ignore: avoid_print
           print(stackTrace);
+          
+          // 🚫 CRITICAL: 기기 승인 관련 오류는 로그인 차단
+          if (e.toString().contains('Device approval') || 
+              e.toString().contains('denied') || 
+              e.toString().contains('timeout')) {
+            // ignore: avoid_print
+            print('');
+            // ignore: avoid_print
+            print('🚫 [AUTH] 기기 승인 실패 - 로그인 취소');
+            // ignore: avoid_print
+            print('   사용자를 강제 로그아웃합니다...');
+            
+            // Firebase Authentication 로그아웃 (로그인 취소)
+            await _auth.signOut();
+            
+            // ignore: avoid_print
+            print('✅ [AUTH] 로그아웃 완료 - 로그인 화면으로 돌아갑니다');
+            print('');
+            
+            // 예외 재전파하여 UI에서 에러 처리
+            rethrow;
+          }
+          
+          // 일반적인 FCM 오류는 무시하고 로그인 진행
+          // ignore: avoid_print
+          print('⚠️ [AUTH] FCM 초기화 실패했지만 로그인은 계속 진행');
         }
       }
       
