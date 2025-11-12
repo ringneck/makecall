@@ -71,3 +71,9 @@ Podfile.lock
 **/GoogleService-Info.plist
 **/google-services.json
 firebase-admin-sdk.json
+
+# Temporary development scripts
+*.py
+*.sh
+!setup.sh
+!build.sh
