@@ -36,6 +36,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   bool _soundEnabled = true;
   bool _vibrationEnabled = true;
   
+  // DCMIWS 착신전화 수신 설정
+  bool _dcmiwsEnabled = false;
+  
   // 🎯 Premium 상태 캐싱 (성능 최적화)
   bool? _isPremiumCached;
 
@@ -58,6 +61,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
       // FCM 알림 설정 불러오기
       _loadNotificationSettings();
+      // DCMIWS 설정 불러오기
+      _loadDcmiwsSettings();
     });
   }
   
@@ -186,6 +191,119 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         await DialogUtils.showError(
           context,
           '설정 저장 실패: $e',
+        );
+      }
+    }
+  }
+
+  // DCMIWS 착신전화 수신 설정 불러오기
+  Future<void> _loadDcmiwsSettings() async {
+    try {
+      if (kDebugMode) {
+        debugPrint('📥 [DCMIWS설정] 로드 시작');
+      }
+      
+      final authService = context.read<AuthService>();
+      final userModel = authService.currentUserModel;
+      
+      if (userModel == null) {
+        if (kDebugMode) {
+          debugPrint('❌ [DCMIWS설정] userModel이 null입니다');
+        }
+        return;
+      }
+      
+      if (mounted) {
+        setState(() {
+          _dcmiwsEnabled = userModel.dcmiwsEnabled ?? false;
+        });
+        
+        if (kDebugMode) {
+          debugPrint('✅ [DCMIWS설정] 로드 완료: dcmiwsEnabled=$_dcmiwsEnabled');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [DCMIWS설정] 로드 오류: $e');
+      }
+    }
+  }
+
+  // DCMIWS 착신전화 수신 설정 업데이트
+  Future<void> _updateDcmiwsEnabled(bool value) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔧 [DCMIWS설정] 업데이트 시작: $_dcmiwsEnabled -> $value');
+      }
+      
+      final authService = context.read<AuthService>();
+      final userId = authService.currentUser?.uid;
+      
+      if (userId == null) {
+        throw Exception('사용자 인증 정보가 없습니다');
+      }
+      
+      final databaseService = DatabaseService();
+      await databaseService.updateUserField(userId, 'dcmiwsEnabled', value);
+      
+      if (mounted) {
+        setState(() {
+          _dcmiwsEnabled = value;
+        });
+        
+        if (kDebugMode) {
+          debugPrint('✅ [DCMIWS설정] 업데이트 완료: dcmiwsEnabled=$value');
+        }
+        
+        // DCMIWS 웹소켓 연결 상태 관리
+        final userModel = authService.currentUserModel;
+        if (value && userModel != null) {
+          // DCMIWS 활성화 시 웹소켓 연결 시작
+          final dcmiwsService = DCMIWSService();
+          final websocketUrl = userModel.websocketServerUrl;
+          final websocketPort = userModel.websocketServerPort ?? 6600;
+          final useSSL = userModel.websocketUseSSL ?? false;
+          
+          if (websocketUrl != null && websocketUrl.isNotEmpty) {
+            await dcmiwsService.connect(
+              serverAddress: websocketUrl,
+              port: websocketPort,
+              useSSL: useSSL,
+            );
+            
+            await DialogUtils.showSuccess(
+              context,
+              'DCMIWS 착신전화 수신이 활성화되었습니다\n\n웹소켓 연결이 시작됩니다',
+              duration: const Duration(seconds: 2),
+            );
+          } else {
+            await DialogUtils.showWarning(
+              context,
+              'DCMIWS 서버 주소가 설정되지 않았습니다\n\n프로필 > API 설정에서 WebSocket 서버를 설정해주세요',
+              duration: const Duration(seconds: 3),
+            );
+          }
+        } else {
+          // DCMIWS 비활성화 시 웹소켓 연결 해제
+          final dcmiwsService = DCMIWSService();
+          await dcmiwsService.disconnect();
+          
+          await DialogUtils.showSuccess(
+            context,
+            'DCMIWS 착신전화 수신이 비활성화되었습니다\n\nPUSH(FCM) 방식으로 착신전화를 수신합니다',
+            duration: const Duration(seconds: 2),
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [DCMIWS설정] 업데이트 오류: $e');
+      }
+      
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          'DCMIWS 설정 변경 실패: $e',
         );
       }
     }
@@ -714,6 +832,85 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               onTap: () => _showWebPushInfo(context),
             ),
           ],
+          
+          const SizedBox(height: 16),
+          const Divider(thickness: 1),
+          const SizedBox(height: 8),
+          
+          // 📡 착신전화 수신 설정
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.teal[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.teal[100]!),
+              ),
+              child: const ListTile(
+                leading: Icon(Icons.settings_input_antenna, color: Colors.teal),
+                title: Text(
+                  '착신전화 수신 방식',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text('PUSH(기본) 또는 DCMIWS 선택', style: TextStyle(fontSize: 12)),
+              ),
+            ),
+          ),
+          
+          // DCMIWS 착신전화 수신 설정
+          _buildSwitchTile(
+            icon: Icons.wifi_tethering,
+            title: 'DCMIWS 실시간 수신',
+            subtitle: _dcmiwsEnabled 
+                ? '웹소켓으로 실시간 착신전화 수신 중' 
+                : 'PUSH(FCM)로 착신전화 수신 (기본)',
+            value: _dcmiwsEnabled,
+            onChanged: (value) => _updateDcmiwsEnabled(value),
+          ),
+          
+          // DCMIWS 설명
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 6),
+                      Text(
+                        '착신전화 수신 방식 안내',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• PUSH(기본): FCM을 통해 착신전화 알림 수신\n'
+                    '  배터리 효율적, 안정적인 방식\n\n'
+                    '• DCMIWS: 웹소켓으로 실시간 수신\n'
+                    '  더 빠른 응답, 배터리 사용량 증가',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[700],
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           
           const SizedBox(height: 16),
           const Divider(thickness: 1),

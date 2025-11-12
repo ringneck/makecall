@@ -292,7 +292,31 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
       _errorMessage = null;
     });
 
+    // DCMIWS 활성화 여부 확인 (임시 연결 필요 여부 판단)
+    final authService = context.read<AuthService>();
+    final userModel = authService.currentUserModel;
+    final dcmiwsEnabled = userModel?.dcmiwsEnabled ?? false;
+    bool temporaryConnection = false;
+
     try {
+      // DCMIWS가 비활성화되어 있으면 임시 연결
+      if (!dcmiwsEnabled && widget.wsServerAddress != null) {
+        if (kDebugMode) {
+          debugPrint('🔄 [착신전환] DCMIWS 비활성화 상태 - 임시 연결 시작');
+        }
+        
+        await _wsService.connect(
+          serverAddress: widget.wsServerAddress!,
+          port: widget.wsServerPort ?? 6600,
+          useSSL: widget.useSSL ?? false,
+        );
+        temporaryConnection = true;
+        
+        if (kDebugMode) {
+          debugPrint('✅ [착신전환] 임시 연결 완료');
+        }
+      }
+
       final success = await _wsService.setCallForwardEnabled(
         amiServerId: widget.amiServerId ?? 1,
         tenantId: widget.tenantId!,
@@ -331,6 +355,14 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
         );
       }
     } finally {
+      // 임시 연결이었다면 연결 해제
+      if (temporaryConnection) {
+        if (kDebugMode) {
+          debugPrint('🔌 [착신전환] 임시 연결 해제');
+        }
+        await _wsService.disconnect();
+      }
+      
       setState(() {
         _isSaving = false;
       });
@@ -444,7 +476,31 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
       _errorMessage = null;
     });
 
+    // DCMIWS 활성화 여부 확인 (임시 연결 필요 여부 판단)
+    final authService = context.read<AuthService>();
+    final userModel = authService.currentUserModel;
+    final dcmiwsEnabled = userModel?.dcmiwsEnabled ?? false;
+    bool temporaryConnection = false;
+
     try {
+      // DCMIWS가 비활성화되어 있으면 임시 연결
+      if (!dcmiwsEnabled && widget.wsServerAddress != null) {
+        if (kDebugMode) {
+          debugPrint('🔄 [착신번호변경] DCMIWS 비활성화 상태 - 임시 연결 시작');
+        }
+        
+        await _wsService.connect(
+          serverAddress: widget.wsServerAddress!,
+          port: widget.wsServerPort ?? 6600,
+          useSSL: widget.useSSL ?? false,
+        );
+        temporaryConnection = true;
+        
+        if (kDebugMode) {
+          debugPrint('✅ [착신번호변경] 임시 연결 완료');
+        }
+      }
+
       final success = await _wsService.setCallForwardDestination(
         amiServerId: widget.amiServerId ?? 1,
         tenantId: widget.tenantId!,
@@ -488,6 +544,14 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
         );
       }
     } finally {
+      // 임시 연결이었다면 연결 해제
+      if (temporaryConnection) {
+        if (kDebugMode) {
+          debugPrint('🔌 [착신번호변경] 임시 연결 해제');
+        }
+        await _wsService.disconnect();
+      }
+      
       setState(() {
         _isSaving = false;
       });

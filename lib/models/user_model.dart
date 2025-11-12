@@ -15,6 +15,7 @@ class UserModel {
   final int? websocketServerPort;    // WebSocket 서버 포트 (기본: 6600)
   final bool? websocketUseSSL;       // WebSocket SSL 사용 여부 (wss 또는 ws, 기본: false)
   final int? amiServerId;            // AMI 서버 ID (다중 서버 구분, 기본: 1)
+  final bool? dcmiwsEnabled;         // DCMIWS 착신전화 수신 사용 여부 (기본: false, PUSH 사용)
   final DateTime createdAt;
   final DateTime? lastLoginAt;
   final DateTime? lastMaxExtensionsUpdate; // maxExtensions 마지막 업데이트 일시
@@ -40,6 +41,7 @@ class UserModel {
     this.websocketServerPort = 6600,
     this.websocketUseSSL = false,
     this.amiServerId = 1,
+    this.dcmiwsEnabled = false,
     required this.createdAt,
     this.lastLoginAt,
     this.lastMaxExtensionsUpdate,
@@ -67,6 +69,7 @@ class UserModel {
       websocketServerPort: map['websocketServerPort'] as int? ?? 6600,
       websocketUseSSL: map['websocketUseSSL'] as bool? ?? false,
       amiServerId: map['amiServerId'] as int? ?? 1,
+      dcmiwsEnabled: map['dcmiwsEnabled'] as bool? ?? false,
       createdAt: DateTime.parse(map['createdAt'] as String? ?? DateTime.now().toIso8601String()),
       lastLoginAt: map['lastLoginAt'] != null 
           ? DateTime.parse(map['lastLoginAt'] as String)
@@ -100,6 +103,7 @@ class UserModel {
       'websocketServerPort': websocketServerPort,
       'websocketUseSSL': websocketUseSSL,
       'amiServerId': amiServerId,
+      'dcmiwsEnabled': dcmiwsEnabled,
       'createdAt': createdAt.toIso8601String(),
       'lastLoginAt': lastLoginAt?.toIso8601String(),
       'lastMaxExtensionsUpdate': lastMaxExtensionsUpdate?.toIso8601String(),
@@ -126,6 +130,7 @@ class UserModel {
     int? websocketServerPort,
     bool? websocketUseSSL,
     int? amiServerId,
+    bool? dcmiwsEnabled,
     DateTime? createdAt,
     DateTime? lastLoginAt,
     DateTime? lastMaxExtensionsUpdate,
@@ -151,6 +156,7 @@ class UserModel {
       websocketServerPort: websocketServerPort ?? this.websocketServerPort,
       websocketUseSSL: websocketUseSSL ?? this.websocketUseSSL,
       amiServerId: amiServerId ?? this.amiServerId,
+      dcmiwsEnabled: dcmiwsEnabled ?? this.dcmiwsEnabled,
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       lastMaxExtensionsUpdate: lastMaxExtensionsUpdate ?? this.lastMaxExtensionsUpdate,

@@ -1231,4 +1231,27 @@ class DatabaseService {
       }
     }
   }
+
+  /// 사용자 특정 필드 업데이트
+  /// 
+  /// @param userId 사용자 UID
+  /// @param field 업데이트할 필드명
+  /// @param value 업데이트할 값
+  Future<void> updateUserField(String userId, String field, dynamic value) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .update({field: value});
+      
+      if (kDebugMode) {
+        debugPrint('✅ [DatabaseService] 사용자 필드 업데이트 완료: $field = $value');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [DatabaseService] 사용자 필드 업데이트 실패: $e');
+      }
+      rethrow;
+    }
+  }
 }
