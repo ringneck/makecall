@@ -344,13 +344,36 @@ class FCMService {
         // ignore: avoid_print
         print('   - 기존 기기 ${otherDevices.length}개에 알림 전송 예정');
         
-        await _sendDeviceApprovalRequest(
+        // ✅ 승인 요청 전송 및 승인 대기
+        final approvalRequestId = await _sendDeviceApprovalRequestAndWait(
           userId: userId,
           newDeviceId: deviceId,
           newDeviceName: deviceName,
           newPlatform: platform,
           newDeviceToken: token,
         );
+        
+        if (approvalRequestId == null) {
+          // ignore: avoid_print
+          print('❌ [FCM-SAVE] 승인 요청 전송 실패 - 로그인 중단');
+          throw Exception('Device approval request failed');
+        }
+        
+        // ignore: avoid_print
+        print('⏳ [FCM-SAVE] 기존 기기의 승인 대기 중...');
+        
+        // 승인 대기 (최대 5분)
+        final approved = await _waitForDeviceApproval(approvalRequestId);
+        
+        if (!approved) {
+          // ignore: avoid_print
+          print('❌ [FCM-SAVE] 기기 승인 거부됨 또는 시간 초과 - 로그인 중단');
+          throw Exception('Device approval denied or timeout');
+        }
+        
+        // ignore: avoid_print
+        print('✅ [FCM-SAVE] 기기 승인 완료! 로그인 진행');
+        
       } else if (existingTokens.any((token) => token.deviceId == deviceId)) {
         // ignore: avoid_print
         print('ℹ️ [FCM-SAVE] 동일 기기 토큰 갱신');
@@ -394,6 +417,32 @@ class FCMService {
     }
   }
   
+  /// 기존 기기에 기기 승인 요청 FCM 메시지 전송 및 승인 대기
+  /// 
+  /// 새 기기에서 로그인 시도 시 기존 기기에 승인 요청을 보내고 승인을 기다립니다.
+  /// 
+  /// Returns: approval request ID (성공 시) 또는 null (실패 시)
+  Future<String?> _sendDeviceApprovalRequestAndWait({
+    required String userId,
+    required String newDeviceId,
+    required String newDeviceName,
+    required String newPlatform,
+    required String newDeviceToken,
+  }) async {
+    try {
+      return await _sendDeviceApprovalRequest(
+        userId: userId,
+        newDeviceId: newDeviceId,
+        newDeviceName: newDeviceName,
+        newPlatform: newPlatform,
+        newDeviceToken: newDeviceToken,
+      );
+    } catch (e) {
+      debugPrint('❌ [FCM-APPROVAL] 승인 요청 전송 실패: $e');
+      return null;
+    }
+  }
+  
   /// 기존 기기에 기기 승인 요청 FCM 메시지 전송
   /// 
   /// 새 기기에서 로그인 시도 시 기존 기기에 승인 요청을 보냅니다.
@@ -403,7 +452,9 @@ class FCMService {
   /// - Flutter는 fcm_approval_notification_queue에 데이터 쓰기
   /// - Cloud Functions의 sendApprovalNotification 트리거가 자동 실행
   /// - Cloud Functions가 FCM 알림 전송 처리
-  Future<void> _sendDeviceApprovalRequest({
+  /// 
+  /// Returns: approval request ID
+  Future<String> _sendDeviceApprovalRequest({
     required String userId,
     required String newDeviceId,
     required String newDeviceName,
@@ -429,7 +480,7 @@ class FCMService {
       if (otherDeviceTokens.isEmpty) {
         // ignore: avoid_print
         print('ℹ️ [FCM-APPROVAL] 다른 활성 기기 없음 - 승인 요청 불필요');
-        return;
+        throw Exception('No other devices found');
       }
       
       // ignore: avoid_print
@@ -498,6 +549,9 @@ class FCMService {
       // ignore: avoid_print
       print('   📡 Cloud Functions가 FCM 알림 전송 처리합니다');
       
+      // approval request ID 반환
+      return approvalDoc.id;
+      
     } catch (e, stackTrace) {
       // ignore: avoid_print
       print('❌ [FCM-APPROVAL] 승인 요청 전송 실패: $e');
@@ -505,6 +559,75 @@ class FCMService {
       print('Stack trace:');
       // ignore: avoid_print
       print(stackTrace);
+      rethrow;
+    }
+  }
+  
+  /// 기기 승인 대기 (폴링)
+  /// 
+  /// device_approval_requests 문서의 status 필드를 모니터링하여
+  /// approved, rejected, 또는 expired 상태가 될 때까지 대기합니다.
+  /// 
+  /// Returns: true (승인됨), false (거부됨 또는 시간 초과)
+  Future<bool> _waitForDeviceApproval(String approvalRequestId) async {
+    try {
+      // ignore: avoid_print
+      print('⏳ [FCM-WAIT] 기기 승인 대기 시작: $approvalRequestId');
+      
+      // Firestore 스냅샷 리스너 사용 (실시간 업데이트)
+      final stream = _firestore
+          .collection('device_approval_requests')
+          .doc(approvalRequestId)
+          .snapshots();
+      
+      // 최대 5분 대기 (Cloud Functions에서 설정한 만료 시간과 동일)
+      final timeout = DateTime.now().add(const Duration(minutes: 5));
+      
+      await for (var snapshot in stream) {
+        if (!snapshot.exists) {
+          // ignore: avoid_print
+          print('❌ [FCM-WAIT] 승인 요청 문서가 삭제됨');
+          return false;
+        }
+        
+        final data = snapshot.data();
+        if (data == null) continue;
+        
+        final status = data['status'] as String?;
+        
+        // ignore: avoid_print
+        print('📊 [FCM-WAIT] 현재 상태: $status');
+        
+        if (status == 'approved') {
+          // ignore: avoid_print
+          print('✅ [FCM-WAIT] 기기 승인됨!');
+          return true;
+        } else if (status == 'rejected') {
+          // ignore: avoid_print
+          print('❌ [FCM-WAIT] 기기 거부됨');
+          return false;
+        } else if (status == 'expired') {
+          // ignore: avoid_print
+          print('⏰ [FCM-WAIT] 승인 요청 만료됨');
+          return false;
+        }
+        
+        // 시간 초과 체크
+        if (DateTime.now().isAfter(timeout)) {
+          // ignore: avoid_print
+          print('⏰ [FCM-WAIT] 승인 대기 시간 초과 (5분)');
+          return false;
+        }
+      }
+      
+      return false;
+      
+    } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('❌ [FCM-WAIT] 승인 대기 오류: $e');
+      // ignore: avoid_print
+      print('Stack trace: $stackTrace');
+      return false;
     }
   }
   
