@@ -43,17 +43,7 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
     }
   }
 
-  /// 안전한 SnackBar 표시 헬퍼 (위젯이 dispose되어도 에러 없음)
-  void _safeShowSnackBar(SnackBar snackBar) {
-    if (!mounted) return;
-    
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    } catch (e) {
-      // 위젯이 이미 dispose된 경우 조용히 무시 (에러 로그 출력 안 함)
-      // 'Looking up a deactivated widget's ancestor' 에러는 정상적인 상황
-    }
-  }
+
 
   // 5자리 이하 숫자인지 확인하고 자동 발신
   Future<void> _checkAndAutoCall() async {
@@ -146,15 +136,15 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
       if (mounted) {
         Navigator.pop(context);
         if (success) {
-          _safeShowSnackBar(
-            const SnackBar(content: Text('전화를 거는 중입니다...')),
+          await DialogUtils.showInfo(
+            context,
+            '전화를 거는 중입니다...',
+            duration: const Duration(seconds: 2),
           );
         } else {
-          _safeShowSnackBar(
-            const SnackBar(
-              content: Text('전화를 걸 수 없습니다'),
-              backgroundColor: Colors.red,
-            ),
+          await DialogUtils.showError(
+            context,
+            '전화를 걸 수 없습니다',
           );
         }
       }
@@ -355,39 +345,27 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
 
       if (mounted) {
         Navigator.pop(context);
-        _safeShowSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '✅ Click to Call 요청 전송 완료',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text('단말: ${selectedExtension.name.isEmpty ? selectedExtension.extension : selectedExtension.name}'),
-                Text('번호: ${selectedExtension.extension}'),
-                Text('COS ID: ${selectedExtension.classOfServicesId}'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-          ),
+        
+        final extensionDisplay = selectedExtension.name.isEmpty 
+            ? selectedExtension.extension 
+            : selectedExtension.name;
+        
+        await DialogUtils.showSuccess(
+          context,
+          '✅ Click to Call 요청 전송 완료\n\n단말: $extensionDisplay\n번호: ${selectedExtension.extension}\nCOS ID: ${selectedExtension.classOfServicesId}',
+          duration: const Duration(seconds: 4),
         );
         
         // 🔄 클릭투콜 성공 콜백 호출 (최근통화 탭으로 전환)
         widget.onClickToCallSuccess?.call();
       }
     } catch (e) {
-      _safeShowSnackBar(
-        SnackBar(
-          content: Text('오류 발생: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          '오류 발생: $e',
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

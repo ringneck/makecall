@@ -1449,22 +1449,17 @@ class _CallTabState extends State<CallTab> {
           await _databaseService.deleteContact(contact.id);
           
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${contact.name} 연락처가 삭제되었습니다'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 2),
-              ),
+            await DialogUtils.showSuccess(
+              context,
+              '${contact.name} 연락처가 삭제되었습니다',
+              duration: const Duration(seconds: 2),
             );
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('연락처 삭제 실패: $e'),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
+            await DialogUtils.showError(
+              context,
+              '연락처 삭제 실패: $e',
             );
           }
         }
@@ -1815,33 +1810,7 @@ class _CallTabState extends State<CallTab> {
     );
   }
 
-  // 안전한 SnackBar 표시 헬퍼 (위젯이 dispose되어도 에러 없음)
-  void _safeShowSnackBar(SnackBar snackBar) {
-    if (!mounted) return;
-    
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    } catch (e) {
-      // 위젯이 이미 dispose된 경우 무시
-      if (kDebugMode) {
-        debugPrint('⚠️ SnackBar 표시 건너뜀 (위젯 비활성화): $e');
-      }
-    }
-  }
-  
-  // 안전한 SnackBar 클리어 헬퍼
-  void _safeClearSnackBars() {
-    if (!mounted) return;
-    
-    try {
-      ScaffoldMessenger.of(context).clearSnackBars();
-    } catch (e) {
-      // 위젯이 이미 dispose된 경우 무시
-      if (kDebugMode) {
-        debugPrint('⚠️ SnackBar 클리어 건너뜀 (위젯 비활성화): $e');
-      }
-    }
-  }
+
 
   // 기능번호 자동 발신 (Click to Call API 직접 호출)
   Future<void> _handleFeatureCodeCall(String phoneNumber) async {
@@ -1920,26 +1889,14 @@ class _CallTabState extends State<CallTab> {
         debugPrint('📞 CID Number: $cidNumber (callee 값)');
       }
 
-      // 로딩 표시 (안전한 헬퍼 사용)
-      _safeShowSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-              SizedBox(width: 16),
-              Text('기능번호 발신 중...'),
-            ],
-          ),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      // 로딩 표시 (DialogUtils로 변환)
+      if (mounted) {
+        await DialogUtils.showInfo(
+          context,
+          '기능번호 발신 중...',
+          duration: const Duration(seconds: 2),
+        );
+      }
 
       // 🔥 Step 1: 착신전환 정보 먼저 조회 (API 호출 전)
       final callForwardInfo = await _databaseService
@@ -1999,28 +1956,17 @@ class _CallTabState extends State<CallTab> {
         debugPrint('   → Newchannel 이벤트 대기 중... (Pending Storage 준비 완료)');
       }
 
-      // 성공 메시지 (안전한 헬퍼 사용)
-      _safeClearSnackBars();
-      _safeShowSnackBar(
-        SnackBar(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '🌟 기능번호 발신 완료',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Text('단말: ${selectedExtension.name.isEmpty ? selectedExtension.extension : selectedExtension.name}'),
-              Text('기능번호: $phoneNumber'),
-            ],
-          ),
-          backgroundColor: Colors.orange,
+      // 성공 메시지 (DialogUtils로 변환)
+      if (mounted) {
+        final extensionDisplay = selectedExtension.name.isEmpty 
+            ? selectedExtension.extension 
+            : selectedExtension.name;
+        await DialogUtils.showSuccess(
+          context,
+          '🌟 기능번호 발신 완료\n\n단말: $extensionDisplay\n기능번호: $phoneNumber',
           duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+        );
+      }
       
       // 🔄 기능번호 발신 성공 시 최근통화 탭으로 전환
       if (mounted) {
@@ -2032,15 +1978,13 @@ class _CallTabState extends State<CallTab> {
         }
       }
     } catch (e, stackTrace) {
-      // 에러 메시지 (안전한 헬퍼 사용)
-      _safeClearSnackBars();
-      _safeShowSnackBar(
-        SnackBar(
-          content: Text('기능번호 발신 실패: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      // 에러 메시지 (DialogUtils로 변환)
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          '기능번호 발신 실패: $e',
+        );
+      }
       
       // ignore: avoid_print
       print('❌ [call_tab 기능번호] 발신 오류 발생');
@@ -2058,34 +2002,25 @@ class _CallTabState extends State<CallTab> {
         {'isFavorite': !contact.isFavorite},
       );
 
-      // 성공 메시지 (안전한 헬퍼 사용)
-      _safeShowSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(
-                contact.isFavorite ? Icons.star_border : Icons.star,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                contact.isFavorite
-                    ? '즐겨찾기에서 제거되었습니다'
-                    : '즐겨찾기에 추가되었습니다',
-              ),
-            ],
-          ),
-          backgroundColor: contact.isFavorite ? Colors.grey[700] : Colors.amber[700],
-          behavior: SnackBarBehavior.floating,
+      // 성공 메시지 (DialogUtils로 변환)
+      if (mounted) {
+        final message = contact.isFavorite
+            ? '즐겨찾기에서 제거되었습니다'
+            : '즐겨찾기에 추가되었습니다';
+        await DialogUtils.showSuccess(
+          context,
+          message,
           duration: const Duration(seconds: 2),
-        ),
-      );
+        );
+      }
     } catch (e) {
-      // 에러 메시지 (안전한 헬퍼 사용)
-      _safeShowSnackBar(
-        SnackBar(content: Text('오류 발생: $e')),
-      );
+      // 에러 메시지 (DialogUtils로 변환)
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          '오류 발생: $e',
+        );
+      }
     }
   }
 
@@ -2181,20 +2116,16 @@ class _CallTabState extends State<CallTab> {
           });
 
           if (contacts.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('장치에 저장된 연락처가 없습니다.'),
-                backgroundColor: Colors.orange,
-                duration: Duration(seconds: 2),
-              ),
+            await DialogUtils.showWarning(
+              context,
+              '장치에 저장된 연락처가 없습니다.',
+              duration: const Duration(seconds: 2),
             );
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${contacts.length}개의 연락처를 불러왔습니다.'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 2),
-              ),
+            await DialogUtils.showSuccess(
+              context,
+              '${contacts.length}개의 연락처를 불러왔습니다.',
+              duration: const Duration(seconds: 2),
             );
           }
         }
@@ -2203,12 +2134,9 @@ class _CallTabState extends State<CallTab> {
       if (mounted) {
         setState(() => _isLoadingDeviceContacts = false);
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('연락처 불러오기 실패: ${e.toString().split(':').last.trim()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        await DialogUtils.showError(
+          context,
+          '연락처 불러오기 실패: ${e.toString().split(':').last.trim()}',
         );
       }
     }
@@ -2354,12 +2282,9 @@ class _CallTabState extends State<CallTab> {
         debugPrint('❌ Linkedid가 없어 통화 상세를 조회할 수 없음');
       }
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('통화 상세 정보를 불러올 수 없습니다\n(Linkedid가 저장되지 않았습니다)'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
-        ),
+      await DialogUtils.showError(
+        context,
+        '통화 상세 정보를 불러올 수 없습니다\n(Linkedid가 저장되지 않았습니다)',
       );
       return;
     }
@@ -2374,16 +2299,14 @@ class _CallTabState extends State<CallTab> {
     );
   }
 
-  void _showAddContactFromCallDialog(CallHistoryModel call) {
+  Future<void> _showAddContactFromCallDialog(CallHistoryModel call) async {
     final userId = context.read<AuthService>().currentUser?.uid ?? '';
     
     // 이미 이름이 있는 경우 (연락처가 있음)
     if (call.contactName != null && call.contactName!.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${call.contactName}은(는) 이미 연락처에 등록되어 있습니다'),
-          backgroundColor: Colors.orange,
-        ),
+      await DialogUtils.showWarning(
+        context,
+        '${call.contactName}은(는) 이미 연락처에 등록되어 있습니다',
       );
       return;
     }
@@ -2411,44 +2334,11 @@ class _CallTabState extends State<CallTab> {
       if (existingContact != null) {
         // 중복된 연락처가 이미 존재하는 경우
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.white, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '이미 추가된 연락처입니다',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${contact.phoneNumber}는 이미 즐겨찾기에 저장되어 있습니다.',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.orange[700],
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 4),
-              action: SnackBarAction(
-                label: '보기',
-                textColor: Colors.white,
-                onPressed: () {
-                  setState(() {
-                    _currentTabIndex = 3; // 즐겨찾기 탭으로 이동
-                  });
-                },
-              ),
-            ),
+          await DialogUtils.showInfo(
+            context,
+            '이미 추가된 연락처입니다\n\n${contact.phoneNumber}는 이미 즐겨찾기에 저장되어 있습니다.',
+            title: '중복 연락처',
+            duration: const Duration(seconds: 4),
           );
         }
         return; // 중복이므로 추가하지 않음
@@ -2464,38 +2354,17 @@ class _CallTabState extends State<CallTab> {
       await _databaseService.addContact(newContact);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.star, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text('${contact.name}을(를) 즐겨찾기에 추가했습니다'),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.amber[700],
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: '보기',
-              textColor: Colors.white,
-              onPressed: () {
-                setState(() {
-                  _currentTabIndex = 3; // 즐겨찾기 탭으로 이동
-                });
-              },
-            ),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          '${contact.name}을(를) 즐겨찾기에 추가했습니다',
+          duration: const Duration(seconds: 3),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류 발생: $e'),
-            backgroundColor: Colors.red,
-          ),
+        await DialogUtils.showError(
+          context,
+          '오류 발생: $e',
         );
       }
     }

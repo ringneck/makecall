@@ -309,12 +309,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
           _lastUpdateTime = DateTime.now(); // 업데이트 시간 기록
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${internalPhonebooks.length}개 phonebook, 연락처 목록을 불러왔습니다'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          '${internalPhonebooks.length}개 phonebook, 연락처 목록을 불러왔습니다',
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
@@ -328,12 +326,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
           _error = e.toString();
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Phonebook 로드 실패: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        await DialogUtils.showError(
+          context,
+          'Phonebook 로드 실패: $e',
+          duration: const Duration(seconds: 3),
         );
       }
     }
@@ -912,36 +908,19 @@ class _PhonebookTabState extends State<PhonebookTab> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  contact.isFavorite ? Icons.star_border : Icons.star,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  contact.isFavorite
-                      ? '즐겨찾기에서 제거되었습니다'
-                      : '즐겨찾기에 추가되었습니다',
-                ),
-              ],
-            ),
-            backgroundColor: contact.isFavorite ? Colors.grey[700] : Colors.amber[700],
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          contact.isFavorite
+              ? '즐겨찾기에서 제거되었습니다'
+              : '즐겨찾기에 추가되었습니다',
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('즐겨찾기 변경 실패: $e'),
-            backgroundColor: Colors.red,
-          ),
+        await DialogUtils.showError(
+          context,
+          '즐겨찾기 변경 실패: $e',
         );
       }
     }
@@ -1087,24 +1066,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
       // 로딩 표시
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-                SizedBox(width: 16),
-                Text('기능번호 발신 중...'),
-              ],
-            ),
-            duration: Duration(seconds: 2),
-          ),
+        await DialogUtils.showInfo(
+          context,
+          '기능번호 발신 중...',
+          duration: const Duration(seconds: 2),
         );
       }
 
@@ -1164,26 +1129,14 @@ class _PhonebookTabState extends State<PhonebookTab> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '🌟 기능번호 발신 완료',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text('단말: ${selectedExtension.name.isEmpty ? selectedExtension.extension : selectedExtension.name}'),
-                Text('기능번호: $phoneNumber'),
-              ],
-            ),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-          ),
+        final extensionDisplay = selectedExtension.name.isEmpty 
+            ? selectedExtension.extension 
+            : selectedExtension.name;
+
+        await DialogUtils.showSuccess(
+          context,
+          '🌟 기능번호 발신 완료\n\n단말: $extensionDisplay\n기능번호: $phoneNumber',
+          duration: const Duration(seconds: 3),
         );
         
         // 🔄 기능번호 발신 성공 시 콜백 호출 (최근통화 탭으로 전환)
@@ -1195,13 +1148,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('기능번호 발신 실패: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        await DialogUtils.showError(
+          context,
+          '기능번호 발신 실패: $e',
+          duration: const Duration(seconds: 4),
         );
       }
       
@@ -1297,23 +1247,17 @@ class _PhonebookTabState extends State<PhonebookTab> {
                             contact.isFavorite,
                           );
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  contact.isFavorite ? '즐겨찾기에서 제거되었습니다' : '즐겨찾기에 추가되었습니다',
-                                ),
-                                duration: const Duration(seconds: 2),
-                                backgroundColor: contact.isFavorite ? Colors.grey : Colors.amber,
-                              ),
+                            await DialogUtils.showSuccess(
+                              context,
+                              contact.isFavorite ? '즐겨찾기에서 제거되었습니다' : '즐겨찾기에 추가되었습니다',
+                              duration: const Duration(seconds: 2),
                             );
                           }
                         } catch (e) {
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('즐겨찾기 변경 실패: $e'),
-                                backgroundColor: Colors.red,
-                              ),
+                            await DialogUtils.showError(
+                              context,
+                              '즐겨찾기 변경 실패: $e',
                             );
                           }
                         }
@@ -1751,15 +1695,15 @@ class _PhonebookTabState extends State<PhonebookTab> {
   }
 
   // 클립보드 복사
-  void _copyToClipboard(String text) {
+  Future<void> _copyToClipboard(String text) async {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('복사됨: $text'),
+    if (mounted) {
+      await DialogUtils.showSuccess(
+        context,
+        '복사됨: $text',
         duration: const Duration(seconds: 2),
-        backgroundColor: Colors.green,
-      ),
-    );
+      );
+    }
   }
 
   // SMS 보내기
@@ -1778,11 +1722,9 @@ class _PhonebookTabState extends State<PhonebookTab> {
         debugPrint('SMS 실행 오류: $e');
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('SMS 실행 실패: $e'),
-            backgroundColor: Colors.red,
-          ),
+        await DialogUtils.showError(
+          context,
+          'SMS 실행 실패: $e',
         );
       }
     }
@@ -1804,11 +1746,9 @@ class _PhonebookTabState extends State<PhonebookTab> {
         debugPrint('이메일 실행 오류: $e');
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('이메일 실행 실패: $e'),
-            backgroundColor: Colors.red,
-          ),
+        await DialogUtils.showError(
+          context,
+          '이메일 실행 실패: $e',
         );
       }
     }

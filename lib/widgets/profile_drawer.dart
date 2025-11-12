@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
@@ -13,6 +15,7 @@ import '../services/database_service.dart';
 import '../services/account_manager_service.dart';
 import '../services/fcm_service.dart';
 import '../services/dcmiws_service.dart';
+import '../services/dcmiws_connection_manager.dart';
 import '../models/my_extension_model.dart';
 import '../models/saved_account_model.dart';
 import '../screens/profile/api_settings_dialog.dart';
@@ -36,6 +39,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   bool _soundEnabled = true;
   bool _vibrationEnabled = true;
   
+  // DCMIWS 착신전화 수신 설정
+  bool _dcmiwsEnabled = false;
+  
   // 🎯 Premium 상태 캐싱 (성능 최적화)
   bool? _isPremiumCached;
 
@@ -58,6 +64,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
       // FCM 알림 설정 불러오기
       _loadNotificationSettings();
+      // DCMIWS 설정 불러오기
+      _loadDcmiwsSettings();
     });
   }
   
@@ -191,6 +199,123 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     }
   }
 
+  // DCMIWS 착신전화 수신 설정 불러오기
+  Future<void> _loadDcmiwsSettings() async {
+    try {
+      if (kDebugMode) {
+        debugPrint('📥 [DCMIWS설정] 로드 시작');
+      }
+      
+      final authService = context.read<AuthService>();
+      final userModel = authService.currentUserModel;
+      
+      if (userModel == null) {
+        if (kDebugMode) {
+          debugPrint('❌ [DCMIWS설정] userModel이 null입니다');
+        }
+        return;
+      }
+      
+      if (mounted) {
+        setState(() {
+          _dcmiwsEnabled = userModel.dcmiwsEnabled ?? false;
+        });
+        
+        if (kDebugMode) {
+          debugPrint('✅ [DCMIWS설정] 로드 완료: dcmiwsEnabled=$_dcmiwsEnabled');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [DCMIWS설정] 로드 오류: $e');
+      }
+    }
+  }
+
+  // DCMIWS 착신전화 수신 설정 업데이트
+  Future<void> _updateDcmiwsEnabled(bool value) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔧 [DCMIWS설정] 업데이트 시작: $_dcmiwsEnabled -> $value');
+      }
+      
+      final authService = context.read<AuthService>();
+      final userId = authService.currentUser?.uid;
+      
+      if (userId == null) {
+        throw Exception('사용자 인증 정보가 없습니다');
+      }
+      
+      final databaseService = DatabaseService();
+      await databaseService.updateUserField(userId, 'dcmiwsEnabled', value);
+      
+      // 🔍 DEBUG: Firestore 업데이트 확인
+      if (kDebugMode) {
+        debugPrint('✅ [DCMIWS설정] Firestore 업데이트 완료: dcmiwsEnabled=$value');
+        // 실제 Firestore 값 재확인
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .get();
+        final actualValue = userDoc.data()?['dcmiwsEnabled'];
+        debugPrint('🔍 [DCMIWS설정] Firestore 실제 값 확인: $actualValue (타입: ${actualValue.runtimeType})');
+      }
+      
+      if (mounted) {
+        setState(() {
+          _dcmiwsEnabled = value;
+        });
+        
+        if (kDebugMode) {
+          debugPrint('✅ [DCMIWS설정] UI 상태 업데이트 완료: dcmiwsEnabled=$value');
+        }
+        
+        // DCMIWS 웹소켓 연결 상태 관리
+        // ConnectionManager를 통해 설정 변경 반영
+        final connectionManager = DCMIWSConnectionManager();
+        
+        if (value) {
+          // DCMIWS 활성화 시: ConnectionManager가 자동으로 연결 시도
+          await connectionManager.refreshSettings();
+          
+          if (kDebugMode) {
+            debugPrint('✅ [DCMIWS설정] ConnectionManager 설정 갱신 완료');
+          }
+          
+          await DialogUtils.showSuccess(
+            context,
+            'DCMIWS 착신전화 수신이 활성화되었습니다\n\n웹소켓 연결이 시작됩니다',
+            duration: const Duration(seconds: 2),
+          );
+        } else {
+          // DCMIWS 비활성화 시: ConnectionManager가 자동으로 연결 해제
+          await connectionManager.refreshSettings();
+          
+          if (kDebugMode) {
+            debugPrint('✅ [DCMIWS설정] ConnectionManager 연결 해제 완료');
+          }
+          
+          await DialogUtils.showSuccess(
+            context,
+            'DCMIWS 착신전화 수신이 비활성화되었습니다\n\nPUSH(FCM) 방식으로 착신전화를 수신합니다',
+            duration: const Duration(seconds: 2),
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [DCMIWS설정] 업데이트 오류: $e');
+      }
+      
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          'DCMIWS 설정 변경 실패: $e',
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _phoneNumberController.dispose();
@@ -224,19 +349,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                SizedBox(width: 12),
-                Text('정보가 업데이트되었습니다'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          '정보가 업데이트되었습니다',
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
@@ -245,18 +361,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(child: Text('업데이트 실패: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
+        await DialogUtils.showError(
+          context,
+          '업데이트 실패: $e',
         );
       }
     } finally {
@@ -605,31 +712,31 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             ),
           ),
           
-          // iOS 시스템 알림 켜기/끄기 안내
+          // iOS 시스템 알림 켜기/끄기 (시스템 설정으로 이동)
           if (!kIsWeb && Platform.isIOS)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
+                  color: Colors.blue[50],
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange[200]!),
+                  border: Border.all(color: Colors.blue[200]!),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.settings, color: Colors.orange[700], size: 24),
+                        Icon(Icons.notifications_active, color: Colors.blue[700], size: 24),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            '푸시 알림 켜기/끄기',
+                            '푸시 알림 관리',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Colors.orange[900],
+                              color: Colors.blue[900],
                             ),
                           ),
                         ),
@@ -637,27 +744,73 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'iOS 설정 → MAKECALL → 알림에서\n푸시 알림을 완전히 켜거나 끌 수 있습니다.',
+                      '푸시 알림을 켜거나 끄려면 iOS 시스템 설정을 사용하세요.',
                       style: TextStyle(fontSize: 13, height: 1.4),
                     ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue[100]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blue[600], size: 20),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              '설정 → MAKECALL → 알림',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        debugPrint('📱 [iOS] 시스템 설정 안내');
-                        if (mounted) {
-                          await DialogUtils.showInfo(
-                            context,
-                            '설정 앱을 열고\n\nMAKECALL → 알림\n\n메뉴에서 푸시 알림을 켜거나 끌 수 있습니다.',
-                            title: 'iOS 시스템 설정',
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.launch, size: 18),
-                      label: const Text('설정 방법 보기'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange[700],
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          debugPrint('📱 [iOS] 시스템 설정 열기');
+                          try {
+                            // iOS 시스템 설정 열기
+                            final opened = await openAppSettings();
+                            
+                            if (!opened) {
+                              if (mounted) {
+                                await DialogUtils.showWarning(
+                                  context,
+                                  '시스템 설정을 열 수 없습니다.\n\n수동으로 설정 앱을 열어주세요:\n\n1. 설정 앱 실행\n2. MAKECALL 찾기\n3. 알림 메뉴 선택',
+                                );
+                              }
+                            } else {
+                              debugPrint('✅ [iOS] 시스템 설정 열기 성공');
+                            }
+                          } catch (e) {
+                            debugPrint('❌ [iOS] 시스템 설정 열기 오류: $e');
+                            if (mounted) {
+                              await DialogUtils.showError(
+                                context,
+                                '시스템 설정 열기 실패\n\n설정 앱을 수동으로 열어 MAKECALL → 알림 메뉴로 이동하세요.',
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.settings, size: 20),
+                        label: const Text('iOS 설정 열기'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -732,6 +885,85 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               onTap: () => _showWebPushInfo(context),
             ),
           ],
+          
+          const SizedBox(height: 16),
+          const Divider(thickness: 1),
+          const SizedBox(height: 8),
+          
+          // 📡 착신전화 수신 설정
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.teal[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.teal[100]!),
+              ),
+              child: const ListTile(
+                leading: Icon(Icons.settings_input_antenna, color: Colors.teal),
+                title: Text(
+                  '착신전화 수신 방식',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text('PUSH(기본) 또는 DCMIWS 선택', style: TextStyle(fontSize: 12)),
+              ),
+            ),
+          ),
+          
+          // DCMIWS 착신전화 수신 설정
+          _buildSwitchTile(
+            icon: Icons.wifi_tethering,
+            title: 'DCMIWS 실시간 수신',
+            subtitle: _dcmiwsEnabled 
+                ? '웹소켓으로 실시간 착신전화 수신 중' 
+                : 'PUSH(FCM)로 착신전화 수신 (기본)',
+            value: _dcmiwsEnabled,
+            onChanged: (value) => _updateDcmiwsEnabled(value),
+          ),
+          
+          // DCMIWS 설명
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 6),
+                      Text(
+                        '착신전화 수신 방식 안내',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• PUSH(기본): FCM을 통해 착신전화 알림 수신\n'
+                    '  배터리 효율적, 안정적인 방식\n\n'
+                    '• DCMIWS: 웹소켓으로 실시간 수신\n'
+                    '  더 빠른 응답, 배터리 사용량 증가',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[700],
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           
           const SizedBox(height: 16),
           const Divider(thickness: 1),
@@ -1060,15 +1292,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   _keepLoginEnabled = value;
                 });
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        value 
-                            ? '자동 로그인이 활성화되었습니다. 계정 전환 시 비밀번호 없이 로그인됩니다.' 
-                            : '자동 로그인이 비활성화되었습니다. 계정 전환 시 확인 다이얼로그가 표시됩니다.',
-                      ),
-                      backgroundColor: value ? Colors.green : Colors.grey,
-                    ),
+                  await DialogUtils.showInfo(
+                    context,
+                    value 
+                        ? '자동 로그인이 활성화되었습니다. 계정 전환 시 비밀번호 없이 로그인됩니다.' 
+                        : '자동 로그인이 비활성화되었습니다. 계정 전환 시 확인 다이얼로그가 표시됩니다.',
+                    duration: const Duration(seconds: 3),
                   );
                 }
               },
@@ -1397,9 +1626,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류: $e')),
-        );
+        await DialogUtils.showError(context, '오류: $e');
       }
     }
   }
@@ -1423,9 +1650,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류: $e')),
-        );
+        await DialogUtils.showError(context, '오류: $e');
       }
     }
   }
@@ -1771,9 +1996,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
       // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
       if (mounted && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('등록 실패: $e')),
-        );
+        await DialogUtils.showError(context, '등록 실패: $e');
       }
     }
   }
@@ -1880,9 +2103,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         }
         // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
         if (mounted && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('삭제 실패: $e')),
-          );
+          await DialogUtils.showError(context, '삭제 실패: $e');
         }
       }
     }
@@ -2007,9 +2228,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         }
         // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
         if (mounted && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('삭제 실패: $e')),
-          );
+          await DialogUtils.showError(context, '삭제 실패: $e');
         }
       }
     }
@@ -2321,12 +2540,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('오류 발생: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          await DialogUtils.showError(context, '오류 발생: $e');
         }
       }
     }
@@ -2355,14 +2569,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       
       if (mounted) {
         // 안내 메시지만 표시 (확인 불필요)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${account.displayName} 계정으로 자동 전환합니다...',
-            ),
-            backgroundColor: Colors.blue,
-            duration: const Duration(seconds: 2),
-          ),
+        await DialogUtils.showInfo(
+          context,
+          '${account.displayName} 계정으로 자동 전환합니다...',
+          duration: const Duration(seconds: 2),
         );
       }
     } else {
@@ -2408,15 +2618,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         Navigator.pop(context);
         
         // 메시지 변경: 자동 로그인 여부에 따라 다른 메시지 표시
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              autoLoginEnabled
-                  ? '로그아웃되었습니다. ${account.email}로 자동 로그인 중...'
-                  : '로그아웃되었습니다. ${account.email}로 다시 로그인해주세요.',
-            ),
-            backgroundColor: Colors.blue,
-          ),
+        await DialogUtils.showInfo(
+          context,
+          autoLoginEnabled
+              ? '로그아웃되었습니다. ${account.email}로 자동 로그인 중...'
+              : '로그아웃되었습니다. ${account.email}로 다시 로그인해주세요.',
         );
       }
     }
@@ -2483,25 +2689,17 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         await authService.updateCompanyName(result.isEmpty ? null : result);
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                result.isEmpty 
-                    ? '조직명이 삭제되었습니다' 
-                    : '조직명이 업데이트되었습니다',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          await DialogUtils.showSuccess(
+            context,
+            result.isEmpty 
+                ? '조직명이 삭제되었습니다' 
+                : '조직명이 업데이트되었습니다',
+            duration: const Duration(seconds: 2),
           );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('오류 발생: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          await DialogUtils.showError(context, '오류 발생: $e');
         }
       }
     }
@@ -2626,22 +2824,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         // UI 새로고침을 위해 setState 호출
         setState(() {});
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${account.displayName} 계정이 목록에서 삭제되었습니다'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          '${account.displayName} 계정이 목록에서 삭제되었습니다',
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('계정 삭제 실패: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        await DialogUtils.showError(context, '계정 삭제 실패: $e');
       }
     }
   }
@@ -2652,22 +2843,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       await context.read<AuthService>().signOut();
       if (mounted) {
         Navigator.pop(context); // Drawer 닫기
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('로그아웃되었습니다'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
-          ),
+        await DialogUtils.showInfo(
+          context,
+          '로그아웃되었습니다',
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('로그아웃 실패: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        await DialogUtils.showError(context, '로그아웃 실패: $e');
       }
     }
   }
@@ -3553,12 +3737,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('알림 권한 요청 중 오류 발생: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        await DialogUtils.showError(context, '알림 권한 요청 중 오류 발생: $e');
       }
     }
   }

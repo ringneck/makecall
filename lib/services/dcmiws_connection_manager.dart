@@ -54,8 +54,12 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
   String? _cachedServerAddress;
   int? _cachedServerPort;
   bool? _cachedServerSSL;
+  bool? _cachedDcmiwsEnabled; // ⭐ dcmiwsEnabled 캐시 추가
   
   /// 연결 관리자 시작
+  /// 
+  /// ⭐ CRITICAL: dcmiwsEnabled 설정을 먼저 확인하여 PUSH 모드일 때는
+  /// 웹소켓 연결을 시도하지 않습니다.
   Future<void> start() async {
     if (_isManagerActive) {
       if (kDebugMode) {
@@ -79,8 +83,28 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
     // 3. 사용자 인증 상태 변경 감지 시작
     _startAuthMonitoring();
     
-    // 4. 초기 연결 시도
-    await _attemptConnection();
+    // 4. ⭐ CRITICAL: dcmiwsEnabled 설정 먼저 확인
+    // PUSH 모드일 때는 초기 연결 시도를 건너뜀
+    if (kDebugMode) {
+      debugPrint('🔍 DCMIWSConnectionManager: Checking dcmiwsEnabled setting...');
+    }
+    
+    // Firestore에서 dcmiwsEnabled 설정 확인
+    final isDcmiwsEnabled = await _loadServerSettings();
+    
+    if (isDcmiwsEnabled) {
+      if (kDebugMode) {
+        debugPrint('✅ DCMIWSConnectionManager: DCMIWS mode - attempting initial connection');
+      }
+      // DCMIWS 모드: 초기 연결 시도
+      await _attemptConnection();
+    } else {
+      if (kDebugMode) {
+        debugPrint('⏭️ DCMIWSConnectionManager: PUSH mode - skipping initial connection');
+        debugPrint('   - User prefers FCM push notifications');
+        debugPrint('   - WebSocket connection will not be established');
+      }
+    }
     
     if (kDebugMode) {
       debugPrint('✅ DCMIWSConnectionManager: Started successfully');
@@ -115,6 +139,34 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
     
     if (kDebugMode) {
       debugPrint('✅ DCMIWSConnectionManager: Stopped');
+    }
+  }
+  
+  /// 사용자 설정 변경 시 캐시 초기화 및 재연결
+  /// ProfileDrawer에서 dcmiwsEnabled 변경 시 호출
+  Future<void> refreshSettings() async {
+    if (kDebugMode) {
+      debugPrint('🔄 DCMIWSConnectionManager: Refreshing settings...');
+    }
+    
+    // 기존 연결 종료
+    await _dcmiwsService.disconnect();
+    
+    // 캐시 초기화 (서버 설정 다시 로드)
+    _cachedServerAddress = null;
+    _cachedServerPort = null;
+    _cachedServerSSL = null;
+    _cachedDcmiwsEnabled = null; // ⭐ dcmiwsEnabled 캐시도 초기화
+    
+    // 재연결 타이머 리셋
+    _reconnectTimer?.cancel();
+    _reconnectAttempts = 0;
+    
+    // 새 설정으로 연결 시도
+    await _attemptConnection();
+    
+    if (kDebugMode) {
+      debugPrint('✅ DCMIWSConnectionManager: Settings refreshed');
     }
   }
   
@@ -195,6 +247,14 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
       debugPrint('🌞 DCMIWSConnectionManager: App resumed (foreground)');
     }
     
+    // ⭐ PUSH 모드면 재연결 시도하지 않음
+    if (_cachedDcmiwsEnabled == false) {
+      if (kDebugMode) {
+        debugPrint('⏭️ DCMIWSConnectionManager: PUSH mode - skipping reconnection');
+      }
+      return;
+    }
+    
     // 연결 상태 확인 및 재연결
     if (!_dcmiwsService.isConnected) {
       if (kDebugMode) {
@@ -220,6 +280,14 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
   void _onNetworkConnected() {
     if (kDebugMode) {
       debugPrint('📶 DCMIWSConnectionManager: Network connected');
+    }
+    
+    // ⭐ PUSH 모드면 재연결 시도하지 않음
+    if (_cachedDcmiwsEnabled == false) {
+      if (kDebugMode) {
+        debugPrint('⏭️ DCMIWSConnectionManager: PUSH mode - skipping reconnection');
+      }
+      return;
     }
     
     // 연결되지 않은 경우에만 재연결 시도
@@ -253,6 +321,7 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
     _cachedServerAddress = null;
     _cachedServerPort = null;
     _cachedServerSSL = null;
+    _cachedDcmiwsEnabled = null; // ⭐ dcmiwsEnabled 캐시도 초기화
     
     // 기존 연결 종료
     await _dcmiwsService.disconnect();
@@ -288,28 +357,42 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
       return;
     }
     
-    // 네트워크 상태 확인
-    final connectivityResult = await _connectivity.checkConnectivity();
-    if (connectivityResult.every((result) => result == ConnectivityResult.none)) {
-      if (kDebugMode) {
-        debugPrint('📵 DCMIWSConnectionManager: No network, skipping connection');
-      }
-      return;
-    }
-    
-    if (kDebugMode) {
-      debugPrint('🔌 DCMIWSConnectionManager: Attempting connection (attempt ${_reconnectAttempts + 1}/$_maxReconnectAttempts)');
-    }
-    
     try {
-      // 서버 설정 가져오기 (캐시 활용)
-      await _loadServerSettings();
+      // ⭐ CRITICAL: dcmiwsEnabled 설정을 제일 먼저 확인
+      // 네트워크 체크나 로그 출력보다 먼저 실행하여 불필요한 로그 방지
+      final isDcmiwsEnabled = await _loadServerSettings();
+      
+      // ⭐ PUSH 모드일 때는 즉시 종료 (재시도 없음)
+      if (!isDcmiwsEnabled) {
+        if (kDebugMode) {
+          debugPrint('⏹️ DCMIWSConnectionManager: PUSH mode - no connection needed');
+        }
+        // 재연결 타이머 취소 및 카운터 리셋
+        _reconnectTimer?.cancel();
+        _reconnectAttempts = 0;
+        return;  // ✅ 즉시 종료 - 네트워크 체크나 연결 시도 없음
+      }
+      
+      // ✅ DCMIWS 모드 확인됨 - 연결 절차 진행
+      
+      // 네트워크 상태 확인
+      final connectivityResult = await _connectivity.checkConnectivity();
+      if (connectivityResult.every((result) => result == ConnectivityResult.none)) {
+        if (kDebugMode) {
+          debugPrint('📵 DCMIWSConnectionManager: No network, skipping connection');
+        }
+        return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('🔌 DCMIWSConnectionManager: Attempting connection (attempt ${_reconnectAttempts + 1}/$_maxReconnectAttempts)');
+      }
       
       if (_cachedServerAddress == null) {
         if (kDebugMode) {
-          debugPrint('⚠️ DCMIWSConnectionManager: No server settings found');
+          debugPrint('⚠️ DCMIWSConnectionManager: No server settings found (DCMIWS enabled but no server URL)');
         }
-        _scheduleReconnect(); // 서버 설정 없어도 재시도
+        _scheduleReconnect(); // DCMIWS 활성화되었지만 서버 URL 없을 때만 재시도
         return;
       }
       
@@ -340,15 +423,12 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
   }
   
   /// 서버 설정 로드 (Firestore 캐싱)
-  Future<void> _loadServerSettings() async {
-    // 캐시가 있으면 재사용
-    if (_cachedServerAddress != null) {
-      return;
-    }
-    
+  /// 
+  /// Returns: true if DCMIWS is enabled, false if PUSH mode
+  Future<bool> _loadServerSettings() async {
     try {
       final userId = _currentUserId;
-      if (userId == null) return;
+      if (userId == null) return false;
       
       if (kDebugMode) {
         debugPrint('📥 DCMIWSConnectionManager: Loading server settings for user $userId');
@@ -363,10 +443,49 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
         if (kDebugMode) {
           debugPrint('⚠️ DCMIWSConnectionManager: User document not found');
         }
-        return;
+        return false;
       }
       
       final userData = userDoc.data()!;
+      
+      // ⭐ CRITICAL: Check if DCMIWS is enabled (default: false = PUSH mode)
+      // This check is ALWAYS performed, even if cache exists
+      final dcmiwsEnabled = userData['dcmiwsEnabled'] as bool? ?? false;
+      
+      // ⭐ 캐시에 dcmiwsEnabled 저장 (생명주기 이벤트에서 재사용)
+      _cachedDcmiwsEnabled = dcmiwsEnabled;
+      
+      // 🔍 DEBUG: Firestore 실제 값 확인
+      if (kDebugMode) {
+        debugPrint('🔍 DCMIWSConnectionManager: Firestore dcmiwsEnabled = $dcmiwsEnabled');
+        debugPrint('   Raw value: ${userData['dcmiwsEnabled']}');
+        debugPrint('   Type: ${userData['dcmiwsEnabled'].runtimeType}');
+      }
+      
+      if (!dcmiwsEnabled) {
+        if (kDebugMode) {
+          debugPrint('⏭️ DCMIWSConnectionManager: DCMIWS disabled (PUSH mode)');
+          debugPrint('   - User prefers FCM push notifications');
+          debugPrint('   - WebSocket connection will not be established');
+        }
+        // Clear cache to prevent connection attempts
+        _cachedServerAddress = null;
+        _cachedServerPort = null;
+        _cachedServerSSL = null;
+        return false; // Return false = PUSH mode
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ DCMIWSConnectionManager: DCMIWS enabled - loading server settings');
+      }
+      
+      // Check if cache is already loaded and valid
+      if (_cachedServerAddress != null) {
+        if (kDebugMode) {
+          debugPrint('ℹ️ DCMIWSConnectionManager: Using cached server settings');
+        }
+        return true; // Return true = DCMIWS enabled
+      }
       
       // ProfileDrawer의 API Settings Dialog와 동일한 필드명 사용
       _cachedServerAddress = userData['websocketServerUrl'] as String?;
@@ -379,10 +498,13 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
         debugPrint('  Port: $_cachedServerPort');
         debugPrint('  SSL: $_cachedServerSSL');
       }
+      
+      return true; // Return true = DCMIWS enabled
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ DCMIWSConnectionManager: Failed to load server settings: $e');
       }
+      return false; // Return false on error
     }
   }
   
