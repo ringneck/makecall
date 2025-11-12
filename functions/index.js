@@ -241,10 +241,41 @@ exports.sendApprovalNotification = functions.firestore
       } catch (error) {
         console.error("❌ FCM 알림 전송 오류:", error);
 
+        // 🧹 토큰 정리: registration-token-not-registered 오류 처리
+        if (error.code === "messaging/registration-token-not-registered") {
+          console.log("🧹 [TOKEN-CLEANUP] 무효 토큰 감지 - 자동 삭제 시작");
+          console.log(`   무효 토큰: ${targetToken.substring(0, 20)}...`);
+
+          try {
+            // fcm_tokens 컬렉션에서 무효 토큰 찾기
+            const tokenQuery = await admin.firestore()
+                .collection("fcm_tokens")
+                .where("fcmToken", "==", targetToken)
+                .get();
+
+            if (!tokenQuery.empty) {
+              // 무효 토큰 삭제
+              const deletePromises = tokenQuery.docs.map((doc) => {
+                console.log(`   삭제 중: ${doc.id}`);
+                return doc.ref.delete();
+              });
+
+              await Promise.all(deletePromises);
+
+              console.log(`✅ [TOKEN-CLEANUP] 무효 토큰 ${tokenQuery.size}개 삭제 완료`);
+            } else {
+              console.log("⚠️ [TOKEN-CLEANUP] fcm_tokens에서 토큰을 찾을 수 없음");
+            }
+          } catch (cleanupError) {
+            console.error("❌ [TOKEN-CLEANUP] 토큰 정리 실패:", cleanupError);
+          }
+        }
+
         // 오류 정보 저장
         await snap.ref.update({
           processed: false,
           error: error.message,
+          errorCode: error.code || "unknown",
           errorAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       }
