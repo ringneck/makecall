@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 import 'dart:async'; // TimeoutException 사용을 위해 필요
+import 'dart:convert'; // JSON encoding/decoding
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart' as http; // HTTP requests for Cloud Functions
 import '../screens/call/incoming_call_screen.dart';
 import '../screens/home/main_screen.dart'; // MainScreen import 추가
 import '../models/fcm_token_model.dart';
@@ -99,10 +101,10 @@ class FCMService {
       // ignore: avoid_print
       print('🎯 [FCM] 모든 메시지 리스너 등록 완료! 이제 토큰 생성 시작');
       
-      // Android 로컬 알림 플러그인 초기화 및 알림 채널 생성
-      if (Platform.isAndroid) {
+      // Android & iOS 로컬 알림 플러그인 초기화
+      if (Platform.isAndroid || Platform.isIOS) {
         // ignore: avoid_print
-        print('🤖 [FCM] Android: flutter_local_notifications 초기화 중...');
+        print('📱 [FCM] flutter_local_notifications 초기화 중...');
         
         final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
             FlutterLocalNotificationsPlugin();
@@ -111,8 +113,19 @@ class FCMService {
         const AndroidInitializationSettings initializationSettingsAndroid =
             AndroidInitializationSettings('@mipmap/ic_launcher');
         
+        // iOS 초기화 설정
+        const DarwinInitializationSettings initializationSettingsIOS =
+            DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
+        
         const InitializationSettings initializationSettings =
-            InitializationSettings(android: initializationSettingsAndroid);
+            InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
         
         await flutterLocalNotificationsPlugin.initialize(
           initializationSettings,
@@ -125,26 +138,28 @@ class FCMService {
         // ignore: avoid_print
         print('✅ [FCM] flutter_local_notifications 초기화 완료');
         
-        // 알림 채널 생성
-        // ignore: avoid_print
-        print('🤖 [FCM] Android: 알림 채널 생성 중...');
-        
-        const AndroidNotificationChannel channel = AndroidNotificationChannel(
-          'high_importance_channel', // id
-          'High Importance Notifications', // name
-          description: 'This channel is used for important notifications.',
-          importance: Importance.high,
-          playSound: true,
-          enableVibration: true,
-        );
-        
-        await flutterLocalNotificationsPlugin
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
-            ?.createNotificationChannel(channel);
-        
-        // ignore: avoid_print
-        print('✅ [FCM] Android: 알림 채널 생성 완료');
+        // Android 알림 채널 생성
+        if (Platform.isAndroid) {
+          // ignore: avoid_print
+          print('🤖 [FCM] Android: 알림 채널 생성 중...');
+          
+          const AndroidNotificationChannel channel = AndroidNotificationChannel(
+            'high_importance_channel', // id
+            'High Importance Notifications', // name
+            description: 'This channel is used for important notifications.',
+            importance: Importance.high,
+            playSound: true,
+            enableVibration: true,
+          );
+          
+          await flutterLocalNotificationsPlugin
+              .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>()
+              ?.createNotificationChannel(channel);
+          
+          // ignore: avoid_print
+          print('✅ [FCM] Android: 알림 채널 생성 완료');
+        }
       }
       
       // 알림 권한 요청
@@ -407,6 +422,15 @@ class FCMService {
   /// 
   /// 새 기기에서 로그인 시도 시 기존 기기에 승인 요청을 보냅니다.
   /// 기존 기기에서 승인하면 새 기기 로그인이 완료됩니다.
+  /// Cloud Functions를 통한 기기 승인 요청 전송
+  /// 
+  /// Firestore 보안 규칙에 의해 클라이언트는 직접 fcm_approval_notification_queue에
+  /// 쓸 수 없으므로, Cloud Functions HTTP 엔드포인트를 호출합니다.
+  /// 
+  /// Cloud Function: sendApprovalNotification (us-central1)
+  /// - Firestore admin 권한으로 승인 요청 문서 생성
+  /// - FCM 알림 큐에 메시지 추가
+  /// - 기존 기기들에 푸시 알림 전송
   Future<void> _sendDeviceApprovalRequest({
     required String userId,
     required String newDeviceId,
@@ -439,79 +463,87 @@ class FCMService {
       // ignore: avoid_print
       print('📋 [FCM-APPROVAL] 다른 활성 기기 ${otherDeviceTokens.length}개 발견');
       
-      // Firestore에 승인 요청 저장 (5분 TTL)
-      final approvalDoc = await _firestore.collection('device_approval_requests').add({
+      // Cloud Functions HTTP 엔드포인트 호출
+      // Firebase Core에서 프로젝트 ID 동적 가져오기
+      final projectId = _firestore.app.options.projectId;
+      final cloudFunctionUrl = 
+          'https://us-central1-$projectId.cloudfunctions.net/sendApprovalNotification';
+      
+      // 요청 페이로드 생성
+      final requestBody = {
         'userId': userId,
         'newDeviceId': newDeviceId,
         'newDeviceName': newDeviceName,
         'newPlatform': newPlatform,
         'newDeviceToken': newDeviceToken,
-        'status': 'pending', // pending, approved, rejected, expired
-        'createdAt': FieldValue.serverTimestamp(),
-        'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(minutes: 5))),
-      });
+        'targetDevices': otherDeviceTokens.map((doc) {
+          final data = doc.data();
+          return {
+            'fcmToken': data['fcmToken'] as String?,
+            'deviceName': data['deviceName'] as String? ?? 'Unknown Device',
+            'deviceId': data['deviceId'] as String?,
+          };
+        }).toList(),
+      };
       
       // ignore: avoid_print
-      print('✅ [FCM-APPROVAL] 승인 요청 문서 생성: ${approvalDoc.id}');
+      print('📤 [FCM-APPROVAL] Cloud Functions 호출 중...');
+      print('   URL: $cloudFunctionUrl');
+      print('   Target devices: ${requestBody['targetDevices']}');
       
-      // 모든 기존 기기에 FCM 알림 전송 (새 기기 제외)
-      for (var tokenDoc in otherDeviceTokens) {
-        final tokenData = tokenDoc.data();
-        final targetToken = tokenData['fcmToken'] as String?;
-        final targetDeviceName = tokenData['deviceName'] as String? ?? 'Unknown Device';
+      // HTTP POST 요청
+      final response = await http.post(
+        Uri.parse(cloudFunctionUrl),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Cloud Functions 호출 타임아웃 (10초)');
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        // ignore: avoid_print
+        print('✅ [FCM-APPROVAL] Cloud Functions 응답 성공');
+        print('   Response: $responseData');
         
-        if (targetToken == null || targetToken.isEmpty) {
+        // 승인 요청 ID 확인
+        final approvalRequestId = responseData['approvalRequestId'] as String?;
+        if (approvalRequestId != null) {
           // ignore: avoid_print
-          print('⚠️ [FCM-APPROVAL] FCM 토큰 없음: ${tokenDoc.id}');
-          continue;
-        }
-        
-        // ignore: avoid_print
-        print('📤 [FCM-APPROVAL] 승인 요청 알림 전송: $targetDeviceName');
-        
-        // FCM 알림 큐에 추가
-        await _firestore.collection('fcm_approval_notification_queue').add({
-          'targetToken': targetToken,
-          'targetDeviceName': targetDeviceName,
-          'approvalRequestId': approvalDoc.id,
-          'newDeviceName': newDeviceName,
-          'newPlatform': newPlatform,
-          'message': {
-            'type': 'device_approval_request',
-            'title': '🔐 새 기기 로그인 감지',
-            'body': '$newDeviceName ($newPlatform)에서 로그인 시도',
-            'approvalRequestId': approvalDoc.id,
-          },
-          'createdAt': FieldValue.serverTimestamp(),
-          'processed': false,
-        });
-        
-        // ignore: avoid_print
-        print('✅ [FCM-APPROVAL] 알림 큐 등록 완료: $targetDeviceName');
-      }
-      
-      // ignore: avoid_print
-      print('✅ [FCM-APPROVAL] 모든 기존 기기에 승인 요청 전송 완료');
-      
-    } catch (e, stackTrace) {
-      // 권한 오류는 일반적 - Firestore 규칙 설정 필요
-      if (e.toString().contains('permission-denied')) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [FCM-APPROVAL] Firestore 권한 없음 - 기기 승인 기능 비활성화');
-          debugPrint('   해결: Firestore 보안 규칙에서 다음 컬렉션에 쓰기 권한 추가:');
-          debugPrint('   - fcm_approval_notification_queue');
-          debugPrint('   - device_approval_requests');
-          debugPrint('   현재는 기기 승인 없이 로그인 허용됨');
+          print('✅ [FCM-APPROVAL] 승인 요청 문서 생성: $approvalRequestId');
         }
       } else {
         // ignore: avoid_print
-        print('❌ [FCM-APPROVAL] 승인 요청 전송 실패: $e');
+        print('❌ [FCM-APPROVAL] Cloud Functions 응답 실패');
+        print('   Status: ${response.statusCode}');
+        print('   Body: ${response.body}');
+        
         if (kDebugMode) {
-          // ignore: avoid_print
-          print('Stack trace:');
-          // ignore: avoid_print
-          print(stackTrace);
+          debugPrint('⚠️ [FCM-APPROVAL] Cloud Functions 호출 실패 - 기기 승인 비활성화');
+          debugPrint('   HTTP Status: ${response.statusCode}');
+          debugPrint('   Response: ${response.body}');
         }
+      }
+      
+    } on TimeoutException catch (e) {
+      // ignore: avoid_print
+      print('⏱️ [FCM-APPROVAL] 타임아웃: $e');
+      if (kDebugMode) {
+        debugPrint('⚠️ [FCM-APPROVAL] Cloud Functions 타임아웃 - 네트워크 연결 확인 필요');
+      }
+    } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('❌ [FCM-APPROVAL] 승인 요청 전송 실패: $e');
+      if (kDebugMode) {
+        debugPrint('⚠️ [FCM-APPROVAL] Cloud Functions 호출 오류');
+        debugPrint('   오류: $e');
+        debugPrint('   Stack trace: $stackTrace');
+        debugPrint('   해결: Cloud Functions 배포 상태 및 프로젝트 ID 확인');
       }
     }
   }
@@ -1138,6 +1170,10 @@ class FCMService {
   }
   
   /// iOS 플랫폼 알림 표시 (DialogUtils 사용)
+  /// iOS 포그라운드 알림 표시 (flutter_local_notifications 사용)
+  /// 
+  /// iOS에서는 앱이 포그라운드에 있을 때 네이티브 알림을 자동으로 표시하지 않습니다.
+  /// flutter_local_notifications 패키지를 사용하여 수동으로 알림을 표시합니다.
   Future<void> _showIOSNotification(RemoteMessage message) async {
     if (!Platform.isIOS) return;
     
@@ -1145,7 +1181,7 @@ class FCMService {
       final title = message.notification?.title ?? message.data['title'] ?? 'MAKECALL 알림';
       final body = message.notification?.body ?? message.data['body'] ?? '새로운 알림이 있습니다.';
       
-      debugPrint('🍎 [FCM] iOS 알림 표시 시작');
+      debugPrint('🍎 [FCM-iOS] 포그라운드 알림 표시 시작');
       debugPrint('   제목: $title');
       debugPrint('   내용: $body');
       
@@ -1173,9 +1209,11 @@ class FCMService {
       
       // 알림 설정 적용 (기본값: 모두 켜짐)
       final pushEnabled = settings?['pushEnabled'] ?? true;
+      final soundEnabled = settings?['soundEnabled'] ?? true;
       
       debugPrint('🔧 [FCM-알림설정-iOS] 적용:');
       debugPrint('   - 푸시 알림: $pushEnabled');
+      debugPrint('   - 소리: $soundEnabled');
       
       // 푸시 알림이 꺼져있으면 알림 표시 안함
       if (!pushEnabled) {
@@ -1183,21 +1221,36 @@ class FCMService {
         return;
       }
       
-      // _context가 있으면 DialogUtils로 알림 표시
-      if (_context != null) {
-        await DialogUtils.showInfo(
-          _context!,
-          body,
-          title: title,
-          duration: const Duration(seconds: 5),
-        );
-        debugPrint('✅ [FCM-iOS] 알림 다이얼로그 표시 완료');
-      } else {
-        debugPrint('⚠️ [FCM-iOS] BuildContext 없음 - 알림 표시 불가');
-      }
+      // flutter_local_notifications로 네이티브 알림 표시
+      final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+          FlutterLocalNotificationsPlugin();
       
-    } catch (e) {
+      // iOS 알림 세부 설정
+      final DarwinNotificationDetails iOSPlatformChannelSpecifics =
+          DarwinNotificationDetails(
+        presentAlert: true,  // 알림 배너 표시
+        presentBadge: true,  // 앱 아이콘 뱃지 표시
+        presentSound: soundEnabled,  // 알림 소리 (사용자 설정 반영)
+        sound: soundEnabled ? 'default' : null,
+      );
+      
+      final NotificationDetails platformChannelSpecifics =
+          NotificationDetails(iOS: iOSPlatformChannelSpecifics);
+      
+      // 알림 표시
+      await flutterLocalNotificationsPlugin.show(
+        message.hashCode,  // 고유 ID
+        title,
+        body,
+        platformChannelSpecifics,
+        payload: jsonEncode(message.data),  // 알림 클릭 시 전달할 데이터
+      );
+      
+      debugPrint('✅ [FCM-iOS] 네이티브 알림 표시 완료');
+      
+    } catch (e, stackTrace) {
       debugPrint('❌ [FCM-iOS] 알림 표시 오류: $e');
+      debugPrint('Stack trace: $stackTrace');
     }
   }
   
