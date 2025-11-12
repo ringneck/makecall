@@ -374,13 +374,20 @@ class FCMService {
         
         // ignore: avoid_print
         print('⏳ [FCM-SAVE] 기존 기기의 승인 대기 중...');
+        // ignore: avoid_print
+        print('🔒 [FCM-SAVE] 중요: _waitForDeviceApproval() 호출 - 이 함수가 반환될 때까지 대기');
         
         // 승인 대기 (최대 5분)
         final approved = await _waitForDeviceApproval(approvalRequestId);
         
+        // ignore: avoid_print
+        print('🔙 [FCM-SAVE] _waitForDeviceApproval() 반환됨: $approved');
+        
         if (!approved) {
           // ignore: avoid_print
           print('❌ [FCM-SAVE] 기기 승인 거부됨 또는 시간 초과 - 로그인 중단');
+          // ignore: avoid_print
+          print('🚫 [FCM-SAVE] Exception 던지기: Device approval denied or timeout');
           throw Exception('Device approval denied or timeout');
         }
         
@@ -599,6 +606,8 @@ class FCMService {
     try {
       // ignore: avoid_print
       print('⏳ [FCM-WAIT] 기기 승인 대기 시작: $approvalRequestId');
+      // ignore: avoid_print
+      print('🔒 [FCM-WAIT] 이 함수는 승인/거부/타임아웃까지 계속 대기합니다');
       
       // Firestore 스냅샷 리스너 사용 (실시간 업데이트)
       final stream = _firestore
@@ -608,44 +617,65 @@ class FCMService {
       
       // 최대 5분 대기 (Cloud Functions에서 설정한 만료 시간과 동일)
       final timeout = DateTime.now().add(const Duration(minutes: 5));
+      // ignore: avoid_print
+      print('⏰ [FCM-WAIT] 타임아웃 시간: ${timeout.toString()}');
       
+      int snapshotCount = 0;
       await for (var snapshot in stream) {
+        snapshotCount++;
+        // ignore: avoid_print
+        print('📡 [FCM-WAIT] 스냅샷 수신 #$snapshotCount');
+        
         if (!snapshot.exists) {
           // ignore: avoid_print
-          print('❌ [FCM-WAIT] 승인 요청 문서가 삭제됨');
+          print('❌ [FCM-WAIT] 승인 요청 문서가 삭제됨 - false 반환');
           return false;
         }
         
         final data = snapshot.data();
-        if (data == null) continue;
+        if (data == null) {
+          // ignore: avoid_print
+          print('⚠️ [FCM-WAIT] 문서 데이터가 null - continue');
+          continue;
+        }
         
         final status = data['status'] as String?;
         
         // ignore: avoid_print
-        print('📊 [FCM-WAIT] 현재 상태: $status');
+        print('📊 [FCM-WAIT] 현재 상태: $status (타입: ${status.runtimeType})');
         
         if (status == 'approved') {
           // ignore: avoid_print
-          print('✅ [FCM-WAIT] 기기 승인됨!');
+          print('✅ [FCM-WAIT] 기기 승인됨! - true 반환');
           return true;
         } else if (status == 'rejected') {
           // ignore: avoid_print
-          print('❌ [FCM-WAIT] 기기 거부됨');
+          print('❌ [FCM-WAIT] 기기 거부됨 - false 반환');
           return false;
         } else if (status == 'expired') {
           // ignore: avoid_print
-          print('⏰ [FCM-WAIT] 승인 요청 만료됨');
+          print('⏰ [FCM-WAIT] 승인 요청 만료됨 - false 반환');
           return false;
         }
         
         // 시간 초과 체크
-        if (DateTime.now().isAfter(timeout)) {
+        final now = DateTime.now();
+        if (now.isAfter(timeout)) {
           // ignore: avoid_print
-          print('⏰ [FCM-WAIT] 승인 대기 시간 초과 (5분)');
+          print('⏰ [FCM-WAIT] 승인 대기 시간 초과 (5분) - false 반환');
+          // ignore: avoid_print
+          print('   현재 시간: ${now.toString()}');
+          // ignore: avoid_print
+          print('   타임아웃: ${timeout.toString()}');
           return false;
         }
+        
+        // ignore: avoid_print
+        print('⏳ [FCM-WAIT] 계속 대기 중... (남은 시간: ${timeout.difference(now).inSeconds}초)');
       }
       
+      // ignore: avoid_print
+      print('⚠️ [FCM-WAIT] 스트림이 비정상 종료됨 - false 반환');
       return false;
       
     } catch (e, stackTrace) {
