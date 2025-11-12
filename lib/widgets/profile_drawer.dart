@@ -224,19 +224,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                SizedBox(width: 12),
-                Text('정보가 업데이트되었습니다'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          '정보가 업데이트되었습니다',
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
@@ -245,18 +236,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(child: Text('업데이트 실패: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
+        await DialogUtils.showError(
+          context,
+          '업데이트 실패: $e',
         );
       }
     } finally {
@@ -1060,15 +1042,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   _keepLoginEnabled = value;
                 });
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        value 
-                            ? '자동 로그인이 활성화되었습니다. 계정 전환 시 비밀번호 없이 로그인됩니다.' 
-                            : '자동 로그인이 비활성화되었습니다. 계정 전환 시 확인 다이얼로그가 표시됩니다.',
-                      ),
-                      backgroundColor: value ? Colors.green : Colors.grey,
-                    ),
+                  await DialogUtils.showInfo(
+                    context,
+                    value 
+                        ? '자동 로그인이 활성화되었습니다. 계정 전환 시 비밀번호 없이 로그인됩니다.' 
+                        : '자동 로그인이 비활성화되었습니다. 계정 전환 시 확인 다이얼로그가 표시됩니다.',
+                    duration: const Duration(seconds: 3),
                   );
                 }
               },
@@ -1397,9 +1376,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류: $e')),
-        );
+        await DialogUtils.showError(context, '오류: $e');
       }
     }
   }
@@ -1423,9 +1400,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류: $e')),
-        );
+        await DialogUtils.showError(context, '오류: $e');
       }
     }
   }
@@ -1771,9 +1746,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
       // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
       if (mounted && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('등록 실패: $e')),
-        );
+        await DialogUtils.showError(context, '등록 실패: $e');
       }
     }
   }
@@ -1880,9 +1853,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         }
         // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
         if (mounted && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('삭제 실패: $e')),
-          );
+          await DialogUtils.showError(context, '삭제 실패: $e');
         }
       }
     }
@@ -2007,9 +1978,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         }
         // ✅ CRITICAL FIX: context.mounted 체크로 위젯이 여전히 활성 상태인지 확인
         if (mounted && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('삭제 실패: $e')),
-          );
+          await DialogUtils.showError(context, '삭제 실패: $e');
         }
       }
     }
@@ -2321,12 +2290,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('오류 발생: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          await DialogUtils.showError(context, '오류 발생: $e');
         }
       }
     }
@@ -2355,14 +2319,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       
       if (mounted) {
         // 안내 메시지만 표시 (확인 불필요)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${account.displayName} 계정으로 자동 전환합니다...',
-            ),
-            backgroundColor: Colors.blue,
-            duration: const Duration(seconds: 2),
-          ),
+        await DialogUtils.showInfo(
+          context,
+          '${account.displayName} 계정으로 자동 전환합니다...',
+          duration: const Duration(seconds: 2),
         );
       }
     } else {
@@ -2408,15 +2368,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         Navigator.pop(context);
         
         // 메시지 변경: 자동 로그인 여부에 따라 다른 메시지 표시
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              autoLoginEnabled
-                  ? '로그아웃되었습니다. ${account.email}로 자동 로그인 중...'
-                  : '로그아웃되었습니다. ${account.email}로 다시 로그인해주세요.',
-            ),
-            backgroundColor: Colors.blue,
-          ),
+        await DialogUtils.showInfo(
+          context,
+          autoLoginEnabled
+              ? '로그아웃되었습니다. ${account.email}로 자동 로그인 중...'
+              : '로그아웃되었습니다. ${account.email}로 다시 로그인해주세요.',
         );
       }
     }
@@ -2483,25 +2439,17 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         await authService.updateCompanyName(result.isEmpty ? null : result);
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                result.isEmpty 
-                    ? '조직명이 삭제되었습니다' 
-                    : '조직명이 업데이트되었습니다',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          await DialogUtils.showSuccess(
+            context,
+            result.isEmpty 
+                ? '조직명이 삭제되었습니다' 
+                : '조직명이 업데이트되었습니다',
+            duration: const Duration(seconds: 2),
           );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('오류 발생: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          await DialogUtils.showError(context, '오류 발생: $e');
         }
       }
     }
@@ -2626,22 +2574,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         // UI 새로고침을 위해 setState 호출
         setState(() {});
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${account.displayName} 계정이 목록에서 삭제되었습니다'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          '${account.displayName} 계정이 목록에서 삭제되었습니다',
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('계정 삭제 실패: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        await DialogUtils.showError(context, '계정 삭제 실패: $e');
       }
     }
   }
@@ -2652,22 +2593,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       await context.read<AuthService>().signOut();
       if (mounted) {
         Navigator.pop(context); // Drawer 닫기
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('로그아웃되었습니다'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
-          ),
+        await DialogUtils.showInfo(
+          context,
+          '로그아웃되었습니다',
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('로그아웃 실패: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        await DialogUtils.showError(context, '로그아웃 실패: $e');
       }
     }
   }
@@ -3553,12 +3487,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('알림 권한 요청 중 오류 발생: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        await DialogUtils.showError(context, '알림 권한 요청 중 오류 발생: $e');
       }
     }
   }
