@@ -289,6 +289,19 @@ class FCMService {
       print('Stack trace:');
       // ignore: avoid_print
       print(stackTrace);
+      
+      // 🔒 CRITICAL: 기기 승인 관련 오류는 반드시 상위로 전파
+      if (e.toString().contains('Device approval') || 
+          e.toString().contains('denied') || 
+          e.toString().contains('timeout')) {
+        // ignore: avoid_print
+        print('🚫 [FCM] 기기 승인 실패 - 로그인 차단');
+        rethrow;
+      }
+      
+      // 일반적인 FCM 초기화 오류는 무시 (앱은 계속 실행)
+      // ignore: avoid_print
+      print('⚠️ [FCM] 초기화 실패했지만 앱은 계속 실행');
     }
   }
   
@@ -414,6 +427,19 @@ class FCMService {
       print('Stack trace:');
       // ignore: avoid_print
       print(stackTrace);
+      
+      // 🔒 CRITICAL: 승인 관련 오류는 반드시 상위로 전파하여 로그인 차단
+      if (e.toString().contains('Device approval') || 
+          e.toString().contains('denied') || 
+          e.toString().contains('timeout')) {
+        // ignore: avoid_print
+        print('🚫 [FCM-SAVE] 승인 관련 오류 감지 - 상위로 예외 전파');
+        rethrow;
+      }
+      
+      // 일반적인 토큰 저장 오류는 무시 (로그인은 계속 진행)
+      // ignore: avoid_print
+      print('⚠️ [FCM-SAVE] 토큰 저장 실패했지만 로그인은 허용');
     }
   }
   
