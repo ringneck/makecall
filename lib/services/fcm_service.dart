@@ -406,10 +406,32 @@ class FCMService {
       print('🔍 [FCM-SAVE] 모든 활성 토큰 조회 중...');
       final existingTokens = await _databaseService.getAllActiveFcmTokens(userId);
       
+      // 🔑 CRITICAL: Device ID + Platform 조합으로 기기 구분
+      // 같은 Device ID라도 플랫폼이 다르면 다른 기기로 취급
+      final currentDeviceKey = '${deviceId}_$platform';
+      
       // 현재 기기를 제외한 다른 기기들 필터링
       final otherDevices = existingTokens
-          .where((token) => token.deviceId != deviceId)
+          .where((token) => '${token.deviceId}_${token.platform}' != currentDeviceKey)
           .toList();
+      
+      // 🔍 플랫폼 변경 감지: 같은 Device ID지만 다른 플랫폼
+      final sameDeviceIdDifferentPlatform = existingTokens
+          .where((token) => token.deviceId == deviceId && token.platform != platform)
+          .toList();
+      
+      if (sameDeviceIdDifferentPlatform.isNotEmpty) {
+        // ignore: avoid_print
+        print('⚠️  [FCM-SAVE] 플랫폼 변경 감지!');
+        // ignore: avoid_print
+        print('   - Device ID: $deviceId');
+        // ignore: avoid_print
+        print('   - 이전 플랫폼: ${sameDeviceIdDifferentPlatform.first.platform}');
+        // ignore: avoid_print
+        print('   - 새 플랫폼: $platform');
+        // ignore: avoid_print
+        print('   - 🚨 다른 플랫폼으로 간주하여 승인 요청 진행');
+      }
       
       if (otherDevices.isNotEmpty) {
         // 다른 기기에서 로그인 감지 - 모든 기존 기기에 승인 요청 전송
@@ -417,6 +439,8 @@ class FCMService {
         print('🔔 [FCM-SAVE] 새 기기 로그인 감지!');
         // ignore: avoid_print
         print('   - 새 기기: $deviceName ($platform)');
+        // ignore: avoid_print
+        print('   - Device Key: $currentDeviceKey');
         // ignore: avoid_print
         print('   - 기존 기기 ${otherDevices.length}개에 알림 전송 예정');
         
@@ -457,12 +481,16 @@ class FCMService {
         // ignore: avoid_print
         print('✅ [FCM-SAVE] 기기 승인 완료! 로그인 진행');
         
-      } else if (existingTokens.any((token) => token.deviceId == deviceId)) {
+      } else if (existingTokens.any((token) => '${token.deviceId}_${token.platform}' == currentDeviceKey)) {
         // ignore: avoid_print
         print('ℹ️ [FCM-SAVE] 동일 기기 토큰 갱신');
+        // ignore: avoid_print
+        print('   - Device Key: $currentDeviceKey');
       } else {
         // ignore: avoid_print
         print('ℹ️ [FCM-SAVE] 첫 로그인 (다른 활성 기기 없음)');
+        // ignore: avoid_print
+        print('   - Device Key: $currentDeviceKey');
       }
       
       // 2. 새 토큰 모델 생성 및 저장
@@ -574,9 +602,17 @@ class FCMService {
           .where('isActive', isEqualTo: true)
           .get();
       
+      // 🔑 CRITICAL: Device ID + Platform 조합으로 기기 구분
+      // 같은 Device ID라도 플랫폼이 다르면 다른 기기로 취급
+      final newDeviceKey = '${newDeviceId}_$newPlatform';
+      
       // 새 기기를 제외한 기존 기기들만 필터링
       final otherDeviceTokens = existingTokens.docs
-          .where((doc) => doc.data()['deviceId'] != newDeviceId)
+          .where((doc) {
+            final data = doc.data();
+            final existingDeviceKey = '${data['deviceId']}_${data['platform']}';
+            return existingDeviceKey != newDeviceKey;
+          })
           .toList();
       
       if (otherDeviceTokens.isEmpty) {
