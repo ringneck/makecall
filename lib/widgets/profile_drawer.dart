@@ -523,7 +523,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // 🎯 간결한 프로필 헤더 (한 줄)
+          // 🎯 간결한 프로필 헤더 (한 줄) - 로그아웃 아이콘 추가
           Container(
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 12,
@@ -537,24 +537,28 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 bottom: BorderSide(color: Colors.grey[200]!, width: 1),
               ),
             ),
-            child: InkWell(
-              onTap: () => _showProfileDetailDialog(context, authService),
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    // 작은 썸네일
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Colors.transparent,
-                      backgroundImage: userModel?.profileImageUrl != null
-                          ? NetworkImage(userModel!.profileImageUrl!)
-                          : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
-                    ),
-                    const SizedBox(width: 12),
-                    // 조직명 + 이메일 ID
-                    Expanded(
+            child: Row(
+              children: [
+                // 작은 썸네일
+                InkWell(
+                  onTap: () => _showProfileDetailDialog(context, authService),
+                  borderRadius: BorderRadius.circular(20),
+                  child: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.transparent,
+                    backgroundImage: userModel?.profileImageUrl != null
+                        ? NetworkImage(userModel!.profileImageUrl!)
+                        : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // 조직명 + 이메일 ID
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _showProfileDetailDialog(context, authService),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -584,11 +588,17 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         ],
                       ),
                     ),
-                    // 상세보기 아이콘
-                    Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
-                  ],
+                  ),
                 ),
-              ),
+                // 로그아웃 아이콘
+                IconButton(
+                  onPressed: () => _handleLogoutFromList(context),
+                  icon: const Icon(Icons.logout),
+                  color: Colors.red[400],
+                  tooltip: '로그아웃',
+                  iconSize: 22,
+                ),
+              ],
             ),
           ),
           
@@ -1060,313 +1070,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               ),
             ),
           ),
-          
-          const SizedBox(height: 16),
-          const Divider(thickness: 1),
-          const SizedBox(height: 8),
-          
-          // 📱 계정 관리 섹션 (모든 사용자)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.orange[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange[100]!),
-              ),
-              child: ListTile(
-                leading: const Icon(Icons.account_circle, color: Colors.orange),
-                title: Text(
-                  _isPremium ? '계정 및 조직' : '내 계정',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  _isPremium 
-                      ? '등록된 계정, 사용자 계정 추가 (Premium)' 
-                      : '현재 로그인된 계정',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ),
-          ),
-          
-          // 📱 등록된 계정 목록 (모든 사용자)
-          // Premium: 모든 계정 표시
-          // 무료: 현재 계정만 표시
-          // 🚫 멀티 계정 기능 비활성화
-          FutureBuilder<List<SavedAccountModel>>(
-            future: AccountManagerService().getSavedAccounts(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              
-              final allAccounts = snapshot.data ?? [];
-              
-              // 🎯 Premium 여부에 따라 계정 목록 필터링
-              // Premium: 모든 계정 표시
-              // 무료: 현재 계정만 표시
-              // 🚫 멀티 계정 기능 비활성화: 항상 현재 계정만 표시
-              final accounts = /* _isPremium 
-                  ? allAccounts 
-                  : */ allAccounts.where((account) => account.isCurrentAccount).toList();
-              
-              if (accounts.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '등록된 계정이 없습니다',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ),
-                  ),
-                );
-              }
-              
-              return Column(
-                children: [
-                  // 등록된 계정 제목
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _isPremium ? Icons.people : Icons.person,
-                          size: 16,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _isPremium 
-                              ? '등록된 계정 (${accounts.length}개)' 
-                              : '현재 계정',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // 계정 목록
-                  ...accounts.map((account) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: account.isCurrentAccount ? Colors.blue[50] : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: account.isCurrentAccount 
-                              ? const Color(0xFF2196F3) 
-                              : Colors.grey[300]!,
-                          width: account.isCurrentAccount ? 2 : 1,
-                        ),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        leading: CircleAvatar(
-                          radius: 20,
-                          backgroundColor: Colors.transparent,
-                          backgroundImage: account.profileImageUrl != null
-                              ? NetworkImage(account.profileImageUrl!)
-                              : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
-                        ),
-                        title: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                account.displayName,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: account.isCurrentAccount 
-                                      ? FontWeight.bold 
-                                      : FontWeight.w500,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (account.companyName != null && account.companyName!.isNotEmpty)
-                              Container(
-                                margin: const EdgeInsets.only(left: 8),
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[100],
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text(
-                                  '조직',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (account.companyName != null && account.companyName!.isNotEmpty)
-                              Text(
-                                account.email,
-                                style: const TextStyle(fontSize: 11, color: Colors.grey),
-                              ),
-                            if (account.isCurrentAccount)
-                              Container(
-                                margin: const EdgeInsets.only(top: 4),
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2196F3),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text(
-                                  '현재 계정',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        trailing: account.isCurrentAccount
-                            ? IconButton(
-                                onPressed: () => _handleLogoutFromList(context),
-                                icon: const Icon(Icons.logout),
-                                color: Colors.orange,
-                                tooltip: '로그아웃',
-                                iconSize: 24,
-                              )
-                            : /* 🚫 멀티 계정 기능 비활성화 */ null,
-                            /* : IconButton(
-                                onPressed: () => _handleDeleteAccount(context, account),
-                                icon: const Icon(Icons.delete_outline, size: 20),
-                                color: Colors.red,
-                                tooltip: '계정 삭제',
-                              ), */
-                        onTap: /* account.isCurrentAccount 
-                            ? null 
-                            : () => _handleSwitchAccount(context, account), */ null,
-                      ),
-                    );
-                  }),
-                  
-                  const SizedBox(height: 8),
-                ],
-              );
-            },
-          ),
-          
-          // 구분선
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: Divider(height: 1),
-          ),
-          
-          // 🎯 Premium 전용: 자동 로그인 스위치
-          // 🚫 멀티 계정 기능 비활성화
-          /* if (_isPremium) ...[
-            _buildSwitchTile(
-              icon: Icons.lock_clock,
-              title: '자동 로그인',
-              subtitle: '계정 전환 시 비밀번호 없이 로그인 (Premium)',
-              value: _keepLoginEnabled,
-              onChanged: (value) async {
-                await AccountManagerService().setKeepLoginEnabled(value);
-                setState(() {
-                  _keepLoginEnabled = value;
-                });
-                if (mounted) {
-                  await DialogUtils.showInfo(
-                    context,
-                    value 
-                        ? '자동 로그인이 활성화되었습니다. 계정 전환 시 비밀번호 없이 로그인됩니다.' 
-                        : '자동 로그인이 비활성화되었습니다. 계정 전환 시 확인 다이얼로그가 표시됩니다.',
-                    duration: const Duration(seconds: 3),
-                  );
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-          ], */
-          
-          // 🎯 Premium 전용: 사용자 계정 추가
-          // 🚫 멀티 계정 기능 비활성화
-          /* if (_isPremium)
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-              leading: const Icon(Icons.person_add, color: Colors.green, size: 22),
-              title: const Text('사용자 계정 추가', style: TextStyle(fontSize: 15)),
-              subtitle: const Text(
-                '새로운 계정으로 로그인 (Premium)',
-                style: TextStyle(fontSize: 11),
-              ),
-              trailing: const Icon(Icons.chevron_right, size: 20),
-              onTap: () => _handleAddAccount(context),
-            ), */
-          
-          // 🔒 무료 사용자: Premium 안내 메시지
-          // 🚫 멀티 계정 기능 비활성화
-          /* if (!_isPremium)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.amber[50]!, Colors.orange[50]!],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange[200]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.workspace_premium, color: Colors.orange[700], size: 32),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '멀티 계정 로그인',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange[900],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Premium 사용자만 여러 계정을 동시에 사용할 수 있습니다',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.orange[800],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ), */
+
           
           const SizedBox(height: 24),
           
