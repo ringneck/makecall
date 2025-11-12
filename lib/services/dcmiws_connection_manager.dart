@@ -55,6 +55,8 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
   int? _cachedServerPort;
   bool? _cachedServerSSL;
   bool? _cachedDcmiwsEnabled; // ⭐ dcmiwsEnabled 캐시 추가
+  String? _cachedHttpAuthId; // HTTP Basic Auth ID
+  String? _cachedHttpAuthPassword; // HTTP Basic Auth Password
   
   /// 연결 관리자 시작
   /// 
@@ -136,6 +138,8 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
     _cachedServerAddress = null;
     _cachedServerPort = null;
     _cachedServerSSL = null;
+    _cachedHttpAuthId = null;
+    _cachedHttpAuthPassword = null;
     
     if (kDebugMode) {
       debugPrint('✅ DCMIWSConnectionManager: Stopped');
@@ -157,6 +161,8 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
     _cachedServerPort = null;
     _cachedServerSSL = null;
     _cachedDcmiwsEnabled = null; // ⭐ dcmiwsEnabled 캐시도 초기화
+    _cachedHttpAuthId = null;
+    _cachedHttpAuthPassword = null;
     
     // 재연결 타이머 리셋
     _reconnectTimer?.cancel();
@@ -401,6 +407,8 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
         serverAddress: _cachedServerAddress!,
         port: _cachedServerPort ?? 6600,
         useSSL: _cachedServerSSL ?? false,
+        httpAuthId: _cachedHttpAuthId,
+        httpAuthPassword: _cachedHttpAuthPassword,
       );
       
       if (success) {
@@ -472,6 +480,8 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
         _cachedServerAddress = null;
         _cachedServerPort = null;
         _cachedServerSSL = null;
+        _cachedHttpAuthId = null;
+        _cachedHttpAuthPassword = null;
         return false; // Return false = PUSH mode
       }
       
@@ -491,12 +501,17 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
       _cachedServerAddress = userData['websocketServerUrl'] as String?;
       _cachedServerPort = userData['websocketServerPort'] as int? ?? 6600;
       _cachedServerSSL = userData['websocketUseSSL'] as bool? ?? false;
+      _cachedHttpAuthId = userData['websocketHttpAuthId'] as String?;
+      _cachedHttpAuthPassword = userData['websocketHttpAuthPassword'] as String?;
       
       if (kDebugMode) {
         debugPrint('✅ DCMIWSConnectionManager: Server settings loaded');
         debugPrint('  Address: $_cachedServerAddress');
         debugPrint('  Port: $_cachedServerPort');
         debugPrint('  SSL: $_cachedServerSSL');
+        if (_cachedHttpAuthId != null && _cachedHttpAuthId!.isNotEmpty) {
+          debugPrint('  HTTP Auth: 설정됨 (ID: $_cachedHttpAuthId)');
+        }
       }
       
       return true; // Return true = DCMIWS enabled

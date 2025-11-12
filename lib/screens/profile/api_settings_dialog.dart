@@ -19,6 +19,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   late final TextEditingController _appKeyController;
   late final TextEditingController _websocketServerUrlController;
   late final TextEditingController _websocketServerPortController;
+  late final TextEditingController _websocketHttpAuthIdController;
+  late final TextEditingController _websocketHttpAuthPasswordController;
   bool _isLoading = false;
   bool _apiUseSSL = false; // API SSL 사용 여부
   bool _websocketUseSSL = false;
@@ -47,6 +49,12 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     _websocketServerPortController = TextEditingController(
       text: (userModel?.websocketServerPort ?? 6600).toString()
     );
+    _websocketHttpAuthIdController = TextEditingController(
+      text: userModel?.websocketHttpAuthId?.isNotEmpty == true ? userModel!.websocketHttpAuthId! : ''
+    );
+    _websocketHttpAuthPasswordController = TextEditingController(
+      text: userModel?.websocketHttpAuthPassword?.isNotEmpty == true ? userModel!.websocketHttpAuthPassword! : ''
+    );
     // SSL 기본값: false (체크 안함이 기본)
     // HTTP 포트가 3500이면 SSL 사용 안함, 3501이면 SSL 사용
     _apiUseSSL = (userModel?.apiHttpPort ?? 3500) == 3501;
@@ -62,6 +70,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
       debugPrint('   - WebSocket URL: ${userModel?.websocketServerUrl ?? "(없음)"}');
       debugPrint('   - WebSocket Port: ${userModel?.websocketServerPort ?? 6600}');
       debugPrint('   - WebSocket SSL: ${userModel?.websocketUseSSL ?? false}');
+      debugPrint('   - WebSocket HTTP Auth ID: ${userModel?.websocketHttpAuthId != null && userModel!.websocketHttpAuthId!.isNotEmpty ? "[설정됨]" : "(없음)"}');
+      debugPrint('   - WebSocket HTTP Auth Password: ${userModel?.websocketHttpAuthPassword != null && userModel!.websocketHttpAuthPassword!.isNotEmpty ? "[설정됨]" : "(없음)"}');
     }
   }
   
@@ -79,6 +89,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     _appKeyController.dispose();
     _websocketServerUrlController.dispose();
     _websocketServerPortController.dispose();
+    _websocketHttpAuthIdController.dispose();
+    _websocketHttpAuthPasswordController.dispose();
     super.dispose();
   }
 
@@ -158,6 +170,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
             websocketServerUrl: _websocketServerUrlController.text.trim(),
             websocketServerPort: int.tryParse(_websocketServerPortController.text.trim()) ?? 6600,
             websocketUseSSL: _websocketUseSSL,
+            websocketHttpAuthId: _websocketHttpAuthIdController.text.trim(),
+            websocketHttpAuthPassword: _websocketHttpAuthPasswordController.text.trim(),
             amiServerId: 1,
           );
 
@@ -473,6 +487,68 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                     _websocketUseSSL ? Icons.lock : Icons.lock_open,
                     color: _websocketUseSSL ? Colors.green : Colors.orange,
                     size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // WebSocket HTTP Basic Authentication 설정
+              const Text(
+                'WebSocket HTTP 인증 (Optional)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.teal),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'HTTP Basic Authentication을 사용하는 경우에만 입력하세요',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _websocketHttpAuthIdController,
+                style: const TextStyle(fontSize: 13),
+                enableInteractiveSelection: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: 'HTTP Auth ID',
+                  hintText: '예: admin',
+                  prefixIcon: const Icon(Icons.person_outline, size: 18),
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  labelStyle: const TextStyle(fontSize: 12),
+                  hintStyle: const TextStyle(fontSize: 12),
+                  errorStyle: const TextStyle(fontSize: 10),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.content_paste, size: 18),
+                    onPressed: () => _pasteFromClipboard(_websocketHttpAuthIdController, 'HTTP Auth ID'),
+                    tooltip: '클립보드에서 붙여넣기',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _websocketHttpAuthPasswordController,
+                style: const TextStyle(fontSize: 13),
+                enableInteractiveSelection: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                obscureText: true,
+                keyboardType: TextInputType.visiblePassword,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  labelText: 'HTTP Auth Password',
+                  hintText: '비밀번호 입력',
+                  prefixIcon: const Icon(Icons.lock_outline, size: 18),
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  labelStyle: const TextStyle(fontSize: 12),
+                  hintStyle: const TextStyle(fontSize: 12),
+                  errorStyle: const TextStyle(fontSize: 10),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.content_paste, size: 18),
+                    onPressed: () => _pasteFromClipboard(_websocketHttpAuthPasswordController, 'HTTP Auth Password'),
+                    tooltip: '클립보드에서 붙여넣기',
                   ),
                 ),
               ),

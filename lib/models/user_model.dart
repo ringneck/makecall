@@ -14,6 +14,8 @@ class UserModel {
   final String? websocketServerUrl;  // WebSocket 서버 주소
   final int? websocketServerPort;    // WebSocket 서버 포트 (기본: 6600)
   final bool? websocketUseSSL;       // WebSocket SSL 사용 여부 (wss 또는 ws, 기본: false)
+  final String? websocketHttpAuthId; // WebSocket HTTP Basic Auth ID
+  final String? websocketHttpAuthPassword; // WebSocket HTTP Basic Auth Password
   final int? amiServerId;            // AMI 서버 ID (다중 서버 구분, 기본: 1)
   final bool? dcmiwsEnabled;         // DCMIWS 착신전화 수신 사용 여부 (기본: false, PUSH 사용)
   final DateTime createdAt;
@@ -40,6 +42,8 @@ class UserModel {
     this.websocketServerUrl,
     this.websocketServerPort = 6600,
     this.websocketUseSSL = false,
+    this.websocketHttpAuthId,
+    this.websocketHttpAuthPassword,
     this.amiServerId = 1,
     this.dcmiwsEnabled = false,
     required this.createdAt,
@@ -68,6 +72,8 @@ class UserModel {
       websocketServerUrl: map['websocketServerUrl'] as String?,
       websocketServerPort: map['websocketServerPort'] as int? ?? 6600,
       websocketUseSSL: map['websocketUseSSL'] as bool? ?? false,
+      websocketHttpAuthId: map['websocketHttpAuthId'] as String?,
+      websocketHttpAuthPassword: map['websocketHttpAuthPassword'] as String?,
       amiServerId: map['amiServerId'] as int? ?? 1,
       dcmiwsEnabled: map['dcmiwsEnabled'] as bool? ?? false,
       createdAt: DateTime.parse(map['createdAt'] as String? ?? DateTime.now().toIso8601String()),
@@ -102,6 +108,8 @@ class UserModel {
       'websocketServerUrl': websocketServerUrl,
       'websocketServerPort': websocketServerPort,
       'websocketUseSSL': websocketUseSSL,
+      'websocketHttpAuthId': websocketHttpAuthId,
+      'websocketHttpAuthPassword': websocketHttpAuthPassword,
       'amiServerId': amiServerId,
       'dcmiwsEnabled': dcmiwsEnabled,
       'createdAt': createdAt.toIso8601String(),
@@ -129,6 +137,8 @@ class UserModel {
     String? websocketServerUrl,
     int? websocketServerPort,
     bool? websocketUseSSL,
+    String? websocketHttpAuthId,
+    String? websocketHttpAuthPassword,
     int? amiServerId,
     bool? dcmiwsEnabled,
     DateTime? createdAt,
@@ -155,6 +165,8 @@ class UserModel {
       websocketServerUrl: websocketServerUrl ?? this.websocketServerUrl,
       websocketServerPort: websocketServerPort ?? this.websocketServerPort,
       websocketUseSSL: websocketUseSSL ?? this.websocketUseSSL,
+      websocketHttpAuthId: websocketHttpAuthId ?? this.websocketHttpAuthId,
+      websocketHttpAuthPassword: websocketHttpAuthPassword ?? this.websocketHttpAuthPassword,
       amiServerId: amiServerId ?? this.amiServerId,
       dcmiwsEnabled: dcmiwsEnabled ?? this.dcmiwsEnabled,
       createdAt: createdAt ?? this.createdAt,

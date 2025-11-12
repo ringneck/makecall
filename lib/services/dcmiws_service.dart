@@ -40,6 +40,10 @@ class DCMIWSService {
   static const int _maxReconnectAttempts = 5;
   static const Duration _reconnectDelay = Duration(seconds: 3);
   
+  // HTTP Basic Authentication 저장 (재연결 시 사용)
+  String? _httpAuthId;
+  String? _httpAuthPassword;
+  
   // 응답 대기 맵 (ActionID -> Completer)
   final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
   
@@ -70,10 +74,14 @@ class DCMIWSService {
   /// [serverAddress] - WebSocket 서버 주소 (예: 'makecall.io')
   /// [port] - WebSocket 포트 (예: 7099)
   /// [useSSL] - SSL 사용 여부 (기본값: false)
+  /// [httpAuthId] - HTTP Basic Authentication ID (Optional)
+  /// [httpAuthPassword] - HTTP Basic Authentication Password (Optional)
   Future<bool> connect({
     required String serverAddress,
     required int port,
     bool useSSL = false,
+    String? httpAuthId,
+    String? httpAuthPassword,
   }) async {
     final protocol = useSSL ? 'wss' : 'ws';
     final targetUri = '$protocol://$serverAddress:$port';
@@ -133,9 +141,23 @@ class DCMIWSService {
       if (kDebugMode) {
         debugPrint('🔌 DCMIWS: Connecting to $uri');
         debugPrint('  Current state: Connected=$_isConnected, Connecting=$_isConnecting');
+        if (httpAuthId != null && httpAuthId.isNotEmpty) {
+          debugPrint('🔐 DCMIWS: Using HTTP Basic Authentication (ID: $httpAuthId)');
+        }
       }
 
-      _channel = WebSocketChannel.connect(uri);
+      // HTTP Basic Authentication 헤더 추가
+      final headers = <String, String>{};
+      if (httpAuthId != null && httpAuthId.isNotEmpty && 
+          httpAuthPassword != null && httpAuthPassword.isNotEmpty) {
+        final credentials = base64.encode(utf8.encode('$httpAuthId:$httpAuthPassword'));
+        headers['Authorization'] = 'Basic $credentials';
+        if (kDebugMode) {
+          debugPrint('✅ DCMIWS: Authorization header added');
+        }
+      }
+
+      _channel = WebSocketChannel.connect(uri, headers: headers);
       
       // 연결 성공 대기 (타임아웃 10초)
       await _channel!.ready.timeout(
@@ -170,6 +192,9 @@ class DCMIWSService {
       _isConnected = false;
       _connectedUri = null;
       _connectionStateController.add(false);
+      // HTTP Auth 정보 저장 (재연결 시 사용)
+      _httpAuthId = httpAuthId;
+      _httpAuthPassword = httpAuthPassword;
       _scheduleReconnect(serverAddress, port, useSSL);
       return false;
     } finally {
@@ -197,6 +222,10 @@ class DCMIWSService {
     
     await _subscription?.cancel();
     _subscription = null;
+    
+    // HTTP Auth 정보 초기화
+    _httpAuthId = null;
+    _httpAuthPassword = null;
     
     await _channel?.sink.close();
     _channel = null;
@@ -239,6 +268,8 @@ class DCMIWSService {
         serverAddress: serverAddress,
         port: port,
         useSSL: useSSL,
+        httpAuthId: _httpAuthId,
+        httpAuthPassword: _httpAuthPassword,
       );
     });
   }

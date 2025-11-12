@@ -403,6 +403,8 @@ class AuthService extends ChangeNotifier {
     String? websocketServerUrl,
     int? websocketServerPort,
     bool? websocketUseSSL,
+    String? websocketHttpAuthId,
+    String? websocketHttpAuthPassword,
     int? amiServerId,
     List<String>? myExtensions,
   }) async {
@@ -422,6 +424,8 @@ class AuthService extends ChangeNotifier {
       if (websocketServerUrl != null) updates['websocketServerUrl'] = websocketServerUrl;
       if (websocketServerPort != null) updates['websocketServerPort'] = websocketServerPort;
       if (websocketUseSSL != null) updates['websocketUseSSL'] = websocketUseSSL;
+      if (websocketHttpAuthId != null) updates['websocketHttpAuthId'] = websocketHttpAuthId;
+      if (websocketHttpAuthPassword != null) updates['websocketHttpAuthPassword'] = websocketHttpAuthPassword;
       if (amiServerId != null) updates['amiServerId'] = amiServerId;
       if (myExtensions != null) updates['myExtensions'] = myExtensions;
       
