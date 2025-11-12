@@ -398,6 +398,11 @@ class FCMService {
   /// 
   /// 새 기기에서 로그인 시도 시 기존 기기에 승인 요청을 보냅니다.
   /// 기존 기기에서 승인하면 새 기기 로그인이 완료됩니다.
+  /// 
+  /// ✅ Firestore 트리거 방식 사용:
+  /// - Flutter는 fcm_approval_notification_queue에 데이터 쓰기
+  /// - Cloud Functions의 sendApprovalNotification 트리거가 자동 실행
+  /// - Cloud Functions가 FCM 알림 전송 처리
   Future<void> _sendDeviceApprovalRequest({
     required String userId,
     required String newDeviceId,
@@ -445,7 +450,11 @@ class FCMService {
       // ignore: avoid_print
       print('✅ [FCM-APPROVAL] 승인 요청 문서 생성: ${approvalDoc.id}');
       
-      // 모든 기존 기기에 FCM 알림 전송 (새 기기 제외)
+      // ✅ FIXED: Firestore 트리거 방식으로 변경
+      // Callable 함수 대신 fcm_approval_notification_queue에 직접 쓰기
+      // Cloud Functions의 sendApprovalNotification 트리거가 자동으로 FCM 전송
+      
+      // 모든 기존 기기에 FCM 알림 큐 등록 (새 기기 제외)
       for (var tokenDoc in otherDeviceTokens) {
         final tokenData = tokenDoc.data();
         final targetToken = tokenData['fcmToken'] as String?;
@@ -458,15 +467,16 @@ class FCMService {
         }
         
         // ignore: avoid_print
-        print('📤 [FCM-APPROVAL] 승인 요청 알림 전송: $targetDeviceName');
+        print('📤 [FCM-APPROVAL] 승인 요청 알림 큐 등록: $targetDeviceName');
         
-        // FCM 알림 큐에 추가
+        // ✅ Firestore에 직접 쓰기 → Cloud Functions 트리거 자동 실행
         await _firestore.collection('fcm_approval_notification_queue').add({
           'targetToken': targetToken,
           'targetDeviceName': targetDeviceName,
           'approvalRequestId': approvalDoc.id,
           'newDeviceName': newDeviceName,
           'newPlatform': newPlatform,
+          'userId': userId,
           'message': {
             'type': 'device_approval_request',
             'title': '🔐 새 기기 로그인 감지',
@@ -479,10 +489,14 @@ class FCMService {
         
         // ignore: avoid_print
         print('✅ [FCM-APPROVAL] 알림 큐 등록 완료: $targetDeviceName');
+        // ignore: avoid_print
+        print('   ⏳ Cloud Functions sendApprovalNotification 트리거 대기 중...');
       }
       
       // ignore: avoid_print
-      print('✅ [FCM-APPROVAL] 모든 기존 기기에 승인 요청 전송 완료');
+      print('✅ [FCM-APPROVAL] 모든 기존 기기에 승인 요청 큐 등록 완료');
+      // ignore: avoid_print
+      print('   📡 Cloud Functions가 FCM 알림 전송 처리합니다');
       
     } catch (e, stackTrace) {
       // ignore: avoid_print

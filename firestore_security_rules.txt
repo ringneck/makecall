@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ================================
+    // 사용자 관련 컬렉션
+    // ================================
+    
+    // 사용자 정보 (users)
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // 사용자 알림 설정 (user_notification_settings)
+    match /user_notification_settings/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // ================================
+    // FCM 및 디바이스 관리
+    // ================================
+    
+    // FCM 토큰 (fcm_tokens)
+    match /fcm_tokens/{tokenId} {
+      // 사용자는 자신의 토큰만 읽기/쓰기 가능
+      allow read, write: if request.auth != null 
+                         && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // ✅ NEW: 디바이스 승인 알림 큐 (fcm_approval_notification_queue)
+    match /fcm_approval_notification_queue/{docId} {
+      // 인증된 사용자만 자신의 알림 큐 생성 가능
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      
+      // Cloud Functions만 읽기/업데이트/삭제 가능 (processed 플래그 업데이트용)
+      allow read, update, delete: if false; // 클라이언트 접근 불가
+    }
+    
+    // ✅ NEW: 디바이스 승인 요청 (device_approval_requests)
+    match /device_approval_requests/{docId} {
+      // 인증된 사용자만 자신의 승인 요청 생성 가능
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      
+      // 인증된 사용자만 자신의 승인 요청 읽기/업데이트 가능
+      allow read, update: if request.auth != null 
+                          && resource.data.userId == request.auth.uid;
+      
+      // 삭제는 Cloud Functions만 가능 (만료된 요청 정리)
+      allow delete: if false;
+    }
+    
+    // 강제 로그아웃 큐 (fcm_force_logout_queue) - 레거시 지원
+    match /fcm_force_logout_queue/{docId} {
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if false; // Cloud Functions만 접근
+    }
+    
+    // ================================
+    // 단말번호 및 착신전환
+    // ================================
+    
+    // 내 단말번호 (my_extensions)
+    match /my_extensions/{extensionId} {
+      allow read, write: if request.auth != null 
+                         && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // 착신전환 정보 (call_forward_info)
+    match /call_forward_info/{infoId} {
+      allow read, write: if request.auth != null 
+                         && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // ================================
+    // 통화 관련 컬렉션
+    // ================================
+    
+    // 통화 기록 (call_history)
+    match /call_history/{callId} {
+      allow read, write: if request.auth != null 
+                         && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // 통화 기록 임시 저장 (call_history_temp) - Cloud Functions용
+    match /call_history_temp/{callId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // ================================
+    // 기타
+    // ================================
+    
+    // 기본 규칙: 인증된 사용자만 접근 가능
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
