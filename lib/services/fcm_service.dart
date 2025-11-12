@@ -1049,6 +1049,31 @@ class FCMService {
     debugPrint('❌ [FCM-INCOMING] Context 타임아웃 (3초 대기 후에도 Context 없음)');
   }
   
+  /// 🔧 NEW: Context 준비 대기 후 기기 승인 다이얼로그 표시
+  Future<void> _waitForContextAndShowApprovalDialog(RemoteMessage message) async {
+    int retryCount = 0;
+    const maxRetries = 30; // 3초 (100ms * 30)
+    
+    while (retryCount < maxRetries) {
+      final context = _context ?? navigatorKey.currentContext;
+      
+      if (context != null) {
+        debugPrint('✅ [FCM-APPROVAL-DIALOG] Context 준비 완료 (${retryCount * 100}ms 대기)');
+        
+        // 기기 승인 요청 메시지 처리
+        _handleDeviceApprovalRequest(message);
+        return;
+      }
+      
+      debugPrint('⏳ [FCM-APPROVAL-DIALOG] Context 대기 중... (${retryCount + 1}/$maxRetries)');
+      await Future.delayed(const Duration(milliseconds: 100));
+      retryCount++;
+    }
+    
+    debugPrint('❌ [FCM-APPROVAL-DIALOG] Context 타임아웃 (3초 대기 후에도 Context 없음)');
+    debugPrint('💡 [FCM-APPROVAL-DIALOG] 사용자는 프로필 → 활성 세션에서 수동으로 승인 가능');
+  }
+  
   /// 강제 로그아웃 메시지 처리 (레거시 - 하위 호환성 유지)
   /// 
   /// 다른 기기에서 로그인했을 때 현재 세션을 종료합니다.
@@ -1143,9 +1168,11 @@ class FCMService {
       return;
     }
     
+    // 🔧 FIX: Context를 기다렸다가 다이얼로그 표시
     final context = _context ?? navigatorKey.currentContext;
     if (context == null) {
-      debugPrint('❌ [FCM] BuildContext 없음');
+      debugPrint('⏳ [FCM] BuildContext 없음 - Context 준비 대기 후 다이얼로그 표시');
+      _waitForContextAndShowApprovalDialog(message);
       return;
     }
     
