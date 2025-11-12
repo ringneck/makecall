@@ -38,6 +38,9 @@ class FCMService {
   String? _lastSavedToken;
   DateTime? _lastSaveTime;
   
+  // 🔒 초기화 완료를 기다리기 위한 Completer
+  static Completer<void>? _initializationCompleter;
+  
   /// FCM 토큰 가져오기
   String? get fcmToken => _fcmToken;
   
@@ -81,7 +84,14 @@ class FCMService {
       // 🔒 중복 초기화 방지 체크
       if (_isInitializing) {
         // ignore: avoid_print
-        print('⏸️  [FCM] 이미 초기화 진행 중 - 중복 호출 무시');
+        print('⏸️  [FCM] 이미 초기화 진행 중 - 완료 대기...');
+        if (_initializationCompleter != null) {
+          // ignore: avoid_print
+          print('⏳ [FCM] 첫 번째 초기화(승인 대기 포함) 완료까지 대기합니다');
+          await _initializationCompleter!.future;
+          // ignore: avoid_print
+          print('✅ [FCM] 첫 번째 초기화 완료됨 - 두 번째 호출 반환');
+        }
         return;
       }
       
@@ -96,6 +106,7 @@ class FCMService {
       // ignore: avoid_print
       print('🔓 [FCM] 초기화 잠금 설정');
       _isInitializing = true;
+      _initializationCompleter = Completer<void>();
       
       // ✅ STEP 1: 메시지 리스너를 가장 먼저 등록! (메시지 누락 방지)
       // ignore: avoid_print
@@ -347,6 +358,11 @@ class FCMService {
     } finally {
       // 🔓 초기화 완료 - 잠금 해제
       _isInitializing = false;
+      
+      // 🔓 초기화 완료 알림 (대기 중인 호출들에게)
+      if (_initializationCompleter != null && !_initializationCompleter!.isCompleted) {
+        _initializationCompleter!.complete();
+      }
       
       // ✅ 성공 시에만 userId 저장
       if (_fcmToken != null) {
