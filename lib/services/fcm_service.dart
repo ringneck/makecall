@@ -426,6 +426,30 @@ class FCMService {
       // 같은 Device ID라도 플랫폼이 다르면 다른 기기로 취급
       final currentDeviceKey = '${deviceId}_$platform';
       
+      // 🔧 FIX: 같은 기기의 기존 토큰을 먼저 비활성화 (중복 방지)
+      final sameDeviceTokens = existingTokens
+          .where((token) => '${token.deviceId}_${token.platform}' == currentDeviceKey)
+          .toList();
+      
+      if (sameDeviceTokens.isNotEmpty) {
+        // ignore: avoid_print
+        print('🧹 [FCM-SAVE] 같은 기기의 기존 토큰 ${sameDeviceTokens.length}개 발견 - 비활성화 중...');
+        for (var oldToken in sameDeviceTokens) {
+          // Firestore에서 직접 비활성화
+          await _firestore
+              .collection('fcm_tokens')
+              .where('fcmToken', isEqualTo: oldToken.fcmToken)
+              .get()
+              .then((snapshot) async {
+            for (var doc in snapshot.docs) {
+              await doc.reference.update({'isActive': false});
+            }
+          });
+          // ignore: avoid_print
+          print('   ✅ 비활성화 완료: ${oldToken.fcmToken.substring(0, 20)}...');
+        }
+      }
+      
       // 현재 기기를 제외한 다른 기기들 필터링
       final otherDevices = existingTokens
           .where((token) => '${token.deviceId}_${token.platform}' != currentDeviceKey)
