@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -486,17 +487,42 @@ class FCMService {
         }).toList(),
       };
       
+      // Firebase Auth ID 토큰 가져오기 (인증된 요청)
+      final currentUser = FirebaseAuth.instance.currentUser;
+      String? idToken;
+      
+      if (currentUser != null) {
+        try {
+          idToken = await currentUser.getIdToken();
+          if (kDebugMode) {
+            debugPrint('✅ [FCM-APPROVAL] Firebase Auth 토큰 획득 성공');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [FCM-APPROVAL] Firebase Auth 토큰 획득 실패: $e');
+          }
+        }
+      }
+      
       // ignore: avoid_print
       print('📤 [FCM-APPROVAL] Cloud Functions 호출 중...');
       print('   URL: $cloudFunctionUrl');
       print('   Target devices: ${requestBody['targetDevices']}');
+      print('   인증: ${idToken != null ? "Firebase Auth 토큰 포함" : "인증 없음"}');
       
-      // HTTP POST 요청
+      // HTTP POST 요청 (Firebase Auth 토큰 포함)
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      
+      // Firebase Auth 토큰이 있으면 Authorization 헤더에 추가
+      if (idToken != null) {
+        headers['Authorization'] = 'Bearer $idToken';
+      }
+      
       final response = await http.post(
         Uri.parse(cloudFunctionUrl),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: jsonEncode(requestBody),
       ).timeout(
         const Duration(seconds: 10),
