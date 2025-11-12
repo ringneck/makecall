@@ -72,19 +72,10 @@ class _ProfileTabState extends State<ProfileTab> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                SizedBox(width: 12),
-                Text('정보가 업데이트되었습니다'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          '정보가 업데이트되었습니다',
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
@@ -93,18 +84,9 @@ class _ProfileTabState extends State<ProfileTab> {
       }
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(child: Text('업데이트 실패: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
+        await DialogUtils.showError(
+          context,
+          '업데이트 실패: $e',
         );
       }
     } finally {
@@ -1073,12 +1055,10 @@ class _ProfileTabState extends State<ProfileTab> {
             }
             
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('이미 내 계정에 등록된 단말번호입니다.'),
-                  backgroundColor: Colors.orange,
-                  duration: Duration(seconds: 2),
-                ),
+              await DialogUtils.showWarning(
+                context,
+                '이미 내 계정에 등록된 단말번호입니다.',
+                duration: const Duration(seconds: 2),
               );
             }
             return;
@@ -1205,12 +1185,10 @@ class _ProfileTabState extends State<ProfileTab> {
         }
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('단말번호 "$selected"이(가) 등록되었습니다.'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
+          await DialogUtils.showSuccess(
+            context,
+            '단말번호 "$selected"이(가) 등록되었습니다.',
+            duration: const Duration(seconds: 2),
           );
         }
       } catch (e) {
@@ -1219,11 +1197,9 @@ class _ProfileTabState extends State<ProfileTab> {
         }
         
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('단말번호 등록 실패: $e'),
-              backgroundColor: Colors.red,
-            ),
+          await DialogUtils.showError(
+            context,
+            '단말번호 등록 실패: $e',
           );
         }
       }
@@ -1283,11 +1259,9 @@ class _ProfileTabState extends State<ProfileTab> {
         }
         
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('삭제 실패: $e'),
-              backgroundColor: Colors.red,
-            ),
+          await DialogUtils.showError(
+            context,
+            '삭제 실패: $e',
           );
         }
       }
@@ -1350,11 +1324,9 @@ class _ProfileTabState extends State<ProfileTab> {
         }
         
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('삭제 실패: $e'),
-              backgroundColor: Colors.red,
-            ),
+          await DialogUtils.showError(
+            context,
+            '삭제 실패: $e',
           );
         }
       }
@@ -1517,13 +1489,12 @@ class _ProfileTabState extends State<ProfileTab> {
           ),
           IconButton(
             icon: const Icon(Icons.copy, size: 18),
-            onPressed: () {
+            onPressed: () async {
               Clipboard.setData(ClipboardData(text: value));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('SIP secret이 클립보드에 복사되었습니다'),
-                  duration: Duration(seconds: 2),
-                ),
+              await DialogUtils.showSuccess(
+                context,
+                'SIP secret이 클립보드에 복사되었습니다',
+                duration: const Duration(seconds: 2),
               );
             },
             tooltip: '복사',
@@ -1670,19 +1641,10 @@ class _ProfileTabState extends State<ProfileTab> {
       
       Navigator.pop(context); // 로딩 다이얼로그 닫기
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Text('프로필 사진이 업데이트되었습니다'),
-            ],
-          ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
+      await DialogUtils.showSuccess(
+        context,
+        '프로필 사진이 업데이트되었습니다',
+        duration: const Duration(seconds: 2),
       );
     } catch (e) {
       if (kDebugMode) {
@@ -1694,21 +1656,9 @@ class _ProfileTabState extends State<ProfileTab> {
       // 로딩 다이얼로그가 열려있으면 닫기
       Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text('이미지 업로드 실패: ${e.toString()}'),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
-        ),
+      await DialogUtils.showError(
+        context,
+        '이미지 업로드 실패: ${e.toString()}',
       );
     }
   }
@@ -1743,11 +1693,9 @@ class _ProfileTabState extends State<ProfileTab> {
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('삭제 실패: $e'),
-              backgroundColor: Colors.red,
-            ),
+          await DialogUtils.showError(
+            context,
+            '삭제 실패: $e',
           );
         }
       }
