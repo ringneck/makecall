@@ -118,6 +118,33 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
     }
   }
   
+  /// 사용자 설정 변경 시 캐시 초기화 및 재연결
+  /// ProfileDrawer에서 dcmiwsEnabled 변경 시 호출
+  Future<void> refreshSettings() async {
+    if (kDebugMode) {
+      debugPrint('🔄 DCMIWSConnectionManager: Refreshing settings...');
+    }
+    
+    // 기존 연결 종료
+    await _dcmiwsService.disconnect();
+    
+    // 캐시 초기화 (서버 설정 다시 로드)
+    _cachedServerAddress = null;
+    _cachedServerPort = null;
+    _cachedServerSSL = null;
+    
+    // 재연결 타이머 리셋
+    _reconnectTimer?.cancel();
+    _reconnectAttempts = 0;
+    
+    // 새 설정으로 연결 시도
+    await _attemptConnection();
+    
+    if (kDebugMode) {
+      debugPrint('✅ DCMIWSConnectionManager: Settings refreshed');
+    }
+  }
+  
   /// 앱 생명주기 변경 감지 (WidgetsBindingObserver)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -367,6 +394,26 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
       }
       
       final userData = userDoc.data()!;
+      
+      // ⭐ CRITICAL: Check if DCMIWS is enabled (default: false = PUSH mode)
+      final dcmiwsEnabled = userData['dcmiwsEnabled'] as bool? ?? false;
+      
+      if (!dcmiwsEnabled) {
+        if (kDebugMode) {
+          debugPrint('⏭️ DCMIWSConnectionManager: DCMIWS disabled (PUSH mode)');
+          debugPrint('   - User prefers FCM push notifications');
+          debugPrint('   - WebSocket connection will not be established');
+        }
+        // Clear cache to prevent connection attempts
+        _cachedServerAddress = null;
+        _cachedServerPort = null;
+        _cachedServerSSL = null;
+        return; // Exit without loading server settings
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ DCMIWSConnectionManager: DCMIWS enabled - loading server settings');
+      }
       
       // ProfileDrawer의 API Settings Dialog와 동일한 필드명 사용
       _cachedServerAddress = userData['websocketServerUrl'] as String?;

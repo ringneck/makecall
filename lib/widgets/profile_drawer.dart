@@ -14,6 +14,7 @@ import '../services/database_service.dart';
 import '../services/account_manager_service.dart';
 import '../services/fcm_service.dart';
 import '../services/dcmiws_service.dart';
+import '../services/dcmiws_connection_manager.dart';
 import '../models/my_extension_model.dart';
 import '../models/saved_account_model.dart';
 import '../screens/profile/api_settings_dialog.dart';
@@ -257,37 +258,29 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         }
         
         // DCMIWS 웹소켓 연결 상태 관리
-        final userModel = authService.currentUserModel;
-        if (value && userModel != null) {
-          // DCMIWS 활성화 시 웹소켓 연결 시작
-          final dcmiwsService = DCMIWSService();
-          final websocketUrl = userModel.websocketServerUrl;
-          final websocketPort = userModel.websocketServerPort ?? 6600;
-          final useSSL = userModel.websocketUseSSL ?? false;
+        // ConnectionManager를 통해 설정 변경 반영
+        final connectionManager = DCMIWSConnectionManager();
+        
+        if (value) {
+          // DCMIWS 활성화 시: ConnectionManager가 자동으로 연결 시도
+          await connectionManager.refreshSettings();
           
-          if (websocketUrl != null && websocketUrl.isNotEmpty) {
-            await dcmiwsService.connect(
-              serverAddress: websocketUrl,
-              port: websocketPort,
-              useSSL: useSSL,
-            );
-            
-            await DialogUtils.showSuccess(
-              context,
-              'DCMIWS 착신전화 수신이 활성화되었습니다\n\n웹소켓 연결이 시작됩니다',
-              duration: const Duration(seconds: 2),
-            );
-          } else {
-            await DialogUtils.showWarning(
-              context,
-              'DCMIWS 서버 주소가 설정되지 않았습니다\n\n프로필 > API 설정에서 WebSocket 서버를 설정해주세요',
-              duration: const Duration(seconds: 3),
-            );
+          if (kDebugMode) {
+            debugPrint('✅ [DCMIWS설정] ConnectionManager 설정 갱신 완료');
           }
+          
+          await DialogUtils.showSuccess(
+            context,
+            'DCMIWS 착신전화 수신이 활성화되었습니다\n\n웹소켓 연결이 시작됩니다',
+            duration: const Duration(seconds: 2),
+          );
         } else {
-          // DCMIWS 비활성화 시 웹소켓 연결 해제
-          final dcmiwsService = DCMIWSService();
-          await dcmiwsService.disconnect();
+          // DCMIWS 비활성화 시: ConnectionManager가 자동으로 연결 해제
+          await connectionManager.refreshSettings();
+          
+          if (kDebugMode) {
+            debugPrint('✅ [DCMIWS설정] ConnectionManager 연결 해제 완료');
+          }
           
           await DialogUtils.showSuccess(
             context,
