@@ -368,11 +368,6 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
   
   /// 서버 설정 로드 (Firestore 캐싱)
   Future<void> _loadServerSettings() async {
-    // 캐시가 있으면 재사용
-    if (_cachedServerAddress != null) {
-      return;
-    }
-    
     try {
       final userId = _currentUserId;
       if (userId == null) return;
@@ -396,6 +391,7 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
       final userData = userDoc.data()!;
       
       // ⭐ CRITICAL: Check if DCMIWS is enabled (default: false = PUSH mode)
+      // This check is ALWAYS performed, even if cache exists
       final dcmiwsEnabled = userData['dcmiwsEnabled'] as bool? ?? false;
       
       if (!dcmiwsEnabled) {
@@ -413,6 +409,14 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
       
       if (kDebugMode) {
         debugPrint('✅ DCMIWSConnectionManager: DCMIWS enabled - loading server settings');
+      }
+      
+      // Check if cache is already loaded and valid
+      if (_cachedServerAddress != null) {
+        if (kDebugMode) {
+          debugPrint('ℹ️ DCMIWSConnectionManager: Using cached server settings');
+        }
+        return;
       }
       
       // ProfileDrawer의 API Settings Dialog와 동일한 필드명 사용
