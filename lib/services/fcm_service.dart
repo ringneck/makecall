@@ -640,8 +640,15 @@ class FCMService {
       // ignore: avoid_print
       print('📋 [FCM-APPROVAL] 다른 활성 기기 ${otherDeviceTokens.length}개 발견');
       
-      // Firestore에 승인 요청 저장 (5분 TTL)
-      final approvalDoc = await _firestore.collection('device_approval_requests').add({
+      // 🔑 CRITICAL: 문서 ID를 userId_deviceId_platform 형식으로 명시
+      // 이렇게 하면 Firestore 보안 규칙에서 docId로 권한 체크 가능
+      final approvalRequestId = '${userId}_${newDeviceId}_$newPlatform';
+      
+      // ignore: avoid_print
+      print('📝 [FCM-APPROVAL] 승인 요청 문서 ID: $approvalRequestId');
+      
+      // Firestore에 승인 요청 저장 (5분 TTL) - .set()으로 명시적 ID 지정
+      await _firestore.collection('device_approval_requests').doc(approvalRequestId).set({
         'userId': userId,
         'newDeviceId': newDeviceId,
         'newDeviceName': newDeviceName,
@@ -653,7 +660,7 @@ class FCMService {
       });
       
       // ignore: avoid_print
-      print('✅ [FCM-APPROVAL] 승인 요청 문서 생성: ${approvalDoc.id}');
+      print('✅ [FCM-APPROVAL] 승인 요청 문서 생성: $approvalRequestId');
       
       // ✅ FIXED: Firestore 트리거 방식으로 변경
       // Callable 함수 대신 fcm_approval_notification_queue에 직접 쓰기
@@ -678,7 +685,7 @@ class FCMService {
         await _firestore.collection('fcm_approval_notification_queue').add({
           'targetToken': targetToken,
           'targetDeviceName': targetDeviceName,
-          'approvalRequestId': approvalDoc.id,
+          'approvalRequestId': approvalRequestId,
           'newDeviceName': newDeviceName,
           'newPlatform': newPlatform,
           'userId': userId,
@@ -686,7 +693,7 @@ class FCMService {
             'type': 'device_approval_request',
             'title': '🔐 새 기기 로그인 감지',
             'body': '$newDeviceName ($newPlatform)에서 로그인 시도',
-            'approvalRequestId': approvalDoc.id,
+            'approvalRequestId': approvalRequestId,
           },
           'createdAt': FieldValue.serverTimestamp(),
           'processed': false,
@@ -704,7 +711,7 @@ class FCMService {
       print('   📡 Cloud Functions가 FCM 알림 전송 처리합니다');
       
       // approval request ID 반환
-      return approvalDoc.id;
+      return approvalRequestId;
       
     } catch (e, stackTrace) {
       // ignore: avoid_print

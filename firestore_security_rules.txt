@@ -45,9 +45,16 @@ service cloud.firestore {
       allow create: if request.auth != null 
                     && request.resource.data.userId == request.auth.uid;
       
+      // 🔧 FIX: 문서 ID에 userId 포함된 경우도 허용 (userId_deviceId_platform 형식)
       // 인증된 사용자만 자신의 승인 요청 읽기/업데이트 가능
       allow read, update: if request.auth != null 
-                          && resource.data.userId == request.auth.uid;
+                          && (
+                            // 방법 1: 문서 데이터의 userId 확인
+                            (resource != null && resource.data.userId == request.auth.uid)
+                            ||
+                            // 방법 2: 문서 ID가 자신의 userId로 시작하는지 확인
+                            docId.matches(request.auth.uid + '_.*')
+                          );
       
       // 삭제는 Cloud Functions만 가능 (만료된 요청 정리)
       allow delete: if false;
