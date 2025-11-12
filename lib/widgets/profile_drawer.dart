@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
@@ -248,13 +249,25 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       final databaseService = DatabaseService();
       await databaseService.updateUserField(userId, 'dcmiwsEnabled', value);
       
+      // 🔍 DEBUG: Firestore 업데이트 확인
+      if (kDebugMode) {
+        debugPrint('✅ [DCMIWS설정] Firestore 업데이트 완료: dcmiwsEnabled=$value');
+        // 실제 Firestore 값 재확인
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .get();
+        final actualValue = userDoc.data()?['dcmiwsEnabled'];
+        debugPrint('🔍 [DCMIWS설정] Firestore 실제 값 확인: $actualValue (타입: ${actualValue.runtimeType})');
+      }
+      
       if (mounted) {
         setState(() {
           _dcmiwsEnabled = value;
         });
         
         if (kDebugMode) {
-          debugPrint('✅ [DCMIWS설정] 업데이트 완료: dcmiwsEnabled=$value');
+          debugPrint('✅ [DCMIWS설정] UI 상태 업데이트 완료: dcmiwsEnabled=$value');
         }
         
         // DCMIWS 웹소켓 연결 상태 관리

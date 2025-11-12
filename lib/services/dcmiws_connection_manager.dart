@@ -54,6 +54,7 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
   String? _cachedServerAddress;
   int? _cachedServerPort;
   bool? _cachedServerSSL;
+  bool? _cachedDcmiwsEnabled; // ⭐ dcmiwsEnabled 캐시 추가
   
   /// 연결 관리자 시작
   Future<void> start() async {
@@ -132,6 +133,7 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
     _cachedServerAddress = null;
     _cachedServerPort = null;
     _cachedServerSSL = null;
+    _cachedDcmiwsEnabled = null; // ⭐ dcmiwsEnabled 캐시도 초기화
     
     // 재연결 타이머 리셋
     _reconnectTimer?.cancel();
@@ -222,6 +224,14 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
       debugPrint('🌞 DCMIWSConnectionManager: App resumed (foreground)');
     }
     
+    // ⭐ PUSH 모드면 재연결 시도하지 않음
+    if (_cachedDcmiwsEnabled == false) {
+      if (kDebugMode) {
+        debugPrint('⏭️ DCMIWSConnectionManager: PUSH mode - skipping reconnection');
+      }
+      return;
+    }
+    
     // 연결 상태 확인 및 재연결
     if (!_dcmiwsService.isConnected) {
       if (kDebugMode) {
@@ -247,6 +257,14 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
   void _onNetworkConnected() {
     if (kDebugMode) {
       debugPrint('📶 DCMIWSConnectionManager: Network connected');
+    }
+    
+    // ⭐ PUSH 모드면 재연결 시도하지 않음
+    if (_cachedDcmiwsEnabled == false) {
+      if (kDebugMode) {
+        debugPrint('⏭️ DCMIWSConnectionManager: PUSH mode - skipping reconnection');
+      }
+      return;
     }
     
     // 연결되지 않은 경우에만 재연결 시도
@@ -280,6 +298,7 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
     _cachedServerAddress = null;
     _cachedServerPort = null;
     _cachedServerSSL = null;
+    _cachedDcmiwsEnabled = null; // ⭐ dcmiwsEnabled 캐시도 초기화
     
     // 기존 연결 종료
     await _dcmiwsService.disconnect();
@@ -406,6 +425,16 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
       // ⭐ CRITICAL: Check if DCMIWS is enabled (default: false = PUSH mode)
       // This check is ALWAYS performed, even if cache exists
       final dcmiwsEnabled = userData['dcmiwsEnabled'] as bool? ?? false;
+      
+      // ⭐ 캐시에 dcmiwsEnabled 저장 (생명주기 이벤트에서 재사용)
+      _cachedDcmiwsEnabled = dcmiwsEnabled;
+      
+      // 🔍 DEBUG: Firestore 실제 값 확인
+      if (kDebugMode) {
+        debugPrint('🔍 DCMIWSConnectionManager: Firestore dcmiwsEnabled = $dcmiwsEnabled');
+        debugPrint('   Raw value: ${userData['dcmiwsEnabled']}');
+        debugPrint('   Type: ${userData['dcmiwsEnabled'].runtimeType}');
+      }
       
       if (!dcmiwsEnabled) {
         if (kDebugMode) {
