@@ -36,13 +36,17 @@ class DCMIWSEventProvider extends ChangeNotifier {
     required String serverAddress,
     required int port,
     bool useSSL = false,
+    String? httpAuthId,
+    String? httpAuthPassword,
   }) async {
     try {
-      // WebSocket 연결
+      // WebSocket 연결 (HTTP Auth 포함)
       final connected = await _wsService.connect(
         serverAddress: serverAddress,
         port: port,
         useSSL: useSSL,
+        httpAuthId: httpAuthId,
+        httpAuthPassword: httpAuthPassword,
       );
 
       if (!connected) {

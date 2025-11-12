@@ -1405,28 +1405,41 @@ class FCMService {
         return;
       }
       
-      // user_model에서 serverAddress 가져오기
+      // user_model에서 WebSocket 설정 가져오기 (HTTP Auth 포함)
       final userDoc = await _firestore.collection('users').doc(userId).get();
       final userData = userDoc.data();
       
       if (userData == null) return;
       
-      final serverAddress = userData['serverAddress'] as String?;
-      final serverPort = userData['serverPort'] as int? ?? 7099;
-      final useSSL = userData['serverSSL'] as bool? ?? false;
+      final serverAddress = userData['websocketServerUrl'] as String?;
+      final serverPort = userData['websocketServerPort'] as int? ?? 6600;
+      final useSSL = userData['websocketUseSSL'] as bool? ?? false;
+      final httpAuthId = userData['websocketHttpAuthId'] as String?;
+      final httpAuthPassword = userData['websocketHttpAuthPassword'] as String?;
       
       if (serverAddress == null || serverAddress.isEmpty) {
         if (kDebugMode) {
-          debugPrint('⚠️  서버 주소가 설정되지 않았습니다');
+          debugPrint('⚠️  WebSocket 서버 주소가 설정되지 않았습니다');
         }
         return;
       }
       
-      // WebSocket 재연결
+      if (kDebugMode) {
+        debugPrint('🔌 WebSocket 재연결 시도:');
+        debugPrint('   - 서버: $serverAddress:$serverPort');
+        debugPrint('   - SSL: $useSSL');
+        if (httpAuthId != null && httpAuthId.isNotEmpty) {
+          debugPrint('   - HTTP Auth: 설정됨 (ID: $httpAuthId)');
+        }
+      }
+      
+      // WebSocket 재연결 (HTTP Auth 포함)
       final success = await dcmiwsService.connect(
         serverAddress: serverAddress,
         port: serverPort,
         useSSL: useSSL,
+        httpAuthId: httpAuthId,
+        httpAuthPassword: httpAuthPassword,
       );
       
       if (kDebugMode) {
