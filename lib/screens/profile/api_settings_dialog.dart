@@ -386,12 +386,23 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 16),
-              // WebSocket 설정
-              const Text(
-                'WebSocket 설정',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              // WebSocket 설정 헤더
+              Row(
+                children: [
+                  const Icon(Icons.settings_input_antenna, size: 18, color: Colors.teal),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'WebSocket 설정',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.teal),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
+              const Text(
+                'DCMIWS 실시간 수신을 위한 WebSocket 서버 설정',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
@@ -491,40 +502,75 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 ),
               ),
               const SizedBox(height: 16),
-              // WebSocket HTTP Basic Authentication 설정
-              const Text(
-                'WebSocket HTTP 인증 (Optional)',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.teal),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'HTTP Basic Authentication을 사용하는 경우에만 입력하세요',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _websocketHttpAuthIdController,
-                style: const TextStyle(fontSize: 13),
-                enableInteractiveSelection: true,
-                enableSuggestions: false,
-                autocorrect: false,
-                keyboardType: TextInputType.text,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: 'HTTP Auth ID',
-                  hintText: '예: admin',
-                  prefixIcon: const Icon(Icons.person_outline, size: 18),
-                  border: const OutlineInputBorder(),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  labelStyle: const TextStyle(fontSize: 12),
-                  hintStyle: const TextStyle(fontSize: 12),
-                  errorStyle: const TextStyle(fontSize: 10),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.content_paste, size: 18),
-                    onPressed: () => _pasteFromClipboard(_websocketHttpAuthIdController, 'HTTP Auth ID'),
-                    tooltip: '클립보드에서 붙여넣기',
-                  ),
+              // HTTP 인증 정보 (필수)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.teal.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.teal.shade200),
                 ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.security, size: 16, color: Colors.teal.shade700),
+                        const SizedBox(width: 8),
+                        Text(
+                          'HTTP 인증 정보 (필수)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.teal.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'WebSocket 서버 연결 시 HTTP Basic Authentication 사용',
+                      style: TextStyle(fontSize: 10, color: Colors.teal.shade700),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _websocketHttpAuthIdController,
+                      style: const TextStyle(fontSize: 13),
+                      enableInteractiveSelection: true,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      keyboardType: TextInputType.text,
+                      textInputAction: TextInputAction.next,
+                      decoration: InputDecoration(
+                        labelText: 'HTTP Auth ID',
+                        hintText: '예: admin',
+                        prefixIcon: const Icon(Icons.person_outline, size: 18),
+                        border: const OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        labelStyle: const TextStyle(fontSize: 12),
+                        hintStyle: const TextStyle(fontSize: 12),
+                        errorStyle: const TextStyle(fontSize: 10),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.content_paste, size: 18),
+                          onPressed: () => _pasteFromClipboard(_websocketHttpAuthIdController, 'HTTP Auth ID'),
+                          tooltip: '클립보드에서 붙여넣기',
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'HTTP Auth ID를 입력해주세요';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -551,35 +597,128 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                     tooltip: '클립보드에서 붙여넣기',
                   ),
                 ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'HTTP Auth Password를 입력해주세요';
+                  }
+                  return null;
+                },
               ),
               // WebSocket URL 미리보기
               if (_websocketServerUrlController.text.trim().isNotEmpty) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: Colors.teal.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: Colors.teal.shade200),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'WebSocket 연결 주소:',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                      Row(
+                        children: [
+                          Icon(Icons.preview, size: 14, color: Colors.teal.shade700),
+                          const SizedBox(width: 6),
+                          Text(
+                            'WebSocket 연결 주소 미리보기',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal.shade900,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${_websocketUseSSL ? 'wss' : 'ws'}://${_websocketServerUrlController.text.trim()}:${_websocketServerPortController.text.trim()}',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: _websocketUseSSL ? Colors.green.shade700 : Colors.orange.shade700,
-                          fontFamily: 'monospace',
+                      const SizedBox(height: 8),
+                      // 프로토콜 및 기본 주소
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _websocketUseSSL ? Colors.green.shade100 : Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _websocketUseSSL ? 'wss://' : 'ws://',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: _websocketUseSSL ? Colors.green.shade900 : Colors.orange.shade900,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          // HTTP Auth 정보 (있을 경우)
+                          if (_websocketHttpAuthIdController.text.trim().isNotEmpty &&
+                              _websocketHttpAuthPasswordController.text.trim().isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade100,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.lock, size: 10, color: Colors.blue.shade900),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '${_websocketHttpAuthIdController.text.trim()}:***',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade900,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '@',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade600,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
+                          Expanded(
+                            child: Text(
+                              '${_websocketServerUrlController.text.trim()}:${_websocketServerPortController.text.trim()}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.teal.shade900,
+                                fontFamily: 'monospace',
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      // 인증 상태 표시
+                      if (_websocketHttpAuthIdController.text.trim().isNotEmpty &&
+                          _websocketHttpAuthPasswordController.text.trim().isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(Icons.check_circle, size: 12, color: Colors.green.shade700),
+                            const SizedBox(width: 4),
+                            Text(
+                              'HTTP Basic Authentication 적용됨',
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 2,
-                      ),
+                      ],
                     ],
                   ),
                 ),
