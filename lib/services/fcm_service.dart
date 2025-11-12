@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,7 +9,6 @@ import 'dart:async'; // TimeoutException 사용을 위해 필요
 import 'dart:convert'; // JSON encoding/decoding
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:http/http.dart' as http; // HTTP requests for Cloud Functions
 import '../screens/call/incoming_call_screen.dart';
 import '../screens/home/main_screen.dart'; // MainScreen import 추가
 import '../models/fcm_token_model.dart';
@@ -464,103 +464,72 @@ class FCMService {
       // ignore: avoid_print
       print('📋 [FCM-APPROVAL] 다른 활성 기기 ${otherDeviceTokens.length}개 발견');
       
-      // Cloud Functions HTTP 엔드포인트 호출
-      // Firebase Core에서 프로젝트 ID 동적 가져오기
-      final projectId = _firestore.app.options.projectId;
-      final cloudFunctionUrl = 
-          'https://us-central1-$projectId.cloudfunctions.net/sendApprovalNotification';
+      // 요청 데이터 생성
+      final targetDevices = otherDeviceTokens.map((doc) {
+        final data = doc.data();
+        return {
+          'fcmToken': data['fcmToken'] as String?,
+          'deviceName': data['deviceName'] as String? ?? 'Unknown Device',
+          'deviceId': data['deviceId'] as String?,
+        };
+      }).toList();
       
-      // 요청 페이로드 생성
-      final requestBody = {
+      // ignore: avoid_print
+      print('📤 [FCM-APPROVAL] Cloud Functions 호출 중...');
+      print('   함수명: sendApprovalNotification');
+      print('   Target devices: $targetDevices');
+      print('   인증: Firebase Auth 자동 포함 (cloud_functions 패키지)');
+      
+      // Cloud Functions Callable 호출 (Firebase Auth 자동 포함)
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'sendApprovalNotification',
+        options: HttpsCallableOptions(
+          timeout: const Duration(seconds: 10),
+        ),
+      );
+      
+      final result = await callable.call({
         'userId': userId,
         'newDeviceId': newDeviceId,
         'newDeviceName': newDeviceName,
         'newPlatform': newPlatform,
         'newDeviceToken': newDeviceToken,
-        'targetDevices': otherDeviceTokens.map((doc) {
-          final data = doc.data();
-          return {
-            'fcmToken': data['fcmToken'] as String?,
-            'deviceName': data['deviceName'] as String? ?? 'Unknown Device',
-            'deviceId': data['deviceId'] as String?,
-          };
-        }).toList(),
-      };
-      
-      // Firebase Auth ID 토큰 가져오기 (인증된 요청)
-      final currentUser = FirebaseAuth.instance.currentUser;
-      String? idToken;
-      
-      if (currentUser != null) {
-        try {
-          idToken = await currentUser.getIdToken();
-          if (kDebugMode) {
-            debugPrint('✅ [FCM-APPROVAL] Firebase Auth 토큰 획득 성공');
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('⚠️ [FCM-APPROVAL] Firebase Auth 토큰 획득 실패: $e');
-          }
-        }
-      }
+        'targetDevices': targetDevices,
+      });
       
       // ignore: avoid_print
-      print('📤 [FCM-APPROVAL] Cloud Functions 호출 중...');
-      print('   URL: $cloudFunctionUrl');
-      print('   Target devices: ${requestBody['targetDevices']}');
-      print('   인증: ${idToken != null ? "Firebase Auth 토큰 포함" : "인증 없음"}');
+      print('✅ [FCM-APPROVAL] Cloud Functions 응답 성공');
+      print('   Response: ${result.data}');
       
-      // HTTP POST 요청 (Firebase Auth 토큰 포함)
-      final headers = <String, String>{
-        'Content-Type': 'application/json',
-      };
-      
-      // Firebase Auth 토큰이 있으면 Authorization 헤더에 추가
-      if (idToken != null) {
-        headers['Authorization'] = 'Bearer $idToken';
+      // 승인 요청 ID 확인
+      final approvalRequestId = result.data['approvalRequestId'] as String?;
+      if (approvalRequestId != null) {
+        // ignore: avoid_print
+        print('✅ [FCM-APPROVAL] 승인 요청 문서 생성: $approvalRequestId');
       }
       
-      final response = await http.post(
-        Uri.parse(cloudFunctionUrl),
-        headers: headers,
-        body: jsonEncode(requestBody),
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw TimeoutException('Cloud Functions 호출 타임아웃 (10초)');
-        },
-      );
+    } on FirebaseFunctionsException catch (e) {
+      // ignore: avoid_print
+      print('❌ [FCM-APPROVAL] Cloud Functions 오류: ${e.code}');
+      print('   메시지: ${e.message}');
+      print('   상세: ${e.details}');
       
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        // ignore: avoid_print
-        print('✅ [FCM-APPROVAL] Cloud Functions 응답 성공');
-        print('   Response: $responseData');
-        
-        // 승인 요청 ID 확인
-        final approvalRequestId = responseData['approvalRequestId'] as String?;
-        if (approvalRequestId != null) {
-          // ignore: avoid_print
-          print('✅ [FCM-APPROVAL] 승인 요청 문서 생성: $approvalRequestId');
-        }
-      } else {
-        // ignore: avoid_print
-        print('❌ [FCM-APPROVAL] Cloud Functions 응답 실패');
-        print('   Status: ${response.statusCode}');
-        print('   Body: ${response.body}');
-        
-        if (kDebugMode) {
-          debugPrint('⚠️ [FCM-APPROVAL] Cloud Functions 호출 실패 - 기기 승인 비활성화');
-          debugPrint('   HTTP Status: ${response.statusCode}');
-          debugPrint('   Response: ${response.body}');
+      if (kDebugMode) {
+        if (e.code == 'unauthenticated') {
+          debugPrint('⚠️ [FCM-APPROVAL] 인증 오류 - 사용자 로그인 확인 필요');
+        } else if (e.code == 'permission-denied') {
+          debugPrint('⚠️ [FCM-APPROVAL] 권한 오류 - Cloud Functions 권한 설정 확인');
+        } else if (e.code == 'not-found') {
+          debugPrint('⚠️ [FCM-APPROVAL] 함수 없음 - sendApprovalNotification 배포 확인');
+        } else {
+          debugPrint('⚠️ [FCM-APPROVAL] Cloud Functions 오류: ${e.code}');
         }
       }
-      
     } on TimeoutException catch (e) {
       // ignore: avoid_print
       print('⏱️ [FCM-APPROVAL] 타임아웃: $e');
       if (kDebugMode) {
-        debugPrint('⚠️ [FCM-APPROVAL] Cloud Functions 타임아웃 - 네트워크 연결 확인 필요');
+        debugPrint('⚠️ [FCM-APPROVAL] Cloud Functions 타임아웃 (10초) - 네트워크 연결 확인 필요');
       }
     } catch (e, stackTrace) {
       // ignore: avoid_print
@@ -569,7 +538,7 @@ class FCMService {
         debugPrint('⚠️ [FCM-APPROVAL] Cloud Functions 호출 오류');
         debugPrint('   오류: $e');
         debugPrint('   Stack trace: $stackTrace');
-        debugPrint('   해결: Cloud Functions 배포 상태 및 프로젝트 ID 확인');
+        debugPrint('   해결: Cloud Functions 배포 상태 확인');
       }
     }
   }
