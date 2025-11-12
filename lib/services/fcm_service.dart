@@ -248,6 +248,15 @@ class FCMService {
           // ignore: avoid_print
           print('✅ [FCM] Firestore 저장 완료');
           
+          // iOS 사용자 초기 알림 설정 자동 생성
+          if (Platform.isIOS) {
+            // ignore: avoid_print
+            print('🍎 [FCM-iOS] 알림 설정 초기화 시작...');
+            await _ensureNotificationSettingsExist(userId);
+            // ignore: avoid_print
+            print('✅ [FCM-iOS] 알림 설정 초기화 완료');
+          }
+          
           // 토큰 갱신 리스너 등록
           _messaging.onTokenRefresh.listen((newToken) {
             // ignore: avoid_print
@@ -1400,6 +1409,51 @@ class FCMService {
     }
     
     print('✅ [FCM] 수신 전화 처리 완료');
+  }
+  
+  /// iOS 사용자 알림 설정이 없으면 자동 생성 (기본값: 모두 활성화)
+  Future<void> _ensureNotificationSettingsExist(String userId) async {
+    try {
+      final doc = await _firestore
+          .collection('user_notification_settings')
+          .doc(userId)
+          .get();
+      
+      if (!doc.exists) {
+        // ignore: avoid_print
+        print('📝 [FCM-iOS] 알림 설정이 없음 - 기본 설정 생성 중...');
+        
+        // iOS 기본 알림 설정 생성 (모두 활성화)
+        await _firestore
+            .collection('user_notification_settings')
+            .doc(userId)
+            .set({
+          'userId': userId,
+          'pushEnabled': true,  // iOS 기본값: 푸시 알림 활성화
+          'soundEnabled': true,
+          'vibrationEnabled': true,
+          'incomingCallNotification': true,
+          'missedCallNotification': true,
+          'messageNotification': true,
+          'quietHoursEnabled': false,
+          'quietHoursStart': '22:00',
+          'quietHoursEnd': '08:00',
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'platform': 'iOS',
+        });
+        
+        // ignore: avoid_print
+        print('✅ [FCM-iOS] 기본 알림 설정 생성 완료 (모두 활성화)');
+      } else {
+        // ignore: avoid_print
+        print('ℹ️ [FCM-iOS] 알림 설정이 이미 존재함');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [FCM-iOS] 알림 설정 초기화 오류: $e');
+      }
+    }
   }
   
   /// 사용자 알림 설정 가져오기

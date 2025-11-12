@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
@@ -705,31 +706,31 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             ),
           ),
           
-          // iOS 시스템 알림 켜기/끄기 안내
+          // iOS 시스템 알림 켜기/끄기 (시스템 설정으로 이동)
           if (!kIsWeb && Platform.isIOS)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
+                  color: Colors.blue[50],
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange[200]!),
+                  border: Border.all(color: Colors.blue[200]!),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.settings, color: Colors.orange[700], size: 24),
+                        Icon(Icons.notifications_active, color: Colors.blue[700], size: 24),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            '푸시 알림 켜기/끄기',
+                            '푸시 알림 관리',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Colors.orange[900],
+                              color: Colors.blue[900],
                             ),
                           ),
                         ),
@@ -737,27 +738,73 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'iOS 설정 → MAKECALL → 알림에서\n푸시 알림을 완전히 켜거나 끌 수 있습니다.',
+                      '푸시 알림을 켜거나 끄려면 iOS 시스템 설정을 사용하세요.',
                       style: TextStyle(fontSize: 13, height: 1.4),
                     ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue[100]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blue[600], size: 20),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              '설정 → MAKECALL → 알림',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        debugPrint('📱 [iOS] 시스템 설정 안내');
-                        if (mounted) {
-                          await DialogUtils.showInfo(
-                            context,
-                            '설정 앱을 열고\n\nMAKECALL → 알림\n\n메뉴에서 푸시 알림을 켜거나 끌 수 있습니다.',
-                            title: 'iOS 시스템 설정',
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.launch, size: 18),
-                      label: const Text('설정 방법 보기'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange[700],
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          debugPrint('📱 [iOS] 시스템 설정 열기');
+                          try {
+                            // iOS 시스템 설정 열기
+                            final opened = await openAppSettings();
+                            
+                            if (!opened) {
+                              if (mounted) {
+                                await DialogUtils.showWarning(
+                                  context,
+                                  '시스템 설정을 열 수 없습니다.\n\n수동으로 설정 앱을 열어주세요:\n\n1. 설정 앱 실행\n2. MAKECALL 찾기\n3. 알림 메뉴 선택',
+                                );
+                              }
+                            } else {
+                              debugPrint('✅ [iOS] 시스템 설정 열기 성공');
+                            }
+                          } catch (e) {
+                            debugPrint('❌ [iOS] 시스템 설정 열기 오류: $e');
+                            if (mounted) {
+                              await DialogUtils.showError(
+                                context,
+                                '시스템 설정 열기 실패\n\n설정 앱을 수동으로 열어 MAKECALL → 알림 메뉴로 이동하세요.',
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.settings, size: 20),
+                        label: const Text('iOS 설정 열기'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
                       ),
                     ),
                   ],
