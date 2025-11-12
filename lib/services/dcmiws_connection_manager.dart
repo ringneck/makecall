@@ -329,14 +329,25 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
     }
     
     try {
-      // 서버 설정 가져오기 (캐시 활용)
-      await _loadServerSettings();
+      // 서버 설정 가져오기 (returns true if DCMIWS enabled, false if PUSH mode)
+      final isDcmiwsEnabled = await _loadServerSettings();
+      
+      // PUSH 모드일 때는 재시도하지 않음
+      if (!isDcmiwsEnabled) {
+        if (kDebugMode) {
+          debugPrint('⏹️ DCMIWSConnectionManager: PUSH mode - no reconnection needed');
+        }
+        // 재연결 타이머 취소 및 카운터 리셋
+        _reconnectTimer?.cancel();
+        _reconnectAttempts = 0;
+        return;
+      }
       
       if (_cachedServerAddress == null) {
         if (kDebugMode) {
-          debugPrint('⚠️ DCMIWSConnectionManager: No server settings found');
+          debugPrint('⚠️ DCMIWSConnectionManager: No server settings found (DCMIWS enabled but no server URL)');
         }
-        _scheduleReconnect(); // 서버 설정 없어도 재시도
+        _scheduleReconnect(); // DCMIWS 활성화되었지만 서버 URL 없을 때만 재시도
         return;
       }
       
@@ -367,10 +378,12 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
   }
   
   /// 서버 설정 로드 (Firestore 캐싱)
-  Future<void> _loadServerSettings() async {
+  /// 
+  /// Returns: true if DCMIWS is enabled, false if PUSH mode
+  Future<bool> _loadServerSettings() async {
     try {
       final userId = _currentUserId;
-      if (userId == null) return;
+      if (userId == null) return false;
       
       if (kDebugMode) {
         debugPrint('📥 DCMIWSConnectionManager: Loading server settings for user $userId');
@@ -385,7 +398,7 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
         if (kDebugMode) {
           debugPrint('⚠️ DCMIWSConnectionManager: User document not found');
         }
-        return;
+        return false;
       }
       
       final userData = userDoc.data()!;
@@ -404,7 +417,7 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
         _cachedServerAddress = null;
         _cachedServerPort = null;
         _cachedServerSSL = null;
-        return; // Exit without loading server settings
+        return false; // Return false = PUSH mode
       }
       
       if (kDebugMode) {
@@ -416,7 +429,7 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
         if (kDebugMode) {
           debugPrint('ℹ️ DCMIWSConnectionManager: Using cached server settings');
         }
-        return;
+        return true; // Return true = DCMIWS enabled
       }
       
       // ProfileDrawer의 API Settings Dialog와 동일한 필드명 사용
@@ -430,10 +443,13 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
         debugPrint('  Port: $_cachedServerPort');
         debugPrint('  SSL: $_cachedServerSSL');
       }
+      
+      return true; // Return true = DCMIWS enabled
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ DCMIWSConnectionManager: Failed to load server settings: $e');
       }
+      return false; // Return false on error
     }
   }
   
