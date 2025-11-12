@@ -190,38 +190,42 @@ class _DialpadScreenState extends State<DialpadScreen> {
       final forwardDestination = (callForwardInfo?.destinationNumber ?? '').trim();
 
       // 🚀 Step 2: Pending Storage에 먼저 저장 (Race Condition 방지!)
-      // 🚫 *로 시작하는 기능번호는 통화 기록을 생성하지 않음
-      if (!phoneNumber.startsWith('*')) {
-        if (kDebugMode) {
-          debugPrint('');
-          debugPrint('💾 ========== 통화 기록 준비 (착신전환 정보 포함) ==========');
-          debugPrint('   📱 단말번호: ${selectedExtension.extension}');
-          debugPrint('   📞 발신 대상: $phoneNumber');
-          debugPrint('   🔄 착신전환 활성화: $isForwardEnabled');
-          debugPrint('   ➡️  착신전환 목적지: ${isForwardEnabled ? forwardDestination : "비활성화"}');
-          debugPrint('   📦 준비 데이터:');
-          debugPrint('      - callForwardEnabled: $isForwardEnabled');
-          debugPrint('      - callForwardDestination: ${(isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : "null"}');
-          debugPrint('========================================================');
-          debugPrint('');
-        }
+      // ✅ 모든 번호에 대해 통화 기록 생성 (*로 시작하는 기능번호 포함)
+      // 📝 변경 요청: *로 시작하는 다이얼도 최근통화 목록에 생성
+      // if (!phoneNumber.startsWith('*')) {  // ← 기존 조건문 주석 처리
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('💾 ========== 통화 기록 준비 (착신전환 정보 포함) ==========');
+        debugPrint('   📱 단말번호: ${selectedExtension.extension}');
+        debugPrint('   📞 발신 대상: $phoneNumber');
+        debugPrint('   🔄 착신전환 활성화: $isForwardEnabled');
+        debugPrint('   ➡️  착신전환 목적지: ${isForwardEnabled ? forwardDestination : "비활성화"}');
+        debugPrint('   📦 준비 데이터:');
+        debugPrint('      - callForwardEnabled: $isForwardEnabled');
+        debugPrint('      - callForwardDestination: ${(isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : "null"}');
+        debugPrint('========================================================');
+        debugPrint('');
+      }
 
-        // ✅ API 호출 전에 저장하여 Newchannel 이벤트보다 항상 먼저 준비됨
-        final dcmiws = DCMIWSService();
-        dcmiws.storePendingClickToCallRecord(
-          extensionNumber: selectedExtension.extension,
-          phoneNumber: phoneNumber,
-          userId: userId,
-          mainNumberUsed: cidNumber,
-          callForwardEnabled: isForwardEnabled,
-          callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
-        );
-      } else {
+      // ✅ API 호출 전에 저장하여 Newchannel 이벤트보다 항상 먼저 준비됨
+      final dcmiws = DCMIWSService();
+      dcmiws.storePendingClickToCallRecord(
+        extensionNumber: selectedExtension.extension,
+        phoneNumber: phoneNumber,
+        userId: userId,
+        mainNumberUsed: cidNumber,
+        callForwardEnabled: isForwardEnabled,
+        callForwardDestination: (isForwardEnabled && forwardDestination.isNotEmpty) ? forwardDestination : null,
+      );
+      // }  // ← 기존 조건문 종료 주석 처리
+      /* ← 기존 else 블록 주석 처리 시작
+      else {
         if (kDebugMode) {
           debugPrint('⏭️ *로 시작하는 기능번호 - 통화 기록 생성 건너뛰기');
           debugPrint('   발신 대상: $phoneNumber');
         }
       }
+      */ // ← 기존 else 블록 주석 처리 종료
 
       // API 서비스 생성 (동적 API URL 사용)
       // apiHttpPort가 3501이면 HTTPS 사용, 3500이면 HTTP 사용

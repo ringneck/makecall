@@ -31,6 +31,13 @@ class FCMService {
   static BuildContext? _context; // 전역 BuildContext 저장
   static Function()? _onForceLogout; // 강제 로그아웃 콜백
   
+  // 🔒 중복 초기화 방지
+  static bool _isInitializing = false;
+  static String? _initializedUserId;
+  static StreamSubscription<String>? _tokenRefreshSubscription;
+  String? _lastSavedToken;
+  DateTime? _lastSaveTime;
+  
   /// FCM 토큰 가져오기
   String? get fcmToken => _fcmToken;
   
@@ -70,6 +77,25 @@ class FCMService {
       print('   User ID: $userId');
       // ignore: avoid_print
       print('   Platform: ${_getPlatformName()}');
+      
+      // 🔒 중복 초기화 방지 체크
+      if (_isInitializing) {
+        // ignore: avoid_print
+        print('⏸️  [FCM] 이미 초기화 진행 중 - 중복 호출 무시');
+        return;
+      }
+      
+      if (_initializedUserId == userId && _fcmToken != null) {
+        // ignore: avoid_print
+        print('✅ [FCM] 이미 동일 사용자로 초기화 완료 - 재초기화 스킵');
+        // ignore: avoid_print
+        print('   기존 토큰: ${_fcmToken!.substring(0, 20)}...');
+        return;
+      }
+      
+      // ignore: avoid_print
+      print('🔓 [FCM] 초기화 잠금 설정');
+      _isInitializing = true;
       
       // ✅ STEP 1: 메시지 리스너를 가장 먼저 등록! (메시지 누락 방지)
       // ignore: avoid_print
@@ -248,16 +274,32 @@ class FCMService {
           // ignore: avoid_print
           print('✅ [FCM] Firestore 저장 완료');
           
-          // 토큰 갱신 리스너 등록
-          _messaging.onTokenRefresh.listen((newToken) {
+          // 🔒 토큰 갱신 리스너 중복 등록 방지
+          if (_tokenRefreshSubscription == null) {
             // ignore: avoid_print
-            print('🔄 FCM 토큰 갱신: ${newToken.substring(0, 20)}...');
-            _fcmToken = newToken;
-            _saveFCMToken(userId, newToken);
-          });
-          
-          // ignore: avoid_print
-          print('✅ [FCM] 토큰 갱신 리스너 등록 완료');
+            print('📡 [FCM] 토큰 갱신 리스너 등록 중...');
+            _tokenRefreshSubscription = _messaging.onTokenRefresh.listen((newToken) {
+              // ignore: avoid_print
+              print('🔄 [FCM] 토큰 갱신 이벤트: ${newToken.substring(0, 20)}...');
+              
+              // 중복 저장 방지: 동일 토큰이 1분 내에 저장되었으면 스킵
+              if (_lastSavedToken == newToken && 
+                  _lastSaveTime != null && 
+                  DateTime.now().difference(_lastSaveTime!) < const Duration(minutes: 1)) {
+                // ignore: avoid_print
+                print('⏭️  [FCM] 동일 토큰이 최근에 저장됨 - 중복 저장 스킵');
+                return;
+              }
+              
+              _fcmToken = newToken;
+              _saveFCMToken(userId, newToken);
+            });
+            // ignore: avoid_print
+            print('✅ [FCM] 토큰 갱신 리스너 등록 완료');
+          } else {
+            // ignore: avoid_print
+            print('✅ [FCM] 토큰 갱신 리스너 이미 등록됨 - 스킵');
+          }
           
           // ℹ️ 메시지 리스너는 이미 초기화 최상단에서 등록 완료됨
           // 백그라운드 메시지 핸들러는 main.dart에서 설정
@@ -302,6 +344,16 @@ class FCMService {
       // 일반적인 FCM 초기화 오류는 무시 (앱은 계속 실행)
       // ignore: avoid_print
       print('⚠️ [FCM] 초기화 실패했지만 앱은 계속 실행');
+    } finally {
+      // 🔓 초기화 완료 - 잠금 해제
+      _isInitializing = false;
+      
+      // ✅ 성공 시에만 userId 저장
+      if (_fcmToken != null) {
+        _initializedUserId = userId;
+        // ignore: avoid_print
+        print('✅ [FCM] 초기화 완료 - userId: $userId');
+      }
     }
   }
   
@@ -326,6 +378,17 @@ class FCMService {
     try {
       // ignore: avoid_print
       print('💾 [FCM-SAVE] 토큰 저장 시작');
+      
+      // 🔒 중복 저장 방지: 동일 토큰이 최근 1분 내에 저장되었으면 스킵
+      if (_lastSavedToken == token && 
+          _lastSaveTime != null && 
+          DateTime.now().difference(_lastSaveTime!) < const Duration(minutes: 1)) {
+        // ignore: avoid_print
+        print('⏭️  [FCM-SAVE] 동일 토큰이 최근에 저장됨 - 중복 저장 스킵');
+        // ignore: avoid_print
+        print('   - 마지막 저장: ${DateTime.now().difference(_lastSaveTime!).inSeconds}초 전');
+        return;
+      }
       
       final deviceId = await _getDeviceId();
       final deviceName = await _getDeviceName();
@@ -426,6 +489,12 @@ class FCMService {
       print('   - 문서 ID: ${userId}_$deviceId');
       // ignore: avoid_print
       print('   - 기기: $deviceName ($platform)');
+      
+      // 🔒 저장 성공 - 추적 정보 업데이트
+      _lastSavedToken = token;
+      _lastSaveTime = DateTime.now();
+      // ignore: avoid_print
+      print('🔒 [FCM-SAVE] 중복 저장 추적 업데이트 완료');
       
     } catch (e, stackTrace) {
       // ignore: avoid_print

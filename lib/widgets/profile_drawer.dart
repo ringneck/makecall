@@ -18,7 +18,9 @@ import '../services/dcmiws_service.dart';
 import '../services/dcmiws_connection_manager.dart';
 import '../models/my_extension_model.dart';
 import '../models/saved_account_model.dart';
+import '../models/user_model.dart';  // ✅ DCMIWS 설정 업데이트를 위해 필요
 import '../screens/profile/api_settings_dialog.dart';
+import '../main.dart' show navigatorKey;  // ✅ 전역 Navigator key (로그아웃 에러 표시용)
 
 class ProfileDrawer extends StatefulWidget {
   const ProfileDrawer({super.key});
@@ -207,22 +209,42 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       }
       
       final authService = context.read<AuthService>();
-      final userModel = authService.currentUserModel;
+      final userId = authService.currentUser?.uid;
       
-      if (userModel == null) {
+      if (userId == null) {
         if (kDebugMode) {
-          debugPrint('❌ [DCMIWS설정] userModel이 null입니다');
+          debugPrint('❌ [DCMIWS설정] userId가 null입니다');
         }
         return;
       }
       
-      if (mounted) {
-        setState(() {
-          _dcmiwsEnabled = userModel.dcmiwsEnabled ?? false;
-        });
+      // 🔄 CRITICAL: Firestore에서 직접 최신 값 읽기
+      // AuthService의 currentUserModel이 업데이트 안 될 수 있으므로
+      // Firestore에서 직접 읽어서 확실하게 최신 값 사용
+      if (kDebugMode) {
+        debugPrint('🔄 [DCMIWS설정] Firestore에서 직접 최신 값 읽기...');
+      }
+      
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+      
+      if (userDoc.exists && userDoc.data() != null) {
+        final dcmiwsEnabled = userDoc.data()!['dcmiwsEnabled'] as bool? ?? false;
         
+        if (mounted) {
+          setState(() {
+            _dcmiwsEnabled = dcmiwsEnabled;
+          });
+          
+          if (kDebugMode) {
+            debugPrint('✅ [DCMIWS설정] Firestore에서 로드 완료: dcmiwsEnabled=$_dcmiwsEnabled');
+          }
+        }
+      } else {
         if (kDebugMode) {
-          debugPrint('✅ [DCMIWS설정] 로드 완료: dcmiwsEnabled=$_dcmiwsEnabled');
+          debugPrint('❌ [DCMIWS설정] Firestore 문서가 없습니다');
         }
       }
     } catch (e) {
@@ -2543,19 +2565,63 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
   // 등록된 계정 목록에서 로그아웃 (다이얼로그 없이 바로 로그아웃)
   Future<void> _handleLogoutFromList(BuildContext context) async {
+    // 🔹 확인 다이얼로그 먼저 표시
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('로그아웃 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('로그아웃'),
+          ),
+        ],
+      ),
+    );
+    
+    // 사용자가 취소를 선택한 경우
+    if (confirmed != true) return;
+    
+    // 🔑 CRITICAL: AuthService를 먼저 가져오기 (context가 유효할 때)
+    final authService = context.read<AuthService>();
+    
+    // Drawer 닫기
+    if (mounted) {
+      Navigator.pop(context);
+    }
+    
+    // 🔑 Drawer 닫기 애니메이션 완료까지 대기 (350ms)
+    await Future.delayed(const Duration(milliseconds: 350));
+    
     try {
-      await context.read<AuthService>().signOut();
-      if (mounted) {
-        Navigator.pop(context); // Drawer 닫기
-        await DialogUtils.showInfo(
-          context,
-          '로그아웃되었습니다',
-          duration: const Duration(seconds: 2),
-        );
+      // 로그아웃 실행 (미리 가져온 AuthService 사용)
+      await authService.signOut();
+      
+      if (kDebugMode) {
+        debugPrint('✅ [LOGOUT] 로그아웃 완료');
       }
+      
     } catch (e) {
-      if (mounted) {
-        await DialogUtils.showError(context, '로그아웃 실패: $e');
+      if (kDebugMode) {
+        debugPrint('❌ [LOGOUT] 로그아웃 실패: $e');
+      }
+      
+      // 로그아웃 실패 시 에러 표시
+      // navigatorKey를 사용하여 전역 context로 Dialog 표시
+      if (navigatorKey.currentContext != null) {
+        await DialogUtils.showError(
+          navigatorKey.currentContext!,
+          '로그아웃 실패: $e',
+        );
       }
     }
   }
