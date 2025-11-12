@@ -504,7 +504,7 @@ class FCMService {
   }
   
   /// 포그라운드 메시지 처리
-  void _handleForegroundMessage(RemoteMessage message) {
+  Future<void> _handleForegroundMessage(RemoteMessage message) async {
     // ignore: avoid_print
     print('');
     // ignore: avoid_print
@@ -578,7 +578,7 @@ class FCMService {
       print('   - linkedid: ${message.data['linkedid']}');
       // ignore: avoid_print
       print('   - call_type: ${message.data['call_type']}');
-      _handleIncomingCallFCM(message);
+      await _handleIncomingCallFCM(message);
       return;
     } else {
       // ignore: avoid_print
@@ -600,14 +600,14 @@ class FCMService {
     
     // iOS 플랫폼: DialogUtils로 알림 표시 (네이티브 알림은 AppDelegate에서 비활성화됨)
     if (Platform.isIOS) {
-      _showIOSNotification(message);
+      await _showIOSNotification(message);
     }
   }
   
   /// 백그라운드/종료 상태에서 알림 클릭 시 처리
   /// 
   /// 사용자가 알림바에서 알림을 클릭하면 호출됩니다.
-  void _handleMessageOpenedApp(RemoteMessage message) {
+  Future<void> _handleMessageOpenedApp(RemoteMessage message) async {
     // ignore: avoid_print
     print('');
     // ignore: avoid_print
@@ -652,7 +652,7 @@ class FCMService {
       debugPrint('   - type: ${message.data['type']}');
       debugPrint('   - linkedid: ${message.data['linkedid']}');
       debugPrint('   - call_type: ${message.data['call_type']}');
-      _waitForContextAndShowIncomingCall(message);
+      await _waitForContextAndShowIncomingCall(message);
       return;
     }
   }
