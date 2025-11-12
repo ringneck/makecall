@@ -241,6 +241,10 @@ exports.sendApprovalNotification = functions.firestore
       } catch (error) {
         console.error("❌ FCM 알림 전송 오류:", error);
 
+        // data 객체 가져오기 (catch 블록에서 접근)
+        const data = snap.data();
+        const targetToken = data.targetToken;
+
         // 🧹 토큰 정리: registration-token-not-registered 오류 처리
         if (error.code === "messaging/registration-token-not-registered") {
           console.log("🧹 [TOKEN-CLEANUP] 무효 토큰 감지 - 자동 삭제 시작");
