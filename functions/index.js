@@ -136,7 +136,7 @@ exports.sendVerificationEmail = functions.firestore
                 </div>
                 
                 <p style="margin-top: 20px; color: #666;">
-                  문제가 있으신가요? support@makecall.com으로 문의하세요.
+                  문제가 있으신가요? help@makecall.io로 문의하세요.
                 </p>
               </div>
               
@@ -156,7 +156,7 @@ MAKECALL 새 기기 로그인 인증 코드
 이 코드는 5분간 유효합니다.
 본인이 아닌 경우 이 이메일을 무시하세요.
 
-문의: support@makecall.com
+문의: help@makecall.io
         `.trim(),
         };
 

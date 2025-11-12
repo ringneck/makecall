@@ -660,7 +660,7 @@ service cloud.firestore {
 ## 📞 지원
 
 문제가 발생하거나 질문이 있으시면:
-- **이메일**: support@makecall.com
+- **이메일**: help@makecall.io
 - **GitHub Issues**: https://github.com/ringneck/makecall/issues
 
 ---
