@@ -1012,64 +1012,20 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         await downloadFile(convertedUrl, filename);
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.download_done, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '다운로드 시작',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          filename,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
-              behavior: SnackBarBehavior.floating,
-            ),
+          await DialogUtils.showSuccess(
+            context,
+            '다운로드 시작\n\n$filename',
+            duration: const Duration(seconds: 3),
           );
         }
       } else {
         // 모바일 플랫폼 (iOS/Android): Share Sheet로 저장/공유
         if (mounted) {
           // 다운로드 진행 중 표시
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      '파일 다운로드 중...',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.blue,
-              duration: const Duration(seconds: 2),
-            ),
+          await DialogUtils.showInfo(
+            context,
+            '파일 다운로드 중...',
+            duration: const Duration(seconds: 2),
           );
         }
         
@@ -1077,34 +1033,10 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
         await downloadFile(convertedUrl, filename);
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.share, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '파일 공유',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          filename,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
-              behavior: SnackBarBehavior.floating,
-            ),
+          await DialogUtils.showSuccess(
+            context,
+            '파일 공유\n\n$filename',
+            duration: const Duration(seconds: 3),
           );
         }
       }
@@ -1148,42 +1080,10 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
               : '다운로드 실패.\n서버 연결을 확인해주세요.';
         }
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.white),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        '파일 다운로드 실패',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  displayMessage,
-                  style: const TextStyle(fontSize: 12),
-                ),
-                if (kDebugMode) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    '상세: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}',
-                    style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic),
-                  ),
-                ],
-              ],
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-            behavior: SnackBarBehavior.floating,
-          ),
+        await DialogUtils.showError(
+          context,
+          '파일 다운로드 실패\n\n$displayMessage${kDebugMode ? "\n\n상세: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + "..." : errorMessage}" : ""}',
+          duration: const Duration(seconds: 5),
         );
       }
     }
