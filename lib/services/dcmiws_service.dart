@@ -136,28 +136,31 @@ class DCMIWSService {
     _isConnecting = true;
     
     try {
-      final uri = Uri.parse(targetUri);
+      Uri uri;
       
-      if (kDebugMode) {
-        debugPrint('🔌 DCMIWS: Connecting to $uri');
-        debugPrint('  Current state: Connected=$_isConnected, Connecting=$_isConnecting');
-        if (httpAuthId != null && httpAuthId.isNotEmpty) {
-          debugPrint('🔐 DCMIWS: Using HTTP Basic Authentication (ID: $httpAuthId)');
-        }
-      }
-
-      // HTTP Basic Authentication 헤더 추가
-      final headers = <String, String>{};
+      // HTTP Basic Authentication을 URI에 포함
       if (httpAuthId != null && httpAuthId.isNotEmpty && 
           httpAuthPassword != null && httpAuthPassword.isNotEmpty) {
-        final credentials = base64.encode(utf8.encode('$httpAuthId:$httpAuthPassword'));
-        headers['Authorization'] = 'Basic $credentials';
+        // ws://user:pass@host:port 형식으로 변환
+        final protocol = useSSL ? 'wss' : 'ws';
+        uri = Uri.parse('$protocol://$httpAuthId:$httpAuthPassword@$serverAddress:$port');
+        
         if (kDebugMode) {
-          debugPrint('✅ DCMIWS: Authorization header added');
+          debugPrint('🔌 DCMIWS: Connecting with HTTP Basic Authentication');
+          debugPrint('  Server: $serverAddress:$port');
+          debugPrint('  Auth ID: $httpAuthId');
+          debugPrint('  Protocol: $protocol');
+        }
+      } else {
+        uri = Uri.parse(targetUri);
+        
+        if (kDebugMode) {
+          debugPrint('🔌 DCMIWS: Connecting to $uri');
+          debugPrint('  Current state: Connected=$_isConnected, Connecting=$_isConnecting');
         }
       }
 
-      _channel = WebSocketChannel.connect(uri, headers: headers);
+      _channel = WebSocketChannel.connect(uri);
       
       // 연결 성공 대기 (타임아웃 10초)
       await _channel!.ready.timeout(
