@@ -128,39 +128,37 @@ class AuthService extends ChangeNotifier {
         
         notifyListeners();
       } else {
-        // Firestore에 사용자 문서가 없는 경우
+        // 🚫 Firestore에 사용자 문서가 없는 경우 - 로그인 거부
         if (kDebugMode) {
-          debugPrint('⚠️ Firestore에 사용자 문서 없음');
+          debugPrint('');
+          debugPrint('❌ ========================================');
+          debugPrint('❌ Firestore에 사용자 문서 없음 - 로그인 거부');
+          debugPrint('❌ ========================================');
           debugPrint('   - UID: $uid');
           debugPrint('   - Email: ${_auth.currentUser?.email}');
-          debugPrint('   - 사용자 문서 자동 생성 중...');
+          debugPrint('');
+          debugPrint('🔒 보안 정책:');
+          debugPrint('   - 관리자가 먼저 사용자 계정을 생성해야 합니다');
+          debugPrint('   - Firebase Authentication만으로는 로그인 불가');
+          debugPrint('   - Firestore users 컬렉션에 문서 존재 필수');
+          debugPrint('');
+          debugPrint('🔄 Firebase Authentication 로그아웃 처리 중...');
         }
         
-        // 기본 사용자 문서 자동 생성
-        final newUserData = {
-          'email': _auth.currentUser?.email ?? '',
-          'createdAt': DateTime.now().toIso8601String(),
-          'isActive': true,
-          'isPremium': false,
-          'maxExtensions': 1,
-        };
-        
-        await _firestore.collection('users').doc(uid).set(newUserData);
+        // Firebase Authentication 로그아웃
+        await _auth.signOut();
         
         if (kDebugMode) {
-          debugPrint('✅ 사용자 문서 생성 완료');
+          debugPrint('✅ 로그아웃 완료');
+          debugPrint('❌ ========================================');
+          debugPrint('');
         }
-        
-        // 생성된 문서로 UserModel 로드
-        _currentUserModel = UserModel.fromMap(newUserData, uid);
-        
-        // 계정 저장 (비밀번호 포함)
-        await _accountManager.saveAccount(_currentUserModel!, password: password ?? _tempPassword);
         
         // 일시 비밀번호 삭제
         _tempPassword = null;
         
-        notifyListeners();
+        // 예외 발생 - UI에서 처리
+        throw Exception('Account not authorized. Please contact administrator to create your account in the system.');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -249,10 +247,18 @@ class AuthService extends ChangeNotifier {
       
       // 마지막 로그인 시간 업데이트
       if (credential.user != null) {
-        await _firestore
-            .collection('users')
-            .doc(credential.user!.uid)
-            .update({'lastLoginAt': DateTime.now().toIso8601String()});
+        try {
+          await _firestore
+              .collection('users')
+              .doc(credential.user!.uid)
+              .update({'lastLoginAt': DateTime.now().toIso8601String()});
+        } catch (e) {
+          // update 실패는 문서가 없을 가능성 - _loadUserModel에서 처리
+          if (kDebugMode) {
+            debugPrint('⚠️ [AUTH] lastLoginAt 업데이트 실패: $e');
+            debugPrint('   (문서 존재 여부는 _loadUserModel에서 확인)');
+          }
+        }
         
         // 비밀번호를 _loadUserModel에 전달하여 자동 저장
         await _loadUserModel(credential.user!.uid, password: password);
