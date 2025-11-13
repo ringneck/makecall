@@ -1921,10 +1921,21 @@ class FCMService {
     }
   }
   
+  // 🔧 수신 전화 화면 표시 중복 방지 플래그
+  bool _isShowingIncomingCall = false;
+  
   /// 수신 전화 풀스크린 표시
   Future<void> _showIncomingCallScreen(RemoteMessage message) async {
     // ignore: avoid_print
     print('🎬 [FCM-SCREEN] _showIncomingCallScreen() 시작');
+    
+    // 🔧 중복 표시 방지
+    if (_isShowingIncomingCall) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-SCREEN] 이미 수신 전화 화면이 표시 중 - 중복 호출 무시');
+      return;
+    }
+    
     // ignore: avoid_print
     print('   - _context: ${_context != null ? '있음' : '없음'}');
     // ignore: avoid_print
@@ -1944,6 +1955,13 @@ class FCMService {
       print('   1. main.dart에서 FCMService.setContext(context) 호출 확인');
       // ignore: avoid_print
       print('   2. navigatorKey가 MaterialApp에 설정되었는지 확인');
+      return;
+    }
+    
+    // 🔧 Context가 mounted 상태인지 확인
+    if (context is Element && !context.mounted) {
+      // ignore: avoid_print
+      print('❌ [FCM-SCREEN] Context가 deactivated 상태 - 사용 불가');
       return;
     }
     
@@ -2018,11 +2036,15 @@ class FCMService {
     
     print('🎬 [FCM] 수신 전화 화면 표시');
     
-    // 수신 전화 화면 표시 (fullscreenDialog로 전체 화면)
-    final result = await Navigator.of(context).push<Map<String, dynamic>>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (context) => IncomingCallScreen(
+    // 🔧 플래그 설정 (화면 표시 시작)
+    _isShowingIncomingCall = true;
+    
+    try {
+      // 수신 전화 화면 표시 (fullscreenDialog로 전체 화면)
+      final result = await Navigator.of(context).push<Map<String, dynamic>>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (context) => IncomingCallScreen(
           callerName: callerName,
           callerNumber: callerNumber,
           callerAvatar: callerAvatar,
@@ -2053,26 +2075,33 @@ class FCMService {
             );
           },
         ),
-      ),
-    );
-    
-    // ✅ 수신 알림 화면에서 "확인" 버튼 눌렀을 때 최근통화 탭으로 이동
-    if (result != null && result['moveToTab'] != null) {
-      final targetTabIndex = result['moveToTab'] as int;
-      print('📲 [FCM] 최근통화 탭으로 이동 요청: index=$targetTabIndex');
+        ),
+      );
       
-      // CallTab으로 이동하기 위해 현재 route를 최근통화 탭으로 교체
-      if (context.mounted) {
-        // Navigator의 현재 route를 MainScreen으로 교체하되, 인자로 탭 인덱스 전달
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => MainScreen(initialTabIndex: targetTabIndex), // const 제거
-          ),
-        );
+      // ✅ 수신 알림 화면에서 "확인" 버튼 눌렀을 때 최근통화 탭으로 이동
+      if (result != null && result['moveToTab'] != null) {
+        final targetTabIndex = result['moveToTab'] as int;
+        print('📲 [FCM] 최근통화 탭으로 이동 요청: index=$targetTabIndex');
+        
+        // CallTab으로 이동하기 위해 현재 route를 최근통화 탭으로 교체
+        if (context.mounted) {
+          // Navigator의 현재 route를 MainScreen으로 교체하되, 인자로 탭 인덱스 전달
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => MainScreen(initialTabIndex: targetTabIndex), // const 제거
+            ),
+          );
+        }
       }
+      
+      print('✅ [FCM] 수신 전화 처리 완료');
+      
+    } finally {
+      // 🔧 플래그 해제 (화면 종료)
+      _isShowingIncomingCall = false;
+      // ignore: avoid_print
+      print('🔓 [FCM-SCREEN] 수신 전화 화면 플래그 해제');
     }
-    
-    print('✅ [FCM] 수신 전화 처리 완료');
   }
   
   /// 사용자 알림 설정 가져오기
