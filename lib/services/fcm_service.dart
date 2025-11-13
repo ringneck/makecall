@@ -2398,7 +2398,36 @@ class FCMService {
             // ignore: avoid_print
             print('🔄 [FCM-DIALOG] 재요청 버튼 클릭');
             if (_currentApprovalRequestId != null && _currentUserId != null) {
-              await _resendApprovalRequest(_currentApprovalRequestId!, _currentUserId!);
+              try {
+                await _resendApprovalRequest(_currentApprovalRequestId!, _currentUserId!);
+                
+                // 사용자에게 성공 메시지 표시
+                final context = _context ?? navigatorKey.currentContext;
+                if (context != null && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('✅ 승인 요청을 다시 전송했습니다'),
+                      duration: Duration(seconds: 2),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                // ignore: avoid_print
+                print('❌ [FCM-DIALOG] 재전송 오류: $e');
+                
+                // 사용자에게 오류 메시지 표시
+                final context = _context ?? navigatorKey.currentContext;
+                if (context != null && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('❌ 재전송 실패: $e'),
+                      duration: const Duration(seconds: 3),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             }
           },
         ),
@@ -2449,7 +2478,14 @@ class FCMService {
       
       // 알림 큐에 다시 등록
       for (var token in activeTokens) {
-        await _firestore.collection('fcm_approval_notification_queue').add({
+        // ignore: avoid_print
+        print('📤 [FCM-RESEND] 알림 큐 등록 시작: ${token.deviceName}');
+        // ignore: avoid_print
+        print('   - Target Token: ${token.fcmToken.substring(0, 20)}...');
+        // ignore: avoid_print
+        print('   - New Device: $newDeviceName ($newPlatform)');
+        
+        final docRef = await _firestore.collection('fcm_approval_notification_queue').add({
           'targetToken': token.fcmToken,
           'targetDeviceName': token.deviceName,
           'approvalRequestId': approvalRequestId,
@@ -2465,6 +2501,13 @@ class FCMService {
           'createdAt': FieldValue.serverTimestamp(),
           'processed': false,
         });
+        
+        // ignore: avoid_print
+        print('✅ [FCM-RESEND] 알림 큐 등록 완료: ${token.deviceName}');
+        // ignore: avoid_print
+        print('   - Document ID: ${docRef.id}');
+        // ignore: avoid_print
+        print('   ⏳ Cloud Functions sendApprovalNotification 트리거 대기 중...');
       }
       
       // ignore: avoid_print
