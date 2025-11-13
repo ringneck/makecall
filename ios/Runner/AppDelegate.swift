@@ -77,7 +77,7 @@ import FirebaseMessaging
     print("❌ APNs 등록 실패: \(error.localizedDescription)")
   }
   
-  // 포그라운드에서 알림 수신 - Firebase Plugin이 자동으로 Flutter로 전달
+  // 포그라운드에서 알림 수신 - Flutter Method Channel로 명시적 전달
   override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     willPresent notification: UNNotification,
@@ -92,16 +92,40 @@ import FirebaseMessaging
       print("📨 [iOS-FCM] 메시지 타입: \(messageType)")
       
       if messageType == "device_approval_request" {
-        print("🔔 [iOS-FCM] 기기 승인 요청 감지 - Firebase Plugin이 Flutter로 전달")
+        print("🔔 [iOS-FCM] 기기 승인 요청 감지 - Flutter로 전달 시작")
+        
+        // ✅ FIX: Flutter Method Channel로 직접 전달
+        DispatchQueue.main.async { [weak self] in
+          guard let self = self, let channel = self.fcmChannel else {
+            print("❌ [iOS-FCM] Method Channel이 없음")
+            return
+          }
+          
+          // userInfo를 String으로 변환
+          var flutterData: [String: Any] = [:]
+          for (key, value) in userInfo {
+            if let keyString = key.base as? String {
+              flutterData[keyString] = value
+            }
+          }
+          
+          print("🔄 [iOS-FCM] Flutter로 전송할 데이터: \(flutterData.keys)")
+          
+          channel.invokeMethod("onForegroundMessage", arguments: flutterData) { result in
+            if let error = result as? FlutterError {
+              print("❌ [iOS-FCM] Flutter 호출 실패: \(error.message ?? "알 수 없는 오류")")
+            } else {
+              print("✅ [iOS-FCM] Flutter 호출 성공")
+            }
+          }
+        }
       }
     }
     
-    // ✅ FIX: Firebase Plugin이 자동으로 Flutter의 FirebaseMessaging.onMessage로 전달하도록
-    // completionHandler에 알림 옵션을 제공하면 시스템 알림이 표시되지만,
-    // 빈 배열을 전달하면 알림은 표시하지 않고 데이터만 Flutter로 전달됨
+    // 네이티브 알림 표시하지 않음
     completionHandler([])
     
-    print("✅ [iOS-FCM] Firebase Plugin이 Flutter로 자동 전달 (네이티브 알림 표시 안 함)")
+    print("✅ [iOS-FCM] 처리 완료 (네이티브 알림 표시 안 함)")
   }
   
   // 알림 탭했을 때 - Firebase SDK가 자동으로 Flutter로 전달

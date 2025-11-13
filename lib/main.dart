@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/fcm_service.dart';
@@ -66,6 +68,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 // 🔑 GlobalKey for Navigator (수신 전화 풀스크린 표시용)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+// ✅ iOS FCM Method Channel
+MethodChannel? _fcmChannel;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -88,6 +93,13 @@ void main() async {
     }
   }
   
+  // ✅ iOS Method Channel 설정 (포그라운드 FCM 메시지 수신용)
+  if (Platform.isIOS) {
+    _fcmChannel = const MethodChannel('com.makecall.app/fcm');
+    _fcmChannel!.setMethodCallHandler(_handleIOSForegroundMessage);
+    print('✅ iOS FCM Method Channel 등록 완료');
+  }
+  
   // FCM 백그라운드 핸들러 등록
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   
@@ -100,9 +112,48 @@ void main() async {
   runApp(const MyApp());
 }
 
-// ✅ Method Channel 코드 제거 - Firebase Plugin이 자동으로 처리
-// iOS Native의 UNUserNotificationCenter가 completionHandler([])를 호출하면
-// Firebase Plugin이 자동으로 FirebaseMessaging.onMessage로 전달함
+/// ✅ iOS 포그라운드 FCM 메시지 핸들러 (Method Channel)
+Future<void> _handleIOSForegroundMessage(MethodCall call) async {
+  print('📲 [Flutter-FCM] iOS Method Channel 호출: ${call.method}');
+  
+  if (call.method == 'onForegroundMessage') {
+    try {
+      final Map<String, dynamic> data = Map<String, dynamic>.from(call.arguments as Map);
+      
+      print('📲 [Flutter-FCM] iOS 포그라운드 메시지 수신');
+      print('📲 데이터 keys: ${data.keys.toList()}');
+      
+      // APS 데이터에서 notification 정보 추출
+      final apsData = data['aps'] as Map?;
+      final alertData = apsData?['alert'] as Map?;
+      
+      final notification = RemoteNotification(
+        title: alertData?['title'] as String?,
+        body: alertData?['body'] as String?,
+      );
+      
+      // RemoteMessage 생성
+      final remoteMessage = RemoteMessage(
+        data: data,
+        notification: notification,
+        messageId: data['gcm.message_id']?.toString(),
+      );
+      
+      print('✅ [Flutter-FCM] RemoteMessage 생성 완료');
+      print('   - type: ${data['type']}');
+      print('   - approvalRequestId: ${data['approvalRequestId']}');
+      
+      // FCM 서비스로 전달 (포그라운드 처리)
+      await FCMService().handleRemoteMessage(remoteMessage, isForeground: true);
+      
+      print('✅ [Flutter-FCM] FCM 서비스 처리 완료');
+      
+    } catch (e, stackTrace) {
+      print('❌ [Flutter-FCM] iOS 메시지 처리 오류: $e');
+      print('Stack trace: $stackTrace');
+    }
+  }
+}
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
