@@ -14,7 +14,7 @@ class AuthService extends ChangeNotifier {
   final AccountManagerService _accountManager = AccountManagerService();
   
   User? get currentUser => _auth.currentUser;
-  bool get isAuthenticated => currentUser != null;
+  bool get isAuthenticated => _currentUserModel != null;
   
   UserModel? _currentUserModel;
   UserModel? get currentUserModel => _currentUserModel;
