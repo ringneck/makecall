@@ -8,6 +8,7 @@ import '../screens/call/incoming_call_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/contact_helper.dart';
+import 'database_service.dart';
 import 'package:http/http.dart' as http;
 
 /// DCMIWS WebSocket 서비스
@@ -1301,39 +1302,46 @@ class DCMIWSService {
     final eventData = callEventData['data'] as Map<String, dynamic>;
     String? callerName = eventData['CallerIDName'] as String?;
     
-    // 2️⃣ 연락처 조회 (이름 + 사진) - 항상 조회 시도
+    // 2️⃣ 자체 연락처 조회 (Firestore)
     String? contactName;
-    Uint8List? contactPhoto;
+    Uint8List? contactPhoto; // 현재는 사용하지 않음 (자체 연락처에는 사진 없음)
     
     try {
-      if (kDebugMode) {
-        debugPrint('🔍 기기 연락처에서 조회 중...');
-      }
+      final userId = FirebaseAuth.instance.currentUser?.uid;
       
-      final contactInfo = await ContactHelper().getContactInfoByPhone(callerNumber);
-      
-      if (contactInfo != null) {
-        contactName = contactInfo['name'] as String?;
-        contactPhoto = contactInfo['photo'] as Uint8List?;
-        
+      if (userId != null) {
         if (kDebugMode) {
-          debugPrint('✅ 연락처 찾음!');
-          debugPrint('  이름: $contactName');
-          debugPrint('  사진: ${contactPhoto != null ? "${contactPhoto.length} bytes" : "없음"}');
+          debugPrint('🔍 자체 연락처에서 조회 중... (전화번호: $callerNumber)');
+        }
+        
+        final contact = await DatabaseService().findContactByPhone(userId, callerNumber);
+        
+        if (contact != null) {
+          contactName = contact.name;
+          
+          if (kDebugMode) {
+            debugPrint('✅ 자체 연락처에서 찾음!');
+            debugPrint('  이름: $contactName');
+            debugPrint('  회사: ${contact.company ?? "없음"}');
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('📞 자체 연락처에 없음');
+          }
         }
       } else {
         if (kDebugMode) {
-          debugPrint('📞 연락처에 없음');
+          debugPrint('⚠️ 사용자 로그인 안됨 - 연락처 조회 생략');
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ 연락처 조회 실패: $e');
+        debugPrint('❌ 자체 연락처 조회 실패: $e');
       }
     }
     
     // 3️⃣ CallerIDName 우선순위 결정
-    // 연락처에서 찾은 이름 > CallerIDName > 전화번호
+    // 자체 연락처 이름 > CallerIDName > 전화번호
     if (contactName != null && contactName.isNotEmpty) {
       // 연락처에서 찾은 이름 사용
       callerName = contactName;
