@@ -2169,14 +2169,33 @@ class FCMService {
   /// 
   /// 로그아웃 시 현재 기기의 FCM 토큰만 삭제합니다.
   Future<void> deactivateToken(String userId) async {
-    if (_fcmToken == null) return;
-    
     try {
+      // ignore: avoid_print
+      print('');
+      // ignore: avoid_print
+      print('🔓 [FCM-DEACTIVATE] 현재 기기 토큰 비활성화 시작');
+      // ignore: avoid_print
+      print('   userId: $userId');
+      // ignore: avoid_print
+      print('   _fcmToken: ${_fcmToken != null ? "${_fcmToken!.substring(0, 20)}..." : "null"}');
+      
+      // 🔧 FIX: _fcmToken이 null이어도 deviceId로 토큰 비활성화 시도
       final deviceId = await _getDeviceId();
-      await _databaseService.deleteFcmToken(userId, deviceId);
-      debugPrint('✅ FCM 토큰 비활성화 완료');
+      // ignore: avoid_print
+      print('   deviceId: $deviceId');
+      
+      // 🔧 FIX: 삭제가 아니라 isActive를 false로 변경
+      await _databaseService.deactivateFcmToken(userId, deviceId);
+      
+      // ignore: avoid_print
+      print('✅ [FCM-DEACTIVATE] 현재 기기 토큰 비활성화 완료');
+      // ignore: avoid_print
+      print('   ℹ️  다른 기기의 토큰은 영향 없음 (계속 활성 유지)');
+      print('');
     } catch (e) {
-      debugPrint('❌ FCM 토큰 비활성화 오류: $e');
+      // ignore: avoid_print
+      print('❌ [FCM-DEACTIVATE] 토큰 비활성화 오류: $e');
+      // 🔧 에러를 던지지 않음 - 로그아웃은 계속 진행
     }
   }
   

@@ -1124,6 +1124,63 @@ class DatabaseService {
   /// 
   /// @param userId 사용자 ID
   /// @param deviceId 기기 ID
+  /// FCM 토큰 비활성화 (현재 기기만)
+  /// 
+  /// 로그아웃 시 현재 기기의 토큰만 비활성화합니다.
+  /// 다른 기기의 토큰은 영향받지 않습니다.
+  /// 
+  /// @param userId 사용자 ID
+  /// @param deviceId 기기 ID
+  Future<void> deactivateFcmToken(String userId, String deviceId) async {
+    try {
+      // ignore: avoid_print
+      print('🔓 [DatabaseService] FCM 토큰 비활성화 시작');
+      // ignore: avoid_print
+      print('   userId: $userId');
+      // ignore: avoid_print
+      print('   deviceId: $deviceId');
+      // ignore: avoid_print
+      print('   🎯 현재 기기만 비활성화 (다른 기기는 계속 활성)');
+
+      final docId = '${userId}_$deviceId';
+      
+      // 🔧 FIX: 삭제가 아니라 isActive를 false로 변경
+      await _firestore.collection('fcm_tokens').doc(docId).update({
+        'isActive': false,
+        'deactivatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // ignore: avoid_print
+      print('✅ [DatabaseService] FCM 토큰 비활성화 완료');
+      // ignore: avoid_print
+      print('   📱 현재 기기: 비활성화됨 (isActive: false)');
+      // ignore: avoid_print
+      print('   📱 다른 기기: 영향 없음 (계속 활성 유지)');
+      // ignore: avoid_print
+      print('   🔒 보존된 데이터:');
+      // ignore: avoid_print
+      print('      - users/{userId}: API/WebSocket 설정, 회사 정보');
+      // ignore: avoid_print
+      print('      - my_extensions: 단말번호 정보');
+      // ignore: avoid_print
+      print('      - call_forward_info: 착신전환 설정');
+      // ignore: avoid_print
+      print('   ✅ 재로그인 시 모든 데이터가 정상 로드됩니다');
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ [DatabaseService] FCM 토큰 비활성화 실패: $e');
+      
+      // 🔧 문서가 없는 경우 (이미 삭제됨) - 오류로 처리하지 않음
+      if (e.toString().contains('NOT_FOUND')) {
+        // ignore: avoid_print
+        print('   ℹ️  토큰 문서가 존재하지 않음 (이미 삭제되었거나 생성되지 않음)');
+        return;
+      }
+      
+      rethrow;
+    }
+  }
+
   Future<void> deleteFcmToken(String userId, String deviceId) async {
     try {
       // ignore: avoid_print
