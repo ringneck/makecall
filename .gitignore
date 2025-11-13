@@ -78,3 +78,6 @@ firebase-admin-sdk.json
 !setup.sh
 !build.sh
 android/.kotlin/
+
+# 유틸리티 스크립트는 포함
+!scripts/*.py
