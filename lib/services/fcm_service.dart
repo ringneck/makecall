@@ -88,9 +88,17 @@ class FCMService {
         if (_initializationCompleter != null) {
           // ignore: avoid_print
           print('⏳ [FCM] 첫 번째 초기화(승인 대기 포함) 완료까지 대기합니다');
-          await _initializationCompleter!.future;
-          // ignore: avoid_print
-          print('✅ [FCM] 첫 번째 초기화 완료됨 - 두 번째 호출 반환');
+          try {
+            await _initializationCompleter!.future;
+            // ignore: avoid_print
+            print('✅ [FCM] 첫 번째 초기화 완료됨 - 두 번째 호출 반환');
+          } catch (e) {
+            // ignore: avoid_print
+            print('❌ [FCM] 첫 번째 초기화 실패 - 두 번째 호출도 실패');
+            // ignore: avoid_print
+            print('   에러: $e');
+            rethrow; // 승인 실패 시 두 번째 호출도 실패해야 함
+          }
         }
         return;
       }
@@ -344,11 +352,23 @@ class FCMService {
       print(stackTrace);
       
       // 🔒 CRITICAL: 기기 승인 관련 오류는 반드시 상위로 전파
-      if (e.toString().contains('Device approval') || 
-          e.toString().contains('denied') || 
-          e.toString().contains('timeout')) {
+      final isApprovalError = e.toString().contains('Device approval') || 
+                               e.toString().contains('denied') || 
+                               e.toString().contains('timeout');
+      
+      if (isApprovalError) {
         // ignore: avoid_print
         print('🚫 [FCM] 기기 승인 실패 - 로그인 차단');
+        
+        // 🔒 CRITICAL: 승인 실패 시 Completer에 에러를 전달
+        // 이렇게 하면 대기 중인 다른 초기화 호출들도 같은 에러를 받음
+        _isInitializing = false;
+        if (_initializationCompleter != null && !_initializationCompleter!.isCompleted) {
+          _initializationCompleter!.completeError(e, stackTrace);
+          // ignore: avoid_print
+          print('🔒 [FCM] Completer에 에러 전달 완료 - 대기 중인 호출들도 실패');
+        }
+        
         rethrow;
       }
       
@@ -360,6 +380,7 @@ class FCMService {
       _isInitializing = false;
       
       // 🔓 초기화 완료 알림 (대기 중인 호출들에게)
+      // 승인 실패의 경우 위에서 이미 completeError 호출됨
       if (_initializationCompleter != null && !_initializationCompleter!.isCompleted) {
         _initializationCompleter!.complete();
       }
