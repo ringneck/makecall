@@ -1941,32 +1941,44 @@ class FCMService {
     // ignore: avoid_print
     print('   - navigatorKey.currentContext: ${navigatorKey.currentContext != null ? '있음' : '없음'}');
     
-    // BuildContext 또는 NavigatorKey 확인
-    final context = _context ?? navigatorKey.currentContext;
+    // 🔧 FIX: navigatorKey.currentContext를 우선 사용 (항상 최신 상태)
+    BuildContext? context = navigatorKey.currentContext;
+    
+    // navigatorKey가 없으면 _context 사용 (폴백)
+    if (context == null) {
+      context = _context;
+      // ignore: avoid_print
+      print('⚠️ [FCM-SCREEN] navigatorKey 없음 - _context 사용 (폴백)');
+    } else {
+      // ignore: avoid_print
+      print('✅ [FCM-SCREEN] navigatorKey.currentContext 사용 (우선)');
+    }
     
     if (context == null) {
       // ignore: avoid_print
       print('❌ [FCM-SCREEN] BuildContext와 NavigatorKey 모두 사용 불가');
       // ignore: avoid_print
       print('💡 main.dart에서 FCMService.setContext()를 호출하거나 앱이 완전히 시작될 때까지 기다리세요');
-      // ignore: avoid_print
-      print('🔧 해결 방법:');
-      // ignore: avoid_print
-      print('   1. main.dart에서 FCMService.setContext(context) 호출 확인');
-      // ignore: avoid_print
-      print('   2. navigatorKey가 MaterialApp에 설정되었는지 확인');
       return;
     }
     
     // 🔧 Context가 mounted 상태인지 확인
-    if (context is Element && !context.mounted) {
+    if (context is Element) {
+      if (!context.mounted) {
+        // ignore: avoid_print
+        print('❌ [FCM-SCREEN] Context가 deactivated 상태 - 사용 불가');
+        // ignore: avoid_print
+        print('   mounted: ${context.mounted}');
+        // ignore: avoid_print
+        print('   owner: ${context.owner}');
+        return;
+      }
       // ignore: avoid_print
-      print('❌ [FCM-SCREEN] Context가 deactivated 상태 - 사용 불가');
-      return;
+      print('✅ [FCM-SCREEN] Context mounted 확인 완료');
     }
     
     // ignore: avoid_print
-    print('✅ [FCM-SCREEN] Context 확인 완료 (${_context != null ? "setContext" : "navigatorKey"} 사용)');
+    print('✅ [FCM-SCREEN] Context 최종 확인 완료');
     
     // 📋 메시지 데이터에서 정보 추출
     // iOS와 Android 모두 지원 (caller_num, caller_name 등)
