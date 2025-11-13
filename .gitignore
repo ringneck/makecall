@@ -77,3 +77,4 @@ firebase-admin-sdk.json
 *.sh
 !setup.sh
 !build.sh
+android/.kotlin/
