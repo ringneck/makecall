@@ -2394,7 +2394,7 @@ class FCMService {
       final newPlatform = data['newPlatform'] as String?;
       
       // 기존 기기 토큰 조회
-      final otherDeviceTokens = await _databaseService.getActiveFcmTokens(userId);
+      final otherDeviceTokens = await _databaseService.getAllActiveFcmTokens(userId);
       final activeTokens = otherDeviceTokens.where((token) => 
         '${token.deviceId}_${token.platform}' != '${data['newDeviceId']}_${data['newPlatform']}'
       ).toList();
@@ -2575,7 +2575,7 @@ class _ApprovalWaitingDialogState extends State<_ApprovalWaitingDialog> {
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF2196F3),
-                      fontFeatureSettings: [FontFeature.tabularFigures()],
+                      fontFeatures: [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
