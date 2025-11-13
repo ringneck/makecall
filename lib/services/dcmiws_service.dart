@@ -175,8 +175,15 @@ class DCMIWSService {
       _reconnectAttempts = 0;
       _connectionStateController.add(true);
       
+      // 🔒 HTTP Auth 정보 저장 (재연결 시 사용)
+      _httpAuthId = httpAuthId;
+      _httpAuthPassword = httpAuthPassword;
+      
       if (kDebugMode) {
         debugPrint('✅ DCMIWS: Connected successfully to $targetUri');
+        if (httpAuthId != null && httpAuthId.isNotEmpty) {
+          debugPrint('  🔐 HTTP Auth enabled (ID: $httpAuthId)');
+        }
       }
 
       // 메시지 수신 리스너

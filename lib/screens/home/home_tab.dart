@@ -320,6 +320,8 @@ class _HomeTabState extends State<HomeTab> {
     final userWsPort = authService.currentUserModel?.websocketServerPort ?? 7099;
     final userUseSSL = authService.currentUserModel?.websocketUseSSL ?? false;
     final userAmiServerId = authService.currentUserModel?.amiServerId ?? 1;
+    final userHttpAuthId = authService.currentUserModel?.websocketHttpAuthId;
+    final userHttpAuthPassword = authService.currentUserModel?.websocketHttpAuthPassword;
     
     return Card(
       key: key,
@@ -509,6 +511,8 @@ class _HomeTabState extends State<HomeTab> {
                             wsServerPort: userWsPort,
                             useSSL: userUseSSL,
                             amiServerId: userAmiServerId,
+                            httpAuthId: userHttpAuthId,
+                            httpAuthPassword: userHttpAuthPassword,
                           ),
                           const SizedBox(height: 16),
                         ],

@@ -20,6 +20,8 @@ class CallForwardSettingsCard extends StatefulWidget {
   final int? wsServerPort;
   final bool? useSSL;
   final int? amiServerId;
+  final String? httpAuthId;
+  final String? httpAuthPassword;
 
   const CallForwardSettingsCard({
     super.key,
@@ -29,6 +31,8 @@ class CallForwardSettingsCard extends StatefulWidget {
     this.wsServerPort,
     this.useSSL,
     this.amiServerId,
+    this.httpAuthId,
+    this.httpAuthPassword,
   });
 
   @override
@@ -85,6 +89,8 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
           serverAddress: widget.wsServerAddress!,
           port: widget.wsServerPort!,
           useSSL: widget.useSSL ?? false,
+          httpAuthId: widget.httpAuthId,
+          httpAuthPassword: widget.httpAuthPassword,
         );
 
         if (!connected) {
@@ -309,6 +315,8 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
           serverAddress: widget.wsServerAddress!,
           port: widget.wsServerPort ?? 6600,
           useSSL: widget.useSSL ?? false,
+          httpAuthId: widget.httpAuthId,
+          httpAuthPassword: widget.httpAuthPassword,
         );
         temporaryConnection = true;
         
@@ -493,6 +501,8 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
           serverAddress: widget.wsServerAddress!,
           port: widget.wsServerPort ?? 6600,
           useSSL: widget.useSSL ?? false,
+          httpAuthId: widget.httpAuthId,
+          httpAuthPassword: widget.httpAuthPassword,
         );
         temporaryConnection = true;
         
