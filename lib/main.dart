@@ -112,11 +112,12 @@ void main() async {
   runApp(const MyApp());
 }
 
-/// ✅ iOS 포그라운드 FCM 메시지 핸들러 (Method Channel)
+/// ✅ iOS FCM 메시지 핸들러 (Method Channel)
 Future<void> _handleIOSForegroundMessage(MethodCall call) async {
   print('📲 [Flutter-FCM] iOS Method Channel 호출: ${call.method}');
   
   if (call.method == 'onForegroundMessage') {
+    // 포그라운드 메시지 처리
     try {
       final Map<String, dynamic> data = Map<String, dynamic>.from(call.arguments as Map);
       
@@ -141,7 +142,8 @@ Future<void> _handleIOSForegroundMessage(MethodCall call) async {
       
       print('✅ [Flutter-FCM] RemoteMessage 생성 완료');
       print('   - type: ${data['type']}');
-      print('   - approvalRequestId: ${data['approvalRequestId']}');
+      print('   - linkedid: ${data['linkedid']}');
+      print('   - call_type: ${data['call_type']}');
       
       // FCM 서비스로 전달 (포그라운드 처리)
       await FCMService().handleRemoteMessage(remoteMessage, isForeground: true);
@@ -150,6 +152,47 @@ Future<void> _handleIOSForegroundMessage(MethodCall call) async {
       
     } catch (e, stackTrace) {
       print('❌ [Flutter-FCM] iOS 메시지 처리 오류: $e');
+      print('Stack trace: $stackTrace');
+    }
+  } else if (call.method == 'onNotificationTap') {
+    // 🔧 NEW: 백그라운드 알림 탭 처리
+    try {
+      final Map<String, dynamic> data = Map<String, dynamic>.from(call.arguments as Map);
+      
+      print('📬 [Flutter-FCM] iOS 백그라운드 알림 탭 수신');
+      print('📬 데이터 keys: ${data.keys.toList()}');
+      
+      // _notification_tap 플래그 제거
+      data.remove('_notification_tap');
+      
+      // APS 데이터에서 notification 정보 추출
+      final apsData = data['aps'] as Map?;
+      final alertData = apsData?['alert'] as Map?;
+      
+      final notification = RemoteNotification(
+        title: alertData?['title'] as String?,
+        body: alertData?['body'] as String?,
+      );
+      
+      // RemoteMessage 생성
+      final remoteMessage = RemoteMessage(
+        data: data,
+        notification: notification,
+        messageId: data['gcm.message_id']?.toString(),
+      );
+      
+      print('✅ [Flutter-FCM] RemoteMessage 생성 완료 (백그라운드)');
+      print('   - type: ${data['type']}');
+      print('   - linkedid: ${data['linkedid']}');
+      print('   - call_type: ${data['call_type']}');
+      
+      // FCM 서비스로 전달 (백그라운드 알림 탭 처리)
+      await FCMService().handleRemoteMessage(remoteMessage, isForeground: false);
+      
+      print('✅ [Flutter-FCM] FCM 서비스 처리 완료 (백그라운드)');
+      
+    } catch (e, stackTrace) {
+      print('❌ [Flutter-FCM] iOS 백그라운드 알림 탭 처리 오류: $e');
       print('Stack trace: $stackTrace');
     }
   }
