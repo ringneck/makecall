@@ -893,6 +893,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             ),
           ),
           
+          // 🌐 웹 플랫폼: 웹 푸시 설정만 표시
           if (kIsWeb) ...[
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
@@ -915,6 +916,55 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               ),
               trailing: const Icon(Icons.chevron_right, size: 20),
               onTap: () => _showWebPushInfo(context),
+            ),
+          ],
+          
+          // 📱 모바일/태블릿 플랫폼: 기기 푸시 설정 표시
+          if (!kIsWeb) ...[
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+              leading: Icon(
+                Platform.isIOS ? Icons.apple : Icons.android, 
+                color: Colors.orange, 
+                size: 22
+              ),
+              title: Text(
+                Platform.isIOS ? 'iOS 기기 푸시 알림' : 'Android 기기 푸시 알림',
+                style: const TextStyle(fontSize: 15)
+              ),
+              subtitle: Text(
+                Platform.isIOS 
+                    ? 'APNs 기반 푸시 알림 (iOS)'
+                    : 'FCM 기반 푸시 알림 (Android)',
+                style: const TextStyle(fontSize: 11),
+              ),
+              trailing: Icon(
+                _pushEnabled ? Icons.check_circle : Icons.cancel,
+                color: _pushEnabled ? Colors.green : Colors.grey,
+                size: 20,
+              ),
+              onTap: () {
+                // 기기 푸시는 시스템 설정에서 관리
+                DialogUtils.showInfo(
+                  context,
+                  Platform.isIOS
+                      ? 'iOS 푸시 알림은 시스템 설정에서 관리됩니다.\n\n설정 → MAKECALL → 알림'
+                      : 'Android 푸시 알림은 시스템 설정에서 관리됩니다.\n\n설정 → 앱 → MAKECALL → 알림',
+                );
+              },
+            ),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+              leading: const Icon(Icons.info_outline, size: 22),
+              title: const Text('기기 푸시 정보', style: TextStyle(fontSize: 15)),
+              subtitle: Text(
+                Platform.isIOS 
+                    ? 'iOS 푸시 알림 사용 방법'
+                    : 'Android 푸시 알림 사용 방법',
+                style: const TextStyle(fontSize: 11),
+              ),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () => _showMobilePushInfo(context),
             ),
           ],
           
@@ -3644,6 +3694,152 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             },
             child: const Text('지금 활성화'),
           ),
+        ],
+      ),
+    );
+  }
+  
+  /// 📱 모바일/태블릿 푸시 알림 정보 다이얼로그
+  void _showMobilePushInfo(BuildContext context) {
+    final isIOS = Platform.isIOS;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              isIOS ? Icons.apple : Icons.android, 
+              color: Colors.blue
+            ),
+            const SizedBox(width: 8),
+            Text(isIOS ? 'iOS 푸시 알림 안내' : 'Android 푸시 알림 안내'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isIOS ? 'APNs 기반 푸시 알림' : 'FCM 기반 푸시 알림',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isIOS
+                    ? 'Apple Push Notification service(APNs)를 통해 실시간 알림을 받을 수 있습니다.'
+                    : 'Firebase Cloud Messaging(FCM)을 통해 실시간 알림을 받을 수 있습니다.',
+                style: const TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.check_circle, size: 16, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text(
+                          '주요 기능',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text('• 수신 전화 실시간 알림', style: TextStyle(fontSize: 11)),
+                    Text('• 기기 승인 요청 알림', style: TextStyle(fontSize: 11)),
+                    Text('• 포그라운드/백그라운드 모두 지원', style: TextStyle(fontSize: 11)),
+                    Text('• 배터리 효율적인 알림 수신', style: TextStyle(fontSize: 11)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.settings, size: 16, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text(
+                          '알림 설정 방법',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isIOS
+                          ? '1. 설정 앱 실행\n2. MAKECALL 찾기\n3. 알림 메뉴 선택\n4. 알림 허용 활성화'
+                          : '1. 설정 앱 실행\n2. 앱 → MAKECALL 선택\n3. 알림 메뉴 선택\n4. 알림 허용 활성화',
+                      style: const TextStyle(fontSize: 11, height: 1.5),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.battery_charging_full, size: 16, color: Colors.green),
+                        SizedBox(width: 8),
+                        Text(
+                          '배터리 최적화',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isIOS
+                          ? 'APNs는 Apple 서버를 통해 효율적으로 알림을 전달하여 배터리 소모를 최소화합니다.'
+                          : 'FCM은 Google 서버를 통해 효율적으로 알림을 전달하여 배터리 소모를 최소화합니다.',
+                      style: const TextStyle(fontSize: 11, height: 1.5),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
+          ),
+          if (isIOS)
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.pop(context);
+                await openAppSettings();
+              },
+              icon: const Icon(Icons.settings, size: 18),
+              label: const Text('iOS 설정 열기'),
+            ),
         ],
       ),
     );
