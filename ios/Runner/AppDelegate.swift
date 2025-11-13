@@ -86,15 +86,16 @@ import FirebaseMessaging
     let userInfo = notification.request.content.userInfo
     
     print("📨 [iOS-FCM] 포그라운드 알림 수신: \(notification.request.content.title)")
+    print("📨 [iOS-FCM] userInfo: \(userInfo)")
     
-    // ✅ Firebase Messaging이 자동으로 Flutter의 FirebaseMessaging.onMessage로 전달
-    // Method Channel 제거 - Firebase SDK의 기본 동작 사용
+    // 🔧 FIX: Firebase Messaging에 메시지 전달 (Flutter로 전달하기 위해 필수)
+    Messaging.messaging().appDidReceiveMessage(userInfo)
+    print("✅ [iOS-FCM] Messaging.messaging().appDidReceiveMessage() 호출 완료")
     
-    // ⚠️ iOS 네이티브 알림을 표시하지 않음 (Flutter에서 사용자 설정 확인 후 처리)
-    // 사용자가 푸시 알림을 비활성화했을 수 있으므로, Flutter 레벨에서 제어
-    completionHandler([[]])  // 빈 옵션 = 알림 표시 안 함
+    // ⚠️ iOS 네이티브 알림을 표시하지 않음 (Flutter에서 다이얼로그로 표시)
+    completionHandler([[]])  // 빈 옵션 = 시스템 알림 표시 안 함
     
-    print("✅ [iOS-FCM] Firebase SDK가 Flutter로 자동 전달 (네이티브 알림 표시 안 함)")
+    print("✅ [iOS-FCM] Flutter FirebaseMessaging.onMessage로 전달됨 (네이티브 알림 표시 안 함)")
   }
   
   // 알림 탭했을 때 - Firebase SDK가 자동으로 Flutter로 전달
