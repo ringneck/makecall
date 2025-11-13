@@ -1371,54 +1371,48 @@ class FCMService {
         ),
         actions: [
           TextButton(
-            onPressed: () async {
+            onPressed: () {
               // ignore: avoid_print
               print('🔘 [FCM-APPROVAL] 거부 버튼 클릭됨');
-              try {
-                // 승인 처리 먼저
-                await _rejectDeviceApproval(approvalRequestId);
+              
+              // 🔧 FIX: 다이얼로그를 먼저 닫고, 거부 처리는 백그라운드에서 실행
+              if (context.mounted) {
+                Navigator.of(context).pop();
                 // ignore: avoid_print
-                print('✅ [FCM-APPROVAL] 거부 처리 완료 - 다이얼로그 닫기');
-                // Navigator.pop()을 안전하게 호출
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                  // ignore: avoid_print
-                  print('✅ [FCM-APPROVAL] 다이얼로그 닫힘');
-                }
-              } catch (e) {
+                print('✅ [FCM-APPROVAL] 다이얼로그 즉시 닫힘');
+              }
+              
+              // 거부 처리는 비동기로 백그라운드 실행
+              _rejectDeviceApproval(approvalRequestId).then((_) {
+                // ignore: avoid_print
+                print('✅ [FCM-APPROVAL] 거부 처리 완료');
+              }).catchError((e) {
                 // ignore: avoid_print
                 print('❌ [FCM-APPROVAL] 거부 처리 오류: $e');
-                // 오류가 발생해도 다이얼로그는 닫기
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
-              }
+              });
             },
             child: const Text('거부', style: TextStyle(color: Colors.red)),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               // ignore: avoid_print
               print('🔘 [FCM-APPROVAL] 승인 버튼 클릭됨');
-              try {
-                // 승인 처리 먼저
-                await _approveDeviceApproval(approvalRequestId);
+              
+              // 🔧 FIX: 다이얼로그를 먼저 닫고, 승인 처리는 백그라운드에서 실행
+              if (context.mounted) {
+                Navigator.of(context).pop();
                 // ignore: avoid_print
-                print('✅ [FCM-APPROVAL] 승인 처리 완료 - 다이얼로그 닫기');
-                // Navigator.pop()을 안전하게 호출
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                  // ignore: avoid_print
-                  print('✅ [FCM-APPROVAL] 다이얼로그 닫힘');
-                }
-              } catch (e) {
+                print('✅ [FCM-APPROVAL] 다이얼로그 즉시 닫힘');
+              }
+              
+              // 승인 처리는 비동기로 백그라운드 실행
+              _approveDeviceApproval(approvalRequestId).then((_) {
+                // ignore: avoid_print
+                print('✅ [FCM-APPROVAL] 승인 처리 완료');
+              }).catchError((e) {
                 // ignore: avoid_print
                 print('❌ [FCM-APPROVAL] 승인 처리 오류: $e');
-                // 오류가 발생해도 다이얼로그는 닫기
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
-              }
+              });
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
