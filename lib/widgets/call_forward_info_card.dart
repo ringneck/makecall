@@ -13,6 +13,8 @@ class CallForwardInfoCard extends StatefulWidget {
   final int? wsServerPort;
   final bool? useSSL;
   final int? amiServerId;
+  final String? httpAuthId;
+  final String? httpAuthPassword;
 
   const CallForwardInfoCard({
     super.key,
@@ -22,6 +24,8 @@ class CallForwardInfoCard extends StatefulWidget {
     this.wsServerPort,
     this.useSSL,
     this.amiServerId,
+    this.httpAuthId,
+    this.httpAuthPassword,
   });
 
   @override
@@ -70,6 +74,8 @@ class _CallForwardInfoCardState extends State<CallForwardInfoCard> {
           serverAddress: widget.wsServerAddress!,
           port: widget.wsServerPort!,
           useSSL: widget.useSSL ?? false,
+          httpAuthId: widget.httpAuthId,
+          httpAuthPassword: widget.httpAuthPassword,
         );
 
         if (!connected) {
