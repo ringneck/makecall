@@ -41,6 +41,10 @@ class FCMService {
   // 🔒 초기화 완료를 기다리기 위한 Completer
   static Completer<void>? _initializationCompleter;
   
+  // 🎨 승인 대기 다이얼로그 관련
+  String? _currentApprovalRequestId;
+  String? _currentUserId;
+  
   /// FCM 토큰 가져오기
   String? get fcmToken => _fcmToken;
   
@@ -525,6 +529,10 @@ class FCMService {
         // ignore: avoid_print
         print('🔒 [FCM-SAVE] 중요: _waitForDeviceApproval() 호출 - 이 함수가 반환될 때까지 대기');
         
+        // 🎨 승인 요청 정보 저장
+        _currentApprovalRequestId = approvalRequestId;
+        _currentUserId = userId;
+        
         // 🎨 승인 대기 다이얼로그 표시
         _showApprovalWaitingDialog();
         
@@ -533,6 +541,10 @@ class FCMService {
         
         // 🎨 다이얼로그 닫기
         _dismissApprovalWaitingDialog();
+        
+        // 🎨 승인 요청 정보 초기화
+        _currentApprovalRequestId = null;
+        _currentUserId = null;
         
         // ignore: avoid_print
         print('🔙 [FCM-SAVE] _waitForDeviceApproval() 반환됨: $approved');
@@ -1236,26 +1248,57 @@ class FCMService {
   /// 
   /// 새 기기에서 로그인 시도 시 기존 기기에서 승인 다이얼로그를 표시합니다.
   void _handleDeviceApprovalRequest(RemoteMessage message) {
-    debugPrint('🔔 [FCM] 기기 승인 요청 메시지 수신');
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('🔔 [FCM-APPROVAL] _handleDeviceApprovalRequest() 호출됨');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
     
     final approvalRequestId = message.data['approvalRequestId'] as String?;
     final newDeviceName = message.data['newDeviceName'] ?? '알 수 없는 기기';
     final newPlatform = message.data['newPlatform'] ?? 'unknown';
     
+    // ignore: avoid_print
+    print('📋 [FCM-APPROVAL] 메시지 데이터:');
+    // ignore: avoid_print
+    print('   - approvalRequestId: $approvalRequestId');
+    // ignore: avoid_print
+    print('   - newDeviceName: $newDeviceName');
+    // ignore: avoid_print
+    print('   - newPlatform: $newPlatform');
+    
     if (approvalRequestId == null) {
-      debugPrint('❌ [FCM] approvalRequestId 없음');
+      // ignore: avoid_print
+      print('❌ [FCM-APPROVAL] approvalRequestId 없음 - 처리 중단');
+      print('');
       return;
     }
     
-    // 🔧 FIX: Context를 기다렸다가 다이얼로그 표시
+    // 🔧 FIX: Context 즉시 확인
     final context = _context ?? navigatorKey.currentContext;
+    
+    // ignore: avoid_print
+    print('🔍 [FCM-APPROVAL] Context 상태 확인:');
+    // ignore: avoid_print
+    print('   - _context: ${_context != null ? "존재" : "null"}');
+    // ignore: avoid_print
+    print('   - navigatorKey.currentContext: ${navigatorKey.currentContext != null ? "존재" : "null"}');
+    // ignore: avoid_print
+    print('   - context (final): ${context != null ? "존재" : "null"}');
+    
     if (context == null) {
-      debugPrint('⏳ [FCM] BuildContext 없음 - Context 준비 대기 후 다이얼로그 표시');
+      // ignore: avoid_print
+      print('⏳ [FCM-APPROVAL] BuildContext 없음 - Context 준비 대기 시작');
       _waitForContextAndShowApprovalDialog(message);
       return;
     }
     
-    debugPrint('✅ [FCM] 기기 승인 다이얼로그 표시');
+    // ignore: avoid_print
+    print('✅ [FCM-APPROVAL] Context 존재 - 즉시 다이얼로그 표시');
+    print('');
     
     // 기기 승인 다이얼로그 표시
     showDialog(
@@ -2302,43 +2345,97 @@ class FCMService {
     // ignore: avoid_print
     print('🎨 [FCM-DIALOG] 승인 대기 다이얼로그 표시');
     
+    // 🔧 키보드 숨기기
+    FocusScope.of(context).unfocus();
+    
     showDialog(
       context: context,
-      barrierDismissible: false, // 백그라운드 탭으로 닫기 방지
-      builder: (context) => WillPopScope(
-        onWillPop: () async => false, // 뒤로 가기 방지
-        child: AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.devices, color: Color(0xFF2196F3)),
-              SizedBox(width: 8),
-              Text('기기 승인 대기 중'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 24),
-              const Text(
-                '다른 기기에서 이 기기의 로그인을 승인해주세요.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '최대 5분간 대기합니다.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
+      barrierDismissible: false,
+      barrierColor: Colors.black87, // 🎨 어두운 배경으로 키패드 숨기기
+      builder: (dialogContext) => PopScope(
+        canPop: false, // 뒤로 가기 방지
+        child: _ApprovalWaitingDialog(
+          onResendRequest: () async {
+            // ignore: avoid_print
+            print('🔄 [FCM-DIALOG] 재요청 버튼 클릭');
+            if (_currentApprovalRequestId != null && _currentUserId != null) {
+              await _resendApprovalRequest(_currentApprovalRequestId!, _currentUserId!);
+            }
+          },
         ),
       ),
     );
+  }
+  
+  /// 승인 요청 재전송
+  Future<void> _resendApprovalRequest(String approvalRequestId, String userId) async {
+    try {
+      // ignore: avoid_print
+      print('');
+      // ignore: avoid_print
+      print('🔄 [FCM-RESEND] 승인 요청 재전송 시작');
+      // ignore: avoid_print
+      print('   - Approval Request ID: $approvalRequestId');
+      
+      // Firestore에서 승인 요청 문서 가져오기
+      final approvalDoc = await _firestore
+          .collection('device_approval_requests')
+          .doc(approvalRequestId)
+          .get();
+      
+      if (!approvalDoc.exists) {
+        // ignore: avoid_print
+        print('❌ [FCM-RESEND] 승인 요청 문서가 존재하지 않음');
+        return;
+      }
+      
+      final data = approvalDoc.data()!;
+      final newDeviceName = data['newDeviceName'] as String?;
+      final newPlatform = data['newPlatform'] as String?;
+      
+      // 기존 기기 토큰 조회
+      final otherDeviceTokens = await _databaseService.getActiveFcmTokens(userId);
+      final activeTokens = otherDeviceTokens.where((token) => 
+        '${token.deviceId}_${token.platform}' != '${data['newDeviceId']}_${data['newPlatform']}'
+      ).toList();
+      
+      if (activeTokens.isEmpty) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-RESEND] 활성 기기가 없음');
+        return;
+      }
+      
+      // ignore: avoid_print
+      print('📤 [FCM-RESEND] ${activeTokens.length}개 기기에 알림 재전송');
+      
+      // 알림 큐에 다시 등록
+      for (var token in activeTokens) {
+        await _firestore.collection('fcm_approval_notification_queue').add({
+          'targetToken': token.fcmToken,
+          'targetDeviceName': token.deviceName,
+          'approvalRequestId': approvalRequestId,
+          'newDeviceName': newDeviceName,
+          'newPlatform': newPlatform,
+          'userId': userId,
+          'message': {
+            'type': 'device_approval_request',
+            'title': '🔐 새 기기 로그인 감지',
+            'body': '$newDeviceName ($newPlatform)에서 로그인 시도',
+            'approvalRequestId': approvalRequestId,
+          },
+          'createdAt': FieldValue.serverTimestamp(),
+          'processed': false,
+        });
+      }
+      
+      // ignore: avoid_print
+      print('✅ [FCM-RESEND] 승인 요청 재전송 완료');
+      print('');
+      
+    } catch (e) {
+      // ignore: avoid_print
+      print('❌ [FCM-RESEND] 재전송 실패: $e');
+    }
   }
   
   /// 승인 대기 다이얼로그 닫기
@@ -2357,5 +2454,160 @@ class FCMService {
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }
+  }
+}
+
+/// 승인 대기 다이얼로그 위젯
+class _ApprovalWaitingDialog extends StatefulWidget {
+  final VoidCallback onResendRequest;
+  
+  const _ApprovalWaitingDialog({
+    required this.onResendRequest,
+  });
+  
+  @override
+  State<_ApprovalWaitingDialog> createState() => _ApprovalWaitingDialogState();
+}
+
+class _ApprovalWaitingDialogState extends State<_ApprovalWaitingDialog> {
+  static const int _maxSeconds = 300; // 5분
+  int _remainingSeconds = _maxSeconds;
+  Timer? _timer;
+  
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+  
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+  
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        setState(() {
+          _remainingSeconds--;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+  
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 🔐 아이콘
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.devices,
+                size: 48,
+                color: Color(0xFF2196F3),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // 제목
+            const Text(
+              '기기 승인 대기 중',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            
+            // 설명
+            const Text(
+              '다른 기기에서 이 기기의 로그인을\n승인해주세요.',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            
+            // 타이머
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.timer_outlined,
+                    size: 20,
+                    color: Color(0xFF2196F3),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _formatTime(_remainingSeconds),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2196F3),
+                      fontFeatureSettings: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // 로딩 인디케이터
+            const SizedBox(
+              width: 40,
+              height: 40,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // 재요청 버튼
+            OutlinedButton.icon(
+              onPressed: widget.onResendRequest,
+              icon: const Icon(Icons.refresh),
+              label: const Text('알림 재전송'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
