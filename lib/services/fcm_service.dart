@@ -525,8 +525,14 @@ class FCMService {
         // ignore: avoid_print
         print('🔒 [FCM-SAVE] 중요: _waitForDeviceApproval() 호출 - 이 함수가 반환될 때까지 대기');
         
+        // 🎨 승인 대기 다이얼로그 표시
+        _showApprovalWaitingDialog();
+        
         // 승인 대기 (최대 5분)
         final approved = await _waitForDeviceApproval(approvalRequestId);
+        
+        // 🎨 다이얼로그 닫기
+        _dismissApprovalWaitingDialog();
         
         // ignore: avoid_print
         print('🔙 [FCM-SAVE] _waitForDeviceApproval() 반환됨: $approved');
@@ -1097,26 +1103,54 @@ class FCMService {
   /// 🔧 NEW: Context 준비 대기 후 기기 승인 다이얼로그 표시
   Future<void> _waitForContextAndShowApprovalDialog(RemoteMessage message) async {
     int retryCount = 0;
-    const maxRetries = 30; // 3초 (100ms * 30)
+    const maxRetries = 50; // 🔧 FIX: 5초로 증가 (100ms * 50)
+    
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('🔄 [FCM-APPROVAL-DIALOG] Context 대기 시작...');
+    // ignore: avoid_print
+    print('   최대 대기 시간: 5초');
     
     while (retryCount < maxRetries) {
       final context = _context ?? navigatorKey.currentContext;
       
+      // ignore: avoid_print
+      print('🔍 [FCM-APPROVAL-DIALOG] 시도 ${retryCount + 1}/$maxRetries');
+      // ignore: avoid_print
+      print('   - _context: ${_context != null}');
+      // ignore: avoid_print
+      print('   - navigatorKey.currentContext: ${navigatorKey.currentContext != null}');
+      
       if (context != null) {
-        debugPrint('✅ [FCM-APPROVAL-DIALOG] Context 준비 완료 (${retryCount * 100}ms 대기)');
+        // ignore: avoid_print
+        print('✅ [FCM-APPROVAL-DIALOG] Context 준비 완료!');
+        // ignore: avoid_print
+        print('   - 대기 시간: ${retryCount * 100}ms');
+        // ignore: avoid_print
+        print('   - 다이얼로그 표시 시작...');
+        print('');
         
         // 기기 승인 요청 메시지 처리
         _handleDeviceApprovalRequest(message);
         return;
       }
       
-      debugPrint('⏳ [FCM-APPROVAL-DIALOG] Context 대기 중... (${retryCount + 1}/$maxRetries)');
       await Future.delayed(const Duration(milliseconds: 100));
       retryCount++;
     }
     
-    debugPrint('❌ [FCM-APPROVAL-DIALOG] Context 타임아웃 (3초 대기 후에도 Context 없음)');
-    debugPrint('💡 [FCM-APPROVAL-DIALOG] 사용자는 프로필 → 활성 세션에서 수동으로 승인 가능');
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('❌ [FCM-APPROVAL-DIALOG] Context 타임아웃!');
+    // ignore: avoid_print
+    print('   - 5초 대기 후에도 Context 없음');
+    // ignore: avoid_print
+    print('   - 앱이 백그라운드에 있거나 종료된 상태일 수 있음');
+    // ignore: avoid_print
+    print('💡 [FCM-APPROVAL-DIALOG] 사용자는 프로필 → 활성 세션에서 수동으로 승인 가능');
+    print('');
   }
   
   /// 강제 로그아웃 메시지 처리 (레거시 - 하위 호환성 유지)
@@ -2253,6 +2287,75 @@ class FCMService {
       print('   Type: ${e.runtimeType}');
       // ignore: avoid_print
       print('Stack trace: $stackTrace');
+    }
+  }
+  
+  /// 승인 대기 다이얼로그 표시
+  void _showApprovalWaitingDialog() {
+    final context = _context ?? navigatorKey.currentContext;
+    if (context == null) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-DIALOG] Context 없음 - 다이얼로그 표시 불가');
+      return;
+    }
+    
+    // ignore: avoid_print
+    print('🎨 [FCM-DIALOG] 승인 대기 다이얼로그 표시');
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false, // 백그라운드 탭으로 닫기 방지
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false, // 뒤로 가기 방지
+        child: AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.devices, color: Color(0xFF2196F3)),
+              SizedBox(width: 8),
+              Text('기기 승인 대기 중'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 24),
+              const Text(
+                '다른 기기에서 이 기기의 로그인을 승인해주세요.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '최대 5분간 대기합니다.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  /// 승인 대기 다이얼로그 닫기
+  void _dismissApprovalWaitingDialog() {
+    final context = _context ?? navigatorKey.currentContext;
+    if (context == null) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-DIALOG] Context 없음 - 다이얼로그 닫기 불가');
+      return;
+    }
+    
+    // ignore: avoid_print
+    print('🎨 [FCM-DIALOG] 승인 대기 다이얼로그 닫기');
+    
+    // 다이얼로그가 열려있는지 확인하고 닫기
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
     }
   }
 }
