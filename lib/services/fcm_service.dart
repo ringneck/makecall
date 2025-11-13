@@ -45,6 +45,11 @@ class FCMService {
   String? _currentApprovalRequestId;
   String? _currentUserId;
   
+  // 🔒 중복 메시지 처리 방지
+  static final Set<String> _processedMessageIds = {};
+  static final Set<String> _processingApprovalIds = {}; // 처리 중인 승인 요청 ID
+  static String? _currentDisplayedApprovalId; // 현재 표시 중인 다이얼로그의 승인 요청 ID
+  
   /// FCM 토큰 가져오기
   String? get fcmToken => _fcmToken;
   
@@ -907,6 +912,27 @@ class FCMService {
       print('   - data[$key]: $value (${value.runtimeType})');
     });
     
+    // 🔒 중복 메시지 처리 방지
+    final messageId = message.messageId;
+    if (messageId != null && _processedMessageIds.contains(messageId)) {
+      // ignore: avoid_print
+      print('⚠️ [FCM] 이미 처리한 메시지 - 무시: $messageId');
+      return;
+    }
+    if (messageId != null) {
+      _processedMessageIds.add(messageId);
+      // ignore: avoid_print
+      print('✅ [FCM] 새 메시지 처리 시작: $messageId');
+      
+      // 🧹 메모리 관리: 100개 이상 쌓이면 오래된 것 제거
+      if (_processedMessageIds.length > 100) {
+        final toRemove = _processedMessageIds.take(50).toList();
+        _processedMessageIds.removeAll(toRemove);
+        // ignore: avoid_print
+        print('🧹 [FCM] 오래된 메시지 ID 50개 제거');
+      }
+    }
+    
     // 🔐 강제 로그아웃 메시지 처리 (레거시)
     if (message.data['type'] == 'force_logout') {
       _handleForceLogout(message);
@@ -1309,6 +1335,14 @@ class FCMService {
       return;
     }
     
+    // 🔒 이미 표시 중인 다이얼로그 확인
+    if (_currentDisplayedApprovalId == approvalRequestId) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-APPROVAL] 이미 표시 중인 다이얼로그 - 중복 표시 방지: $approvalRequestId');
+      print('');
+      return;
+    }
+    
     // 🔧 FIX: Context 즉시 확인
     final context = _context ?? navigatorKey.currentContext;
     
@@ -1327,6 +1361,9 @@ class FCMService {
       _waitForContextAndShowApprovalDialog(message);
       return;
     }
+    
+    // 🔒 다이얼로그 표시 시작 - ID 기록
+    _currentDisplayedApprovalId = approvalRequestId;
     
     // ignore: avoid_print
     print('✅ [FCM-APPROVAL] Context 존재 - 즉시 다이얼로그 표시');
@@ -1411,11 +1448,22 @@ class FCMService {
               // ignore: avoid_print
               print('🔘 [FCM-APPROVAL] 거부 버튼 클릭됨');
               
+              // 🔒 중복 처리 방지
+              if (_processingApprovalIds.contains(approvalRequestId)) {
+                // ignore: avoid_print
+                print('⚠️ [FCM-APPROVAL] 이미 처리 중 - 중복 클릭 무시');
+                return;
+              }
+              _processingApprovalIds.add(approvalRequestId);
+              
               // 🔧 FIX: 다이얼로그를 먼저 닫고, 거부 처리는 백그라운드에서 실행
               if (context.mounted) {
                 Navigator.of(context).pop();
                 // ignore: avoid_print
                 print('✅ [FCM-APPROVAL] 다이얼로그 즉시 닫힘');
+                
+                // 🔒 다이얼로그 닫힘 - ID 초기화
+                _currentDisplayedApprovalId = null;
               }
               
               // 거부 처리는 비동기로 백그라운드 실행
@@ -1425,6 +1473,9 @@ class FCMService {
               }).catchError((e) {
                 // ignore: avoid_print
                 print('❌ [FCM-APPROVAL] 거부 처리 오류: $e');
+              }).whenComplete(() {
+                // 🔒 처리 완료 - 플래그 제거
+                _processingApprovalIds.remove(approvalRequestId);
               });
             },
             child: const Text('거부', style: TextStyle(color: Colors.red)),
@@ -1434,11 +1485,22 @@ class FCMService {
               // ignore: avoid_print
               print('🔘 [FCM-APPROVAL] 승인 버튼 클릭됨');
               
+              // 🔒 중복 처리 방지
+              if (_processingApprovalIds.contains(approvalRequestId)) {
+                // ignore: avoid_print
+                print('⚠️ [FCM-APPROVAL] 이미 처리 중 - 중복 클릭 무시');
+                return;
+              }
+              _processingApprovalIds.add(approvalRequestId);
+              
               // 🔧 FIX: 다이얼로그를 먼저 닫고, 승인 처리는 백그라운드에서 실행
               if (context.mounted) {
                 Navigator.of(context).pop();
                 // ignore: avoid_print
                 print('✅ [FCM-APPROVAL] 다이얼로그 즉시 닫힘');
+                
+                // 🔒 다이얼로그 닫힘 - ID 초기화
+                _currentDisplayedApprovalId = null;
               }
               
               // 승인 처리는 비동기로 백그라운드 실행
@@ -1448,6 +1510,9 @@ class FCMService {
               }).catchError((e) {
                 // ignore: avoid_print
                 print('❌ [FCM-APPROVAL] 승인 처리 오류: $e');
+              }).whenComplete(() {
+                // 🔒 처리 완료 - 플래그 제거
+                _processingApprovalIds.remove(approvalRequestId);
               });
             },
             style: ElevatedButton.styleFrom(
@@ -2433,7 +2498,7 @@ class FCMService {
     }
     
     // ignore: avoid_print
-    print('🎨 [FCM-DIALOG] 승인 대기 다이얼로그 표시');
+    print('🎨 [FCM-DIALOG] 승인 대기 전체 화면 표시 (백그라운드 UI 완전 차단)');
     
     // 🔧 키보드 숨기기
     FocusScope.of(context).unfocus();
@@ -2441,7 +2506,7 @@ class FCMService {
     showDialog(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black87, // 🎨 어두운 배경으로 키패드 숨기기
+      barrierColor: Colors.transparent, // 🎯 투명 (위젯 자체가 화면을 덮음)
       builder: (dialogContext) => PopScope(
         canPop: false, // 뒤로 가기 방지
         child: _ApprovalWaitingDialog(
@@ -2590,7 +2655,7 @@ class FCMService {
   }
 }
 
-/// 승인 대기 다이얼로그 위젯
+/// 승인 대기 다이얼로그 위젯 (전체 화면 차단)
 class _ApprovalWaitingDialog extends StatefulWidget {
   final VoidCallback onResendRequest;
   
@@ -2639,106 +2704,116 @@ class _ApprovalWaitingDialogState extends State<_ApprovalWaitingDialog> {
   
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 🔐 아이콘
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2196F3).withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.devices,
-                size: 48,
-                color: Color(0xFF2196F3),
-              ),
+    // 🎯 전체 화면을 덮는 방식으로 변경 (백그라운드 UI 완전 차단)
+    return Material(
+      type: MaterialType.transparency,
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.black87, // 전체 화면을 어두운 배경으로 덮음
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.all(24.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
             ),
-            const SizedBox(height: 24),
-            
-            // 제목
-            const Text(
-              '기기 승인 대기 중',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            
-            // 설명
-            const Text(
-              '다른 기기에서 이 기기의 로그인을\n승인해주세요.',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black87,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            
-            // 타이머
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.timer_outlined,
-                    size: 20,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 🔐 아이콘
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.devices,
+                    size: 48,
                     color: Color(0xFF2196F3),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _formatTime(_remainingSeconds),
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2196F3),
-                      fontFeatures: [FontFeature.tabularFigures()],
+                ),
+                const SizedBox(height: 24),
+                
+                // 제목
+                const Text(
+                  '기기 승인 대기 중',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                
+                // 설명
+                const Text(
+                  '다른 기기에서 이 기기의 로그인을\n승인해주세요.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                
+                // 타이머
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.timer_outlined,
+                        size: 20,
+                        color: Color(0xFF2196F3),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatTime(_remainingSeconds),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2196F3),
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // 로딩 인디케이터
+                const SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // 재요청 버튼
+                OutlinedButton.icon(
+                  onPressed: widget.onResendRequest,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('알림 재전송'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // 로딩 인디케이터
-            const SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // 재요청 버튼
-            OutlinedButton.icon(
-              onPressed: widget.onResendRequest,
-              icon: const Icon(Icons.refresh),
-              label: const Text('알림 재전송'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
