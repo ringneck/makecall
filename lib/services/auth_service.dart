@@ -404,7 +404,7 @@ class AuthService extends ChangeNotifier {
     // 2️⃣ WebSocket 연결 해제
     try {
       final dcmiwsConnectionManager = DCMIWSConnectionManager();
-      await dcmiwsConnectionManager.disconnect();
+      await dcmiwsConnectionManager.stop();
       if (kDebugMode) {
         debugPrint('✅ [2/4] WebSocket 연결 해제 완료');
       }

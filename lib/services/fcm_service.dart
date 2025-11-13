@@ -1117,55 +1117,71 @@ class FCMService {
   
   /// 🔧 NEW: Context 준비 대기 후 기기 승인 다이얼로그 표시
   Future<void> _waitForContextAndShowApprovalDialog(RemoteMessage message) async {
-    int retryCount = 0;
-    const maxRetries = 50; // 🔧 FIX: 5초로 증가 (100ms * 50)
-    
     // ignore: avoid_print
     print('');
     // ignore: avoid_print
     print('🔄 [FCM-APPROVAL-DIALOG] Context 대기 시작...');
     // ignore: avoid_print
-    print('   최대 대기 시간: 5초');
+    print('   🍎 iOS 알림 탭 → 앱 포그라운드 전환 대기 중...');
     
-    while (retryCount < maxRetries) {
-      final context = _context ?? navigatorKey.currentContext;
+    // 🔧 FIX: iOS에서는 앱이 active 상태가 될 때까지 충분히 대기
+    // 1. 먼저 500ms 대기 (앱 전환 시작 시간)
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // 2. 재시도 로직 시작
+    _retryShowApprovalDialog(message, 0);
+  }
+  
+  /// 🔧 재시도 로직 (iOS 앱 전환 지연 대응)
+  Future<void> _retryShowApprovalDialog(RemoteMessage message, int attempt) async {
+    const maxAttempts = 50; // 🔧 5초로 증가 (100ms * 50)
+    
+    if (attempt >= maxAttempts) {
+      // ignore: avoid_print
+      print('');
+      // ignore: avoid_print
+      print('❌ [FCM-APPROVAL-DIALOG] Context 타임아웃!');
+      // ignore: avoid_print
+      print('   - 5초 대기 후에도 Context 없음');
+      // ignore: avoid_print
+      print('   - 앱이 백그라운드에 있거나 종료된 상태일 수 있음');
+      // ignore: avoid_print
+      print('💡 [FCM-APPROVAL-DIALOG] 사용자는 프로필 → 활성 세션에서 수동으로 승인 가능');
+      print('');
+      return;
+    }
+    
+    final context = _context ?? navigatorKey.currentContext;
+    
+    // ignore: avoid_print
+    print('🔍 [FCM-APPROVAL-DIALOG] 재시도 ${attempt + 1}/$maxAttempts');
+    // ignore: avoid_print
+    print('   - _context: ${_context != null ? "✅" : "❌"}');
+    // ignore: avoid_print
+    print('   - navigatorKey.currentContext: ${navigatorKey.currentContext != null ? "✅" : "❌"}');
+    
+    if (context != null && context.mounted) {
+      // ignore: avoid_print
+      print('✅ [FCM-APPROVAL-DIALOG] Context 준비 완료!');
+      // ignore: avoid_print
+      print('   - 대기 시간: ${(attempt + 1) * 100}ms');
+      // ignore: avoid_print
+      print('   - 다이얼로그 표시 시작...');
+      print('');
       
-      // ignore: avoid_print
-      print('🔍 [FCM-APPROVAL-DIALOG] 시도 ${retryCount + 1}/$maxRetries');
-      // ignore: avoid_print
-      print('   - _context: ${_context != null}');
-      // ignore: avoid_print
-      print('   - navigatorKey.currentContext: ${navigatorKey.currentContext != null}');
-      
-      if (context != null) {
+      // 🔧 FIX: WidgetsBinding.addPostFrameCallback으로 안전하게 표시
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         // ignore: avoid_print
-        print('✅ [FCM-APPROVAL-DIALOG] Context 준비 완료!');
-        // ignore: avoid_print
-        print('   - 대기 시간: ${retryCount * 100}ms');
-        // ignore: avoid_print
-        print('   - 다이얼로그 표시 시작...');
-        print('');
+        print('📲 [FCM-APPROVAL-DIALOG] PostFrameCallback 실행 - 다이얼로그 표시');
         
         // 기기 승인 요청 메시지 처리
         _handleDeviceApprovalRequest(message);
-        return;
-      }
-      
-      await Future.delayed(const Duration(milliseconds: 100));
-      retryCount++;
+      });
+      return;
     }
     
-    // ignore: avoid_print
-    print('');
-    // ignore: avoid_print
-    print('❌ [FCM-APPROVAL-DIALOG] Context 타임아웃!');
-    // ignore: avoid_print
-    print('   - 5초 대기 후에도 Context 없음');
-    // ignore: avoid_print
-    print('   - 앱이 백그라운드에 있거나 종료된 상태일 수 있음');
-    // ignore: avoid_print
-    print('💡 [FCM-APPROVAL-DIALOG] 사용자는 프로필 → 활성 세션에서 수동으로 승인 가능');
-    print('');
+    await Future.delayed(const Duration(milliseconds: 100));
+    _retryShowApprovalDialog(message, attempt + 1);
   }
   
   /// 강제 로그아웃 메시지 처리 (레거시 - 하위 호환성 유지)
