@@ -6,6 +6,7 @@ import 'dart:io';
 import '../models/user_model.dart';
 import 'account_manager_service.dart';
 import 'fcm_service.dart';
+import 'dcmiws_connection_manager.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -374,36 +375,60 @@ class AuthService extends ChangeNotifier {
       
       debugPrint('');
       debugPrint('   🔐 로그아웃 진행:');
-      debugPrint('      - FCM 토큰만 비활성화 (fcm_tokens 컬렉션)');
-      debugPrint('      - _currentUserModel 로컬 변수만 null 처리');
-      debugPrint('      - Firestore users 컬렉션은 절대 삭제 안 함!');
+      debugPrint('      - FCM 토큰 비활성화');
+      debugPrint('      - WebSocket 연결 해제');
+      debugPrint('      - 로컬 캐시 정리');
+      debugPrint('      - _currentUserModel 초기화');
+      debugPrint('      - Firestore users 컬렉션은 보존!');
       debugPrint('================================================');
       debugPrint('');
     }
     
-    // FCM 토큰 비활성화
+    final userId = _auth.currentUser?.uid;
+    
+    // 1️⃣ FCM 토큰 비활성화
     try {
-      final userId = _auth.currentUser?.uid;
       if (userId != null) {
         final fcmService = FCMService();
         await fcmService.deactivateToken(userId);
         if (kDebugMode) {
-          debugPrint('✅ FCM 토큰 비활성화 완료');
+          debugPrint('✅ [1/4] FCM 토큰 비활성화 완료');
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('⚠️  FCM 토큰 비활성화 오류: $e');
+        debugPrint('⚠️  [1/4] FCM 토큰 비활성화 오류: $e');
       }
     }
     
-    await _auth.signOut();
-    _currentUserModel = null;  // 로컬 변수만 초기화 (Firestore 데이터 삭제 안 함!)
+    // 2️⃣ WebSocket 연결 해제
+    try {
+      final dcmiwsConnectionManager = DCMIWSConnectionManager();
+      await dcmiwsConnectionManager.disconnect();
+      if (kDebugMode) {
+        debugPrint('✅ [2/4] WebSocket 연결 해제 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️  [2/4] WebSocket 연결 해제 오류: $e');
+      }
+    }
     
+    // 3️⃣ Firebase Authentication 로그아웃
+    await _auth.signOut();
     if (kDebugMode) {
-      debugPrint('✅ currentUserModel 초기화 완료 (로컬 변수만)');
+      debugPrint('✅ [3/4] Firebase Authentication 로그아웃 완료');
+    }
+    
+    // 4️⃣ 로컬 상태 초기화
+    _currentUserModel = null;  // 로컬 변수만 초기화 (Firestore 데이터 삭제 안 함!)
+    if (kDebugMode) {
+      debugPrint('✅ [4/4] currentUserModel 초기화 완료 (로컬 변수만)');
+      debugPrint('');
+      debugPrint('✅ 로그아웃 완료!');
       debugPrint('✅ Firestore users 컬렉션 보존됨');
       debugPrint('✅ 재로그인 시 모든 데이터 로드 가능');
+      debugPrint('');
     }
     
     notifyListeners();
