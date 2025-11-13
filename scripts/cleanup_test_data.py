@@ -4,10 +4,38 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
 import sys
+import os
+from pathlib import Path
 
 try:
+    # Firebase Admin SDK 파일 경로 찾기
+    possible_paths = [
+        '/opt/flutter/firebase-admin-sdk.json',  # 서버 환경
+        'firebase-admin-sdk.json',  # 현재 디렉토리
+        '../firebase-admin-sdk.json',  # 상위 디렉토리
+        Path.home() / 'makecall' / 'firebase-admin-sdk.json',  # 홈 디렉토리
+    ]
+    
+    sdk_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            sdk_path = str(path)
+            break
+    
+    if sdk_path is None:
+        print("❌ Firebase Admin SDK 파일을 찾을 수 없습니다.")
+        print("\n📝 다음 위치 중 하나에 firebase-admin-sdk.json 파일을 배치해주세요:")
+        print("   1. 현재 디렉토리")
+        print("   2. 프로젝트 루트 디렉토리")
+        print("   3. ~/makecall/ 디렉토리")
+        print("\n💡 Firebase Console에서 다운로드:")
+        print("   Project Settings → Service accounts → Generate new private key")
+        sys.exit(1)
+    
+    print(f"✅ Firebase Admin SDK 파일 발견: {sdk_path}\n")
+    
     # Firebase Admin SDK 초기화
-    cred = credentials.Certificate('/opt/flutter/firebase-admin-sdk.json')
+    cred = credentials.Certificate(sdk_path)
     
     try:
         firebase_admin.get_app()
