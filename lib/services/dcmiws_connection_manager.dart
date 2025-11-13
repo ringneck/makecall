@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dcmiws_service.dart';
+import 'fcm_service.dart';
 
 /// 🚀 DCMIWS 연결 관리자
 /// 
@@ -248,10 +252,13 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
   }
   
   /// 앱이 포그라운드로 돌아왔을 때
-  void _onAppResumed() {
+  void _onAppResumed() async {
     if (kDebugMode) {
       debugPrint('🌞 DCMIWSConnectionManager: App resumed (foreground)');
     }
+    
+    // 🔐 기기 승인 요청 플래그 체크 (iOS 백그라운드 알림 탭 대응)
+    await _checkPendingApprovalRequest();
     
     // ⭐ PUSH 모드면 재연결 시도하지 않음
     if (_cachedDcmiwsEnabled == false) {
@@ -267,6 +274,41 @@ class DCMIWSConnectionManager with WidgetsBindingObserver {
         debugPrint('🔄 DCMIWSConnectionManager: Reconnecting after resume...');
       }
       _attemptConnection();
+    }
+  }
+  
+  /// 🔐 보류 중인 기기 승인 요청 확인 (iOS 대응)
+  Future<void> _checkPendingApprovalRequest() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pendingData = prefs.getString('pending_approval_request');
+      
+      if (pendingData != null) {
+        if (kDebugMode) {
+          debugPrint('🔔 [APPROVAL] 보류 중인 승인 요청 발견!');
+        }
+        
+        // 플래그 즉시 제거 (중복 처리 방지)
+        await prefs.remove('pending_approval_request');
+        
+        // FCM Service를 통해 승인 다이얼로그 표시
+        final dataMap = Map<String, dynamic>.from(jsonDecode(pendingData));
+        
+        if (kDebugMode) {
+          debugPrint('📋 [APPROVAL] 데이터: $dataMap');
+        }
+        
+        // RemoteMessage 형식으로 변환
+        final message = RemoteMessage(data: dataMap);
+        
+        // FCM Service 호출
+        final fcmService = FCMService();
+        fcmService.handlePendingApprovalRequest(message);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [APPROVAL] 플래그 체크 오류: $e');
+      }
     }
   }
   

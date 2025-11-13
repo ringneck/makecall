@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'dart:io' show Platform;
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
@@ -28,6 +30,20 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   
   debugPrint('🔔 백그라운드 메시지: ${message.notification?.title}');
   debugPrint('🔔 백그라운드 메시지 데이터: ${message.data}');
+  
+  // 🔐 기기 승인 요청 메시지 처리 (iOS용 플래그 저장)
+  if (message.data['type'] == 'device_approval_request') {
+    debugPrint('🔔 [FCM-BG] 기기 승인 요청 감지 - 플래그 저장');
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pending_approval_request', jsonEncode(message.data));
+      debugPrint('✅ [FCM-BG] 승인 요청 데이터 저장 완료');
+    } catch (e) {
+      debugPrint('❌ [FCM-BG] 승인 요청 저장 실패: $e');
+    }
+    return;
+  }
   
   // 📞 수신 전화 감지 (Android와 iOS 모두 지원)
   final hasIncomingCallType = message.data['type'] == 'incoming_call';

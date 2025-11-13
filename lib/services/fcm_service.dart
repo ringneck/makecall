@@ -1263,6 +1263,21 @@ class FCMService {
     debugPrint('✅ 강제 로그아웃 처리 완료');
   }
   
+  /// 🔐 보류 중인 기기 승인 요청 처리 (Public 메서드 - iOS 대응)
+  /// 
+  /// DCMIWSConnectionManager에서 앱이 포그라운드로 돌아올 때 호출됩니다.
+  void handlePendingApprovalRequest(RemoteMessage message) {
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('🔔 [FCM-APPROVAL] handlePendingApprovalRequest() 호출됨 (Public)');
+    // ignore: avoid_print
+    print('   - 앱이 포그라운드로 돌아와서 보류 중인 승인 요청 처리');
+    
+    // Context 대기 후 다이얼로그 표시
+    _waitForContextAndShowApprovalDialog(message);
+  }
+  
   /// 기기 승인 요청 메시지 처리
   /// 
   /// 새 기기에서 로그인 시도 시 기존 기기에서 승인 다이얼로그를 표시합니다.
