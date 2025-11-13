@@ -1341,13 +1341,19 @@ class FCMService {
           children: [
             Icon(Icons.security, color: Colors.blue, size: 28),
             SizedBox(width: 12),
-            Text('🔐 새 기기 로그인 감지'),
+            Expanded(
+              child: Text(
+                '🔐 새 기기 로그인 감지',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Text(
               '새 기기에서 로그인을 시도하고 있습니다.',
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
@@ -1397,6 +1403,7 @@ class FCMService {
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
+        ),
         ),
         actions: [
           TextButton(
