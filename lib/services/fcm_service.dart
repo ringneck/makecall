@@ -1501,20 +1501,17 @@ class FCMService {
     }
   }
   
-  /// 기기 승인 처리
+  /// 기기 승인 처리 (최적화 버전)
   Future<void> _approveDeviceApproval(String approvalRequestId) async {
     try {
       debugPrint('✅ [FCM] 기기 승인 처리 시작: $approvalRequestId');
       
-      // 🔄 네트워크 안정화 대기 (iOS 백그라운드→포그라운드 전환 시)
-      if (Platform.isIOS) {
-        debugPrint('⏳ [FCM] iOS: 네트워크 안정화 대기 (2초)...');
-        await Future.delayed(const Duration(seconds: 2));
-      }
+      // 🚀 최적화: iOS 네트워크 대기 제거 (불필요한 2초 지연)
+      // Firestore는 자체적으로 재연결 메커니즘이 있으므로 즉시 시도
       
-      // 🔄 재시도 로직 추가 (최대 3번)
+      // 🔄 재시도 로직 최적화 (최대 2번, 더 짧은 타임아웃)
       int retryCount = 0;
-      const maxRetries = 3;
+      const maxRetries = 2;  // 🚀 3번 → 2번으로 감소
       bool success = false;
       
       while (retryCount < maxRetries && !success) {
@@ -1525,7 +1522,7 @@ class FCMService {
           await _firestore.collection('device_approval_requests').doc(approvalRequestId).update({
             'status': 'approved',
             'approvedAt': FieldValue.serverTimestamp(),
-          }).timeout(const Duration(seconds: 10));  // 10초 타임아웃
+          }).timeout(const Duration(seconds: 5));  // 🚀 10초 → 5초 타임아웃
           
           success = true;
           debugPrint('✅ [FCM] Firestore 승인 완료');
@@ -1535,10 +1532,9 @@ class FCMService {
           debugPrint('⚠️  [FCM] Firestore 승인 실패 (시도 $retryCount/$maxRetries): $e');
           
           if (retryCount < maxRetries) {
-            // 지수 백오프 (1초, 2초, 4초)
-            final delaySeconds = retryCount * retryCount;
-            debugPrint('⏳ [FCM] ${delaySeconds}초 후 재시도...');
-            await Future.delayed(Duration(seconds: delaySeconds));
+            // 🚀 고정 지연 (500ms)로 변경 - 지수 백오프보다 빠름
+            debugPrint('⏳ [FCM] 0.5초 후 재시도...');
+            await Future.delayed(const Duration(milliseconds: 500));
           } else {
             debugPrint('❌ [FCM] Firestore 승인 최종 실패');
             rethrow;
@@ -1554,18 +1550,43 @@ class FCMService {
     }
   }
   
-  /// 기기 승인 거부 처리
+  /// 기기 승인 거부 처리 (최적화 버전)
   Future<void> _rejectDeviceApproval(String approvalRequestId) async {
     try {
       debugPrint('❌ [FCM] 기기 승인 거부 처리 시작: $approvalRequestId');
       
-      // Firestore에서 승인 요청 문서 업데이트
-      await _firestore.collection('device_approval_requests').doc(approvalRequestId).update({
-        'status': 'rejected',
-        'rejectedAt': FieldValue.serverTimestamp(),
-      });
+      // 🔄 재시도 로직 추가 (승인과 동일하게)
+      int retryCount = 0;
+      const maxRetries = 2;
+      bool success = false;
       
-      debugPrint('✅ [FCM] Firestore 거부 완료');
+      while (retryCount < maxRetries && !success) {
+        try {
+          debugPrint('🔄 [FCM] Firestore 거부 업데이트 시도 ${retryCount + 1}/$maxRetries');
+          
+          // Firestore에서 승인 요청 문서 업데이트
+          await _firestore.collection('device_approval_requests').doc(approvalRequestId).update({
+            'status': 'rejected',
+            'rejectedAt': FieldValue.serverTimestamp(),
+          }).timeout(const Duration(seconds: 5));  // 🚀 5초 타임아웃
+          
+          success = true;
+          debugPrint('✅ [FCM] Firestore 거부 완료');
+          
+        } catch (e) {
+          retryCount++;
+          debugPrint('⚠️  [FCM] Firestore 거부 실패 (시도 $retryCount/$maxRetries): $e');
+          
+          if (retryCount < maxRetries) {
+            // 🚀 고정 지연 (500ms)
+            debugPrint('⏳ [FCM] 0.5초 후 재시도...');
+            await Future.delayed(const Duration(milliseconds: 500));
+          } else {
+            debugPrint('❌ [FCM] Firestore 거부 최종 실패');
+            rethrow;
+          }
+        }
+      }
       
       // 거부 응답 알림 전송 준비는 Cloud Functions에서 처리
       
