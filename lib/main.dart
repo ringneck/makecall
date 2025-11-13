@@ -103,11 +103,6 @@ void main() async {
 // ✅ Method Channel 코드 제거 - Firebase Plugin이 자동으로 처리
 // iOS Native의 UNUserNotificationCenter가 completionHandler([])를 호출하면
 // Firebase Plugin이 자동으로 FirebaseMessaging.onMessage로 전달함
-      print('❌ [Flutter-FCM] 메시지 처리 오류: $e');
-      print('Stack trace: $stackTrace');
-    }
-  }
-}
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
