@@ -1169,14 +1169,12 @@ class FCMService {
       print('   - 다이얼로그 표시 시작...');
       print('');
       
-      // 🔧 FIX: WidgetsBinding.addPostFrameCallback으로 안전하게 표시
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        // ignore: avoid_print
-        print('📲 [FCM-APPROVAL-DIALOG] PostFrameCallback 실행 - 다이얼로그 표시');
-        
-        // 기기 승인 요청 메시지 처리
-        _handleDeviceApprovalRequest(message);
-      });
+      // 🔧 FIX: iOS에서는 이미 Context가 준비되어 있으므로 직접 호출
+      // ignore: avoid_print
+      print('📲 [FCM-APPROVAL-DIALOG] _handleDeviceApprovalRequest() 직접 호출');
+      
+      // 기기 승인 요청 메시지 처리
+      _handleDeviceApprovalRequest(message);
       return;
     }
     
