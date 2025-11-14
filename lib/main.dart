@@ -366,6 +366,37 @@ class _MyAppState extends State<MyApp> {
                 ),
               ),
             ),
+            // 🌙 다크 모드 테마
+            darkTheme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF2196F3),
+                brightness: Brightness.dark,
+              ),
+              useMaterial3: true,
+              appBarTheme: AppBarTheme(
+                centerTitle: true,
+                elevation: 0,
+                backgroundColor: Colors.grey[900],
+                foregroundColor: Colors.white,
+                iconTheme: const IconThemeData(color: Colors.white),
+                titleTextStyle: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              cardTheme: CardThemeData(
+                color: Colors.grey[850],
+                elevation: 2,
+              ),
+              bottomNavigationBarTheme: BottomNavigationBarThemeData(
+                backgroundColor: Colors.grey[900],
+                selectedItemColor: const Color(0xFF2196F3),
+                unselectedItemColor: Colors.grey[600],
+              ),
+            ),
+            // 🎨 시스템 설정에 따라 자동 전환
+            themeMode: ThemeMode.system,
             home: _isInitializing
                 ? const SplashScreen() // 💡 스플래시 스크린 표시
                 : Consumer<AuthService>(
