@@ -200,10 +200,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final authService = context.read<AuthService>();
+      
+      // 🔒 로그인 시도 (FCM 초기화 및 기기 승인 대기 포함)
+      // 승인이 필요한 경우 FCMService에서 승인 다이얼로그를 표시하고
+      // 승인 완료될 때까지 이 함수가 반환되지 않음
+      if (kDebugMode) {
+        debugPrint('🔐 [LOGIN] 로그인 시도 시작 (승인 대기 포함)');
+      }
+      
       await authService.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      
+      if (kDebugMode) {
+        debugPrint('✅ [LOGIN] 로그인 및 승인 완료');
+      }
       
       // 로그인 성공 시 이메일 저장 설정 적용
       await _saveCredentials();
@@ -215,6 +227,26 @@ class _LoginScreenState extends State<LoginScreen> {
           context,
           context.read<AuthService>().getErrorMessage(e.code),
         );
+      }
+    } catch (e) {
+      // 🚫 기기 승인 실패 또는 시간 초과 처리
+      if (mounted) {
+        if (e.toString().contains('Device approval denied')) {
+          await DialogUtils.showError(
+            context,
+            '기기 승인이 거부되었습니다.\n다시 시도하려면 기존 기기에서 승인해주세요.',
+          );
+        } else if (e.toString().contains('timeout')) {
+          await DialogUtils.showError(
+            context,
+            '기기 승인 시간이 초과되었습니다.\n다시 시도해주세요.',
+          );
+        } else {
+          await DialogUtils.showError(
+            context,
+            '로그인 중 오류가 발생했습니다: ${e.toString()}',
+          );
+        }
       }
     } finally {
       if (mounted) {
