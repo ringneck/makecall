@@ -692,32 +692,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               },
             ),
           const Divider(),
-          // ============================================
-          // 설정 섹션 시작
-          // ============================================
-          
-          // 설정 섹션 헤더
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-            color: Colors.grey[50],
-            child: const Row(
-              children: [
-                Icon(Icons.settings, color: Color(0xFF2196F3), size: 20),
-                SizedBox(width: 12),
-                Text(
-                  '설정',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const Divider(height: 1),
-          const SizedBox(height: 8),
           
           // 📱 통합 알림 설정 (하나의 메뉴로 통합)
           Padding(
