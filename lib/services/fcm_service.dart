@@ -3025,13 +3025,16 @@ class FCMService {
       
       // 🔊 안드로이드 기본 알림음 재생
       try {
+        // flutter_local_notifications 플러그인 생성
+        final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+        
         // flutter_local_notifications를 사용하여 시스템 알림음 재생
-        final androidPlugin = _flutterLocalNotificationsPlugin
+        final androidPlugin = flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
         
         if (androidPlugin != null) {
           // Android: 시스템 기본 알림음으로 간단한 알림 표시
-          await _flutterLocalNotificationsPlugin.show(
+          await flutterLocalNotificationsPlugin.show(
             999, // 임시 알림 ID
             '새 기기 승인 요청',
             '관리자의 승인이 필요합니다',
@@ -3051,7 +3054,7 @@ class FCMService {
           
           // 1.5초 후 알림 제거
           await Future.delayed(const Duration(milliseconds: 1500));
-          await _flutterLocalNotificationsPlugin.cancel(999);
+          await flutterLocalNotificationsPlugin.cancel(999);
         } else {
           // iOS: assets 파일 재생
           debugPrint('ℹ️ [SOUND-APPROVAL] iOS 플랫폼 - assets 파일 사용');
