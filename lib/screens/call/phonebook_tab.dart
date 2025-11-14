@@ -969,15 +969,15 @@ class _PhonebookTabState extends State<PhonebookTab> {
     if (orientation == Orientation.landscape) {
       // 랜드스케이프 모드: 더 넓은 비율 (높이를 더 확보)
       if (screenWidth >= 1024) {
-        return 1.1; // 대형 화면
+        return 1.15; // 대형 화면 (1.1에서 증가)
       } else if (screenWidth >= 768) {
-        return 1.0; // 태블릿
+        return 1.05; // 태블릿 (1.0에서 증가)
       } else {
-        return 0.95; // 스마트폰
+        return 1.0; // 스마트폰 (0.95에서 증가)
       }
     } else {
-      // 포트레이트 모드: 기존 비율
-      return 0.85;
+      // 포트레이트 모드: 높이 여유 확보
+      return 0.9; // 0.85에서 0.9로 증가
     }
   }
 
@@ -1016,16 +1016,17 @@ class _PhonebookTabState extends State<PhonebookTab> {
         ),
         borderRadius: BorderRadius.circular(_getResponsiveSize(context, 8)),
         child: Padding(
-          padding: EdgeInsets.all(_getResponsiveSize(context, 4)),
+          padding: EdgeInsets.all(_getResponsiveSize(context, 3)), // 4에서 3으로 감소
           child: Column(
+            mainAxisSize: MainAxisSize.min, // ✅ 추가: 콘텐츠 크기에 맞춤
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // 아이콘 (즐겨찾기 별 표시 포함)
               Stack(
                 children: [
                   Container(
-                    width: _getResponsiveSize(context, 40), // 32에서 40으로 증가
-                    height: _getResponsiveSize(context, 40), // 32에서 40으로 증가
+                    width: _getResponsiveSize(context, 36), // 40에서 36으로 감소
+                    height: _getResponsiveSize(context, 36), // 40에서 36으로 감소
                     decoration: BoxDecoration(
                       color: contact.isFavorite
                           ? Colors.amber[100]
@@ -1034,7 +1035,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                     ),
                     child: Icon(
                       contact.isFavorite ? Icons.star : categoryIcon,
-                      size: _getResponsiveSize(context, 20), // 16에서 20으로 증가
+                      size: _getResponsiveSize(context, 18), // 20에서 18로 감소
                       color: contact.isFavorite ? Colors.amber[700] : categoryColor,
                     ),
                   ),
@@ -1081,31 +1082,37 @@ class _PhonebookTabState extends State<PhonebookTab> {
                     ),
                 ],
               ),
-              SizedBox(height: _getResponsiveSize(context, 4)), // 2에서 4로 증가
+              SizedBox(height: _getResponsiveSize(context, 3)), // 4에서 3으로 감소
               
               // 이름
-              Text(
-                translatedName,
-                style: TextStyle(
-                  fontSize: _getResponsiveSize(context, 11), // 9에서 11로 증가
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  translatedName,
+                  style: TextStyle(
+                    fontSize: _getResponsiveSize(context, 10), // 11에서 10으로 감소
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
               ),
               
+              SizedBox(height: _getResponsiveSize(context, 1)), // 추가: 이름과 번호 사이 간격
+              
               // 전화번호 (더 크게 표시)
-              Text(
-                contact.telephone,
-                style: TextStyle(
-                  fontSize: _getResponsiveSize(context, 14), // 12에서 14로 증가
-                  fontWeight: FontWeight.w700, // w600에서 w700으로 증가
-                  color: Colors.black87,
+              Flexible(
+                child: Text(
+                  contact.telephone,
+                  style: TextStyle(
+                    fontSize: _getResponsiveSize(context, 13), // 14에서 13으로 감소
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
               ),
             ],
           ),
