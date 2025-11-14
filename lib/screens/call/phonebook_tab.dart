@@ -752,7 +752,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                                 crossAxisCount: _getGridColumnCount(context),
                                 crossAxisSpacing: _getResponsiveSize(context, 4),
                                 mainAxisSpacing: _getResponsiveSize(context, 4),
-                                childAspectRatio: 0.85, // 높이를 더 확보하여 텍스트가 잘 보이도록
+                                childAspectRatio: _getGridChildAspectRatio(context), // 화면 방향에 따라 동적 조정
                               ),
                               itemCount: contacts.length,
                               itemBuilder: (context, index) {
@@ -958,6 +958,26 @@ class _PhonebookTabState extends State<PhonebookTab> {
       return 4; // 소형 태블릿: 4열
     } else {
       return 3; // 스마트폰: 3열
+    }
+  }
+
+  // 화면 방향에 따라 그리드 childAspectRatio 결정
+  double _getGridChildAspectRatio(BuildContext context) {
+    final orientation = MediaQuery.of(context).orientation;
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    if (orientation == Orientation.landscape) {
+      // 랜드스케이프 모드: 더 넓은 비율 (높이를 더 확보)
+      if (screenWidth >= 1024) {
+        return 1.1; // 대형 화면
+      } else if (screenWidth >= 768) {
+        return 1.0; // 태블릿
+      } else {
+        return 0.95; // 스마트폰
+      }
+    } else {
+      // 포트레이트 모드: 기존 비율
+      return 0.85;
     }
   }
 
