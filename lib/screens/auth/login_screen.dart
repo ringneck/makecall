@@ -8,6 +8,7 @@ import '../../services/auth_service.dart';
 import '../../services/account_manager_service.dart';
 import '../../utils/dialog_utils.dart';
 import 'signup_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? prefilledEmail; // 계정 전환 시 자동으로 채울 이메일
@@ -196,75 +197,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
   
-  // 비밀번호 찾기
-  Future<void> _handleForgotPassword() async {
-    final email = _emailController.text.trim();
-    
-    if (email.isEmpty) {
-      await DialogUtils.showWarning(
-        context,
-        '이메일을 입력해주세요',
-      );
-      return;
-    }
-    
-    if (!email.contains('@')) {
-      await DialogUtils.showWarning(
-        context,
-        '올바른 이메일 형식이 아닙니다',
-      );
-      return;
-    }
-    
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text('비밀번호 재설정'),
-        content: Text('$email\n\n위 이메일로 비밀번호 재설정 링크를 보내시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2196F3),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('전송'),
-          ),
-        ],
+  // 비밀번호 찾기 - 전용 화면으로 이동
+  void _handleForgotPassword() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ForgotPasswordScreen(),
       ),
     );
-    
-    if (confirmed != true) return;
-    
-    try {
-      final authService = context.read<AuthService>();
-      await authService.resetPassword(email);
-      
-      if (mounted) {
-        await DialogUtils.showSuccess(
-          context,
-          '비밀번호 재설정 이메일을 전송했습니다. 이메일을 확인해주세요.',
-          duration: const Duration(seconds: 5),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        await DialogUtils.showError(
-          context,
-          context.read<AuthService>().getErrorMessage(e.code),
-        );
-      }
-    }
   }
 
   @override
