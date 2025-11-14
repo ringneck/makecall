@@ -32,6 +32,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
   String? _error;
   final TextEditingController _searchController = TextEditingController();
   DateTime? _lastUpdateTime; // 마지막 업데이트 시간
+  bool _isGridView = false; // false: 리스트뷰, true: 그리드뷰
 
   // 영어 이름을 한글로 번역하는 매핑 테이블
   final Map<String, String> _nameTranslations = {
@@ -478,6 +479,26 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  // 뷰 모드 전환 버튼
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _isGridView ? Colors.green[100] : Colors.blue[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        _isGridView ? Icons.view_list : Icons.grid_view,
+                        color: _isGridView ? Colors.green[700] : Colors.blue[700],
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isGridView = !_isGridView;
+                        });
+                      },
+                      tooltip: _isGridView ? '리스트뷰로 전환' : '그리드뷰로 전환',
+                    ),
+                  ),
                 ],
               ),
               // 마지막 업데이트 시간
@@ -722,20 +743,37 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       }
 
                       // 스크롤 새로고침 기능 제거됨
-                      return ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(), // 항목이 적어도 스크롤 가능
-                        itemCount: contacts.length,
-                        itemBuilder: (context, index) {
-                          final contact = contacts[index];
-                          
-                          if (kDebugMode && index < 5) {
-                            debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
-                          }
-                          
-                          // 다른 사람이 등록한 단말번호 리스트를 전달
-                          return _buildContactListTile(contact, registeredExtensions: otherUsersExtensions);
-                        },
-                      );
+                      // 뷰 모드에 따라 ListView 또는 GridView 렌더링
+                      return _isGridView
+                          ? GridView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(8),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
+                                childAspectRatio: 0.75,
+                              ),
+                              itemCount: contacts.length,
+                              itemBuilder: (context, index) {
+                                final contact = contacts[index];
+                                return _buildContactGridItem(contact, registeredExtensions: otherUsersExtensions);
+                              },
+                            )
+                          : ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(), // 항목이 적어도 스크롤 가능
+                              itemCount: contacts.length,
+                              itemBuilder: (context, index) {
+                                final contact = contacts[index];
+                                
+                                if (kDebugMode && index < 5) {
+                                  debugPrint('  [$index] ${contact.name} (${contact.telephone}) - ${contact.category}');
+                                }
+                                
+                                // 다른 사람이 등록한 단말번호 리스트를 전달
+                                return _buildContactListTile(contact, registeredExtensions: otherUsersExtensions);
+                              },
+                            );
                     },
                   );
                       },
@@ -896,6 +934,185 @@ class _PhonebookTabState extends State<PhonebookTab> {
         ],
       ),
       onTap: () => _showContactDetail(contact),
+    );
+  }
+
+  // 그리드 아이템 빌더
+  Widget _buildContactGridItem(PhonebookContactModel contact, {List<String>? registeredExtensions}) {
+    Color categoryColor = Colors.blue;
+    IconData categoryIcon = Icons.phone;
+
+    if (contact.category == 'Extensions') {
+      categoryColor = Colors.green;
+      categoryIcon = Icons.phone_android;
+    } else if (contact.category == 'Feature Codes') {
+      categoryColor = Colors.orange;
+      categoryIcon = Icons.star;
+    }
+
+    final translatedName = _translateName(contact.name);
+    final isRegistered = registeredExtensions?.contains(contact.telephone) ?? false;
+    final isOtherUserExtension = contact.category == 'Extensions' && !isRegistered;
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: contact.isFavorite ? Colors.amber.withAlpha(128) : categoryColor.withAlpha(77),
+          width: contact.isFavorite ? 2 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => _showContactDetail(contact),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 아이콘 (즐겨찾기 별 표시 포함)
+              Stack(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: contact.isFavorite
+                          ? Colors.amber[100]
+                          : categoryColor.withAlpha(51),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      contact.isFavorite ? Icons.star : categoryIcon,
+                      size: 30,
+                      color: contact.isFavorite ? Colors.amber[700] : categoryColor,
+                    ),
+                  ),
+                  // 등록된 단말번호 배지
+                  if (isRegistered)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.green, width: 1.5),
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/app_logo.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                  // 다른 사용자 배지
+                  if (isOtherUserExtension)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 18,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey[500]!, width: 1),
+                        ),
+                        child: Icon(
+                          Icons.person,
+                          size: 12,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              
+              // 이름
+              Text(
+                translatedName,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              
+              // 전화번호
+              Text(
+                contact.telephone,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              
+              // 카테고리 배지
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: categoryColor.withAlpha(26),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: categoryColor.withAlpha(77)),
+                ),
+                child: Text(
+                  contact.categoryDisplay,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: categoryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              
+              // 액션 버튼
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 즐겨찾기 버튼
+                  IconButton(
+                    icon: Icon(
+                      contact.isFavorite ? Icons.star : Icons.star_border,
+                      color: contact.isFavorite ? Colors.amber : Colors.grey,
+                      size: 20,
+                    ),
+                    onPressed: () => _toggleFavorite(contact),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 8),
+                  // 전화 버튼
+                  IconButton(
+                    icon: const Icon(Icons.phone, color: Color(0xFF2196F3), size: 20),
+                    onPressed: () => _quickCall(
+                      contact.telephone,
+                      category: contact.category,
+                      name: contact.name,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
