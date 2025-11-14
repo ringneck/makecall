@@ -540,6 +540,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     final authService = context.watch<AuthService>();
     final userModel = authService.currentUserModel;
     final userId = authService.currentUser?.uid ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Drawer(
       child: Container(
@@ -547,10 +548,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.white,
-              Colors.grey[50]!,
-            ],
+            colors: isDark
+                ? [
+                    Theme.of(context).scaffoldBackgroundColor,
+                    Colors.grey[900]!,
+                  ]
+                : [
+                    Colors.white,
+                    Colors.grey[50]!,
+                  ],
           ),
         ),
         child: ListView(
@@ -674,7 +680,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey[600],
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -682,11 +688,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   // 기본 설정 카드
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? Colors.grey[850] : Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
+                          color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -716,13 +722,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         'API 서버, WebSocket 설정',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
                         ),
                       ),
-                      trailing: const Icon(
+                      trailing: Icon(
                         Icons.chevron_right_rounded,
                         size: 20,
-                        color: Colors.grey,
+                        color: isDark ? Colors.grey[500] : Colors.grey,
                       ),
                       onTap: () {
                         showDialog(

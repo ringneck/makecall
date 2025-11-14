@@ -109,16 +109,19 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final maxWidth = _isMobile ? double.infinity : 480.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: _isWeb ? Colors.grey[50] : Colors.white,
+      backgroundColor: isDark
+          ? Theme.of(context).scaffoldBackgroundColor
+          : (_isWeb ? Colors.grey[50] : Colors.white),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: _isWeb ? Colors.grey[800] : Colors.black87,
+            color: isDark ? Colors.grey[300] : (_isWeb ? Colors.grey[800] : Colors.black87),
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -147,7 +150,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                             width: 120,
                             height: 120,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: isDark ? Colors.grey[850] : Colors.white,
                               borderRadius: BorderRadius.circular(24),
                               boxShadow: [
                                 BoxShadow(
@@ -157,7 +160,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                                   offset: const Offset(0, 10),
                                 ),
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
+                                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
                                   blurRadius: 20,
                                   spreadRadius: -5,
                                   offset: const Offset(0, 5),
@@ -193,7 +196,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: _isWeb ? Colors.grey[900] : Colors.black87,
+                            color: isDark ? Colors.white : (_isWeb ? Colors.grey[900] : Colors.black87),
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -203,7 +206,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 15,
-                            color: Colors.grey[600],
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
                             fontWeight: FontWeight.w400,
                           ),
                         ),
@@ -213,20 +216,38 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          style: const TextStyle(fontSize: 16),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                           decoration: InputDecoration(
                             labelText: '이메일',
+                            labelStyle: TextStyle(
+                              color: isDark ? Colors.grey[400] : Colors.grey[700],
+                            ),
                             hintText: 'example@email.com',
-                            prefixIcon: const Icon(Icons.email_outlined),
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.grey[600] : Colors.grey[400],
+                            ),
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            ),
                             filled: true,
-                            fillColor: _isWeb ? Colors.white : Colors.grey[50],
+                            fillColor: isDark
+                                ? Colors.grey[850]
+                                : (_isWeb ? Colors.white : Colors.grey[50]),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -263,16 +284,29 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          style: const TextStyle(fontSize: 16),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                           decoration: InputDecoration(
                             labelText: '비밀번호',
+                            labelStyle: TextStyle(
+                              color: isDark ? Colors.grey[400] : Colors.grey[700],
+                            ),
                             hintText: '최소 6자 이상',
-                            prefixIcon: const Icon(Icons.lock_outline),
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.grey[600] : Colors.grey[400],
+                            ),
+                            prefixIcon: Icon(
+                              Icons.lock_outline,
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            ),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
+                                color: isDark ? Colors.grey[400] : Colors.grey[600],
                               ),
                               onPressed: () {
                                 setState(() {
@@ -281,14 +315,20 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                               },
                             ),
                             filled: true,
-                            fillColor: _isWeb ? Colors.white : Colors.grey[50],
+                            fillColor: isDark
+                                ? Colors.grey[850]
+                                : (_isWeb ? Colors.white : Colors.grey[50]),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -325,16 +365,29 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: _obscureConfirmPassword,
-                          style: const TextStyle(fontSize: 16),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                           decoration: InputDecoration(
                             labelText: '비밀번호 확인',
+                            labelStyle: TextStyle(
+                              color: isDark ? Colors.grey[400] : Colors.grey[700],
+                            ),
                             hintText: '비밀번호를 다시 입력하세요',
-                            prefixIcon: const Icon(Icons.lock_outline),
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.grey[600] : Colors.grey[400],
+                            ),
+                            prefixIcon: Icon(
+                              Icons.lock_outline,
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            ),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscureConfirmPassword
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
+                                color: isDark ? Colors.grey[400] : Colors.grey[600],
                               ),
                               onPressed: () {
                                 setState(() {
@@ -343,14 +396,20 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                               },
                             ),
                             filled: true,
-                            fillColor: _isWeb ? Colors.white : Colors.grey[50],
+                            fillColor: isDark
+                                ? Colors.grey[850]
+                                : (_isWeb ? Colors.white : Colors.grey[50]),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -390,9 +449,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: _isWeb 
-                                ? Colors.blue.withValues(alpha: 0.05)
-                                : Colors.grey.withValues(alpha: 0.05),
+                            color: isDark
+                                ? Colors.grey[850]
+                                : (_isWeb 
+                                    ? Colors.blue.withValues(alpha: 0.05)
+                                    : Colors.grey.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: CheckboxListTile(
@@ -406,7 +467,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                               '이용약관 및 개인정보처리방침에 동의합니다',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey[800],
+                                color: isDark ? Colors.grey[300] : Colors.grey[800],
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -476,7 +537,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                             Text(
                               '이미 계정이 있으신가요?',
                               style: TextStyle(
-                                color: Colors.grey[600],
+                                color: isDark ? Colors.grey[400] : Colors.grey[600],
                                 fontSize: 14,
                               ),
                             ),
@@ -503,7 +564,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[500],
+                            color: isDark ? Colors.grey[600] : Colors.grey[500],
                           ),
                         ),
                       ],

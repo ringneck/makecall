@@ -261,7 +261,8 @@ class _ExtensionManagementScreenState extends State<ExtensionManagementScreen> {
             ),
           ),
         ),
-      ),
+      );
+    },
     );
   }
 

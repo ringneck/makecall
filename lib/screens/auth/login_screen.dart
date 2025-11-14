@@ -607,7 +607,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             'MAKECALL © ${DateTime.now().year}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[500],
+                              color: isDark ? Colors.grey[600] : Colors.grey[500],
                               letterSpacing: 0.5,
                             ),
                           ),
