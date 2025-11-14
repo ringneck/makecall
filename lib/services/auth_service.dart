@@ -19,9 +19,14 @@ class AuthService extends ChangeNotifier {
   UserModel? _currentUserModel;
   UserModel? get currentUserModel => _currentUserModel;
   
+  // 🔒 로그아웃 상태 추적 (중복 notifyListeners 방지)
+  String? _lastUserId;
+  
   AuthService() {
     _auth.authStateChanges().listen((User? user) {
       if (user != null) {
+        // 🔐 로그인 상태
+        _lastUserId = user.uid;
         if (kDebugMode) {
           debugPrint('🔐 Auth 상태 변경: 로그인');
           debugPrint('   - UID: ${user.uid}');
@@ -29,11 +34,13 @@ class AuthService extends ChangeNotifier {
         }
         _loadUserModel(user.uid);
         // ⚠️ 로그인 시에는 notifyListeners() 호출 안 함 (_loadUserModel에서 호출)
-      } else {
+      } else if (_lastUserId != null) {
+        // 🔓 로그아웃 상태 (최초 1회만)
         if (kDebugMode) {
           debugPrint('🔓 Auth 상태 변경: 로그아웃');
           debugPrint('   - currentUserModel 초기화');
         }
+        _lastUserId = null;
         _currentUserModel = null;
         notifyListeners(); // ✅ 로그아웃 시에만 여기서 notifyListeners() 호출
       }
