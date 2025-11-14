@@ -747,12 +747,12 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       return _isGridView
                           ? GridView.builder(
                               physics: const AlwaysScrollableScrollPhysics(),
-                              padding: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(4),
                               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                                childAspectRatio: 0.75,
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 4,
+                                mainAxisSpacing: 4,
+                                childAspectRatio: 1.2,
                               ),
                               itemCount: contacts.length,
                               itemBuilder: (context, index) {
@@ -955,19 +955,19 @@ class _PhonebookTabState extends State<PhonebookTab> {
     final isOtherUserExtension = contact.category == 'Extensions' && !isRegistered;
 
     return Card(
-      elevation: 2,
+      elevation: 1,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         side: BorderSide(
           color: contact.isFavorite ? Colors.amber.withAlpha(128) : categoryColor.withAlpha(77),
-          width: contact.isFavorite ? 2 : 1,
+          width: contact.isFavorite ? 1.5 : 0.5,
         ),
       ),
       child: InkWell(
         onTap: () => _showContactDetail(contact),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(4),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -975,8 +975,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
               Stack(
                 children: [
                   Container(
-                    width: 60,
-                    height: 60,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: contact.isFavorite
                           ? Colors.amber[100]
@@ -985,7 +985,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                     ),
                     child: Icon(
                       contact.isFavorite ? Icons.star : categoryIcon,
-                      size: 30,
+                      size: 16,
                       color: contact.isFavorite ? Colors.amber[700] : categoryColor,
                     ),
                   ),
@@ -995,12 +995,12 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       right: 0,
                       bottom: 0,
                       child: Container(
-                        width: 20,
-                        height: 20,
+                        width: 12,
+                        height: 12,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.green, width: 1.5),
+                          border: Border.all(color: Colors.green, width: 1),
                         ),
                         child: ClipOval(
                           child: Image.asset(
@@ -1016,42 +1016,41 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       right: 0,
                       bottom: 0,
                       child: Container(
-                        width: 18,
-                        height: 18,
+                        width: 10,
+                        height: 10,
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey[500]!, width: 1),
+                          border: Border.all(color: Colors.grey[500]!, width: 0.5),
                         ),
                         child: Icon(
                           Icons.person,
-                          size: 12,
+                          size: 6,
                           color: Colors.grey[700],
                         ),
                       ),
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 2),
               
               // 이름
               Text(
                 translatedName,
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 9,
                   fontWeight: FontWeight.bold,
                 ),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
               
               // 전화번호
               Text(
                 contact.telephone,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 8,
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
                 ),
@@ -1059,53 +1058,30 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 2),
               
-              // 카테고리 배지
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: categoryColor.withAlpha(26),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: categoryColor.withAlpha(77)),
-                ),
-                child: Text(
-                  contact.categoryDisplay,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: categoryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              
-              // 액션 버튼
+              // 액션 버튼 (작게)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // 즐겨찾기 버튼
-                  IconButton(
-                    icon: Icon(
+                  InkWell(
+                    onTap: () => _toggleFavorite(contact),
+                    child: Icon(
                       contact.isFavorite ? Icons.star : Icons.star_border,
                       color: contact.isFavorite ? Colors.amber : Colors.grey,
-                      size: 20,
+                      size: 14,
                     ),
-                    onPressed: () => _toggleFavorite(contact),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
                   // 전화 버튼
-                  IconButton(
-                    icon: const Icon(Icons.phone, color: Color(0xFF2196F3), size: 20),
-                    onPressed: () => _quickCall(
+                  InkWell(
+                    onTap: () => _quickCall(
                       contact.telephone,
                       category: contact.category,
                       name: contact.name,
                     ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                    child: const Icon(Icons.phone, color: Color(0xFF2196F3), size: 14),
                   ),
                 ],
               ),
