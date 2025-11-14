@@ -8,6 +8,7 @@ import 'dart:typed_data'; // Int64List for vibration pattern
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:vibration/vibration.dart'; // 진동 기능
+import 'package:audioplayers/audioplayers.dart'; // 사운드 재생
 import '../screens/call/incoming_call_screen.dart';
 import '../screens/home/main_screen.dart'; // MainScreen import 추가
 import '../models/fcm_token_model.dart';
@@ -1513,6 +1514,9 @@ class FCMService {
     // 📳 새 기기 로그인 감지 시 진동 (사용자 알림)
     _triggerDeviceApprovalVibration();
     
+    // 🔊 새 기기 로그인 감지 시 사운드 (사용자 알림)
+    _triggerDeviceApprovalSound();
+    
     // 기기 승인 다이얼로그 표시
     showDialog(
       context: context,
@@ -2977,6 +2981,70 @@ class FCMService {
       }
     } catch (e) {
       debugPrint('❌ [VIBRATION-APPROVAL] 진동 실행 오류: $e');
+    }
+  }
+
+  /// 🔊 새 기기 승인 요청 시 사운드 재생
+  /// 
+  /// 새 기기에서 로그인 시도가 감지되었을 때 사용자에게 알리기 위한 알림음
+  Future<void> _triggerDeviceApprovalSound() async {
+    AudioPlayer? audioPlayer;
+    
+    try {
+      // 사용자 알림 설정 확인
+      final currentUser = AuthService().currentUser;
+      if (currentUser == null) {
+        debugPrint('⚠️ [SOUND-APPROVAL] 사용자 정보 없음 - 사운드 스킵');
+        return;
+      }
+
+      // Firestore에서 사용자 알림 설정 조회
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      final settings = userDoc.data()?['notification_settings'];
+      final soundEnabled = settings?['soundEnabled'] ?? true;
+
+      if (!soundEnabled) {
+        debugPrint('⏭️ [SOUND-APPROVAL] 사용자가 사운드를 비활성화함 - 사운드 스킵');
+        return;
+      }
+
+      // 플랫폼 확인
+      if (kIsWeb) {
+        debugPrint('⚠️ [SOUND-APPROVAL] 웹 플랫폼 - 제한적 지원');
+      }
+
+      // AudioPlayer 생성
+      audioPlayer = AudioPlayer();
+      
+      // 볼륨 설정 (보통 크기)
+      await audioPlayer.setVolume(0.8);
+      
+      // 🔊 assets 알림음 재생 시도
+      try {
+        await audioPlayer.play(AssetSource('audio/ringtone.mp3'));
+        debugPrint('✅ [SOUND-APPROVAL] assets/audio/ringtone.mp3 재생 시작');
+        
+        // 1.5초 재생 후 중지 (짧은 알림음)
+        await Future.delayed(const Duration(milliseconds: 1500));
+        await audioPlayer.stop();
+        await audioPlayer.dispose();
+        debugPrint('✅ [SOUND-APPROVAL] 새 기기 승인 요청 사운드 완료');
+      } catch (e) {
+        // assets 파일이 없으면 무시
+        debugPrint('⚠️ [SOUND-APPROVAL] assets 파일 없음, 사운드 스킵: $e');
+        await audioPlayer.dispose();
+      }
+    } catch (e) {
+      debugPrint('❌ [SOUND-APPROVAL] 사운드 재생 오류: $e');
+      if (audioPlayer != null) {
+        try {
+          await audioPlayer.dispose();
+        } catch (_) {}
+      }
     }
   }
 }
