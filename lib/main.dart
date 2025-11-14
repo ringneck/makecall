@@ -22,6 +22,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/approval_waiting_screen.dart';
 import 'screens/home/main_screen.dart';
 import 'screens/splash/splash_screen.dart';
+import 'theme/call_theme_extension.dart';
 
 /// 백그라운드 FCM 메시지 핸들러 (Top-level function)
 @pragma('vm:entry-point')

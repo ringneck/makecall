@@ -20,6 +20,8 @@ import '../../widgets/add_contact_dialog.dart';
 import '../../widgets/call_detail_dialog.dart';
 import '../../widgets/profile_drawer.dart';
 import '../../widgets/extension_drawer.dart';
+import '../../theme/call_theme_extension.dart';
+import '../../theme/call_theme_extension.dart';
 
 class CallTab extends StatefulWidget {
   final bool autoOpenProfileForNewUser; // 신규 사용자 자동 ProfileDrawer 열기
@@ -1097,17 +1099,20 @@ class _CallTabState extends State<CallTab> {
           itemBuilder: (context, index) {
             final call = callHistory[index];
             final isDark = Theme.of(context).brightness == Brightness.dark;
-            final callTypeColor = _getCallTypeColor(call.callType, isDark: isDark);
+            final callTheme = CallThemeColors(context);
+            final callTypeColor = _getCallTypeColor(call.callType, context);
             final callTypeIcon = _getCallTypeIcon(call.callType);
             
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? Colors.grey[850] : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.3)
+                        : Colors.black.withValues(alpha: 0.03),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -1174,10 +1179,10 @@ class _CallTabState extends State<CallTab> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: callTypeColor.withOpacity(0.1),
+                          color: callTypeColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: callTypeColor.withOpacity(0.3),
+                            color: callTypeColor.withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),
@@ -1265,10 +1270,11 @@ class _CallTabState extends State<CallTab> {
                                     vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: call.statusColor?.withOpacity(0.15),
+                                    color: call.statusColor?.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: call.statusColor?.withOpacity(0.5) ?? Colors.grey,
+                                      color: call.statusColor?.withValues(alpha: 0.5) ??
+                                          CallThemeColors(context).fallbackBorderColor,
                                       width: 1,
                                     ),
                                   ),
@@ -1343,14 +1349,12 @@ class _CallTabState extends State<CallTab> {
                     // 연락처 추가 버튼
                     Container(
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.green[900]!.withAlpha(77)
-                            : Colors.green.withOpacity(0.1),
+                        color: callTheme.addContactButtonBackgroundColor,
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.person_add_rounded, size: 16),
-                        color: isDark ? Colors.green[300] : Colors.green[700],
+                        color: callTheme.addContactButtonColor,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
                           minWidth: 30,
@@ -1368,14 +1372,14 @@ class _CallTabState extends State<CallTab> {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            const Color(0xFF2196F3).withOpacity(0.8),
-                            const Color(0xFF2196F3),
+                            callTheme.callButtonGradientStart,
+                            callTheme.callButtonGradientEnd,
                           ],
                         ),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF2196F3).withOpacity(0.3),
+                            color: callTheme.callButtonShadowColor,
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -1632,8 +1636,8 @@ class _CallTabState extends State<CallTab> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: isDark
-                    ? [Colors.red[900]!.withOpacity(0.6), Colors.red[700]!]
-                    : [Colors.red.withOpacity(0.8), Colors.red],
+                    ? [Colors.red[900]!.withValues(alpha: 0.6), Colors.red[700]!]
+                    : [Colors.red.withValues(alpha: 0.8), Colors.red],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
@@ -1821,37 +1825,29 @@ class _CallTabState extends State<CallTab> {
   /// 🔥 단말번호 및 착신전환 정보 표시
   /// 클릭투콜 발신 시 저장된 착신전환 정보만 표시
   Widget _buildExtensionInfo(CallHistoryModel call) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final callTheme = CallThemeColors(context);
     final isForwardEnabled = call.callForwardEnabled == true;
     final destinationNumber = call.callForwardDestination ?? '';
     
-    // 상태에 따른 색상 결정
+    // 상태에 따른 색상 결정 (테마 색상 헬퍼 사용)
     Color badgeColor;
     Color textColor;
     if (isForwardEnabled) {
       // 착신전환 활성화: 주황색
-      badgeColor = isDark
-          ? Colors.orange[900]!.withAlpha(77)
-          : Colors.orange.withOpacity(0.1);
-      textColor = isDark ? Colors.orange[300]! : Colors.orange[700]!;
+      badgeColor = callTheme.forwardedCallBackgroundColor;
+      textColor = callTheme.forwardedCallColor;
     } else if (call.status == 'device_answered') {
       // 단말수신: 녹색
-      badgeColor = isDark
-          ? Colors.green[900]!.withAlpha(77)
-          : Colors.green.withOpacity(0.1);
-      textColor = isDark ? Colors.green[300]! : Colors.green[700]!;
+      badgeColor = callTheme.deviceAnsweredBackgroundColor;
+      textColor = callTheme.deviceAnsweredColor;
     } else if (call.status == 'confirmed') {
       // 알림확인: 파란색
-      badgeColor = isDark
-          ? Colors.blue[900]!.withAlpha(77)
-          : Colors.blue.withOpacity(0.1);
-      textColor = isDark ? Colors.blue[300]! : Colors.blue[700]!;
+      badgeColor = callTheme.confirmedCallBackgroundColor;
+      textColor = callTheme.confirmedCallColor;
     } else {
       // 기본: 파란색
-      badgeColor = isDark
-          ? Colors.blue[900]!.withAlpha(77)
-          : Colors.blue.withOpacity(0.1);
-      textColor = isDark ? Colors.blue[300]! : Colors.blue[700]!;
+      badgeColor = callTheme.defaultBadgeBackgroundColor;
+      textColor = callTheme.defaultBadgeColor;
     }
     
     return Padding(
@@ -1868,9 +1864,7 @@ class _CallTabState extends State<CallTab> {
               borderRadius: BorderRadius.circular(8),
               border: isForwardEnabled
                   ? Border.all(
-                      color: isDark
-                          ? Colors.orange[700]!
-                          : Colors.orange.withOpacity(0.3),
+                      color: callTheme.forwardedCallBorderColor,
                       width: 1,
                     )
                   : null,
@@ -1899,7 +1893,7 @@ class _CallTabState extends State<CallTab> {
                   Icon(
                     Icons.arrow_forward_rounded,
                     size: 11,
-                    color: isDark ? Colors.orange[300] : Colors.orange[700],
+                    color: callTheme.forwardedCallColor,
                   ),
                   const SizedBox(width: 3),
                   Text(
@@ -1907,7 +1901,7 @@ class _CallTabState extends State<CallTab> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.orange[300] : Colors.orange[700],
+                      color: callTheme.forwardedCallColor,
                     ),
                   ),
                 ],
@@ -1930,14 +1924,15 @@ class _CallTabState extends State<CallTab> {
     }
   }
 
-  Color _getCallTypeColor(CallType type, {bool isDark = false}) {
+  Color _getCallTypeColor(CallType type, BuildContext context) {
+    final colors = CallThemeColors(context);
     switch (type) {
       case CallType.incoming:
-        return isDark ? Colors.green[300]! : Colors.green;
+        return colors.incomingCallColor;
       case CallType.outgoing:
-        return isDark ? Colors.blue[300]! : Colors.blue;
+        return colors.outgoingCallColor;
       case CallType.missed:
-        return isDark ? Colors.red[300]! : Colors.red;
+        return colors.missedCallColor;
     }
   }
 
