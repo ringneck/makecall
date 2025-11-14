@@ -177,6 +177,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final dialogWidth = screenWidth > 600 ? 500.0 : screenWidth * 0.9;
     
@@ -278,16 +279,22 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: isDark ? Colors.teal[900]!.withValues(alpha: 0.3) : Colors.teal.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(
+                      color: isDark ? Colors.teal[700]! : Colors.teal.shade200,
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'CDR API 주소:',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 10, 
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.teal[300] : Colors.teal.shade900,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -661,23 +668,29 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.teal.shade50,
+                    color: isDark ? Colors.teal[900]!.withValues(alpha: 0.3) : Colors.teal.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.teal.shade200),
+                    border: Border.all(
+                      color: isDark ? Colors.teal[700]! : Colors.teal.shade200,
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.preview, size: 14, color: Colors.teal.shade700),
+                          Icon(
+                            Icons.preview, 
+                            size: 14, 
+                            color: isDark ? Colors.teal[300] : Colors.teal.shade700,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             'WebSocket 연결 주소 미리보기',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: Colors.teal.shade900,
+                              color: isDark ? Colors.teal[300] : Colors.teal.shade900,
                             ),
                           ),
                         ],
