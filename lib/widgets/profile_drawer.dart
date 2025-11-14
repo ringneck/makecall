@@ -3769,6 +3769,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     final authService = context.read<AuthService>();
     final userId = authService.currentUser?.uid;
     final fcmService = FCMService();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     if (userId == null) {
       DialogUtils.showError(context, '사용자 정보를 찾을 수 없습니다.');
@@ -3780,6 +3781,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
+            backgroundColor: isDark ? Colors.grey[900] : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
@@ -3788,22 +3790,25 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
+                    color: isDark 
+                        ? Colors.blue[900]!.withValues(alpha: 0.5)
+                        : Colors.blue[50],
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.notifications_active,
-                    color: Color(0xFF2196F3),
+                    color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
                     size: 28,
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
                     '알림 설정',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.grey[200] : Colors.black87,
                     ),
                   ),
                 ),
@@ -3819,15 +3824,21 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: kIsWeb 
-                          ? [Colors.orange[50]!, Colors.orange[100]!]
-                          : [Colors.blue[50]!, Colors.blue[100]!],
+                        colors: isDark
+                          ? (kIsWeb 
+                              ? [Colors.orange[900]!.withValues(alpha: 0.3), Colors.orange[800]!.withValues(alpha: 0.3)]
+                              : [Colors.blue[900]!.withValues(alpha: 0.3), Colors.blue[800]!.withValues(alpha: 0.3)])
+                          : (kIsWeb 
+                              ? [Colors.orange[50]!, Colors.orange[100]!]
+                              : [Colors.blue[50]!, Colors.blue[100]!]),
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: kIsWeb ? Colors.orange[200]! : Colors.blue[200]!,
+                        color: isDark
+                          ? (kIsWeb ? Colors.orange[700]! : Colors.blue[700]!)
+                          : (kIsWeb ? Colors.orange[200]! : Colors.blue[200]!),
                       ),
                     ),
                     child: Row(
@@ -3836,7 +3847,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                           kIsWeb 
                             ? Icons.web 
                             : (Platform.isIOS ? Icons.apple : Icons.android),
-                          color: kIsWeb ? Colors.orange[700] : Colors.blue[700],
+                          color: isDark
+                            ? (kIsWeb ? Colors.orange[300] : Colors.blue[300])
+                            : (kIsWeb ? Colors.orange[700] : Colors.blue[700]),
                           size: 24,
                         ),
                         const SizedBox(width: 12),
@@ -3851,7 +3864,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 14,
-                                  color: kIsWeb ? Colors.orange[900] : Colors.blue[900],
+                                  color: isDark
+                                    ? (kIsWeb ? Colors.orange[200] : Colors.blue[200])
+                                    : (kIsWeb ? Colors.orange[900] : Colors.blue[900]),
                                 ),
                               ),
                               Text(
@@ -3860,7 +3875,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                   : (Platform.isIOS ? 'APNs 푸시 알림' : 'FCM 푸시 알림'),
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: kIsWeb ? Colors.orange[700] : Colors.blue[700],
+                                  color: isDark
+                                    ? (kIsWeb ? Colors.orange[400] : Colors.blue[400])
+                                    : (kIsWeb ? Colors.orange[700] : Colors.blue[700]),
                                 ),
                               ),
                             ],
@@ -3875,10 +3892,14 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   // 🔔 푸시 알림 ON/OFF
                   Container(
                     decoration: BoxDecoration(
-                      color: _pushEnabled ? Colors.green[50] : Colors.grey[100],
+                      color: _pushEnabled 
+                          ? (isDark ? Colors.green[900]!.withValues(alpha: 0.3) : Colors.green[50])
+                          : (isDark ? Colors.grey[850] : Colors.grey[100]),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _pushEnabled ? Colors.green[200]! : Colors.grey[300]!,
+                        color: _pushEnabled 
+                            ? (isDark ? Colors.green[700]! : Colors.green[200]!)
+                            : (isDark ? Colors.grey[700]! : Colors.grey[300]!),
                         width: 2,
                       ),
                     ),
@@ -3907,15 +3928,18 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         children: [
                           Icon(
                             _pushEnabled ? Icons.notifications_active : Icons.notifications_off,
-                            color: _pushEnabled ? Colors.green[700] : Colors.grey[600],
+                            color: _pushEnabled 
+                                ? (isDark ? Colors.green[300] : Colors.green[700])
+                                : (isDark ? Colors.grey[500] : Colors.grey[600]),
                             size: 24,
                           ),
                           const SizedBox(width: 12),
-                          const Text(
+                          Text(
                             '푸시 알림',
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 16,
+                              color: isDark ? Colors.grey[200] : Colors.black87,
                             ),
                           ),
                         ],
@@ -3928,11 +3952,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                             : '푸시 알림을 받지 않습니다',
                           style: TextStyle(
                             fontSize: 12,
-                            color: _pushEnabled ? Colors.green[900] : Colors.grey[600],
+                            color: _pushEnabled 
+                                ? (isDark ? Colors.green[400] : Colors.green[900])
+                                : (isDark ? Colors.grey[500] : Colors.grey[600]),
                           ),
                         ),
                       ),
-                      activeColor: Colors.green[600],
+                      activeColor: isDark ? Colors.green[400] : Colors.green[600],
                     ),
                   ),
                   
@@ -3945,9 +3971,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       absorbing: !_pushEnabled,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.blue[50],
+                          color: isDark 
+                              ? Colors.blue[900]!.withValues(alpha: 0.3)
+                              : Colors.blue[50],
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.blue[200]!),
+                          border: Border.all(
+                            color: isDark ? Colors.blue[700]! : Colors.blue[200]!,
+                          ),
                         ),
                         child: Column(
                           children: [
@@ -3976,29 +4006,38 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                 children: [
                                   Icon(
                                     _soundEnabled ? Icons.volume_up : Icons.volume_off,
-                                    color: Colors.blue[700],
+                                    color: isDark ? Colors.blue[300] : Colors.blue[700],
                                     size: 20,
                                   ),
                                   const SizedBox(width: 12),
-                                  const Text(
+                                  Text(
                                     '알림음',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 15,
+                                      color: isDark ? Colors.grey[200] : Colors.black87,
                                     ),
                                   ),
                                 ],
                               ),
-                              subtitle: const Padding(
-                                padding: EdgeInsets.only(left: 32, top: 2),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(left: 32, top: 2),
                                 child: Text(
                                   '알림 수신 시 소리 재생',
-                                  style: TextStyle(fontSize: 11),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? Colors.grey[400] : Colors.black54,
+                                  ),
                                 ),
                               ),
-                              activeColor: Colors.blue[600],
+                              activeColor: isDark ? Colors.blue[400] : Colors.blue[600],
                             ),
-                            const Divider(height: 1, indent: 16, endIndent: 16),
+                            Divider(
+                              height: 1, 
+                              indent: 16, 
+                              endIndent: 16,
+                              color: isDark ? Colors.grey[700] : Colors.grey[300],
+                            ),
                             SwitchListTile(
                               value: _vibrationEnabled,
                               onChanged: _pushEnabled ? (value) async {
@@ -4024,27 +4063,31 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                 children: [
                                   Icon(
                                     _vibrationEnabled ? Icons.vibration : Icons.mobile_off,
-                                    color: Colors.blue[700],
+                                    color: isDark ? Colors.blue[300] : Colors.blue[700],
                                     size: 20,
                                   ),
                                   const SizedBox(width: 12),
-                                  const Text(
+                                  Text(
                                     '진동',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 15,
+                                      color: isDark ? Colors.grey[200] : Colors.black87,
                                     ),
                                   ),
                                 ],
                               ),
-                              subtitle: const Padding(
-                                padding: EdgeInsets.only(left: 32, top: 2),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(left: 32, top: 2),
                                 child: Text(
                                   '알림 수신 시 진동',
-                                  style: TextStyle(fontSize: 11),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? Colors.grey[400] : Colors.black54,
+                                  ),
                                 ),
                               ),
-                              activeColor: Colors.blue[600],
+                              activeColor: isDark ? Colors.blue[400] : Colors.blue[600],
                             ),
                           ],
                         ),
@@ -4059,13 +4102,21 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.amber[50],
+                        color: isDark 
+                            ? Colors.amber[900]!.withValues(alpha: 0.3)
+                            : Colors.amber[50],
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.amber[200]!),
+                        border: Border.all(
+                          color: isDark ? Colors.amber[700]! : Colors.amber[200]!,
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline, color: Colors.amber[800], size: 20),
+                          Icon(
+                            Icons.info_outline, 
+                            color: isDark ? Colors.amber[300] : Colors.amber[800], 
+                            size: 20,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -4074,7 +4125,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                 : '시스템 푸시 권한은\nAndroid 설정에서 관리됩니다',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.amber[900],
+                                color: isDark ? Colors.amber[200] : Colors.amber[900],
                                 height: 1.4,
                               ),
                             ),
@@ -4091,10 +4142,19 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   onPressed: () async {
                     await openAppSettings();
                   },
-                  icon: const Icon(Icons.settings, size: 18),
-                  label: Text(Platform.isIOS ? 'iOS 설정' : 'Android 설정'),
+                  icon: Icon(
+                    Icons.settings, 
+                    size: 18,
+                    color: isDark ? Colors.blue[300] : Colors.blue[700],
+                  ),
+                  label: Text(
+                    Platform.isIOS ? 'iOS 설정' : 'Android 설정',
+                    style: TextStyle(
+                      color: isDark ? Colors.blue[300] : Colors.blue[700],
+                    ),
+                  ),
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.blue[700],
+                    foregroundColor: isDark ? Colors.blue[300] : Colors.blue[700],
                   ),
                 ),
               const SizedBox(width: 8),
@@ -4103,7 +4163,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
+                  backgroundColor: isDark 
+                      ? Colors.blue[700]
+                      : const Color(0xFF2196F3),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
