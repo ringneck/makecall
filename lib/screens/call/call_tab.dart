@@ -611,38 +611,109 @@ class _CallTabState extends State<CallTab> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.transparent,
-              backgroundImage: authService.currentUserModel?.profileImageUrl != null
-                  ? NetworkImage(authService.currentUserModel!.profileImageUrl!)
-                  : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
-            ),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-            tooltip: '계정 정보',
-          ),
-        ),
-        title: const Text('MAKECALL'),
-        actions: [
-          Builder(
-            builder: (context) => IconButton(
-              icon: CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.black,
-                child: const Icon(
-                  Icons.phone_in_talk,
-                  size: 24,
-                  color: Colors.white,
+          builder: (context) => Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(25),
+              onTap: () {
+                Scaffold.of(context).openDrawer();
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2196F3).withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.white,
+                  backgroundImage: authService.currentUserModel?.profileImageUrl != null
+                      ? NetworkImage(authService.currentUserModel!.profileImageUrl!)
+                      : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
                 ),
               ),
-              onPressed: () {
-                Scaffold.of(context).openEndDrawer();
-              },
-              tooltip: '내 단말정보',
+            ),
+          ),
+        ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2196F3).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Text(
+                'MAKECALL',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+        centerTitle: true,
+        actions: [
+          Builder(
+            builder: (context) => Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(25),
+                onTap: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2196F3).withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.transparent,
+                    child: Icon(
+                      Icons.phone_in_talk_rounded,
+                      size: 22,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -681,48 +752,100 @@ class _CallTabState extends State<CallTab> {
           _buildContactsTab(),         // 4: 연락처
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentTabIndex,
-        onTap: (index) {
-          setState(() {
-            _currentTabIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF2196F3),
-        unselectedItemColor: Colors.grey,
-        selectedLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, -2),
+            ),
+          ],
         ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.normal,
+        child: SafeArea(
+          child: BottomNavigationBar(
+            currentIndex: _currentTabIndex,
+            onTap: (index) {
+              setState(() {
+                _currentTabIndex = index;
+              });
+            },
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            selectedItemColor: const Color(0xFF2196F3),
+            unselectedItemColor: Colors.grey[600],
+            selectedLabelStyle: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.2,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+            selectedFontSize: 11,
+            unselectedFontSize: 10,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.phone_android_rounded, size: 26),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.phone_android_rounded, size: 28),
+                ),
+                label: '단말번호',
+              ),
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.history_rounded, size: 26),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.history_rounded, size: 28),
+                ),
+                label: '최근통화',
+              ),
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.dialpad_rounded, size: 26),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.dialpad_rounded, size: 28),
+                ),
+                label: '키패드',
+              ),
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.star_rounded, size: 26),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.star_rounded, size: 28),
+                ),
+                label: '즐겨찾기',
+              ),
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.contacts_rounded, size: 26),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.contacts_rounded, size: 28),
+                ),
+                label: '연락처',
+              ),
+            ],
+          ),
         ),
-        selectedFontSize: 11,
-        unselectedFontSize: 11,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.phone_android, size: 24),
-            label: '단말번호',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history, size: 24),
-            label: '최근통화',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dialpad, size: 24),
-            label: '키패드',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star, size: 24),
-            label: '즐겨찾기',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.contacts, size: 24),
-            label: '연락처',
-          ),
-        ],
       ),
     );
   }
