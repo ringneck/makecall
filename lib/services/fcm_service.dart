@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 import 'dart:async'; // TimeoutException 사용을 위해 필요
+import 'dart:typed_data'; // Int64List for vibration pattern
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../screens/call/incoming_call_screen.dart';
@@ -1872,6 +1873,7 @@ class FCMService {
         priority: Priority.high,
         playSound: soundEnabled, // 🔊 사용자 설정 적용
         enableVibration: vibrationEnabled, // 📳 사용자 설정 적용
+        vibrationPattern: vibrationEnabled ? Int64List.fromList([0, 500, 200, 500]) : null, // 진동 패턴 (0ms 대기, 500ms 진동, 200ms 정지, 500ms 진동)
         icon: '@mipmap/ic_launcher', // 앱 아이콘 사용
       );
       
