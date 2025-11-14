@@ -171,7 +171,11 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.error_outline, size: 56, color: Colors.redAccent),
+                          Icon(
+                            Icons.error_outline, 
+                            size: 56, 
+                            color: isDark ? Colors.red[300] : Colors.redAccent,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             '오류가 발생했습니다: ${snapshot.error}',
