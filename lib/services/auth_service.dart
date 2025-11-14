@@ -14,13 +14,32 @@ class AuthService extends ChangeNotifier {
   final AccountManagerService _accountManager = AccountManagerService();
   
   User? get currentUser => _auth.currentUser;
-  bool get isAuthenticated => _currentUserModel != null;
+  bool get isAuthenticated => _currentUserModel != null && !_isWaitingForApproval;
   
   UserModel? _currentUserModel;
   UserModel? get currentUserModel => _currentUserModel;
   
   // 🔒 로그아웃 상태 추적 (중복 notifyListeners 방지)
   String? _lastUserId;
+  
+  // 🔐 기기 승인 대기 상태
+  bool _isWaitingForApproval = false;
+  bool get isWaitingForApproval => _isWaitingForApproval;
+  String? _approvalRequestId;
+  String? get approvalRequestId => _approvalRequestId;
+  
+  /// 승인 대기 상태 설정
+  void setWaitingForApproval(bool waiting, {String? approvalRequestId}) {
+    _isWaitingForApproval = waiting;
+    _approvalRequestId = approvalRequestId;
+    if (kDebugMode) {
+      debugPrint('🔐 [AUTH] 승인 대기 상태 변경: $waiting');
+      if (approvalRequestId != null) {
+        debugPrint('   - Approval Request ID: $approvalRequestId');
+      }
+    }
+    notifyListeners();
+  }
   
   AuthService() {
     _auth.authStateChanges().listen((User? user) {

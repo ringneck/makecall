@@ -31,6 +31,7 @@ class FCMService {
   String? _fcmToken;
   static BuildContext? _context; // 전역 BuildContext 저장
   static Function()? _onForceLogout; // 강제 로그아웃 콜백
+  static AuthService? _authService; // AuthService 참조
   
   // 🔒 중복 초기화 방지
   static bool _isInitializing = false;
@@ -62,6 +63,11 @@ class FCMService {
   /// 강제 로그아웃 콜백 설정
   static void setForceLogoutCallback(Function() callback) {
     _onForceLogout = callback;
+  }
+  
+  /// AuthService 설정 (승인 대기 상태 변경용)
+  static void setAuthService(AuthService authService) {
+    _authService = authService;
   }
   
   /// ✅ OPTION 1: iOS Method Channel에서 호출하는 공개 메서드
@@ -575,14 +581,22 @@ class FCMService {
         _currentApprovalRequestId = approvalRequestId;
         _currentUserId = userId;
         
-        // 🎨 승인 대기 다이얼로그 표시
-        _showApprovalWaitingDialog();
+        // 🔐 AuthService에 승인 대기 상태 설정
+        if (_authService != null) {
+          _authService!.setWaitingForApproval(true, approvalRequestId: approvalRequestId);
+          // ignore: avoid_print
+          print('✅ [FCM-SAVE] AuthService 승인 대기 상태 설정 완료');
+        }
         
         // 승인 대기 (최대 5분)
         final approved = await _waitForDeviceApproval(approvalRequestId);
         
-        // 🎨 다이얼로그 닫기
-        _dismissApprovalWaitingDialog();
+        // 🔐 AuthService 승인 대기 상태 해제
+        if (_authService != null) {
+          _authService!.setWaitingForApproval(false);
+          // ignore: avoid_print
+          print('✅ [FCM-SAVE] AuthService 승인 대기 상태 해제 완료');
+        }
         
         // 🎨 승인 요청 정보 초기화
         _currentApprovalRequestId = null;
@@ -2805,8 +2819,8 @@ class FCMService {
     );
   }
   
-  /// 승인 요청 재전송
-  Future<void> _resendApprovalRequest(String approvalRequestId, String userId) async {
+  /// 승인 요청 재전송 (공개 메서드)
+  Future<void> resendApprovalRequest(String approvalRequestId, String userId) async {
     try {
       // ignore: avoid_print
       print('');

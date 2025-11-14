@@ -19,6 +19,7 @@ import 'services/inactivity_service.dart';
 import 'providers/selected_extension_provider.dart';
 import 'providers/dcmiws_event_provider.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/approval_waiting_screen.dart';
 import 'screens/home/main_screen.dart';
 import 'screens/splash/splash_screen.dart';
 
@@ -369,10 +370,11 @@ class _MyAppState extends State<MyApp> {
                 ? const SplashScreen() // 💡 스플래시 스크린 표시
                 : Consumer<AuthService>(
                     builder: (context, authService, _) {
-                      // 🔔 FCM BuildContext 설정 (수신 전화 화면 표시를 위해 필수)
+                      // 🔔 FCM BuildContext 및 AuthService 설정
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (mounted) {
                           FCMService.setContext(context);
+                          FCMService.setAuthService(authService);
                         }
                       });
                       
@@ -521,6 +523,14 @@ class _MyAppState extends State<MyApp> {
                         });
                       }
 
+                      // 🔐 승인 대기 중인 경우
+                      if (authService.isWaitingForApproval) {
+                        return ApprovalWaitingScreen(
+                          approvalRequestId: authService.approvalRequestId!,
+                          userId: authService.currentUser!.uid,
+                        );
+                      }
+                      
                       if (authService.isAuthenticated) {
                         // ⏱️ 사용자 활동 감지 (GestureDetector로 전체 앱 감싸기)
                         return GestureDetector(
