@@ -788,84 +788,86 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           const Divider(thickness: 1),
           const SizedBox(height: 8),
           
-          // 📡 착신전화 수신 설정
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.teal[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.teal[100]!),
-              ),
-              child: const ListTile(
-                leading: Icon(Icons.settings_input_antenna, color: Colors.teal),
-                title: Text(
-                  '착신전화 수신 방식',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+          // 📡 착신전화 수신 설정 (Premium 전용)
+          if (_isPremium) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.teal[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.teal[100]!),
                 ),
-                subtitle: Text('PUSH(기본) 또는 DCMIWS 선택', style: TextStyle(fontSize: 12)),
+                child: const ListTile(
+                  leading: Icon(Icons.settings_input_antenna, color: Colors.teal),
+                  title: Text(
+                    '착신전화 수신 방식',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text('PUSH(기본) 또는 DCMIWS 선택', style: TextStyle(fontSize: 12)),
+                ),
               ),
             ),
-          ),
-          
-          // DCMIWS 착신전화 수신 설정
-          _buildSwitchTile(
-            icon: Icons.wifi_tethering,
-            title: 'DCMIWS 실시간 수신',
-            subtitle: _dcmiwsEnabled 
-                ? '웹소켓으로 실시간 착신전화 수신 중' 
-                : 'PUSH(FCM)로 착신전화 수신 (기본)',
-            value: _dcmiwsEnabled,
-            onChanged: (value) => _updateDcmiwsEnabled(value),
-          ),
-          
-          // DCMIWS 설명
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 6),
-                      Text(
-                        '착신전화 수신 방식 안내',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[800],
+            
+            // DCMIWS 착신전화 수신 설정
+            _buildSwitchTile(
+              icon: Icons.wifi_tethering,
+              title: 'DCMIWS 실시간 수신',
+              subtitle: _dcmiwsEnabled 
+                  ? '웹소켓으로 실시간 착신전화 수신 중' 
+                  : 'PUSH(FCM)로 착신전화 수신 (기본)',
+              value: _dcmiwsEnabled,
+              onChanged: (value) => _updateDcmiwsEnabled(value),
+            ),
+            
+            // DCMIWS 설명
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 6),
+                        Text(
+                          '착신전화 수신 방식 안내',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[800],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '• PUSH(기본): FCM을 통해 착신전화 알림 수신\n'
-                    '  배터리 효율적, 안정적인 방식\n\n'
-                    '• DCMIWS: 웹소켓으로 실시간 수신\n'
-                    '  더 빠른 응답, 배터리 사용량 증가',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[700],
-                      height: 1.4,
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      '• PUSH(기본): FCM을 통해 착신전화 알림 수신\n'
+                      '  배터리 효율적, 안정적인 방식\n\n'
+                      '• DCMIWS: 웹소켓으로 실시간 수신\n'
+                      '  더 빠른 응답, 배터리 사용량 증가',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[700],
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          
-          const SizedBox(height: 16),
-          const Divider(thickness: 1),
-          const SizedBox(height: 8),
+            
+            const SizedBox(height: 16),
+            const Divider(thickness: 1),
+            const SizedBox(height: 8),
+          ],
           
           // 약관 및 정책
           Padding(
