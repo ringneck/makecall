@@ -77,6 +77,9 @@ dependencies:
   # Vibration (for incoming call alerts)
   vibration: ^2.0.0  # Vibration control for iOS/Android
   
+  # Ringtone Player (for system ringtone playback)
+  flutter_ringtone_player: ^4.0.0+3  # System ringtone for incoming calls
+  
   # File Download & Share (for recording downloads on mobile)
   share_plus: 7.2.2  # Native share functionality for iOS/Android
   path_provider: 2.1.4  # Access to device file system

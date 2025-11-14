@@ -3023,19 +3023,53 @@ class FCMService {
       // 볼륨 설정 (보통 크기)
       await audioPlayer.setVolume(0.8);
       
-      // 🔊 assets 알림음 재생 시도
+      // 🔊 안드로이드 기본 알림음 재생
       try {
-        await audioPlayer.play(AssetSource('audio/ringtone.mp3'));
-        debugPrint('✅ [SOUND-APPROVAL] assets/audio/ringtone.mp3 재생 시작');
+        // flutter_local_notifications를 사용하여 시스템 알림음 재생
+        final androidPlugin = _flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
         
-        // 1.5초 재생 후 중지 (짧은 알림음)
-        await Future.delayed(const Duration(milliseconds: 1500));
-        await audioPlayer.stop();
+        if (androidPlugin != null) {
+          // Android: 시스템 기본 알림음으로 간단한 알림 표시
+          await _flutterLocalNotificationsPlugin.show(
+            999, // 임시 알림 ID
+            '새 기기 승인 요청',
+            '관리자의 승인이 필요합니다',
+            const NotificationDetails(
+              android: AndroidNotificationDetails(
+                'notification_sound_on_vibration_on',
+                'Notifications with Sound and Vibration',
+                channelDescription: 'Notifications with both sound and vibration enabled',
+                importance: Importance.high,
+                priority: Priority.high,
+                playSound: true, // 안드로이드 기본 알림음 사용
+                enableVibration: true,
+              ),
+            ),
+          );
+          debugPrint('✅ [SOUND-APPROVAL] 안드로이드 기본 알림음 재생 완료');
+          
+          // 1.5초 후 알림 제거
+          await Future.delayed(const Duration(milliseconds: 1500));
+          await _flutterLocalNotificationsPlugin.cancel(999);
+        } else {
+          // iOS: assets 파일 재생
+          debugPrint('ℹ️ [SOUND-APPROVAL] iOS 플랫폼 - assets 파일 사용');
+          try {
+            await audioPlayer.play(AssetSource('audio/ringtone.mp3'));
+            debugPrint('✅ [SOUND-APPROVAL] iOS assets/audio/ringtone.mp3 재생 시작');
+            
+            // 1.5초 재생 후 중지 (짧은 알림음)
+            await Future.delayed(const Duration(milliseconds: 1500));
+            await audioPlayer.stop();
+          } catch (e) {
+            debugPrint('⚠️ [SOUND-APPROVAL] iOS assets 파일 재생 오류: $e');
+          }
+        }
+        
         await audioPlayer.dispose();
-        debugPrint('✅ [SOUND-APPROVAL] 새 기기 승인 요청 사운드 완료');
       } catch (e) {
-        // assets 파일이 없으면 무시
-        debugPrint('⚠️ [SOUND-APPROVAL] assets 파일 없음, 사운드 스킵: $e');
+        debugPrint('⚠️ [SOUND-APPROVAL] 알림음 재생 오류: $e');
         await audioPlayer.dispose();
       }
     } catch (e) {

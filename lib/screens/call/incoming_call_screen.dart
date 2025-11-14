@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 
 /// 수신 전화 풀스크린 (미래지향적 디자인 + 고급 애니메이션)
 class IncomingCallScreen extends StatefulWidget {
@@ -134,21 +135,25 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     // 🎵 벨소리 재생 (설정이 켜져있을 때)
     if (widget.shouldPlaySound) {
       try {
-        _audioPlayer = AudioPlayer();
-        
-        // 반복 재생 설정
-        await _audioPlayer!.setReleaseMode(ReleaseMode.loop);
-        await _audioPlayer!.setVolume(1.0); // 최대 볼륨
-        
-        // 🔊 assets 벨소리 재생 시도
-        try {
+        // Android: 시스템 기본 벨소리 사용
+        if (Platform.isAndroid) {
+          await FlutterRingtonePlayer().play(
+            android: AndroidSounds.ringtone, // 안드로이드 기본 벨소리
+            looping: true, // 반복 재생
+            volume: 1.0, // 최대 볼륨
+          );
+          debugPrint('✅ [RINGTONE] 안드로이드 기본 벨소리 재생 시작 (반복 모드)');
+        } 
+        // iOS: assets 파일 사용
+        else if (Platform.isIOS) {
+          _audioPlayer = AudioPlayer();
+          await _audioPlayer!.setReleaseMode(ReleaseMode.loop);
+          await _audioPlayer!.setVolume(1.0);
           await _audioPlayer!.play(AssetSource('audio/ringtone.mp3'));
-          debugPrint('✅ [RINGTONE] assets/audio/ringtone.mp3 재생 시작 (반복 모드)');
-        } catch (e) {
-          // assets 파일이 없으면 URL 기반 기본 벨소리 사용
-          debugPrint('⚠️ [RINGTONE] assets 파일 없음, 기본 알림음으로 폴백: $e');
-          // Note: audioplayers는 assets 없이는 재생 불가
-          // 실제로는 진동만 작동하게 됨
+          debugPrint('✅ [RINGTONE] iOS assets/audio/ringtone.mp3 재생 시작 (반복 모드)');
+        } 
+        else {
+          debugPrint('⚠️ [RINGTONE] 웹 플랫폼 - 시스템 벨소리 미지원');
         }
       } catch (e) {
         debugPrint('❌ [RINGTONE] 벨소리 재생 실패: $e');
@@ -243,12 +248,20 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     debugPrint('🛑 [RINGTONE] 벨소리/진동 중지');
     
     // 🎵 벨소리 중지
-    if (_audioPlayer != null) {
+    if (widget.shouldPlaySound) {
       try {
-        await _audioPlayer!.stop();
-        await _audioPlayer!.dispose();
-        _audioPlayer = null;
-        debugPrint('✅ [RINGTONE] 벨소리 중지 완료');
+        // Android: 시스템 벨소리 중지
+        if (Platform.isAndroid) {
+          await FlutterRingtonePlayer().stop();
+          debugPrint('✅ [RINGTONE] 안드로이드 시스템 벨소리 중지 완료');
+        }
+        // iOS: AudioPlayer 중지
+        else if (_audioPlayer != null) {
+          await _audioPlayer!.stop();
+          await _audioPlayer!.dispose();
+          _audioPlayer = null;
+          debugPrint('✅ [RINGTONE] iOS AudioPlayer 중지 완료');
+        }
       } catch (e) {
         debugPrint('❌ [RINGTONE] 벨소리 중지 오류: $e');
       }
