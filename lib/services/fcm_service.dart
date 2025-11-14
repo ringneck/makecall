@@ -1075,25 +1075,47 @@ class FCMService {
     // ignore: avoid_print
     print('   - Message data: ${message.data}');
     
-    // WebSocket 연결 상태 확인
-    try {
-      final dcmiwsService = DCMIWSService();
-      final isConnected = dcmiwsService.isConnected;
-      // ignore: avoid_print
-      print('🔍 [FCM-INCOMING] WebSocket 연결 상태: $isConnected');
-      
-      if (isConnected) {
-        // ignore: avoid_print
-        print('✅ [FCM-INCOMING] WebSocket 연결 활성 - 웹소켓으로 처리 (FCM 무시)');
-        return; // WebSocket이 활성이면 FCM 무시
-      }
-    } catch (e) {
-      // ignore: avoid_print
-      print('⚠️ [FCM-INCOMING] WebSocket 상태 확인 오류 (무시하고 계속): $e');
-    }
+    // 1️⃣ 사용자 설정 확인 (dcmiwsEnabled)
+    final authService = AuthService();
+    final dcmiwsEnabled = authService.currentUserModel?.dcmiwsEnabled ?? false;
     
     // ignore: avoid_print
-    print('⚠️ [FCM-INCOMING] WebSocket 연결 없음 - FCM으로 처리');
+    print('📋 [FCM-INCOMING] 사용자 수신 전화 처리 설정:');
+    // ignore: avoid_print
+    print('   - dcmiwsEnabled: $dcmiwsEnabled');
+    // ignore: avoid_print
+    print('   - 처리 방식: ${dcmiwsEnabled ? "WebSocket (DCMIWS)" : "FCM (Push)"}');
+    
+    if (dcmiwsEnabled) {
+      // 2️⃣ WebSocket 모드: FCM 무시
+      // ignore: avoid_print
+      print('✅ [FCM-INCOMING] WebSocket 모드 설정됨 - FCM 무시');
+      
+      // WebSocket 연결 상태 확인 (경고용)
+      try {
+        final dcmiwsService = DCMIWSService();
+        final isConnected = dcmiwsService.isConnected;
+        
+        if (!isConnected) {
+          // ignore: avoid_print
+          print('⚠️ [FCM-INCOMING] WebSocket 연결 안 됨 - 수신 전화 놓칠 수 있음');
+          // ignore: avoid_print
+          print('   💡 WebSocket 연결을 확인하거나 FCM 모드로 전환하세요');
+        } else {
+          // ignore: avoid_print
+          print('✅ [FCM-INCOMING] WebSocket 연결 활성 - WebSocket으로 수신 전화 처리 중');
+        }
+      } catch (e) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-INCOMING] WebSocket 상태 확인 오류: $e');
+      }
+      
+      return; // WebSocket 모드는 FCM 무시
+    }
+    
+    // 3️⃣ FCM 모드: FCM으로 수신 전화 처리
+    // ignore: avoid_print
+    print('✅ [FCM-INCOMING] FCM 모드 설정됨 - FCM으로 수신 전화 처리');
     // ignore: avoid_print
     print('📞 [FCM-INCOMING] _showIncomingCallScreen() 호출 시작...');
     
@@ -1121,10 +1143,12 @@ class FCMService {
       if (context != null) {
         debugPrint('✅ [FCM-INCOMING] Context 준비 완료 (${retryCount * 100}ms 대기)');
         
-        // WebSocket 연결 상태 확인
-        final dcmiwsService = DCMIWSService();
-        if (dcmiwsService.isConnected) {
-          debugPrint('✅ [FCM-INCOMING] WebSocket 연결 활성 - FCM 무시');
+        // 사용자 설정 확인 (dcmiwsEnabled)
+        final authService = AuthService();
+        final dcmiwsEnabled = authService.currentUserModel?.dcmiwsEnabled ?? false;
+        
+        if (dcmiwsEnabled) {
+          debugPrint('✅ [FCM-INCOMING] WebSocket 모드 설정됨 - FCM 무시');
           return;
         }
         
