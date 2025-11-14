@@ -148,18 +148,21 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
     final userId = authService.currentUser?.uid ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Drawer(
-      backgroundColor: Colors.white, // 하얀 배경색
+      backgroundColor: isDark ? Colors.grey[900] : Colors.white,
       child: SafeArea(
         child: Container(
-          color: Colors.white,
+          color: isDark ? Colors.grey[900] : Colors.white,
           child: StreamBuilder<List<MyExtensionModel>>(
                   stream: _databaseService.getMyExtensions(userId),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(color: Colors.blue),
+                      return Center(
+                        child: CircularProgressIndicator(
+                          color: isDark ? Colors.blue[400] : Colors.blue,
+                        ),
                       );
                   }
 
@@ -173,7 +176,9 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                           Text(
                             '오류가 발생했습니다: ${snapshot.error}',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.black87),
+                            style: TextStyle(
+                              color: isDark ? Colors.grey[300] : Colors.black87,
+                            ),
                           ),
                         ],
                       ),
@@ -301,27 +306,27 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.phone_disabled,
                                       size: 64,
-                                      color: Colors.black38,
+                                      color: isDark ? Colors.grey[700] : Colors.black38,
                                     ),
                                     const SizedBox(height: 24),
-                                    const Text(
+                                    Text(
                                       '등록된 단말번호가 없습니다',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.black87,
+                                        color: isDark ? Colors.grey[300] : Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 12),
-                                    const Text(
+                                    Text(
                                       '왼쪽 상단 프로필 설정에서 단말번호를 조회하고 등록해주세요.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: Colors.black54,
+                                        color: isDark ? Colors.grey[500] : Colors.black54,
                                       ),
                                     ),
                                   ],
@@ -352,10 +357,12 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 16),
                                       decoration: BoxDecoration(
-                                        color: Colors.grey[100],
+                                        color: isDark ? Colors.grey[850] : Colors.grey[100],
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
-                                          color: const Color(0xFF2196F3).withAlpha(128),
+                                          color: isDark 
+                                              ? const Color(0xFF2196F3).withAlpha(180)
+                                              : const Color(0xFF2196F3).withAlpha(128),
                                           width: 2,
                                         ),
                                       ),
@@ -363,12 +370,16 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                         child: DropdownButton<int>(
                                           value: _currentPage,
                                           isExpanded: true,
-                                          dropdownColor: Colors.grey[100],
-                                          icon: const Icon(Icons.arrow_drop_down, size: 24, color: Color(0xFF2196F3)),
-                                          style: const TextStyle(
+                                          dropdownColor: isDark ? Colors.grey[850] : Colors.grey[100],
+                                          icon: Icon(
+                                            Icons.arrow_drop_down, 
+                                            size: 24, 
+                                            color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                                          ),
+                                          style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
+                                            color: isDark ? Colors.grey[300] : Colors.black87,
                                           ),
                                           onChanged: (int? newValue) {
                                             if (newValue != null) {
@@ -404,7 +415,9 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                                   Icon(
                                                     Icons.phone_in_talk,
                                                     size: 18,
-                                                    color: const Color(0xFF2196F3),
+                                                    color: isDark 
+                                                        ? Colors.blue[300] 
+                                                        : const Color(0xFF2196F3),
                                                   ),
                                                   const SizedBox(width: 12),
                                                   Expanded(
@@ -492,10 +505,13 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
     final userHttpAuthId = authService.currentUserModel?.websocketHttpAuthId;
     final userHttpAuthPassword = authService.currentUserModel?.websocketHttpAuthPassword;
     
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Card(
       key: key,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         elevation: 6,
+        color: isDark ? Colors.grey[850] : Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -505,10 +521,15 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF2196F3).withAlpha(13),
-                Colors.white,
-              ],
+              colors: isDark
+                  ? [
+                      const Color(0xFF2196F3).withAlpha(40),
+                      Colors.grey[850]!,
+                    ]
+                  : [
+                      const Color(0xFF2196F3).withAlpha(13),
+                      Colors.white,
+                    ],
             ),
           ),
           child: SingleChildScrollView(
@@ -529,10 +550,14 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF4CAF50).withAlpha(26),
+                              color: isDark
+                                  ? const Color(0xFF4CAF50).withAlpha(50)
+                                  : const Color(0xFF4CAF50).withAlpha(26),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: const Color(0xFF4CAF50).withAlpha(77),
+                                color: isDark
+                                    ? const Color(0xFF4CAF50).withAlpha(120)
+                                    : const Color(0xFF4CAF50).withAlpha(77),
                                 width: 1.5,
                               ),
                             ),
@@ -545,7 +570,9 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                     Icon(
                                       Icons.call_made,
                                       size: 14,
-                                      color: const Color(0xFF4CAF50),
+                                      color: isDark 
+                                          ? const Color(0xFF81C784) 
+                                          : const Color(0xFF4CAF50),
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
@@ -553,7 +580,9 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w600,
-                                        color: const Color(0xFF4CAF50),
+                                        color: isDark 
+                                            ? const Color(0xFF81C784) 
+                                            : const Color(0xFF4CAF50),
                                         letterSpacing: 0.5,
                                       ),
                                     ),
@@ -565,10 +594,10 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                 if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty)
                                   Text(
                                     extension.externalCidName!,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
+                                      color: isDark ? Colors.grey[300] : Colors.black87,
                                     ),
                                     textAlign: TextAlign.center,
                                     maxLines: 1,
@@ -585,10 +614,12 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                 if (extension.externalCidNumber != null && extension.externalCidNumber!.isNotEmpty)
                                   Text(
                                     PhoneFormatter.format(extension.externalCidNumber!),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF4CAF50),
+                                      color: isDark 
+                                          ? const Color(0xFF81C784) 
+                                          : const Color(0xFF4CAF50),
                                       letterSpacing: 0.8,
                                     ),
                                     textAlign: TextAlign.center,
@@ -609,10 +640,14 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2196F3).withAlpha(26),
+                            color: isDark
+                                ? const Color(0xFF2196F3).withAlpha(50)
+                                : const Color(0xFF2196F3).withAlpha(26),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFF2196F3).withAlpha(77),
+                              color: isDark
+                                  ? const Color(0xFF2196F3).withAlpha(120)
+                                  : const Color(0xFF2196F3).withAlpha(77),
                               width: 1.5,
                             ),
                           ),
@@ -625,7 +660,9 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                   Icon(
                                     Icons.phone_in_talk,
                                     size: 14,
-                                    color: const Color(0xFF2196F3),
+                                    color: isDark 
+                                        ? const Color(0xFF64B5F6) 
+                                        : const Color(0xFF2196F3),
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -633,7 +670,9 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF2196F3),
+                                      color: isDark 
+                                          ? const Color(0xFF64B5F6) 
+                                          : const Color(0xFF2196F3),
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -645,10 +684,10 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                               if (extension.name.isNotEmpty)
                                 Text(
                                   extension.name,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
+                                    color: isDark ? Colors.grey[300] : Colors.black87,
                                   ),
                                   textAlign: TextAlign.center,
                                   maxLines: 1,
@@ -661,10 +700,12 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                               // 단말번호
                               Text(
                                 PhoneFormatter.format(extension.extension),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF2196F3),
+                                  color: isDark 
+                                      ? const Color(0xFF64B5F6) 
+                                      : const Color(0xFF2196F3),
                                   letterSpacing: 0.8,
                                 ),
                                 textAlign: TextAlign.center,
