@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -159,6 +160,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     // 📳 진동 시작 (설정이 켜져있을 때)
     if (widget.shouldVibrate) {
       try {
+        // 플랫폼 확인
+        final platform = Platform.isIOS ? 'iOS' : Platform.isAndroid ? 'Android' : 'Web/Other';
+        debugPrint('📱 [VIBRATION] 플랫폼: $platform');
+        
         // 기기 진동 지원 확인
         final hasVibrator = await Vibration.hasVibrator();
         debugPrint('📳 [VIBRATION] 기기 진동 지원: $hasVibrator');
@@ -168,11 +173,25 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           // 진동 패턴 시작 (반복)
           _vibrateRepeatedly();
           debugPrint('✅ [VIBRATION] 진동 시작 (반복 패턴)');
+        } else if (hasVibrator == null) {
+          // iOS에서 null을 반환하는 경우가 있음 - 그래도 시도
+          debugPrint('⚠️ [VIBRATION] 진동 지원 확인 결과 null - 진동 시도');
+          _isVibrating = true;
+          _vibrateRepeatedly();
         } else {
           debugPrint('⚠️ [VIBRATION] 기기가 진동을 지원하지 않음');
         }
+        
+        // iOS 추가 정보
+        if (Platform.isIOS) {
+          debugPrint('💡 [iOS] 진동이 작동하지 않는다면 다음을 확인하세요:');
+          debugPrint('   1. iOS 무음 모드 스위치가 꺼져 있는지 확인');
+          debugPrint('   2. 설정 > 사운드 및 햅틱 > 진동 설정 확인');
+          debugPrint('   3. 방해금지 모드가 비활성화되어 있는지 확인');
+        }
       } catch (e) {
         debugPrint('❌ [VIBRATION] 진동 시작 실패: $e');
+        debugPrint('   스택 트레이스: ${StackTrace.current}');
       }
     } else {
       debugPrint('⏭️ [VIBRATION] 진동 비활성화 - 건너뜀');
@@ -181,8 +200,15 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   
   /// 📳 반복 진동 실행
   Future<void> _vibrateRepeatedly() async {
+    int vibrationCount = 0;
     while (_isVibrating && mounted) {
       try {
+        vibrationCount++;
+        if (vibrationCount % 10 == 1) {
+          // 10회마다 한 번씩 로그 (너무 많은 로그 방지)
+          debugPrint('📳 [VIBRATION] 진동 실행 중... (횟수: $vibrationCount)');
+        }
+        
         // 진동 패턴: 500ms 진동, 200ms 정지, 500ms 진동, 1000ms 정지, 반복
         await Vibration.vibrate(duration: 500);
         await Future.delayed(const Duration(milliseconds: 200));
@@ -192,10 +218,24 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         await Vibration.vibrate(duration: 500);
         await Future.delayed(const Duration(milliseconds: 1000));
       } catch (e) {
-        debugPrint('❌ [VIBRATION] 진동 오류: $e');
-        break;
+        debugPrint('❌ [VIBRATION] 진동 오류 (횟수: $vibrationCount): $e');
+        
+        // iOS에서 특정 오류가 발생하면 짧은 진동으로 폴백
+        if (Platform.isIOS && e.toString().contains('duration')) {
+          debugPrint('💡 [iOS] duration 파라미터 오류 - 기본 진동으로 폴백');
+          try {
+            await Vibration.vibrate(); // duration 없이 기본 진동
+            await Future.delayed(const Duration(milliseconds: 1000));
+          } catch (fallbackError) {
+            debugPrint('❌ [iOS] 폴백 진동도 실패: $fallbackError');
+            break;
+          }
+        } else {
+          break;
+        }
       }
     }
+    debugPrint('🛑 [VIBRATION] 진동 루프 종료 (총 횟수: $vibrationCount)');
   }
   
   /// 🛑 벨소리 및 진동 중지
