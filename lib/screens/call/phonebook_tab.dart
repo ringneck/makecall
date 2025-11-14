@@ -428,12 +428,16 @@ class _PhonebookTabState extends State<PhonebookTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error, size: 64, color: Colors.red),
+            Icon(
+              Icons.error, 
+              size: 64, 
+              color: isDark ? Colors.red[300] : Colors.red,
+            ),
             const SizedBox(height: 16),
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
+              style: TextStyle(color: isDark ? Colors.red[300] : Colors.red),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -452,9 +456,11 @@ class _PhonebookTabState extends State<PhonebookTab> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: isDark ? Colors.grey[850] : Colors.grey[100],
             border: Border(
-              bottom: BorderSide(color: Colors.grey[300]!),
+              bottom: BorderSide(
+                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+              ),
             ),
           ),
           child: Column(
@@ -473,7 +479,9 @@ class _PhonebookTabState extends State<PhonebookTab> {
                           : const Icon(Icons.refresh),
                       label: const Text('새로고침', style: TextStyle(fontSize: 13)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2196F3),
+                        backgroundColor: isDark 
+                            ? Colors.blue[700] 
+                            : const Color(0xFF2196F3),
                         foregroundColor: Colors.white,
                         elevation: 2,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -484,13 +492,17 @@ class _PhonebookTabState extends State<PhonebookTab> {
                   // 뷰 모드 전환 버튼
                   Container(
                     decoration: BoxDecoration(
-                      color: _isGridView ? Colors.green[100] : Colors.blue[100],
+                      color: isDark
+                          ? (_isGridView ? Colors.green[900] : Colors.blue[900])
+                          : (_isGridView ? Colors.green[100] : Colors.blue[100]),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: IconButton(
                       icon: Icon(
                         _isGridView ? Icons.view_list : Icons.grid_view,
-                        color: _isGridView ? Colors.green[700] : Colors.blue[700],
+                        color: isDark
+                            ? (_isGridView ? Colors.green[300] : Colors.blue[300])
+                            : (_isGridView ? Colors.green[700] : Colors.blue[700]),
                       ),
                       onPressed: () {
                         setState(() {
@@ -509,13 +521,17 @@ class _PhonebookTabState extends State<PhonebookTab> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
+                      Icon(
+                        Icons.schedule, 
+                        size: 14, 
+                        color: isDark ? Colors.grey[500] : Colors.grey[600],
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '마지막 업데이트: ${_formatLastUpdateTime()}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: isDark ? Colors.grey[500] : Colors.grey[600],
                         ),
                       ),
                     ],
@@ -711,16 +727,20 @@ class _PhonebookTabState extends State<PhonebookTab> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.contact_phone, size: 80, color: Colors.grey[400]),
+                                  Icon(
+                                    Icons.contact_phone, 
+                                    size: 80, 
+                                    color: isDark ? Colors.grey[700] : Colors.grey[400],
+                                  ),
                                   const SizedBox(height: 16),
                                   Text(
                                     _searchController.text.isNotEmpty
                                         ? '검색 결과가 없습니다'
                                         : '단말번호 목록이 없습니다',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.grey,
+                                      color: isDark ? Colors.grey[400] : Colors.grey,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
@@ -729,7 +749,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey[600],
+                                      color: isDark ? Colors.grey[500] : Colors.grey[600],
                                     ),
                                   ),
                                 ],
@@ -789,6 +809,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
   }
 
   Widget _buildContactListTile(PhonebookContactModel contact, {List<String>? registeredExtensions}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     Color categoryColor = Colors.blue;
     IconData categoryIcon = Icons.phone;
 
@@ -814,11 +836,21 @@ class _PhonebookTabState extends State<PhonebookTab> {
         children: [
           CircleAvatar(
             backgroundColor: contact.isFavorite
-                ? Colors.amber[100]
-                : categoryColor.withAlpha(51),
+                ? (isDark ? Colors.amber[900]!.withAlpha(128) : Colors.amber[100])
+                : (isDark 
+                    ? categoryColor.withAlpha(77) 
+                    : categoryColor.withAlpha(51)),
             child: Icon(
               contact.isFavorite ? Icons.star : categoryIcon,
-              color: contact.isFavorite ? Colors.amber[700] : categoryColor,
+              color: contact.isFavorite 
+                  ? (isDark ? Colors.amber[300] : Colors.amber[700])
+                  : (isDark 
+                      ? (categoryColor == Colors.blue 
+                          ? Colors.blue[300] 
+                          : (categoryColor == Colors.green 
+                              ? Colors.green[300] 
+                              : Colors.orange[300]))
+                      : categoryColor),
             ),
           ),
           // 등록된 단말번호 표시 (우측 하단에 초록색 로고 배지)
@@ -830,9 +862,12 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 width: 20,
                 height: 20,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? Colors.grey[850] : Colors.white,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.green, width: 1.5),
+                  border: Border.all(
+                    color: isDark ? Colors.green[400]! : Colors.green, 
+                    width: 1.5,
+                  ),
                 ),
                 child: ClipOval(
                   child: Image.asset(
@@ -851,14 +886,17 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 width: 18,
                 height: 18,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: isDark ? Colors.grey[700] : Colors.grey[300],
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey[500]!, width: 1),
+                  border: Border.all(
+                    color: isDark ? Colors.grey[600]! : Colors.grey[500]!, 
+                    width: 1,
+                  ),
                 ),
                 child: Icon(
                   Icons.person,
                   size: 12,
-                  color: Colors.grey[700],
+                  color: isDark ? Colors.grey[400] : Colors.grey[700],
                 ),
               ),
             ),
@@ -984,6 +1022,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
   // 그리드 아이템 빌더
   Widget _buildContactGridItem(PhonebookContactModel contact, {List<String>? registeredExtensions}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     Color categoryColor = Colors.blue;
     IconData categoryIcon = Icons.phone;
 
@@ -1386,6 +1426,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
   // 상세 정보 보기 - Modal Bottom Sheet (Material Design 3)
   void _showContactDetail(PhonebookContactModel contact) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     // 이름 번역
     final translatedName = _translateName(contact.name);
     
