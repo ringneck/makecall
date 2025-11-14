@@ -216,9 +216,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   hintStyle: const TextStyle(fontSize: 12),
                   errorStyle: const TextStyle(fontSize: 10),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.content_paste, size: 16),
-                    onPressed: () => _pasteFromClipboard(_apiBaseUrlController, 'API URL'),
-                    tooltip: '붙여넣기',
+                    icon: const Icon(Icons.content_copy, size: 16),
+                    onPressed: () async {
+                      final value = _apiBaseUrlController.text.trim();
+                      if (value.isNotEmpty) {
+                        Clipboard.setData(ClipboardData(text: value));
+                        await DialogUtils.showCopySuccess(context, 'API Base URL', value);
+                      }
+                    },
+                    tooltip: '복사',
                     padding: const EdgeInsets.all(4),
                     constraints: const BoxConstraints(
                       minWidth: 32,
@@ -434,9 +440,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         hintStyle: const TextStyle(fontSize: 12),
                         errorStyle: const TextStyle(fontSize: 10),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.content_paste, size: 16),
-                          onPressed: () => _pasteFromClipboard(_websocketServerUrlController, 'WebSocket URL'),
-                          tooltip: '붙여넣기',
+                          icon: const Icon(Icons.content_copy, size: 16),
+                          onPressed: () async {
+                            final value = _websocketServerUrlController.text.trim();
+                            if (value.isNotEmpty) {
+                              Clipboard.setData(ClipboardData(text: value));
+                              await DialogUtils.showCopySuccess(context, 'WebSocket URL', value);
+                            }
+                          },
+                          tooltip: '복사',
                           padding: const EdgeInsets.all(4),
                           constraints: const BoxConstraints(
                             minWidth: 32,
@@ -572,9 +584,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         hintStyle: const TextStyle(fontSize: 12),
                         errorStyle: const TextStyle(fontSize: 10),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.content_paste, size: 16),
-                          onPressed: () => _pasteFromClipboard(_websocketHttpAuthIdController, 'HTTP Auth ID'),
-                          tooltip: '붙여넣기',
+                          icon: const Icon(Icons.content_copy, size: 16),
+                          onPressed: () async {
+                            final value = _websocketHttpAuthIdController.text.trim();
+                            if (value.isNotEmpty) {
+                              Clipboard.setData(ClipboardData(text: value));
+                              await DialogUtils.showCopySuccess(context, 'HTTP Auth ID', value);
+                            }
+                          },
+                          tooltip: '복사',
                           padding: const EdgeInsets.all(4),
                           constraints: const BoxConstraints(
                             minWidth: 32,
@@ -613,9 +631,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   hintStyle: const TextStyle(fontSize: 12),
                   errorStyle: const TextStyle(fontSize: 10),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.content_paste, size: 16),
-                    onPressed: () => _pasteFromClipboard(_websocketHttpAuthPasswordController, 'HTTP Auth Password'),
-                    tooltip: '붙여넣기',
+                    icon: const Icon(Icons.content_copy, size: 16),
+                    onPressed: () async {
+                      final value = _websocketHttpAuthPasswordController.text.trim();
+                      if (value.isNotEmpty) {
+                        Clipboard.setData(ClipboardData(text: value));
+                        await DialogUtils.showCopySuccess(context, 'HTTP Auth Password', value);
+                      }
+                    },
+                    tooltip: '복사',
                     padding: const EdgeInsets.all(4),
                     constraints: const BoxConstraints(
                       minWidth: 32,

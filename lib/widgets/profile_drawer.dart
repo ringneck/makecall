@@ -3049,46 +3049,46 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 라벨
+          // 라벨 (60px로 축소하여 값 표시 공간 확보)
           SizedBox(
-            width: 70,
+            width: 60,
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight: FontWeight.w600,
                 color: Colors.grey[600],
               ),
             ),
           ),
-          // 값
+          // 값 (더 많은 문자 표시 가능)
           Expanded(
             child: Text(
               value,
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
                 fontFamily: 'monospace',
-                letterSpacing: 0.3,
+                letterSpacing: 0.2,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 4),
-          // 복사 버튼
+          const SizedBox(width: 2),
+          // 복사 버튼 (최소 크기로 더 많은 텍스트 공간 확보)
           IconButton(
-            icon: const Icon(Icons.content_copy, size: 16),
+            icon: const Icon(Icons.content_copy, size: 14),
             onPressed: () async {
               Clipboard.setData(ClipboardData(text: value));
               await DialogUtils.showCopySuccess(context, label, value);
             },
             tooltip: '복사',
-            padding: const EdgeInsets.all(4),
+            padding: const EdgeInsets.all(2),
             constraints: const BoxConstraints(
-              minWidth: 32,
-              minHeight: 32,
+              minWidth: 28,
+              minHeight: 28,
             ),
             visualDensity: VisualDensity.compact,
           ),
