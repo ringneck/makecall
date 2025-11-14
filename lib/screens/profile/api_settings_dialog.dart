@@ -216,9 +216,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   hintStyle: const TextStyle(fontSize: 12),
                   errorStyle: const TextStyle(fontSize: 10),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.content_paste, size: 18),
+                    icon: const Icon(Icons.content_paste, size: 16),
                     onPressed: () => _pasteFromClipboard(_apiBaseUrlController, 'API URL'),
-                    tooltip: '클립보드에서 붙여넣기',
+                    tooltip: '붙여넣기',
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ),
                 validator: (value) {
@@ -319,9 +325,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   hintStyle: const TextStyle(fontSize: 12),
                   errorStyle: const TextStyle(fontSize: 10),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.content_paste, size: 18),
+                    icon: const Icon(Icons.content_paste, size: 16),
                     onPressed: () => _pasteFromClipboard(_companyIdController, 'Company ID'),
-                    tooltip: '클립보드에서 붙여넣기',
+                    tooltip: '붙여넣기',
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ),
                 validator: (value) {
@@ -350,9 +362,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   hintStyle: const TextStyle(fontSize: 12),
                   errorStyle: const TextStyle(fontSize: 10),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.content_paste, size: 18),
+                    icon: const Icon(Icons.content_paste, size: 16),
                     onPressed: () => _pasteFromClipboard(_appKeyController, 'App-Key'),
-                    tooltip: '클립보드에서 붙여넣기',
+                    tooltip: '붙여넣기',
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ),
                 validator: (value) {
@@ -404,9 +422,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         hintStyle: const TextStyle(fontSize: 12),
                         errorStyle: const TextStyle(fontSize: 10),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.content_paste, size: 18),
+                          icon: const Icon(Icons.content_paste, size: 16),
                           onPressed: () => _pasteFromClipboard(_websocketServerUrlController, 'WebSocket URL'),
-                          tooltip: '클립보드에서 붙여넣기',
+                          tooltip: '붙여넣기',
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                          visualDensity: VisualDensity.compact,
                         ),
                       ),
                       validator: (value) {
@@ -536,9 +560,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         hintStyle: const TextStyle(fontSize: 12),
                         errorStyle: const TextStyle(fontSize: 10),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.content_paste, size: 18),
+                          icon: const Icon(Icons.content_paste, size: 16),
                           onPressed: () => _pasteFromClipboard(_websocketHttpAuthIdController, 'HTTP Auth ID'),
-                          tooltip: '클립보드에서 붙여넣기',
+                          tooltip: '붙여넣기',
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                          visualDensity: VisualDensity.compact,
                         ),
                       ),
                       validator: (value) {
@@ -571,9 +601,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   hintStyle: const TextStyle(fontSize: 12),
                   errorStyle: const TextStyle(fontSize: 10),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.content_paste, size: 18),
+                    icon: const Icon(Icons.content_paste, size: 16),
                     onPressed: () => _pasteFromClipboard(_websocketHttpAuthPasswordController, 'HTTP Auth Password'),
-                    tooltip: '클립보드에서 붙여넣기',
+                    tooltip: '붙여넣기',
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ),
                 validator: (value) {
