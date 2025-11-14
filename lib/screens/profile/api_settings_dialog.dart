@@ -540,23 +540,29 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.teal.shade50,
+                  color: isDark ? Colors.teal[900]!.withValues(alpha: 0.3) : Colors.teal.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.teal.shade200),
+                  border: Border.all(
+                    color: isDark ? Colors.teal[700]! : Colors.teal.shade200,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.security, size: 16, color: Colors.teal.shade700),
+                        Icon(
+                          Icons.security, 
+                          size: 16, 
+                          color: isDark ? Colors.teal[300] : Colors.teal.shade700,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'HTTP 인증 정보 (필수)',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            color: Colors.teal.shade900,
+                            color: isDark ? Colors.teal[300] : Colors.teal.shade900,
                           ),
                         ),
                       ],
@@ -564,7 +570,10 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                     const SizedBox(height: 4),
                     Text(
                       'WebSocket 서버 연결 시 HTTP Basic Authentication 사용',
-                      style: TextStyle(fontSize: 10, color: Colors.teal.shade700),
+                      style: TextStyle(
+                        fontSize: 10, 
+                        color: isDark ? Colors.teal[400] : Colors.teal.shade700,
+                      ),
                     ),
                   ],
                 ),
