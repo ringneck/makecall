@@ -17,13 +17,38 @@ class ExtensionManagementScreen extends StatefulWidget {
 class _ExtensionManagementScreenState extends State<ExtensionManagementScreen> {
   final DatabaseService _databaseService = DatabaseService();
   bool _isLoading = false;
-  final PageController _pageController = PageController();
-  int _currentPage = 0; // 0: 리스트뷰, 1: 그리드뷰
+  final ScrollController _scrollController = ScrollController();
+  bool _isGridView = false; // false: 리스트뷰, true: 그리드뷰
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  // 스크롤 위치에 따라 뷰 모드 변경
+  void _onScroll() {
+    // 스크롤이 최하단에 도달하면 뷰 전환
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 50) {
+      if (!_isGridView) {
+        setState(() {
+          _isGridView = true;
+        });
+      }
+    } else if (_scrollController.position.pixels <= 50) {
+      if (_isGridView) {
+        setState(() {
+          _isGridView = false;
+        });
+      }
+    }
   }
 
   @override
@@ -48,13 +73,13 @@ class _ExtensionManagementScreenState extends State<ExtensionManagementScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    _currentPage == 0 ? Icons.view_list : Icons.grid_view,
+                    _isGridView ? Icons.grid_view : Icons.view_list,
                     size: 16,
                     color: Colors.white,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    _currentPage == 0 ? '리스트' : '그리드',
+                    _isGridView ? '그리드' : '리스트',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -109,58 +134,63 @@ class _ExtensionManagementScreenState extends State<ExtensionManagementScreen> {
             );
           }
 
-          return Column(
-            children: [
-              // 스와이프 안내 배너
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue[100]!, Colors.blue[50]!],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  border: Border(
-                    bottom: BorderSide(color: Colors.blue[200]!, width: 1),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.swipe, size: 18, color: Colors.blue[700]),
-                    const SizedBox(width: 8),
-                    Text(
-                      '좌우로 스와이프하여 보기 모드 전환',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.blue[700],
-                      ),
+          return SingleChildScrollView(
+            controller: _scrollController,
+            child: Column(
+              children: [
+                // 리스트뷰 섹션
+                if (!_isGridView) ...[
+                  _buildListView(extensions),
+                  
+                  // 하단 안내 텍스트 (리스트뷰)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.arrow_downward, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 8),
+                        Text(
+                          '아래로 스크롤하여 그리드뷰로 전환',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              
-              // PageView로 리스트뷰와 그리드뷰 전환
-              Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPage = index;
-                    });
-                  },
-                  children: [
-                    // 페이지 1: 리스트뷰
-                    _buildListView(extensions),
-                    
-                    // 페이지 2: 그리드뷰
-                    _buildGridView(extensions),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                ],
+                
+                // 그리드뷰 섹션
+                if (_isGridView) ...[
+                  // 상단 안내 텍스트 (그리드뷰)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.arrow_upward, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 8),
+                        Text(
+                          '위로 스크롤하여 리스트뷰로 전환',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  _buildGridView(extensions),
+                ],
+              ],
+            ),
           );
         },
       ),
@@ -169,173 +199,247 @@ class _ExtensionManagementScreenState extends State<ExtensionManagementScreen> {
 
   // 리스트뷰 빌더
   Widget _buildListView(List<ExtensionModel> extensions) {
-    return ListView.builder(
-      itemCount: extensions.length,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemBuilder: (context, index) {
-        final extension = extensions[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: extension.isSelected 
-                  ? const Color(0xFF2196F3).withAlpha(128)
-                  : Colors.grey.withAlpha(51),
-              width: extension.isSelected ? 2 : 1,
+    return Column(
+      children: [
+        // 상단 안내 텍스트
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            border: Border(
+              bottom: BorderSide(color: Colors.blue[200]!, width: 1),
             ),
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: CircleAvatar(
-              backgroundColor: extension.isSelected
-                  ? const Color(0xFF2196F3)
-                  : Colors.grey,
-              child: Icon(
-                extension.isSelected ? Icons.check : Icons.phone_android,
-                color: Colors.white,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.view_list, size: 16, color: Colors.blue[700]),
+              const SizedBox(width: 8),
+              Text(
+                '리스트뷰',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blue[700],
+                ),
               ),
-            ),
-            title: Text(
-              '단말번호: ${extension.extensionNumber}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                if (extension.deviceId != null)
-                  Text('Device ID: ${extension.deviceId}'),
-                if (extension.cosId != null)
-                  Text('COS ID: ${extension.cosId}'),
-              ],
-            ),
-            trailing: extension.isSelected
-                ? const Chip(
-                    label: Text('선택됨'),
-                    backgroundColor: Color(0xFFE3F2FD),
-                  )
-                : null,
-            onTap: () => _selectExtension(extension, extensions),
+            ],
           ),
-        );
-      },
+        ),
+        
+        // 리스트 아이템들
+        ...extensions.map((extension) {
+          return _buildListItem(extension, extensions);
+        }),
+      ],
     );
   }
 
+  // 리스트 아이템 빌더
+  Widget _buildListItem(ExtensionModel extension, List<ExtensionModel> allExtensions) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: extension.isSelected 
+              ? const Color(0xFF2196F3).withAlpha(128)
+              : Colors.grey.withAlpha(51),
+          width: extension.isSelected ? 2 : 1,
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: CircleAvatar(
+          backgroundColor: extension.isSelected
+              ? const Color(0xFF2196F3)
+              : Colors.grey,
+          child: Icon(
+            extension.isSelected ? Icons.check : Icons.phone_android,
+            color: Colors.white,
+          ),
+        ),
+        title: Text(
+          '단말번호: ${extension.extensionNumber}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            if (extension.deviceId != null)
+              Text('Device ID: ${extension.deviceId}'),
+            if (extension.cosId != null)
+              Text('COS ID: ${extension.cosId}'),
+          ],
+        ),
+        trailing: extension.isSelected
+            ? const Chip(
+                label: Text('선택됨'),
+                backgroundColor: Color(0xFFE3F2FD),
+              )
+            : null,
+        onTap: () => _selectExtension(extension, allExtensions),
+      ),
+    );
+  }
+
+
+
   // 그리드뷰 빌더
   Widget _buildGridView(List<ExtensionModel> extensions) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
-      ),
-      itemCount: extensions.length,
-      itemBuilder: (context, index) {
-        final extension = extensions[index];
-        return Card(
-          elevation: 3,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: extension.isSelected 
-                  ? const Color(0xFF2196F3)
-                  : Colors.grey.withAlpha(77),
-              width: extension.isSelected ? 3 : 1,
+    return Column(
+      children: [
+        // 상단 안내 텍스트
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            border: Border(
+              bottom: BorderSide(color: Colors.green[200]!, width: 1),
             ),
           ),
-          child: InkWell(
-            onTap: () => _selectExtension(extension, extensions),
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // 아이콘
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: extension.isSelected
-                          ? const Color(0xFF2196F3).withAlpha(51)
-                          : Colors.grey.withAlpha(51),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      extension.isSelected ? Icons.check_circle : Icons.phone_android,
-                      size: 32,
-                      color: extension.isSelected
-                          ? const Color(0xFF2196F3)
-                          : Colors.grey[600],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.grid_view, size: 16, color: Colors.green[700]),
+              const SizedBox(width: 8),
+              Text(
+                '그리드뷰',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green[700],
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // 그리드 아이템들
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: extensions.map((extension) {
+              return _buildGridItem(extension, extensions);
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 그리드 아이템 빌더
+  Widget _buildGridItem(ExtensionModel extension, List<ExtensionModel> allExtensions) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemWidth = (screenWidth - 44) / 2; // 16 padding left + 16 padding right + 12 spacing
+    
+    return SizedBox(
+      width: itemWidth,
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: extension.isSelected 
+                ? const Color(0xFF2196F3)
+                : Colors.grey.withAlpha(77),
+            width: extension.isSelected ? 3 : 1,
+          ),
+        ),
+        child: InkWell(
+          onTap: () => _selectExtension(extension, allExtensions),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 아이콘
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: extension.isSelected
+                        ? const Color(0xFF2196F3).withAlpha(51)
+                        : Colors.grey.withAlpha(51),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    extension.isSelected ? Icons.check_circle : Icons.phone_android,
+                    size: 32,
+                    color: extension.isSelected
+                        ? const Color(0xFF2196F3)
+                        : Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // 단말번호
+                Text(
+                  extension.extensionNumber,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: extension.isSelected
+                        ? const Color(0xFF2196F3)
+                        : Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                
+                // Device ID (있는 경우)
+                if (extension.deviceId != null) ...[
+                  Text(
+                    'Device ID',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey[600],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  
-                  // 단말번호
                   Text(
-                    extension.extensionNumber,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: extension.isSelected
-                          ? const Color(0xFF2196F3)
-                          : Colors.black87,
+                    extension.deviceId!,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
-                  
-                  // Device ID (있는 경우)
-                  if (extension.deviceId != null) ...[
-                    Text(
-                      'Device ID',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    Text(
-                      extension.deviceId!,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                  
-                  const SizedBox(height: 8),
-                  
-                  // 선택됨 배지
-                  if (extension.isSelected)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2196F3),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        '선택됨',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
                 ],
-              ),
+                
+                const SizedBox(height: 8),
+                
+                // 선택됨 배지
+                if (extension.isSelected)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2196F3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      '선택됨',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
