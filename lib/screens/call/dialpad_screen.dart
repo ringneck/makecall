@@ -292,6 +292,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: SafeArea(
         child: OrientationBuilder(
@@ -312,6 +313,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
   // 세로 모드 레이아웃
   Widget _buildPortraitLayout() {
     final bool isIOS = _isIOS;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -340,7 +342,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
                           fontSize: isIOS ? 36 : 32,
                           fontWeight: FontWeight.w300,
                           letterSpacing: isIOS ? 0.5 : 1,
-                          color: Colors.black87,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 1,
@@ -351,7 +353,9 @@ class _DialpadScreenState extends State<DialpadScreen> {
                       IconButton(
                         icon: Icon(
                           Icons.backspace_outlined,
-                          color: isIOS ? Colors.grey[600] : Colors.grey[700],
+                          color: isDark 
+                              ? Colors.grey[400]
+                              : (isIOS ? Colors.grey[600] : Colors.grey[700]),
                         ),
                         iconSize: isIOS ? 26 : 28,
                         onPressed: _onBackspace,
@@ -413,6 +417,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
 
   // 가로 모드 레이아웃
   Widget _buildLandscapeLayout() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         // 왼쪽: 전화번호 표시 및 통화 버튼
@@ -430,11 +435,11 @@ class _DialpadScreenState extends State<DialpadScreen> {
                     Flexible(
                       child: Text(
                         _phoneNumber.isEmpty ? '' : _phoneNumber,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w300,
                           letterSpacing: 1,
-                          color: Colors.black87,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 2,
@@ -508,6 +513,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
     // Android/iOS 네이티브 스타일 구분
     final bool isAndroidStyle = _isAndroid || kIsWeb; // Web은 Android 스타일 사용
     final bool isIOS = _isIOS;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -566,7 +572,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
                           fontWeight: isIOS 
                               ? FontWeight.w200 
                               : (isAndroidStyle ? FontWeight.w300 : FontWeight.w200),
-                          color: Colors.black87,
+                          color: isDark ? Colors.white : Colors.black87,
                           height: 1.0,
                         ),
                       ),
@@ -581,7 +587,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
                                   ? 8 
                                   : (isIOS ? 10 : (isAndroidStyle ? 10 : 9)),
                               fontWeight: FontWeight.w500,
-                              color: Colors.grey[600],
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
                               letterSpacing: isIOS ? 1.0 : (isAndroidStyle ? 1.2 : 0.8),
                               height: 1.0,
                             ),
