@@ -59,7 +59,7 @@ class SplashScreen extends StatelessWidget {
               
               // 부제목
               Text(
-                '스마트 통화 솔루션',
+                '당신의 더 나은 커뮤니케이션',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.white.withOpacity(0.9),
