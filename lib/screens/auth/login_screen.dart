@@ -237,8 +237,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
     }
     
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: _isWeb ? Colors.grey[50] : Colors.white,
+      backgroundColor: isDark 
+          ? Theme.of(context).scaffoldBackgroundColor
+          : (_isWeb ? Colors.grey[50] : Colors.white),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -264,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             width: 140,
                             height: 140,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: isDark ? Colors.grey[850] : Colors.white,
                               borderRadius: BorderRadius.circular(28),
                               boxShadow: [
                                 BoxShadow(
@@ -274,7 +278,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   offset: const Offset(0, 10),
                                 ),
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
+                                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
                                   blurRadius: 20,
                                   spreadRadius: -5,
                                   offset: const Offset(0, 5),
@@ -325,7 +329,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w400,
-                            color: Colors.grey[600],
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
                             letterSpacing: 0.3,
                           ),
                         ),
@@ -336,20 +340,38 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          style: const TextStyle(fontSize: 16),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                           decoration: InputDecoration(
                             labelText: '이메일',
+                            labelStyle: TextStyle(
+                              color: isDark ? Colors.grey[400] : Colors.grey[700],
+                            ),
                             hintText: 'example@email.com',
-                            prefixIcon: const Icon(Icons.email_outlined),
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.grey[600] : Colors.grey[400],
+                            ),
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            ),
                             filled: true,
-                            fillColor: _isWeb ? Colors.white : Colors.grey[50],
+                            fillColor: isDark 
+                                ? Colors.grey[850] 
+                                : (_isWeb ? Colors.white : Colors.grey[50]),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
