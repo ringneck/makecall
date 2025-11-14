@@ -403,16 +403,29 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           controller: _passwordController,
                           obscureText: _obscurePassword,
                           onFieldSubmitted: (_) => _handleLogin(),
-                          style: const TextStyle(fontSize: 16),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                           decoration: InputDecoration(
                             labelText: '비밀번호',
+                            labelStyle: TextStyle(
+                              color: isDark ? Colors.grey[400] : Colors.grey[700],
+                            ),
                             hintText: '6자 이상 입력',
-                            prefixIcon: const Icon(Icons.lock_outline),
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.grey[600] : Colors.grey[400],
+                            ),
+                            prefixIcon: Icon(
+                              Icons.lock_outline,
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            ),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
+                                color: isDark ? Colors.grey[400] : Colors.grey[600],
                               ),
                               onPressed: () {
                                 setState(() {
@@ -421,14 +434,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               },
                             ),
                             filled: true,
-                            fillColor: _isWeb ? Colors.white : Colors.grey[50],
+                            fillColor: isDark 
+                                ? Colors.grey[850]
+                                : (_isWeb ? Colors.white : Colors.grey[50]),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
