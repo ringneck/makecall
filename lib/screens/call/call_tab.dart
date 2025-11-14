@@ -755,10 +755,10 @@ class _CallTabState extends State<CallTab> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? Colors.grey[900] : Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
               blurRadius: 12,
               offset: const Offset(0, -2),
             ),
@@ -776,7 +776,7 @@ class _CallTabState extends State<CallTab> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             selectedItemColor: const Color(0xFF2196F3),
-            unselectedItemColor: Colors.grey[600],
+            unselectedItemColor: isDark ? Colors.grey[500] : Colors.grey[600],
             selectedLabelStyle: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
