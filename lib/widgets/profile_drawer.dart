@@ -719,254 +719,70 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           const Divider(height: 1),
           const SizedBox(height: 8),
           
-          // 푸시 알림 설정
+          // 📱 통합 알림 설정 (하나의 메뉴로 통합)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                gradient: LinearGradient(
+                  colors: [Colors.blue[50]!, Colors.blue[100]!],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[100]!),
-              ),
-              child: Column(
-                children: [
-                  const ListTile(
-                    leading: Icon(Icons.notifications, color: Color(0xFF2196F3)),
-                    title: Text(
-                      '알림 설정',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text('알림음 및 진동 설정', style: TextStyle(fontSize: 12)),
+                border: Border.all(color: Colors.blue[200]!, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                  const Divider(height: 1, indent: 72),
                 ],
               ),
-            ),
-          ),
-          
-          // iOS 시스템 알림 켜기/끄기 (시스템 설정으로 이동)
-          if (!kIsWeb && Platform.isIOS)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue[200]!),
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.notifications_active, color: Color(0xFF2196F3), size: 24),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                title: const Text(
+                  '알림 설정',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    color: Color(0xFF1976D2),
+                  ),
+                ),
+                subtitle: Text(
+                  _pushEnabled 
+                    ? '푸시 알림 활성화 • ${_soundEnabled ? "소리 켜짐" : "소리 꺼짐"}' 
+                    : '푸시 알림 비활성화',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue[900],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.notifications_active, color: Colors.blue[700], size: 24),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            '푸시 알림 관리',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blue[900],
-                            ),
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      _pushEnabled ? Icons.check_circle : Icons.cancel,
+                      color: _pushEnabled ? Colors.green : Colors.grey,
+                      size: 22,
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      '푸시 알림을 켜거나 끄려면 iOS 시스템 설정을 사용하세요.',
-                      style: TextStyle(fontSize: 13, height: 1.4),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue[100]!),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline, color: Colors.blue[600], size: 20),
-                          const SizedBox(width: 8),
-                          const Expanded(
-                            child: Text(
-                              '설정 → MAKECALL → 알림',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          debugPrint('📱 [iOS] 시스템 설정 열기');
-                          try {
-                            // iOS 시스템 설정 열기
-                            final opened = await openAppSettings();
-                            
-                            if (!opened) {
-                              if (mounted) {
-                                await DialogUtils.showWarning(
-                                  context,
-                                  '시스템 설정을 열 수 없습니다.\n\n수동으로 설정 앱을 열어주세요:\n\n1. 설정 앱 실행\n2. MAKECALL 찾기\n3. 알림 메뉴 선택',
-                                );
-                              }
-                            } else {
-                              debugPrint('✅ [iOS] 시스템 설정 열기 성공');
-                            }
-                          } catch (e) {
-                            debugPrint('❌ [iOS] 시스템 설정 열기 오류: $e');
-                            if (mounted) {
-                              await DialogUtils.showError(
-                                context,
-                                '시스템 설정 열기 실패\n\n설정 앱을 수동으로 열어 MAKECALL → 알림 메뉴로 이동하세요.',
-                              );
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.settings, size: 20),
-                        label: const Text('iOS 설정 열기'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[700],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.chevron_right, color: Color(0xFF1976D2)),
                   ],
                 ),
-              ),
-            ),
-          
-          // 알림음 & 진동 통합 설정
-          _buildSwitchTile(
-            icon: Icons.volume_up,
-            title: '알림음 & 진동',
-            subtitle: '알림 수신 시 소리 및 진동 활성화',
-            value: _soundEnabled && _vibrationEnabled,
-            onChanged: (value) {
-              debugPrint('🔄 [알림음&진동] 토글 변경: ${_soundEnabled && _vibrationEnabled} -> $value');
-              setState(() {
-                _soundEnabled = value;
-                _vibrationEnabled = value;
-              });
-              // 두 설정을 동시에 업데이트
-              _updateNotificationSetting('soundEnabled', value);
-              _updateNotificationSetting('vibrationEnabled', value);
-              debugPrint('✓ [알림음&진동] 업데이트 완료: soundEnabled=$value, vibrationEnabled=$value');
-            },
-          ),
-          
-          const SizedBox(height: 16),
-          const Divider(thickness: 1),
-          const SizedBox(height: 8),
-          
-          // 🔔 알림 및 푸시 설정
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.orange[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange[100]!),
-              ),
-              child: const ListTile(
-                leading: Icon(Icons.notifications_active, color: Colors.orange),
-                title: Text(
-                  '알림 설정',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text('푸시 알림 및 웹 알림 관리', style: TextStyle(fontSize: 12)),
+                onTap: () => _showNotificationSettingsDialog(context),
               ),
             ),
           ),
-          
-          // 🌐 웹 플랫폼: 웹 푸시 설정만 표시
-          if (kIsWeb) ...[
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-              leading: const Icon(Icons.notifications, color: Colors.orange, size: 22),
-              title: const Text('웹 푸시 알림 활성화', style: TextStyle(fontSize: 15)),
-              subtitle: const Text(
-                '브라우저 알림 권한 요청',
-                style: TextStyle(fontSize: 11),
-              ),
-              trailing: const Icon(Icons.chevron_right, size: 20),
-              onTap: () => _requestWebPushPermission(context),
-            ),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-              leading: const Icon(Icons.info_outline, size: 22),
-              title: const Text('웹 푸시 정보', style: TextStyle(fontSize: 15)),
-              subtitle: const Text(
-                '웹 푸시 알림 사용 방법',
-                style: TextStyle(fontSize: 11),
-              ),
-              trailing: const Icon(Icons.chevron_right, size: 20),
-              onTap: () => _showWebPushInfo(context),
-            ),
-          ],
-          
-          // 📱 모바일/태블릿 플랫폼: 기기 푸시 설정 표시
-          if (!kIsWeb) ...[
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-              leading: Icon(
-                Platform.isIOS ? Icons.apple : Icons.android, 
-                color: Colors.orange, 
-                size: 22
-              ),
-              title: Text(
-                Platform.isIOS ? 'iOS 기기 푸시 알림' : 'Android 기기 푸시 알림',
-                style: const TextStyle(fontSize: 15)
-              ),
-              subtitle: Text(
-                Platform.isIOS 
-                    ? 'APNs 기반 푸시 알림 (iOS)'
-                    : 'FCM 기반 푸시 알림 (Android)',
-                style: const TextStyle(fontSize: 11),
-              ),
-              trailing: Icon(
-                _pushEnabled ? Icons.check_circle : Icons.cancel,
-                color: _pushEnabled ? Colors.green : Colors.grey,
-                size: 20,
-              ),
-              onTap: () {
-                // 기기 푸시는 시스템 설정에서 관리
-                DialogUtils.showInfo(
-                  context,
-                  Platform.isIOS
-                      ? 'iOS 푸시 알림은 시스템 설정에서 관리됩니다.\n\n설정 → MAKECALL → 알림'
-                      : 'Android 푸시 알림은 시스템 설정에서 관리됩니다.\n\n설정 → 앱 → MAKECALL → 알림',
-                );
-              },
-            ),
-            ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-              leading: const Icon(Icons.info_outline, size: 22),
-              title: const Text('기기 푸시 정보', style: TextStyle(fontSize: 15)),
-              subtitle: Text(
-                Platform.isIOS 
-                    ? 'iOS 푸시 알림 사용 방법'
-                    : 'Android 푸시 알림 사용 방법',
-                style: const TextStyle(fontSize: 11),
-              ),
-              trailing: const Icon(Icons.chevron_right, size: 20),
-              onTap: () => _showMobilePushInfo(context),
-            ),
-          ],
+
           
           const SizedBox(height: 16),
           const Divider(thickness: 1),
@@ -3841,6 +3657,364 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               label: const Text('iOS 설정 열기'),
             ),
         ],
+      ),
+    );
+  }
+
+  /// 📱 통합 알림 설정 다이얼로그 (UI/UX 최적화)
+  void _showNotificationSettingsDialog(BuildContext context) {
+    final authService = context.read<AuthService>();
+    final userId = authService.currentUser?.uid;
+    final fcmService = FCMService();
+    
+    if (userId == null) {
+      DialogUtils.showError(context, '사용자 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.notifications_active,
+                    color: Color(0xFF2196F3),
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    '알림 설정',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 📱 플랫폼 정보 배너
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: kIsWeb 
+                          ? [Colors.orange[50]!, Colors.orange[100]!]
+                          : [Colors.blue[50]!, Colors.blue[100]!],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: kIsWeb ? Colors.orange[200]! : Colors.blue[200]!,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          kIsWeb 
+                            ? Icons.web 
+                            : (Platform.isIOS ? Icons.apple : Icons.android),
+                          color: kIsWeb ? Colors.orange[700] : Colors.blue[700],
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                kIsWeb 
+                                  ? '웹 브라우저'
+                                  : (Platform.isIOS ? 'iOS 기기' : 'Android 기기'),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: kIsWeb ? Colors.orange[900] : Colors.blue[900],
+                                ),
+                              ),
+                              Text(
+                                kIsWeb 
+                                  ? '브라우저 푸시 알림'
+                                  : (Platform.isIOS ? 'APNs 푸시 알림' : 'FCM 푸시 알림'),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: kIsWeb ? Colors.orange[700] : Colors.blue[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // 🔔 푸시 알림 ON/OFF
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _pushEnabled ? Colors.green[50] : Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _pushEnabled ? Colors.green[200]! : Colors.grey[300]!,
+                        width: 2,
+                      ),
+                    ),
+                    child: SwitchListTile(
+                      value: _pushEnabled,
+                      onChanged: (value) async {
+                        setDialogState(() {
+                          _pushEnabled = value;
+                        });
+                        setState(() {
+                          _pushEnabled = value;
+                        });
+                        
+                        try {
+                          await fcmService.updateSingleSetting(userId, 'pushEnabled', value);
+                          if (kDebugMode) {
+                            debugPrint('✅ [알림설정] pushEnabled 업데이트: $value');
+                          }
+                        } catch (e) {
+                          if (kDebugMode) {
+                            debugPrint('❌ [알림설정] 업데이트 실패: $e');
+                          }
+                        }
+                      },
+                      title: Row(
+                        children: [
+                          Icon(
+                            _pushEnabled ? Icons.notifications_active : Icons.notifications_off,
+                            color: _pushEnabled ? Colors.green[700] : Colors.grey[600],
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            '푸시 알림',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(left: 36, top: 4),
+                        child: Text(
+                          _pushEnabled 
+                            ? '모든 푸시 알림을 받습니다'
+                            : '푸시 알림을 받지 않습니다',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _pushEnabled ? Colors.green[900] : Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                      activeColor: Colors.green[600],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // 🔊 알림음 & 진동 (푸시 알림이 켜져 있을 때만 활성화)
+                  Opacity(
+                    opacity: _pushEnabled ? 1.0 : 0.5,
+                    child: AbsorbPointer(
+                      absorbing: !_pushEnabled,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blue[200]!),
+                        ),
+                        child: Column(
+                          children: [
+                            SwitchListTile(
+                              value: _soundEnabled,
+                              onChanged: _pushEnabled ? (value) async {
+                                setDialogState(() {
+                                  _soundEnabled = value;
+                                });
+                                setState(() {
+                                  _soundEnabled = value;
+                                });
+                                
+                                try {
+                                  await fcmService.updateSingleSetting(userId, 'soundEnabled', value);
+                                  if (kDebugMode) {
+                                    debugPrint('✅ [알림설정] soundEnabled 업데이트: $value');
+                                  }
+                                } catch (e) {
+                                  if (kDebugMode) {
+                                    debugPrint('❌ [알림설정] 업데이트 실패: $e');
+                                  }
+                                }
+                              } : null,
+                              title: Row(
+                                children: [
+                                  Icon(
+                                    _soundEnabled ? Icons.volume_up : Icons.volume_off,
+                                    color: Colors.blue[700],
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    '알림음',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              subtitle: const Padding(
+                                padding: EdgeInsets.only(left: 32, top: 2),
+                                child: Text(
+                                  '알림 수신 시 소리 재생',
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                              ),
+                              activeColor: Colors.blue[600],
+                            ),
+                            const Divider(height: 1, indent: 16, endIndent: 16),
+                            SwitchListTile(
+                              value: _vibrationEnabled,
+                              onChanged: _pushEnabled ? (value) async {
+                                setDialogState(() {
+                                  _vibrationEnabled = value;
+                                });
+                                setState(() {
+                                  _vibrationEnabled = value;
+                                });
+                                
+                                try {
+                                  await fcmService.updateSingleSetting(userId, 'vibrationEnabled', value);
+                                  if (kDebugMode) {
+                                    debugPrint('✅ [알림설정] vibrationEnabled 업데이트: $value');
+                                  }
+                                } catch (e) {
+                                  if (kDebugMode) {
+                                    debugPrint('❌ [알림설정] 업데이트 실패: $e');
+                                  }
+                                }
+                              } : null,
+                              title: Row(
+                                children: [
+                                  Icon(
+                                    _vibrationEnabled ? Icons.vibration : Icons.mobile_off,
+                                    color: Colors.blue[700],
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    '진동',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              subtitle: const Padding(
+                                padding: EdgeInsets.only(left: 32, top: 2),
+                                child: Text(
+                                  '알림 수신 시 진동',
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                              ),
+                              activeColor: Colors.blue[600],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // 💡 시스템 설정 안내 (웹이 아닐 때만)
+                  if (!kIsWeb)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.amber[800], size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              Platform.isIOS
+                                ? '시스템 푸시 권한은\niOS 설정에서 관리됩니다'
+                                : '시스템 푸시 권한은\nAndroid 설정에서 관리됩니다',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.amber[900],
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              if (!kIsWeb)
+                TextButton.icon(
+                  onPressed: () async {
+                    await openAppSettings();
+                  },
+                  icon: const Icon(Icons.settings, size: 18),
+                  label: Text(Platform.isIOS ? 'iOS 설정' : 'Android 설정'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.blue[700],
+                  ),
+                ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2196F3),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  '완료',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
