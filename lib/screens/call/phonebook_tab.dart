@@ -752,7 +752,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                                 crossAxisCount: _getGridColumnCount(context),
                                 crossAxisSpacing: _getResponsiveSize(context, 4),
                                 mainAxisSpacing: _getResponsiveSize(context, 4),
-                                childAspectRatio: 1.2,
+                                childAspectRatio: 0.85, // 높이를 더 확보하여 텍스트가 잘 보이도록
                               ),
                               itemCount: contacts.length,
                               itemBuilder: (context, index) {
@@ -989,6 +989,11 @@ class _PhonebookTabState extends State<PhonebookTab> {
       ),
       child: InkWell(
         onTap: () => _showContactDetail(contact),
+        onLongPress: () => _quickCall(
+          contact.telephone,
+          category: contact.category,
+          name: contact.name,
+        ),
         borderRadius: BorderRadius.circular(_getResponsiveSize(context, 8)),
         child: Padding(
           padding: EdgeInsets.all(_getResponsiveSize(context, 4)),
@@ -1070,44 +1075,28 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 textAlign: TextAlign.center,
               ),
               
-              // 전화번호
+              // 전화번호 (크게 표시)
               Text(
                 contact.telephone,
                 style: TextStyle(
-                  fontSize: _getResponsiveSize(context, 8),
-                  fontWeight: FontWeight.w500,
+                  fontSize: _getResponsiveSize(context, 12), // 8에서 12로 증가
+                  fontWeight: FontWeight.w600, // w500에서 w600으로 증가
                   color: Colors.black87,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: _getResponsiveSize(context, 2)),
+              SizedBox(height: _getResponsiveSize(context, 4)),
               
-              // 액션 버튼 (작게)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // 즐겨찾기 버튼
-                  InkWell(
-                    onTap: () => _toggleFavorite(contact),
-                    child: Icon(
-                      contact.isFavorite ? Icons.star : Icons.star_border,
-                      color: contact.isFavorite ? Colors.amber : Colors.grey,
-                      size: _getResponsiveSize(context, 14),
-                    ),
-                  ),
-                  SizedBox(width: _getResponsiveSize(context, 4)),
-                  // 전화 버튼
-                  InkWell(
-                    onTap: () => _quickCall(
-                      contact.telephone,
-                      category: contact.category,
-                      name: contact.name,
-                    ),
-                    child: Icon(Icons.phone, color: const Color(0xFF2196F3), size: _getResponsiveSize(context, 14)),
-                  ),
-                ],
+              // 길게 눌러서 발신하세요 힌트
+              Text(
+                '길게 눌러 발신',
+                style: TextStyle(
+                  fontSize: _getResponsiveSize(context, 7),
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
