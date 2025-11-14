@@ -1096,9 +1096,9 @@ class _CallTabState extends State<CallTab> {
           },
           itemBuilder: (context, index) {
             final call = callHistory[index];
-            final callTypeColor = _getCallTypeColor(call.callType);
-            final callTypeIcon = _getCallTypeIcon(call.callType);
             final isDark = Theme.of(context).brightness == Brightness.dark;
+            final callTypeColor = _getCallTypeColor(call.callType, isDark: isDark);
+            final callTypeIcon = _getCallTypeIcon(call.callType);
             
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1418,9 +1418,11 @@ class _CallTabState extends State<CallTab> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: isDark ? Colors.grey[850] : Colors.grey[100],
             border: Border(
-              bottom: BorderSide(color: Colors.grey[300]!),
+              bottom: BorderSide(
+                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+              ),
             ),
           ),
           child: Row(
@@ -1443,7 +1445,7 @@ class _CallTabState extends State<CallTab> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _showDeviceContacts
                         ? const Color(0xFF2196F3)
-                        : Colors.white,
+                        : (isDark ? Colors.grey[800] : Colors.white),
                     foregroundColor: _showDeviceContacts
                         ? Colors.white
                         : const Color(0xFF2196F3),
@@ -1459,7 +1461,7 @@ class _CallTabState extends State<CallTab> {
                 icon: const Icon(Icons.person_add, size: 20),
                 label: const Text('추가', style: TextStyle(fontSize: 13)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: isDark ? Colors.green[700] : Colors.green,
                   foregroundColor: Colors.white,
                   elevation: 2,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1528,20 +1530,25 @@ class _CallTabState extends State<CallTab> {
         }
 
         if (contacts.isEmpty) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.contacts, size: 80, color: Colors.grey[400]),
+                Icon(
+                  Icons.contacts,
+                  size: 80,
+                  color: isDark ? Colors.grey[700] : Colors.grey[400],
+                ),
                 const SizedBox(height: 16),
                 Text(
                   _searchController.text.isNotEmpty
                       ? '검색 결과가 없습니다'
                       : '저장된 연락처가 없습니다',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey,
+                    color: isDark ? Colors.grey[400] : Colors.grey,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1550,7 +1557,7 @@ class _CallTabState extends State<CallTab> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: isDark ? Colors.grey[500] : Colors.grey[600],
                   ),
                 ),
               ],
@@ -1616,31 +1623,38 @@ class _CallTabState extends State<CallTab> {
     return Dismissible(
       key: Key(contact.id),
       direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.red.withOpacity(0.8), Colors.red],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Icon(Icons.delete, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text(
-              '삭제',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+      background: Builder(
+        builder: (context) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          return Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [Colors.red[900]!.withOpacity(0.6), Colors.red[700]!]
+                    : [Colors.red.withOpacity(0.8), Colors.red],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
               ),
             ),
-          ],
-        ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Icon(Icons.delete, color: Colors.white, size: 28),
+                SizedBox(width: 8),
+                Text(
+                  '삭제',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
       confirmDismiss: (direction) async {
         // 삭제 확인 다이얼로그
@@ -1654,10 +1668,17 @@ class _CallTabState extends State<CallTab> {
                 onPressed: () => Navigator.of(context).pop(false),
                 child: const Text('취소'),
               ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('삭제'),
+              Builder(
+                builder: (context) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  return TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: TextButton.styleFrom(
+                      foregroundColor: isDark ? Colors.red[300] : Colors.red,
+                    ),
+                    child: const Text('삭제'),
+                  );
+                },
               ),
             ],
           ),
@@ -1809,20 +1830,28 @@ class _CallTabState extends State<CallTab> {
     Color textColor;
     if (isForwardEnabled) {
       // 착신전환 활성화: 주황색
-      badgeColor = Colors.orange.withOpacity(0.1);
-      textColor = Colors.orange[700]!;
+      badgeColor = isDark
+          ? Colors.orange[900]!.withAlpha(77)
+          : Colors.orange.withOpacity(0.1);
+      textColor = isDark ? Colors.orange[300]! : Colors.orange[700]!;
     } else if (call.status == 'device_answered') {
       // 단말수신: 녹색
-      badgeColor = Colors.green.withOpacity(0.1);
-      textColor = Colors.green[700]!;
+      badgeColor = isDark
+          ? Colors.green[900]!.withAlpha(77)
+          : Colors.green.withOpacity(0.1);
+      textColor = isDark ? Colors.green[300]! : Colors.green[700]!;
     } else if (call.status == 'confirmed') {
       // 알림확인: 파란색
-      badgeColor = Colors.blue.withOpacity(0.1);
-      textColor = Colors.blue[700]!;
+      badgeColor = isDark
+          ? Colors.blue[900]!.withAlpha(77)
+          : Colors.blue.withOpacity(0.1);
+      textColor = isDark ? Colors.blue[300]! : Colors.blue[700]!;
     } else {
       // 기본: 파란색
-      badgeColor = Colors.blue.withOpacity(0.1);
-      textColor = Colors.blue[700]!;
+      badgeColor = isDark
+          ? Colors.blue[900]!.withAlpha(77)
+          : Colors.blue.withOpacity(0.1);
+      textColor = isDark ? Colors.blue[300]! : Colors.blue[700]!;
     }
     
     return Padding(
@@ -1838,7 +1867,12 @@ class _CallTabState extends State<CallTab> {
               color: badgeColor,
               borderRadius: BorderRadius.circular(8),
               border: isForwardEnabled
-                  ? Border.all(color: Colors.orange.withOpacity(0.3), width: 1)
+                  ? Border.all(
+                      color: isDark
+                          ? Colors.orange[700]!
+                          : Colors.orange.withOpacity(0.3),
+                      width: 1,
+                    )
                   : null,
             ),
             child: Row(
@@ -1865,7 +1899,7 @@ class _CallTabState extends State<CallTab> {
                   Icon(
                     Icons.arrow_forward_rounded,
                     size: 11,
-                    color: Colors.orange[700],
+                    color: isDark ? Colors.orange[300] : Colors.orange[700],
                   ),
                   const SizedBox(width: 3),
                   Text(
@@ -1873,7 +1907,7 @@ class _CallTabState extends State<CallTab> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: Colors.orange[700],
+                      color: isDark ? Colors.orange[300] : Colors.orange[700],
                     ),
                   ),
                 ],
@@ -1896,14 +1930,14 @@ class _CallTabState extends State<CallTab> {
     }
   }
 
-  Color _getCallTypeColor(CallType type) {
+  Color _getCallTypeColor(CallType type, {bool isDark = false}) {
     switch (type) {
       case CallType.incoming:
-        return Colors.green;
+        return isDark ? Colors.green[300]! : Colors.green;
       case CallType.outgoing:
-        return Colors.blue;
+        return isDark ? Colors.blue[300]! : Colors.blue;
       case CallType.missed:
-        return Colors.red;
+        return isDark ? Colors.red[300]! : Colors.red;
     }
   }
 
