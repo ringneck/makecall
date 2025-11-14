@@ -191,11 +191,9 @@ class _ActiveSessionsScreenState extends State<ActiveSessionsScreen> {
       Navigator.of(context).pop();
 
       // 성공 메시지
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.data['message'] ?? '원격 로그아웃이 완료되었습니다.'),
-          backgroundColor: Colors.green,
-        ),
+      await DialogUtils.showSuccess(
+        context,
+        result.data['message'] ?? '원격 로그아웃이 완료되었습니다.',
       );
 
       // 세션 목록 새로고침
@@ -207,11 +205,9 @@ class _ActiveSessionsScreenState extends State<ActiveSessionsScreen> {
       Navigator.of(context).pop();
 
       // 에러 메시지
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('원격 로그아웃 실패: $e'),
-          backgroundColor: Colors.red,
-        ),
+      await DialogUtils.showError(
+        context,
+        '원격 로그아웃 실패: $e',
       );
     }
   }

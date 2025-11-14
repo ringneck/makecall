@@ -173,11 +173,9 @@ class _ExtensionManagementScreenState extends State<ExtensionManagementScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류 발생: $e'),
-            backgroundColor: Colors.red,
-          ),
+        await DialogUtils.showError(
+          context,
+          '오류 발생: $e',
         );
       }
     } finally {
@@ -206,20 +204,18 @@ class _ExtensionManagementScreenState extends State<ExtensionManagementScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              extension.isSelected
-                  ? '선택이 해제되었습니다'
-                  : '${extension.extensionNumber}이(가) 선택되었습니다',
-            ),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          extension.isSelected
+              ? '선택이 해제되었습니다'
+              : '${extension.extensionNumber}이(가) 선택되었습니다',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류 발생: $e')),
+        await DialogUtils.showError(
+          context,
+          '오류 발생: $e',
         );
       }
     }

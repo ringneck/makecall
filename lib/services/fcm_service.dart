@@ -2778,12 +2778,10 @@ class FCMService {
                 // 사용자에게 성공 메시지 표시
                 final context = _context ?? navigatorKey.currentContext;
                 if (context != null && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('✅ 승인 요청을 다시 전송했습니다'),
-                      duration: Duration(seconds: 2),
-                      backgroundColor: Colors.green,
-                    ),
+                  await DialogUtils.showSuccess(
+                    context,
+                    '✅ 승인 요청을 다시 전송했습니다',
+                    duration: const Duration(seconds: 2),
                   );
                 }
               } catch (e) {
@@ -2793,12 +2791,10 @@ class FCMService {
                 // 사용자에게 오류 메시지 표시
                 final context = _context ?? navigatorKey.currentContext;
                 if (context != null && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('❌ 재전송 실패: $e'),
-                      duration: const Duration(seconds: 3),
-                      backgroundColor: Colors.red,
-                    ),
+                  await DialogUtils.showError(
+                    context,
+                    '❌ 재전송 실패: $e',
+                    duration: const Duration(seconds: 3),
                   );
                 }
               }

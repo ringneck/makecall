@@ -68,20 +68,18 @@ class _AddMainNumberDialogState extends State<AddMainNumberDialog> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.mainNumber == null
-                  ? '대표번호가 추가되었습니다'
-                  : '대표번호가 수정되었습니다',
-            ),
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          widget.mainNumber == null
+              ? '대표번호가 추가되었습니다'
+              : '대표번호가 수정되었습니다',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류 발생: $e')),
+        await DialogUtils.showError(
+          context,
+          '오류 발생: $e',
         );
       }
     } finally {

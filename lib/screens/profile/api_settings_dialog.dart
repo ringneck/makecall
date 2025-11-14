@@ -25,8 +25,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
   bool _apiUseSSL = false; // API SSL 사용 여부
   bool _websocketUseSSL = false;
   
-  // ScaffoldMessenger를 안전하게 사용하기 위한 참조 저장
-  ScaffoldMessengerState? _scaffoldMessenger;
+  // DialogUtils 사용 (ScaffoldMessenger 제거)
 
   @override
   void initState() {
@@ -75,12 +74,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     }
   }
   
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // ScaffoldMessenger 참조를 미리 저장 (비동기 작업에서 안전하게 사용)
-    _scaffoldMessenger = ScaffoldMessenger.of(context);
-  }
+
 
   @override
   void dispose() {
@@ -96,9 +90,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
 
   // 클립보드 붙여넣기 헬퍼 메서드 (안전한 비동기 처리)
   Future<void> _pasteFromClipboard(TextEditingController controller, String fieldName) async {
-    // 비동기 작업 전에 ScaffoldMessenger 참조 저장
-    final messenger = _scaffoldMessenger;
-    
     // iOS에서는 포커스를 먼저 설정
     if (mounted) {
       FocusScope.of(context).requestFocus(FocusNode());
@@ -117,33 +108,24 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
           selection: TextSelection.collapsed(offset: data.text!.length),
         );
         
-        // 저장된 messenger 참조 사용 (context 대신)
-        messenger?.showSnackBar(
-          SnackBar(
-            content: Text('$fieldName 붙여넣기 완료: ${data.text!.length}자'),
-            duration: const Duration(seconds: 1),
-            backgroundColor: Colors.green,
-          ),
+        await DialogUtils.showSuccess(
+          context,
+          '$fieldName 붙여넣기 완료: ${data.text!.length}자',
+          duration: const Duration(seconds: 1),
         );
       } else {
-        // 저장된 messenger 참조 사용
-        messenger?.showSnackBar(
-          const SnackBar(
-            content: Text('클립보드가 비어있습니다\n\n💡 iOS Tip: 입력 필드를 길게 눌러\n"붙여넣기" 메뉴를 사용하세요'),
-            duration: Duration(seconds: 3),
-            backgroundColor: Colors.orange,
-          ),
+        await DialogUtils.showInfo(
+          context,
+          '클립보드가 비어있습니다\n\n💡 iOS Tip: 입력 필드를 길게 눌러\n"붙여넣기" 메뉴를 사용하세요',
+          duration: const Duration(seconds: 3),
         );
       }
     } catch (e) {
-      // 저장된 messenger 참조 사용
       if (mounted) {
-        messenger?.showSnackBar(
-          SnackBar(
-            content: Text('iOS에서는 입력 필드를 길게 눌러\n"붙여넣기" 메뉴를 사용하세요\n\n오류: $e'),
-            duration: const Duration(seconds: 3),
-            backgroundColor: Colors.blue,
-          ),
+        await DialogUtils.showInfo(
+          context,
+          'iOS에서는 입력 필드를 길게 눌러\n"붙여넣기" 메뉴를 사용하세요\n\n오류: $e',
+          duration: const Duration(seconds: 3),
         );
       }
     }
@@ -153,9 +135,6 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-    
-    // 비동기 작업 전에 ScaffoldMessenger 참조 저장
-    final messenger = _scaffoldMessenger;
 
     try {
       // SSL 체크에 따라 포트 설정
@@ -177,16 +156,16 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
 
       if (mounted) {
         Navigator.pop(context);
-        // 저장된 messenger 참조 사용
-        messenger?.showSnackBar(
-          const SnackBar(content: Text('기본 설정이 저장되었습니다')),
+        await DialogUtils.showSuccess(
+          context,
+          '기본 설정이 저장되었습니다',
         );
       }
     } catch (e) {
       if (mounted) {
-        // 저장된 messenger 참조 사용
-        messenger?.showSnackBar(
-          SnackBar(content: Text('오류 발생: $e'), backgroundColor: Colors.red),
+        await DialogUtils.showError(
+          context,
+          '오류 발생: $e',
         );
       }
     } finally {

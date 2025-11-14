@@ -356,44 +356,19 @@ class _AddContactDialogState extends State<AddContactDialog> {
 
         if (context.mounted) {
           Navigator.pop(context, true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '연락처가 추가되었습니다',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        if (_isFavorite)
-                          const Text(
-                            '즐겨찾기에 추가됨',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
+          await DialogUtils.showSuccess(
+            context,
+            _isFavorite
+                ? '연락처가 추가되었습니다\n즐겨찾기에 추가됨'
+                : '연락처가 추가되었습니다',
           );
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류 발생: $e'),
-            backgroundColor: Colors.red,
-          ),
+        await DialogUtils.showError(
+          context,
+          '오류 발생: $e',
         );
       }
     } finally {

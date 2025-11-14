@@ -204,23 +204,17 @@ class SettingsTab extends StatelessWidget {
       try {
         await context.read<AuthService>().deleteAccount();
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                '계정이 비활성화되었습니다\n'
-                '모든 설정 데이터는 보존되었습니다'
-              ),
-              duration: Duration(seconds: 4),
-            ),
+          await DialogUtils.showSuccess(
+            context,
+            '계정이 비활성화되었습니다\n모든 설정 데이터는 보존되었습니다',
+            duration: const Duration(seconds: 4),
           );
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('오류 발생: $e'),
-              backgroundColor: Colors.red,
-            ),
+          await DialogUtils.showError(
+            context,
+            '오류 발생: $e',
           );
         }
       }
