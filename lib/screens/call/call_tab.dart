@@ -2558,15 +2558,15 @@ class _CallTabState extends State<CallTab> {
       }
     }
     
-    // linkedid가 없으면 에러 표시
+    // linkedid가 없으면 안내 메시지 표시
     if (call.linkedid == null || call.linkedid!.isEmpty) {
       if (kDebugMode) {
-        debugPrint('❌ Linkedid가 없어 통화 상세를 조회할 수 없음');
+        debugPrint('ℹ️ Linkedid가 없어 통화 상세를 조회할 수 없음');
       }
       
-      await DialogUtils.showError(
+      await DialogUtils.showInfo(
         context,
-        '통화 상세 정보를 불러올 수 없습니다\n(Linkedid가 저장되지 않았습니다)',
+        '통화 상세 내역이 없습니다.',
       );
       return;
     }
