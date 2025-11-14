@@ -3038,57 +3038,30 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     );
   }
 
-  /// 길게 누르면 복사되는 정보 행 빌더 (박스 없이 텍스트만 표시)
+  /// 복사 버튼이 있는 정보 행 빌더
   Widget _buildLongPressCopyRow({
     required BuildContext context,
     required String label,
     required String value,
   }) {
-    return GestureDetector(
-      onLongPress: () async {
-        // 클립보드에 복사
-        Clipboard.setData(ClipboardData(text: value));
-        
-        // DialogUtils로 복사 완료 알림 표시
-        await DialogUtils.showCopySuccess(context, label, value);
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
         children: [
-          // 라벨 (복사 힌트 추가)
-          Row(
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[600],
-                  letterSpacing: 0.3,
-                ),
+          // 라벨
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
               ),
-              const SizedBox(width: 6),
-              Icon(
-                Icons.touch_app,
-                size: 14,
-                color: Colors.grey[500],
-              ),
-              const SizedBox(width: 2),
-              Text(
-                '길게 눌러 복사',
-                style: TextStyle(
-                  fontSize: 9,
-                  color: Colors.grey[500],
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 2),
-          // 값 (박스 없이 텍스트만 표시, 길게 눌러서 복사 가능)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 2),
+          // 값
+          Expanded(
             child: Text(
               value,
               style: const TextStyle(
@@ -3097,9 +3070,18 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 color: Colors.black87,
                 fontFamily: 'monospace',
               ),
-              // 긴 텍스트도 여러 줄로 표시 가능
-              softWrap: true,
             ),
+          ),
+          // 복사 버튼
+          IconButton(
+            icon: const Icon(Icons.copy, size: 18),
+            onPressed: () async {
+              Clipboard.setData(ClipboardData(text: value));
+              await DialogUtils.showCopySuccess(context, label, value);
+            },
+            tooltip: '복사',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
