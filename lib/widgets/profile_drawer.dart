@@ -1257,26 +1257,34 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 
   Widget _buildExtensionsList(List<MyExtensionModel> extensions) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Column(
       children: [
         // 총 개수 표시
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.green[50],
+            color: isDark ? Colors.green[900]!.withAlpha(77) : Colors.green[50],
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.green[200]!),
+            border: Border.all(
+              color: isDark ? Colors.green[700]! : Colors.green[200]!,
+            ),
           ),
           child: Row(
             children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 18),
+              Icon(
+                Icons.check_circle, 
+                color: isDark ? Colors.green[300] : Colors.green, 
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Text(
                 '총 ${extensions.length}개의 단말번호',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Colors.green,
+                  color: isDark ? Colors.green[300] : Colors.green,
                 ),
               ),
             ],
@@ -1292,7 +1300,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
-                color: ext.hasApiConfig ? Colors.green.withAlpha(102) : Colors.grey.withAlpha(51),
+                color: ext.hasApiConfig 
+                    ? (isDark ? Colors.green[700]! : Colors.green.withAlpha(102))
+                    : (isDark ? Colors.grey[700]! : Colors.grey.withAlpha(51)),
                 width: ext.hasApiConfig ? 2 : 1,
               ),
             ),
@@ -1309,10 +1319,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       children: [
                         CircleAvatar(
                           radius: 20,
-                          backgroundColor: const Color(0xFF2196F3).withAlpha(51),
-                          child: const Icon(
+                          backgroundColor: isDark 
+                              ? Colors.blue[900]!.withAlpha(128)
+                              : const Color(0xFF2196F3).withAlpha(51),
+                          child: Icon(
                             Icons.phone_android,
-                            color: Color(0xFF2196F3),
+                            color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
                             size: 20,
                           ),
                         ),
@@ -1323,18 +1335,18 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                             children: [
                               Text(
                                 ext.extension,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF2196F3),
+                                  color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
                                 ),
                               ),
                               if (ext.name.isNotEmpty)
                                 Text(
                                   ext.name,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.black87,
+                                    color: isDark ? Colors.grey[300] : Colors.black87,
                                   ),
                                 ),
                             ],
@@ -1342,7 +1354,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         ),
                         const Spacer(),
                         IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red, size: 22),
+                          icon: Icon(
+                            Icons.delete, 
+                            color: isDark ? Colors.red[300] : Colors.red, 
+                            size: 22,
+                          ),
                           onPressed: () => _deleteExtension(context, ext),
                           tooltip: '삭제',
                         ),
@@ -1505,6 +1521,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 
   Future<void> _searchMyExtensions(BuildContext context) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     // ProfileTab의 _searchMyExtensions 메서드 구현을 복제
     // 이 메서드는 매우 길기 때문에 ProfileTab에서 가져와야 합니다
     if (kDebugMode) {
@@ -1568,9 +1586,20 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            icon: const Icon(Icons.error_outline, color: Colors.orange, size: 48),
-            title: const Text('단말번호 없음'),
-            content: const Text('내 이메일과 일치하는 단말번호를 찾을 수 없습니다.\n\n관리자에게 단말번호 등록을 요청하세요.'),
+            backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+            icon: Icon(
+              Icons.error_outline, 
+              color: isDark ? Colors.orange[300] : Colors.orange, 
+              size: 48,
+            ),
+            title: Text(
+              '단말번호 없음',
+              style: TextStyle(color: isDark ? Colors.grey[200] : Colors.black87),
+            ),
+            content: Text(
+              '내 이메일과 일치하는 단말번호를 찾을 수 없습니다.\n\n관리자에게 단말번호 등록을 요청하세요.',
+              style: TextStyle(color: isDark ? Colors.grey[300] : Colors.black87),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -1614,11 +1643,22 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Row(
+            backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+            title: Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-                SizedBox(width: 8),
-                Text('등록 한도 초과', style: TextStyle(fontSize: 18)),
+                Icon(
+                  Icons.warning_amber_rounded, 
+                  color: isDark ? Colors.orange[300] : Colors.orange, 
+                  size: 28,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '등록 한도 초과', 
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: isDark ? Colors.grey[200] : Colors.black87,
+                  ),
+                ),
               ],
             ),
             content: Column(
@@ -1627,33 +1667,49 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               children: [
                 Text(
                   '단말번호는 최대 $maxExtensions개까지 등록할 수 있습니다.',
-                  style: const TextStyle(fontSize: 14),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey[300] : Colors.black87,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.orange[50],
+                    color: isDark ? Colors.orange[900]!.withAlpha(77) : Colors.orange[50],
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange[200]!),
+                    border: Border.all(
+                      color: isDark ? Colors.orange[700]! : Colors.orange[200]!,
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                          Icon(
+                            Icons.info_outline, 
+                            size: 16, 
+                            color: isDark ? Colors.orange[300] : Colors.orange,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             '현재 등록된 단말번호: $currentExtensionCount개',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 13, 
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.grey[300] : Colors.black87,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         '더 많은 단말번호를 등록하려면 기존 단말번호를 삭제하거나 관리자에게 문의하세요.',
-                        style: TextStyle(fontSize: 12, color: Colors.black87),
+                        style: TextStyle(
+                          fontSize: 12, 
+                          color: isDark ? Colors.grey[400] : Colors.black87,
+                        ),
                       ),
                     ],
                   ),
@@ -1690,37 +1746,55 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       await showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          icon: const Icon(Icons.error, color: Colors.red, size: 48),
-          title: const Text('API 조회 실패'),
+          backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+          icon: Icon(
+            Icons.error, 
+            color: isDark ? Colors.red[300] : Colors.red, 
+            size: 48,
+          ),
+          title: Text(
+            'API 조회 실패',
+            style: TextStyle(color: isDark ? Colors.grey[200] : Colors.black87),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '단말번호 조회 중 오류가 발생했습니다:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.grey[200] : Colors.black87,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
+                    color: isDark ? Colors.red[900]!.withAlpha(77) : Colors.red.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
+                    border: Border.all(
+                      color: isDark ? Colors.red[700]! : Colors.red.shade200,
+                    ),
                   ),
                   child: Text(
                     e.toString(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontFamily: 'monospace',
+                      color: isDark ? Colors.red[300] : Colors.black87,
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   '확인 사항:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, 
+                    fontSize: 13,
+                    color: isDark ? Colors.grey[200] : Colors.black87,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 const Text('• API 서버 주소가 올바른지 확인', style: TextStyle(fontSize: 12)),
@@ -2556,6 +2630,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
   // 등록된 계정 삭제 (로그인하지 않은 계정만)
   Future<void> _handleDeleteAccount(BuildContext context, SavedAccountModel account) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     // 현재 로그인된 계정인지 다시 확인 (안전장치)
     if (account.isCurrentAccount) {
       await DialogUtils.showWarning(context, '현재 로그인된 계정은 삭제할 수 없습니다. 로그아웃 후 삭제해주세요.', duration: const Duration(seconds: 2));
@@ -2605,16 +2681,17 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       children: [
                         Text(
                           account.displayName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.grey[200] : Colors.black87,
                           ),
                         ),
                         Text(
                           account.email,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey,
+                            color: isDark ? Colors.grey[400] : Colors.grey,
                           ),
                         ),
                       ],
@@ -3201,20 +3278,27 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+                            Icon(
+                              Icons.inbox_outlined, 
+                              size: 64, 
+                              color: isDark ? Colors.grey[700] : Colors.grey[400],
+                            ),
                             const SizedBox(height: 16),
                             Text(
                               '등록된 단말번호가 없습니다',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey[600],
+                                color: isDark ? Colors.grey[400] : Colors.grey[600],
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               '위의 조회 버튼을 눌러주세요',
-                              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                              style: TextStyle(
+                                fontSize: 12, 
+                                color: isDark ? Colors.grey[500] : Colors.grey[500],
+                              ),
                             ),
                           ],
                         ),
@@ -3229,12 +3313,17 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                           return Container(
                             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: isDark ? Colors.grey[850] : Colors.white,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey[300]!, width: 1),
+                              border: Border.all(
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!, 
+                                width: 1,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.grey.withAlpha(26),
+                                  color: isDark 
+                                      ? Colors.black.withAlpha(51)
+                                      : Colors.grey.withAlpha(26),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -3250,14 +3339,18 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                     width: 24,
                                     height: 24,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF2196F3).withAlpha(26),
+                                      color: isDark 
+                                          ? Colors.blue[900]!.withAlpha(128)
+                                          : const Color(0xFF2196F3).withAlpha(26),
                                       shape: BoxShape.circle,
                                     ),
                                     child: Center(
                                       child: Text(
                                         '${index + 1}',
-                                        style: const TextStyle(
-                                          color: Color(0xFF2196F3),
+                                        style: TextStyle(
+                                          color: isDark 
+                                              ? Colors.blue[300] 
+                                              : const Color(0xFF2196F3),
                                           fontWeight: FontWeight.bold,
                                           fontSize: 11,
                                         ),
@@ -3274,20 +3367,20 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                         // 이름 (첫 번째 줄)
                                         Text(
                                           ext.name,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.black87,
+                                            color: isDark ? Colors.grey[200] : Colors.black87,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
                                         // 단말번호 (두 번째 줄)
                                         Text(
                                           ext.extension,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
-                                            color: Color(0xFF2196F3),
+                                            color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -3326,8 +3419,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                   
                                   // 삭제 버튼
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline, size: 20),
-                                    color: Colors.red,
+                                    icon: Icon(
+                                      Icons.delete_outline, 
+                                      size: 20,
+                                      color: isDark ? Colors.red[300] : Colors.red,
+                                    ),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
                                     onPressed: () {
@@ -3358,6 +3454,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     required String label,
     required String value,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -3371,7 +3469,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               style: TextStyle(
                 fontSize: 9,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: isDark ? Colors.grey[500] : Colors.grey[600],
               ),
             ),
           ),
@@ -3379,10 +3477,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
-                color: Colors.black87,
+                color: isDark ? Colors.grey[300] : Colors.black87,
                 fontFamily: 'monospace',
                 letterSpacing: 0.2,
               ),
@@ -3414,6 +3512,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   /// 웹 푸시 권한 요청
   Future<void> _requestWebPushPermission(BuildContext context) async {
     if (!kIsWeb) return;
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     try {
       // FCM 서비스 가져오기
@@ -3465,45 +3565,87 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              icon: const Icon(Icons.check_circle, color: Colors.green, size: 48),
-              title: const Text('웹 푸시 알림 활성화 완료'),
+              backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+              icon: Icon(
+                Icons.check_circle, 
+                color: isDark ? Colors.green[300] : Colors.green, 
+                size: 48,
+              ),
+              title: Text(
+                '웹 푸시 알림 활성화 완료',
+                style: TextStyle(color: isDark ? Colors.grey[200] : Colors.black87),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('브라우저 알림이 활성화되었습니다.'),
+                  Text(
+                    '브라우저 알림이 활성화되었습니다.',
+                    style: TextStyle(color: isDark ? Colors.grey[300] : Colors.black87),
+                  ),
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green[50],
+                      color: isDark ? Colors.green[900]!.withAlpha(77) : Colors.green[50],
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green[200]!),
+                      border: Border.all(
+                        color: isDark ? Colors.green[700]! : Colors.green[200]!,
+                      ),
                     ),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.info_outline, size: 16, color: Colors.green),
-                            SizedBox(width: 8),
+                            Icon(
+                              Icons.info_outline, 
+                              size: 16, 
+                              color: isDark ? Colors.green[300] : Colors.green,
+                            ),
+                            const SizedBox(width: 8),
                             Text(
                               '이제 다음 알림을 받을 수 있습니다:',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 12, 
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.grey[300] : Colors.black87,
+                              ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 8),
-                        Text('• 수신 전화 알림', style: TextStyle(fontSize: 12)),
-                        Text('• 부재중 전화 알림', style: TextStyle(fontSize: 12)),
-                        Text('• 시스템 알림', style: TextStyle(fontSize: 12)),
+                        const SizedBox(height: 8),
+                        Text(
+                          '• 수신 전화 알림', 
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.grey[400] : Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          '• 부재중 전화 알림', 
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.grey[400] : Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          '• 시스템 알림', 
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.grey[400] : Colors.black87,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     '💡 브라우저를 닫아도 알림을 받을 수 있습니다.',
-                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 11, 
+                      color: isDark ? Colors.grey[500] : Colors.grey,
+                    ),
                   ),
                 ],
               ),
@@ -3521,23 +3663,62 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              icon: const Icon(Icons.error, color: Colors.orange, size: 48),
-              title: const Text('알림 권한 필요'),
-              content: const Column(
+              backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+              icon: Icon(
+                Icons.error, 
+                color: isDark ? Colors.orange[300] : Colors.orange, 
+                size: 48,
+              ),
+              title: Text(
+                '알림 권한 필요',
+                style: TextStyle(color: isDark ? Colors.grey[200] : Colors.black87),
+              ),
+              content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('웹 푸시 알림을 받으려면 브라우저 알림 권한이 필요합니다.'),
-                  SizedBox(height: 16),
+                  Text(
+                    '웹 푸시 알림을 받으려면 브라우저 알림 권한이 필요합니다.',
+                    style: TextStyle(color: isDark ? Colors.grey[300] : Colors.black87),
+                  ),
+                  const SizedBox(height: 16),
                   Text(
                     '브라우저 설정에서 알림 권한을 허용해주세요:',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 12, 
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.grey[300] : Colors.black87,
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Text('1. 브라우저 주소창 왼쪽의 자물쇠 아이콘 클릭', style: TextStyle(fontSize: 11)),
-                  Text('2. "알림" 또는 "Notifications" 찾기', style: TextStyle(fontSize: 11)),
-                  Text('3. "허용" 또는 "Allow"로 변경', style: TextStyle(fontSize: 11)),
-                  Text('4. 페이지 새로고침', style: TextStyle(fontSize: 11)),
+                  const SizedBox(height: 8),
+                  Text(
+                    '1. 브라우저 주소창 왼쪽의 자물쇠 아이콘 클릭', 
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.grey[400] : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    '2. "알림" 또는 "Notifications" 찾기', 
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.grey[400] : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    '3. "허용" 또는 "Allow"로 변경', 
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.grey[400] : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    '4. 페이지 새로고침', 
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.grey[400] : Colors.black87,
+                    ),
+                  ),
                 ],
               ),
               actions: [
