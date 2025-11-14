@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import '../services/auth_service.dart';
@@ -1086,11 +1087,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               color: isDark ? Colors.grey[500] : Colors.grey,
             ),
             onTap: () {
-              _showWebViewPage(
-                context,
-                '서비스 이용 약관',
-                'assets/html/terms_of_service.html',
-              );
+              _openExternalUrl('https://makecall.io/mcuc/terms_of_service.html');
             },
           ),
           
@@ -1114,11 +1111,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               color: isDark ? Colors.grey[500] : Colors.grey,
             ),
             onTap: () {
-              _showWebViewPage(
-                context,
-                '개인정보 처리방침',
-                'assets/html/privacy_policy.html',
-              );
+              _openExternalUrl('https://makecall.io/mcuc/privacy_policy.html');
             },
           ),
           
@@ -2398,6 +2391,37 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     );
   }
   
+  /// 외부 URL을 기본 브라우저에서 열기
+  Future<void> _openExternalUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication, // 외부 브라우저에서 열기
+        );
+      } else {
+        if (mounted) {
+          await DialogUtils.showError(
+            context,
+            'URL을 열 수 없습니다: $url',
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ URL 열기 실패: $e');
+      }
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          'URL 열기 실패: $e',
+        );
+      }
+    }
+  }
+
   void _showWebViewPage(BuildContext context, String title, String assetPath) async {
     // HTML 파일 내용 로드
     final htmlContent = await rootBundle.loadString(assetPath);
