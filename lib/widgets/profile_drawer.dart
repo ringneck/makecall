@@ -763,7 +763,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey[600],
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -771,11 +771,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         // 단말번호 카드
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: isDark ? Colors.grey[850] : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
+                                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -807,7 +807,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                   : '등록된 단말번호가 없습니다',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: extensionCount > 0 ? Colors.grey[700] : Colors.grey[500],
+                                color: isDark 
+                                    ? (extensionCount > 0 ? Colors.grey[400] : Colors.grey[600])
+                                    : (extensionCount > 0 ? Colors.grey[700] : Colors.grey[500]),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -832,10 +834,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                           ),
                         ),
                               const SizedBox(width: 8),
-                              const Icon(
+                              Icon(
                                 Icons.chevron_right_rounded,
                                 size: 20,
-                                color: Colors.grey,
+                                color: isDark ? Colors.grey[500] : Colors.grey,
                               ),
                             ],
                           ),
@@ -854,15 +856,20 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.blue[50]!, Colors.blue[100]!],
+                  colors: isDark 
+                      ? [Colors.blue[900]!.withValues(alpha: 0.3), Colors.blue[800]!.withValues(alpha: 0.3)]
+                      : [Colors.blue[50]!, Colors.blue[100]!],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[200]!, width: 1.5),
+                border: Border.all(
+                  color: isDark ? Colors.blue[700]! : Colors.blue[200]!, 
+                  width: 1.5,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: isDark ? 0.2 : 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -923,17 +930,29 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.teal[50],
+                  color: isDark ? Colors.teal[900]!.withValues(alpha: 0.3) : Colors.teal[50],
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.teal[100]!),
+                  border: Border.all(color: isDark ? Colors.teal[700]! : Colors.teal[100]!),
                 ),
-                child: const ListTile(
-                  leading: Icon(Icons.settings_input_antenna, color: Colors.teal),
+                child: ListTile(
+                  leading: Icon(
+                    Icons.settings_input_antenna, 
+                    color: isDark ? Colors.teal[300] : Colors.teal,
+                  ),
                   title: Text(
                     '착신전화 수신 방식',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
                   ),
-                  subtitle: Text('PUSH(기본) 또는 DCMIWS 선택', style: TextStyle(fontSize: 12)),
+                  subtitle: Text(
+                    'PUSH(기본) 또는 DCMIWS 선택', 
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[400] : Colors.black54,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -955,23 +974,27 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: isDark ? Colors.grey[850] : Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.info_outline, 
+                          size: 16, 
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           '착신전화 수신 방식 안내',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey[800],
+                            color: isDark ? Colors.grey[300] : Colors.grey[800],
                           ),
                         ),
                       ],
@@ -984,7 +1007,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       '  더 빠른 응답, 배터리 사용량 증가',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.grey[700],
+                        color: isDark ? Colors.grey[400] : Colors.grey[700],
                         height: 1.4,
                       ),
                     ),
@@ -1003,15 +1026,21 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.purple[50],
+                color: isDark ? Colors.purple[900]!.withValues(alpha: 0.3) : Colors.purple[50],
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.purple[100]!),
+                border: Border.all(color: isDark ? Colors.purple[700]! : Colors.purple[100]!),
               ),
-              child: const ListTile(
-                leading: Icon(Icons.description, color: Colors.purple),
+              child: ListTile(
+                leading: Icon(
+                  Icons.description, 
+                  color: isDark ? Colors.purple[300] : Colors.purple,
+                ),
                 title: Text(
                   '약관 및 정책',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
                 ),
                 subtitle: Text('이용약관, 개인정보처리방침', style: TextStyle(fontSize: 12)),
               ),
