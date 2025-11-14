@@ -2028,7 +2028,7 @@ class FCMService {
         presentAlert: true,
         presentBadge: true,
         presentSound: soundEnabled, // 🔊 사용자 설정 적용
-        sound: soundEnabled ? 'default' : null, // 기본 소리 또는 무음
+        sound: soundEnabled ? 'ringtone.caf' : null, // 커스텀 사운드 또는 무음
         badgeNumber: 0,
         // iOS는 진동을 소리와 함께 제어 (sound가 있으면 진동도 함께 발생)
         // 진동만 제어하려면 커스텀 사운드 파일 필요
