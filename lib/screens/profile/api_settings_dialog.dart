@@ -325,9 +325,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   hintStyle: const TextStyle(fontSize: 12),
                   errorStyle: const TextStyle(fontSize: 10),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.content_paste, size: 16),
-                    onPressed: () => _pasteFromClipboard(_companyIdController, 'Company ID'),
-                    tooltip: '붙여넣기',
+                    icon: const Icon(Icons.content_copy, size: 16),
+                    onPressed: () async {
+                      final value = _companyIdController.text.trim();
+                      if (value.isNotEmpty) {
+                        Clipboard.setData(ClipboardData(text: value));
+                        await DialogUtils.showCopySuccess(context, 'Company ID', value);
+                      }
+                    },
+                    tooltip: '복사',
                     padding: const EdgeInsets.all(4),
                     constraints: const BoxConstraints(
                       minWidth: 32,
@@ -362,9 +368,15 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   hintStyle: const TextStyle(fontSize: 12),
                   errorStyle: const TextStyle(fontSize: 10),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.content_paste, size: 16),
-                    onPressed: () => _pasteFromClipboard(_appKeyController, 'App-Key'),
-                    tooltip: '붙여넣기',
+                    icon: const Icon(Icons.content_copy, size: 16),
+                    onPressed: () async {
+                      final value = _appKeyController.text.trim();
+                      if (value.isNotEmpty) {
+                        Clipboard.setData(ClipboardData(text: value));
+                        await DialogUtils.showCopySuccess(context, 'App-Key', value);
+                      }
+                    },
+                    tooltip: '복사',
                     padding: const EdgeInsets.all(4),
                     constraints: const BoxConstraints(
                       minWidth: 32,
