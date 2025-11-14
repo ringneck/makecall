@@ -331,13 +331,59 @@ class _DeviceApprovalScreenState extends State<DeviceApprovalScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 상단 아이콘 및 제목
+              // 앱 로고
+              Center(
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2196F3).withValues(alpha: 0.15),
+                        blurRadius: 40,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 10),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                        blurRadius: 20,
+                        spreadRadius: -5,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Image.asset(
+                        'assets/images/app_logo.png',
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.phone_in_talk_rounded,
+                            size: 60,
+                            color: Color(0xFF2196F3),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // 보안 아이콘 및 제목
               const Icon(
                 Icons.security,
-                size: 80,
+                size: 48,
                 color: Colors.blue,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               
               const Text(
                 '새 기기 로그인 감지',
