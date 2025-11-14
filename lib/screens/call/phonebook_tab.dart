@@ -747,11 +747,11 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       return _isGridView
                           ? GridView.builder(
                               physics: const AlwaysScrollableScrollPhysics(),
-                              padding: const EdgeInsets.all(4),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                crossAxisSpacing: 4,
-                                mainAxisSpacing: 4,
+                              padding: EdgeInsets.all(_getResponsiveSize(context, 4)),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: _getGridColumnCount(context),
+                                crossAxisSpacing: _getResponsiveSize(context, 4),
+                                mainAxisSpacing: _getResponsiveSize(context, 4),
                                 childAspectRatio: 1.2,
                               ),
                               itemCount: contacts.length,
@@ -937,6 +937,30 @@ class _PhonebookTabState extends State<PhonebookTab> {
     );
   }
 
+  // 반응형 크기 계산 헬퍼 메서드
+  double _getResponsiveSize(BuildContext context, double baseSize) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    // 기준: 360px (일반 스마트폰 너비)
+    // 태블릿: ~600px 이상
+    final scaleFactor = screenWidth / 360.0;
+    return baseSize * scaleFactor.clamp(0.8, 2.0); // 최소 0.8배, 최대 2배로 제한
+  }
+
+  // 화면 크기에 따라 그리드 컬럼 수 결정
+  int _getGridColumnCount(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    if (screenWidth >= 1024) {
+      return 6; // 대형 태블릿/데스크톱: 6열
+    } else if (screenWidth >= 768) {
+      return 5; // 일반 태블릿: 5열
+    } else if (screenWidth >= 600) {
+      return 4; // 소형 태블릿: 4열
+    } else {
+      return 3; // 스마트폰: 3열
+    }
+  }
+
   // 그리드 아이템 빌더
   Widget _buildContactGridItem(PhonebookContactModel contact, {List<String>? registeredExtensions}) {
     Color categoryColor = Colors.blue;
@@ -957,7 +981,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(_getResponsiveSize(context, 8)),
         side: BorderSide(
           color: contact.isFavorite ? Colors.amber.withAlpha(128) : categoryColor.withAlpha(77),
           width: contact.isFavorite ? 1.5 : 0.5,
@@ -965,9 +989,9 @@ class _PhonebookTabState extends State<PhonebookTab> {
       ),
       child: InkWell(
         onTap: () => _showContactDetail(contact),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(_getResponsiveSize(context, 8)),
         child: Padding(
-          padding: const EdgeInsets.all(4),
+          padding: EdgeInsets.all(_getResponsiveSize(context, 4)),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -975,8 +999,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
               Stack(
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: _getResponsiveSize(context, 32),
+                    height: _getResponsiveSize(context, 32),
                     decoration: BoxDecoration(
                       color: contact.isFavorite
                           ? Colors.amber[100]
@@ -985,7 +1009,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                     ),
                     child: Icon(
                       contact.isFavorite ? Icons.star : categoryIcon,
-                      size: 16,
+                      size: _getResponsiveSize(context, 16),
                       color: contact.isFavorite ? Colors.amber[700] : categoryColor,
                     ),
                   ),
@@ -995,8 +1019,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       right: 0,
                       bottom: 0,
                       child: Container(
-                        width: 12,
-                        height: 12,
+                        width: _getResponsiveSize(context, 12),
+                        height: _getResponsiveSize(context, 12),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -1016,8 +1040,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       right: 0,
                       bottom: 0,
                       child: Container(
-                        width: 10,
-                        height: 10,
+                        width: _getResponsiveSize(context, 10),
+                        height: _getResponsiveSize(context, 10),
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
                           shape: BoxShape.circle,
@@ -1025,20 +1049,20 @@ class _PhonebookTabState extends State<PhonebookTab> {
                         ),
                         child: Icon(
                           Icons.person,
-                          size: 6,
+                          size: _getResponsiveSize(context, 6),
                           color: Colors.grey[700],
                         ),
                       ),
                     ),
                 ],
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: _getResponsiveSize(context, 2)),
               
               // 이름
               Text(
                 translatedName,
-                style: const TextStyle(
-                  fontSize: 9,
+                style: TextStyle(
+                  fontSize: _getResponsiveSize(context, 9),
                   fontWeight: FontWeight.bold,
                 ),
                 maxLines: 1,
@@ -1049,8 +1073,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
               // 전화번호
               Text(
                 contact.telephone,
-                style: const TextStyle(
-                  fontSize: 8,
+                style: TextStyle(
+                  fontSize: _getResponsiveSize(context, 8),
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
                 ),
@@ -1058,7 +1082,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: _getResponsiveSize(context, 2)),
               
               // 액션 버튼 (작게)
               Row(
@@ -1070,10 +1094,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
                     child: Icon(
                       contact.isFavorite ? Icons.star : Icons.star_border,
                       color: contact.isFavorite ? Colors.amber : Colors.grey,
-                      size: 14,
+                      size: _getResponsiveSize(context, 14),
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  SizedBox(width: _getResponsiveSize(context, 4)),
                   // 전화 버튼
                   InkWell(
                     onTap: () => _quickCall(
@@ -1081,7 +1105,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       category: contact.category,
                       name: contact.name,
                     ),
-                    child: const Icon(Icons.phone, color: Color(0xFF2196F3), size: 14),
+                    child: Icon(Icons.phone, color: const Color(0xFF2196F3), size: _getResponsiveSize(context, 14)),
                   ),
                 ],
               ),
