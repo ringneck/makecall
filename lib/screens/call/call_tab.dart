@@ -381,70 +381,98 @@ class _CallTabState extends State<CallTab> {
         await showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: Row(
-              children: const [
-                Icon(Icons.info_outline, color: Color(0xFF2196F3), size: 28),
-                SizedBox(width: 12),
-                Text('초기 등록 필요'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 계정 정보 표시
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
+          builder: (dialogContext) {
+            final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                    size: 28,
                   ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.account_circle, size: 24, color: Colors.grey[700]),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          userModel.email.isNotEmpty ? userModel.email : (_authService?.currentUser?.email ?? '사용자'),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
+                  const SizedBox(width: 12),
+                  const Text('초기 등록 필요'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 계정 정보 표시
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey[850] : Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.account_circle,
+                          size: 24,
+                          color: isDark ? Colors.grey[400] : Colors.grey[700],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            userModel.email.isNotEmpty ? userModel.email : (_authService?.currentUser?.email ?? '사용자'),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.grey[200] : Colors.black87,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '통화 기능을 사용하기 위해서는\nAPI 서버 및 WebSocket 설정이 필요합니다.',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2196F3).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: const Color(0xFF2196F3).withValues(alpha: 0.3),
+                      ],
                     ),
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.touch_app, size: 20, color: Color(0xFF2196F3)),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '왼쪽 상단 프로필 아이콘을 눌러\n설정 정보를 입력해주세요.',
-                          style: TextStyle(fontSize: 13, color: Color(0xFF1976D2)),
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 16),
+                  Text(
+                    '통화 기능을 사용하기 위해서는\nAPI 서버 및 WebSocket 설정이 필요합니다.',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.grey[200] : Colors.black87,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.blue[900]!.withAlpha(77)
+                          : const Color(0xFF2196F3).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.blue[700]!
+                            : const Color(0xFF2196F3).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.touch_app,
+                          size: 20,
+                          color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '왼쪽 상단 프로필 아이콘을 눌러\n설정 정보를 입력해주세요.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? Colors.blue[300] : const Color(0xFF1976D2),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
             actions: [
@@ -473,10 +501,11 @@ class _CallTabState extends State<CallTab> {
                 ),
               ),
             ],
-          ),
-        );
-      }
-      return;
+          );
+        },
+      );
+    }
+    return;
     }
     
     // 🔒 단말번호 미등록 시 안내 다이얼로그
@@ -486,88 +515,119 @@ class _CallTabState extends State<CallTab> {
         await showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: Row(
-              children: const [
-                Icon(Icons.phone_disabled, color: Colors.orange, size: 28),
-                SizedBox(width: 12),
-                Text('단말번호 등록 필요'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 계정 정보 표시
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
+          builder: (dialogContext) {
+            final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(
+                    Icons.phone_disabled,
+                    color: isDark ? Colors.orange[300] : Colors.orange,
+                    size: 28,
                   ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.account_circle, size: 24, color: Colors.grey[700]),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          userModel.email.isNotEmpty ? userModel.email : (_authService?.currentUser?.email ?? '사용자'),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                  const SizedBox(width: 12),
+                  const Text('단말번호 등록 필요'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 계정 정보 표시
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey[850] : Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '등록된 단말번호가 없습니다.',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '통화 기능을 사용하려면 단말번호를 조회하고 등록해야 합니다.',
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.orange.withValues(alpha: 0.3),
                     ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Row(
-                        children: [
-                          Icon(Icons.info_outline, size: 20, color: Colors.orange),
-                          SizedBox(width: 8),
-                          Text(
-                            '등록 방법:',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.account_circle,
+                          size: 24,
+                          color: isDark ? Colors.grey[400] : Colors.grey[700],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            userModel.email.isNotEmpty ? userModel.email : (_authService?.currentUser?.email ?? '사용자'),
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Colors.orange,
+                              color: isDark ? Colors.grey[200] : Colors.black87,
                             ),
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '1. 왼쪽 상단 프로필 아이콘 클릭\n'
-                        '2. 단말번호 조회 및 등록\n',
-                        style: TextStyle(fontSize: 12, color: Colors.black87),
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '등록된 단말번호가 없습니다.',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.grey[200] : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '통화 기능을 사용하려면 단말번호를 조회하고 등록해야 합니다.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey[400] : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.orange[900]!.withAlpha(77)
+                          : Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.orange[700]!
+                            : Colors.orange.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 20,
+                              color: isDark ? Colors.orange[300] : Colors.orange,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '등록 방법:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.orange[300] : Colors.orange,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '1. 왼쪽 상단 프로필 아이콘 클릭\n'
+                          '2. 단말번호 조회 및 등록\n',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.grey[400] : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
             actions: [
@@ -591,13 +651,14 @@ class _CallTabState extends State<CallTab> {
                 icon: const Icon(Icons.phone_in_talk, size: 18),
                 label: const Text('등록하기'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: isDark ? Colors.orange[700] : Colors.orange,
                   foregroundColor: Colors.white,
                 ),
               ),
             ],
-          ),
-        );
+          );
+        },
+      );
       }
     }
   }
@@ -872,18 +933,23 @@ class _CallTabState extends State<CallTab> {
             final totalCount = contactFavorites.length + phonebookFavorites.length;
 
             if (totalCount == 0) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.star_border, size: 80, color: Colors.grey[400]),
+                    Icon(
+                      Icons.star_border,
+                      size: 80,
+                      color: isDark ? Colors.grey[700] : Colors.grey[400],
+                    ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       '즐겨찾기가 없습니다',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey,
+                        color: isDark ? Colors.grey[400] : Colors.grey,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -892,7 +958,7 @@ class _CallTabState extends State<CallTab> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: isDark ? Colors.grey[500] : Colors.grey[600],
                       ),
                     ),
                   ],
@@ -904,44 +970,62 @@ class _CallTabState extends State<CallTab> {
               children: [
                 // 단말번호 즐겨찾기 섹션
                 if (phonebookFavorites.isNotEmpty) ...[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.phone_android, size: 20, color: Colors.green),
-                        const SizedBox(width: 8),
-                        Text(
-                          '단말번호 (${phonebookFavorites.length})',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[700],
-                          ),
+                  Builder(
+                    builder: (context) {
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.phone_android,
+                              size: 20,
+                              color: isDark ? Colors.green[300] : Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '단말번호 (${phonebookFavorites.length})',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.grey[400] : Colors.grey[700],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                   ...phonebookFavorites.map((contact) => _buildPhonebookContactListTile(contact)),
                 ],
                 
                 // 연락처 즐겨찾기 섹션
                 if (contactFavorites.isNotEmpty) ...[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.contacts, size: 20, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        Text(
-                          '연락처 (${contactFavorites.length})',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[700],
-                          ),
+                  Builder(
+                    builder: (context) {
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.contacts,
+                              size: 20,
+                              color: isDark ? Colors.blue[300] : Colors.blue,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '연락처 (${contactFavorites.length})',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.grey[400] : Colors.grey[700],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                   ...contactFavorites.map((contact) => _buildContactListTile(contact)),
                 ],
@@ -966,18 +1050,23 @@ class _CallTabState extends State<CallTab> {
         final callHistory = snapshot.data ?? [];
 
         if (callHistory.isEmpty) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.history, size: 80, color: Colors.grey[300]),
+                Icon(
+                  Icons.history,
+                  size: 80,
+                  color: isDark ? Colors.grey[700] : Colors.grey[300],
+                ), 
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   '통화 기록이 없습니다',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey,
+                    color: isDark ? Colors.grey[400] : Colors.grey,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -985,7 +1074,7 @@ class _CallTabState extends State<CallTab> {
                   '첫 통화를 시작해보세요',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[500],
+                    color: isDark ? Colors.grey[500] : Colors.grey[500],
                   ),
                 ),
               ],
@@ -996,16 +1085,20 @@ class _CallTabState extends State<CallTab> {
         return ListView.separated(
           padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: callHistory.length,
-          separatorBuilder: (context, index) => Divider(
-            height: 1,
-            thickness: 0.5,
-            color: Colors.grey[200],
-            indent: 76,
-          ),
+          separatorBuilder: (context, index) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return Divider(
+              height: 1,
+              thickness: 0.5,
+              color: isDark ? Colors.grey[800] : Colors.grey[200],
+              indent: 76,
+            );
+          },
           itemBuilder: (context, index) {
             final call = callHistory[index];
             final callTypeColor = _getCallTypeColor(call.callType);
             final callTypeIcon = _getCallTypeIcon(call.callType);
+            final isDark = Theme.of(context).brightness == Brightness.dark;
             
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1068,10 +1161,10 @@ class _CallTabState extends State<CallTab> {
                     Expanded(
                       child: Text(
                         call.contactName ?? call.phoneNumber,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1a1a1a),
+                          color: isDark ? Colors.grey[200] : const Color(0xFF1a1a1a),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1121,14 +1214,14 @@ class _CallTabState extends State<CallTab> {
                           Icon(
                             Icons.schedule,
                             size: 14,
-                            color: Colors.grey[500],
+                            color: isDark ? Colors.grey[500] : Colors.grey[500],
                           ),
                           const SizedBox(width: 4),
                           Text(
                             _formatDateTime(call.callTime),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -1142,14 +1235,14 @@ class _CallTabState extends State<CallTab> {
                             Icon(
                               Icons.phone,
                               size: 14,
-                              color: Colors.grey[500],
+                              color: isDark ? Colors.grey[500] : Colors.grey[500],
                             ),
                             const SizedBox(width: 4),
                             Text(
                               call.phoneNumber,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[700],
+                                color: isDark ? Colors.grey[400] : Colors.grey[700],
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1250,12 +1343,14 @@ class _CallTabState extends State<CallTab> {
                     // 연락처 추가 버튼
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: isDark
+                            ? Colors.green[900]!.withAlpha(77)
+                            : Colors.green.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.person_add_rounded, size: 16),
-                        color: Colors.green[700],
+                        color: isDark ? Colors.green[300] : Colors.green[700],
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
                           minWidth: 30,
@@ -1598,14 +1693,19 @@ class _CallTabState extends State<CallTab> {
     bool showActions = false,
     bool isDeviceContact = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: contact.isFavorite
-            ? Colors.amber[100]
-            : const Color(0xFF2196F3).withAlpha(51),
+            ? (isDark ? Colors.amber[900]!.withAlpha(128) : Colors.amber[100])
+            : (isDark
+                ? const Color(0xFF2196F3).withAlpha(77)
+                : const Color(0xFF2196F3).withAlpha(51)),
         child: Icon(
           contact.isFavorite ? Icons.star : Icons.person,
-          color: contact.isFavorite ? Colors.amber[700] : const Color(0xFF2196F3),
+          color: contact.isFavorite
+              ? (isDark ? Colors.amber[300] : Colors.amber[700])
+              : const Color(0xFF2196F3),
         ),
       ),
       title: Row(
@@ -1620,13 +1720,18 @@ class _CallTabState extends State<CallTab> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: isDark ? Colors.blue[900]!.withAlpha(77) : Colors.blue[50],
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.blue[200]!),
+                border: Border.all(
+                  color: isDark ? Colors.blue[700]! : Colors.blue[200]!,
+                ),
               ),
-              child: const Text(
+              child: Text(
                 '장치',
-                style: TextStyle(fontSize: 10, color: Colors.blue),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark ? Colors.blue[300] : Colors.blue,
+                ),
               ),
             ),
         ],
@@ -1638,7 +1743,10 @@ class _CallTabState extends State<CallTab> {
           if (contact.company != null)
             Text(
               contact.company!,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey[500] : Colors.grey[600],
+              ),
             ),
         ],
       ),
@@ -1650,14 +1758,19 @@ class _CallTabState extends State<CallTab> {
             IconButton(
               icon: Icon(
                 contact.isFavorite ? Icons.star : Icons.star_border,
-                color: contact.isFavorite ? Colors.amber : Colors.grey,
+                color: contact.isFavorite
+                    ? (isDark ? Colors.amber[300] : Colors.amber)
+                    : (isDark ? Colors.grey[600] : Colors.grey),
               ),
               onPressed: () => _toggleFavorite(contact),
               tooltip: contact.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가',
             ),
             // 수정 버튼
             IconButton(
-              icon: const Icon(Icons.edit, color: Colors.grey),
+              icon: Icon(
+                Icons.edit,
+                color: isDark ? Colors.grey[500] : Colors.grey,
+              ),
               onPressed: () => _showEditContactDialog(contact),
               tooltip: '수정',
             ),
@@ -1665,7 +1778,10 @@ class _CallTabState extends State<CallTab> {
           if (isDeviceContact)
             // 장치 연락처에서 즐겨찾기 추가 버튼
             IconButton(
-              icon: const Icon(Icons.star_border, color: Colors.amber),
+              icon: Icon(
+                Icons.star_border,
+                color: isDark ? Colors.amber[300] : Colors.amber,
+              ),
               onPressed: () => _addDeviceContactToFavorites(contact),
               tooltip: '즐겨찾기에 추가',
             ),
@@ -1684,6 +1800,7 @@ class _CallTabState extends State<CallTab> {
   /// 🔥 단말번호 및 착신전환 정보 표시
   /// 클릭투콜 발신 시 저장된 착신전환 정보만 표시
   Widget _buildExtensionInfo(CallHistoryModel call) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isForwardEnabled = call.callForwardEnabled == true;
     final destinationNumber = call.callForwardDestination ?? '';
     
@@ -2272,14 +2389,19 @@ class _CallTabState extends State<CallTab> {
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.contacts, color: Color(0xFF2196F3)),
-            SizedBox(width: 12),
-            Expanded(child: Text('연락처 권한 필요')),
-          ],
-        ),
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.contacts,
+                color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(child: Text('연락처 권한 필요')),
+            ],
+          ),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2305,7 +2427,7 @@ class _CallTabState extends State<CallTab> {
             child: const Text('취소'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2196F3),
               foregroundColor: Colors.white,
@@ -2313,7 +2435,8 @@ class _CallTabState extends State<CallTab> {
             child: const Text('권한 요청'),
           ),
         ],
-      ),
+      );
+      },
     );
   }
 
@@ -2321,14 +2444,19 @@ class _CallTabState extends State<CallTab> {
   void _showPermissionDeniedDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange),
-            SizedBox(width: 12),
-            Expanded(child: Text('연락처 권한 거부됨')),
-          ],
-        ),
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: isDark ? Colors.orange[300] : Colors.orange,
+              ),
+              const SizedBox(width: 12),
+              const Expanded(child: Text('연락처 권한 거부됨')),
+            ],
+          ),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2351,18 +2479,19 @@ class _CallTabState extends State<CallTab> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               // permission_handler의 openAppSettings 사용
               await openAppSettings();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
+              backgroundColor: isDark ? Colors.orange[700] : Colors.orange,
               foregroundColor: Colors.white,
             ),
             child: const Text('설정 열기'),
           ),
         ],
-      ),
+      );
+      },
     );
   }
 
@@ -2502,15 +2631,18 @@ class _CallTabState extends State<CallTab> {
 
   // 단말번호 연락처 리스트 타일
   Widget _buildPhonebookContactListTile(PhonebookContactModel contact) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Color categoryColor = Colors.blue;
     IconData categoryIcon = Icons.phone;
 
     if (contact.category == 'Extensions') {
-      categoryColor = Colors.green;
+      categoryColor = isDark ? Colors.green[300]! : Colors.green;
       categoryIcon = Icons.phone_android;
     } else if (contact.category == 'Feature Codes') {
-      categoryColor = Colors.orange;
+      categoryColor = isDark ? Colors.orange[300]! : Colors.orange;
       categoryIcon = Icons.star;
+    } else {
+      categoryColor = isDark ? Colors.blue[300]! : Colors.blue;
     }
 
     // 이름 번역 (Feature Codes 이름만)
@@ -2521,8 +2653,13 @@ class _CallTabState extends State<CallTab> {
 
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: Colors.amber[100],
-        child: Icon(categoryIcon, color: Colors.amber[700]),
+        backgroundColor: isDark
+            ? Colors.amber[900]!.withAlpha(128)
+            : Colors.amber[100],
+        child: Icon(
+          categoryIcon,
+          color: isDark ? Colors.amber[300] : Colors.amber[700],
+        ),
       ),
       title: Row(
         children: [
@@ -2560,7 +2697,10 @@ class _CallTabState extends State<CallTab> {
           if (contact.company != null)
             Text(
               contact.company!,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey[500] : Colors.grey[600],
+              ),
             ),
         ],
       ),
