@@ -1112,19 +1112,28 @@ class FCMService {
     // ignore: avoid_print
     print('   - Message data: ${message.data}');
     
-    // 🔔 사용자 알림 설정 확인 (pushEnabled)
+    // 🔔 사용자 알림 설정 확인 (pushEnabled, soundEnabled, vibrationEnabled)
     final authService = AuthService();
     final userId = authService.currentUser?.uid;
+    
+    bool soundEnabled = true; // 기본값
+    bool vibrationEnabled = true; // 기본값
     
     if (userId != null) {
       try {
         final settings = await getUserNotificationSettings(userId);
         final pushEnabled = settings?['pushEnabled'] ?? true;
+        soundEnabled = settings?['soundEnabled'] ?? true;
+        vibrationEnabled = settings?['vibrationEnabled'] ?? true;
         
         // ignore: avoid_print
         print('📦 [FCM-INCOMING] 알림 설정:');
         // ignore: avoid_print
         print('   - pushEnabled: $pushEnabled');
+        // ignore: avoid_print
+        print('   - soundEnabled: $soundEnabled');
+        // ignore: avoid_print
+        print('   - vibrationEnabled: $vibrationEnabled');
         
         if (!pushEnabled) {
           // ignore: avoid_print
@@ -1134,7 +1143,7 @@ class FCMService {
       } catch (e) {
         // ignore: avoid_print
         print('⚠️ [FCM-INCOMING] 알림 설정 확인 실패: $e');
-        // 설정 확인 실패 시 기본 동작 (수신 전화 표시)
+        // 설정 확인 실패 시 기본 동작 (수신 전화 표시, 소리/진동 켜짐)
       }
     }
     
@@ -1180,10 +1189,14 @@ class FCMService {
     print('✅ [FCM-INCOMING] FCM 모드 설정됨 - FCM으로 수신 전화 처리');
     // ignore: avoid_print
     print('📞 [FCM-INCOMING] _showIncomingCallScreen() 호출 시작...');
+    // ignore: avoid_print
+    print('   - soundEnabled: $soundEnabled (벨소리 재생)');
+    // ignore: avoid_print
+    print('   - vibrationEnabled: $vibrationEnabled (진동)');
     
     try {
-      // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함)
-      await _showIncomingCallScreen(message);
+      // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함) + 소리/진동 설정 전달
+      await _showIncomingCallScreen(message, soundEnabled: soundEnabled, vibrationEnabled: vibrationEnabled);
       // ignore: avoid_print
       print('✅ [FCM-INCOMING] _showIncomingCallScreen() 호출 완료');
     } catch (e, stackTrace) {
@@ -1214,15 +1227,23 @@ class FCMService {
           return;
         }
         
-        // 사용자 알림 설정 확인 (pushEnabled)
+        // 사용자 알림 설정 확인 (pushEnabled, soundEnabled, vibrationEnabled)
         final userId = authService.currentUser?.uid;
+        
+        bool soundEnabled = true; // 기본값
+        bool vibrationEnabled = true; // 기본값
         
         if (userId != null) {
           try {
             final settings = await getUserNotificationSettings(userId);
             final pushEnabled = settings?['pushEnabled'] ?? true;
+            soundEnabled = settings?['soundEnabled'] ?? true;
+            vibrationEnabled = settings?['vibrationEnabled'] ?? true;
             
-            debugPrint('📦 [FCM-INCOMING] 사용자 알림 설정: pushEnabled=$pushEnabled');
+            debugPrint('📦 [FCM-INCOMING] 사용자 알림 설정:');
+            debugPrint('   - pushEnabled: $pushEnabled');
+            debugPrint('   - soundEnabled: $soundEnabled');
+            debugPrint('   - vibrationEnabled: $vibrationEnabled');
             
             if (!pushEnabled) {
               debugPrint('⏭️ [FCM-INCOMING] 푸시 알림이 비활성화되어 수신 전화 표시 건너뜀');
@@ -1233,8 +1254,8 @@ class FCMService {
           }
         }
         
-        // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함)
-        await _showIncomingCallScreen(message);
+        // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함) + 소리/진동 설정 전달
+        await _showIncomingCallScreen(message, soundEnabled: soundEnabled, vibrationEnabled: vibrationEnabled);
         return;
       }
       
@@ -2100,7 +2121,7 @@ class FCMService {
   bool _isShowingIncomingCall = false;
   
   /// 수신 전화 풀스크린 표시
-  Future<void> _showIncomingCallScreen(RemoteMessage message) async {
+  Future<void> _showIncomingCallScreen(RemoteMessage message, {bool soundEnabled = true, bool vibrationEnabled = true}) async {
     // ignore: avoid_print
     print('🎬 [FCM-SCREEN] _showIncomingCallScreen() 시작');
     
@@ -2239,6 +2260,8 @@ class FCMService {
           linkedid: linkedid,
           receiverNumber: receiverNumber,
           callType: callType,
+          shouldPlaySound: soundEnabled, // 🔊 사용자 알림 설정 적용
+          shouldVibrate: vibrationEnabled, // 📳 사용자 알림 설정 적용
           onAccept: () async {
             debugPrint('✅ [FCM] 전화 수락: $callerName');
             Navigator.of(context).pop();

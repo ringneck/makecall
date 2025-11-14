@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:vibration/vibration.dart';
 
 /// 수신 전화 풀스크린 (미래지향적 디자인 + 고급 애니메이션)
 class IncomingCallScreen extends StatefulWidget {
@@ -21,6 +22,8 @@ class IncomingCallScreen extends StatefulWidget {
   final String? myExternalCidNumber;
   final bool? isCallForwardEnabled; // 착신전환 활성화 여부
   final String? callForwardDestination; // 착신전환 번호
+  final bool shouldPlaySound; // 벨소리 재생 여부
+  final bool shouldVibrate; // 진동 여부
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
@@ -41,6 +44,8 @@ class IncomingCallScreen extends StatefulWidget {
     this.myExternalCidNumber,
     this.isCallForwardEnabled,
     this.callForwardDestination,
+    this.shouldPlaySound = true, // 기본값: 벨소리 켜짐
+    this.shouldVibrate = true, // 기본값: 진동 켜짐
     required this.onAccept,
     required this.onReject,
   });
@@ -58,6 +63,12 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  
+  // 🎵 벨소리 재생 관련
+  AudioPlayer? _audioPlayer;
+  
+  // 📳 진동 관련
+  bool _isVibrating = false;
 
   @override
   void initState() {
@@ -98,6 +109,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     // 시작 애니메이션 실행
     _fadeController.forward();
     _scaleController.forward();
+    
+    // 🎵 벨소리 및 진동 시작
+    _startRingtoneAndVibration();
   }
 
   @override
@@ -106,17 +120,122 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     _glowController.dispose();
     _fadeController.dispose();
     _scaleController.dispose();
+    _stopRingtoneAndVibration();
     super.dispose();
+  }
+
+  /// 🎵 벨소리 및 진동 시작
+  Future<void> _startRingtoneAndVibration() async {
+    debugPrint('🔔 [RINGTONE] 벨소리/진동 시작');
+    debugPrint('   - shouldPlaySound: ${widget.shouldPlaySound}');
+    debugPrint('   - shouldVibrate: ${widget.shouldVibrate}');
+    
+    // 🎵 벨소리 재생 (설정이 켜져있을 때)
+    if (widget.shouldPlaySound) {
+      try {
+        _audioPlayer = AudioPlayer();
+        
+        // 반복 재생 설정
+        await _audioPlayer!.setReleaseMode(ReleaseMode.loop);
+        await _audioPlayer!.setVolume(1.0); // 최대 볼륨
+        
+        // 🔊 assets 벨소리 재생 시도
+        try {
+          await _audioPlayer!.play(AssetSource('audio/ringtone.mp3'));
+          debugPrint('✅ [RINGTONE] assets/audio/ringtone.mp3 재생 시작 (반복 모드)');
+        } catch (e) {
+          // assets 파일이 없으면 URL 기반 기본 벨소리 사용
+          debugPrint('⚠️ [RINGTONE] assets 파일 없음, 기본 알림음으로 폴백: $e');
+          // Note: audioplayers는 assets 없이는 재생 불가
+          // 실제로는 진동만 작동하게 됨
+        }
+      } catch (e) {
+        debugPrint('❌ [RINGTONE] 벨소리 재생 실패: $e');
+      }
+    } else {
+      debugPrint('⏭️ [RINGTONE] 벨소리 비활성화 - 재생 건너뜀');
+    }
+    
+    // 📳 진동 시작 (설정이 켜져있을 때)
+    if (widget.shouldVibrate) {
+      try {
+        // 기기 진동 지원 확인
+        final hasVibrator = await Vibration.hasVibrator();
+        debugPrint('📳 [VIBRATION] 기기 진동 지원: $hasVibrator');
+        
+        if (hasVibrator == true) {
+          _isVibrating = true;
+          // 진동 패턴 시작 (반복)
+          _vibrateRepeatedly();
+          debugPrint('✅ [VIBRATION] 진동 시작 (반복 패턴)');
+        } else {
+          debugPrint('⚠️ [VIBRATION] 기기가 진동을 지원하지 않음');
+        }
+      } catch (e) {
+        debugPrint('❌ [VIBRATION] 진동 시작 실패: $e');
+      }
+    } else {
+      debugPrint('⏭️ [VIBRATION] 진동 비활성화 - 건너뜀');
+    }
+  }
+  
+  /// 📳 반복 진동 실행
+  Future<void> _vibrateRepeatedly() async {
+    while (_isVibrating && mounted) {
+      try {
+        // 진동 패턴: 500ms 진동, 200ms 정지, 500ms 진동, 1000ms 정지, 반복
+        await Vibration.vibrate(duration: 500);
+        await Future.delayed(const Duration(milliseconds: 200));
+        
+        if (!_isVibrating || !mounted) break;
+        
+        await Vibration.vibrate(duration: 500);
+        await Future.delayed(const Duration(milliseconds: 1000));
+      } catch (e) {
+        debugPrint('❌ [VIBRATION] 진동 오류: $e');
+        break;
+      }
+    }
+  }
+  
+  /// 🛑 벨소리 및 진동 중지
+  Future<void> _stopRingtoneAndVibration() async {
+    debugPrint('🛑 [RINGTONE] 벨소리/진동 중지');
+    
+    // 🎵 벨소리 중지
+    if (_audioPlayer != null) {
+      try {
+        await _audioPlayer!.stop();
+        await _audioPlayer!.dispose();
+        _audioPlayer = null;
+        debugPrint('✅ [RINGTONE] 벨소리 중지 완료');
+      } catch (e) {
+        debugPrint('❌ [RINGTONE] 벨소리 중지 오류: $e');
+      }
+    }
+    
+    // 📳 진동 중지
+    if (_isVibrating) {
+      try {
+        _isVibrating = false;
+        await Vibration.cancel();
+        debugPrint('✅ [VIBRATION] 진동 중지 완료');
+      } catch (e) {
+        debugPrint('❌ [VIBRATION] 진동 중지 오류: $e');
+      }
+    }
   }
 
   /// 전화 수락 애니메이션
   Future<void> _acceptCall() async {
+    await _stopRingtoneAndVibration();
     await _scaleController.reverse();
     widget.onAccept();
   }
 
   /// 전화 거절 애니메이션
   Future<void> _rejectCall() async {
+    await _stopRingtoneAndVibration();
     await _fadeController.reverse();
     widget.onReject();
   }
@@ -782,6 +901,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     return Center(
       child: GestureDetector(
         onTap: () async {
+          // 벨소리/진동 중지
+          await _stopRingtoneAndVibration();
           // 통화 기록 저장
           await _saveCallHistory();
           // 화면 닫고 최근통화 탭으로 이동 (result: {'moveToTab': 1})
