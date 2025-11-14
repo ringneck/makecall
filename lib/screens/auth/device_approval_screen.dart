@@ -310,8 +310,10 @@ class _DeviceApprovalScreenState extends State<DeviceApprovalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : Colors.white,
       appBar: AppBar(
         title: const Text('🔐 기기 승인 대기'),
         backgroundColor: Colors.blue,

@@ -408,6 +408,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
   @override
   Widget build(BuildContext context) {
     final userId = context.watch<AuthService>().currentUser?.uid ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (_isLoading) {
       return const Center(
@@ -545,7 +546,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor: isDark ? Colors.grey[850] : Colors.grey[50],
             ),
             onChanged: (value) {
               setState(() {});

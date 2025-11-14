@@ -607,14 +607,15 @@ class _CallTabState extends State<CallTab> {
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        shadowColor: Colors.black.withValues(alpha: 0.1),
+        backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : Colors.white,
+        surfaceTintColor: isDark ? Theme.of(context).scaffoldBackgroundColor : Colors.white,
+        shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
         leading: Builder(
           builder: (context) => Padding(
             padding: const EdgeInsets.all(8.0),
@@ -636,7 +637,7 @@ class _CallTabState extends State<CallTab> {
                 ),
                 child: CircleAvatar(
                   radius: 20,
-                  backgroundColor: Colors.white,
+                  backgroundColor: isDark ? Colors.grey[850] : Colors.white,
                   backgroundImage: authService.currentUserModel?.profileImageUrl != null
                       ? NetworkImage(authService.currentUserModel!.profileImageUrl!)
                       : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
@@ -1314,6 +1315,7 @@ class _CallTabState extends State<CallTab> {
 
   Widget _buildContactsTab() {
     final userId = context.watch<AuthService>().currentUser?.uid ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       children: [
@@ -1393,7 +1395,7 @@ class _CallTabState extends State<CallTab> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor: isDark ? Colors.grey[850] : Colors.grey[50],
             ),
             onChanged: (value) {
               setState(() {});
