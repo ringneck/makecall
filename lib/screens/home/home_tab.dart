@@ -34,6 +34,7 @@ class _HomeTabState extends State<HomeTab> {
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
     final userId = authService.currentUser?.uid ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -121,15 +122,15 @@ class _HomeTabState extends State<HomeTab> {
                             Icon(
                               Icons.phone_disabled,
                               size: 64,
-                              color: Colors.grey[400],
+                              color: isDark ? Colors.grey[700] : Colors.grey[400],
                             ),
                             const SizedBox(height: 24),
-                            const Text(
+                            Text(
                               '등록된 단말번호가 없습니다',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey,
+                                color: isDark ? Colors.grey[300] : Colors.grey,
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -138,7 +139,7 @@ class _HomeTabState extends State<HomeTab> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.grey[600],
+                                color: isDark ? Colors.grey[500] : Colors.grey[600],
                               ),
                             ),
                             const SizedBox(height: 32),
@@ -186,15 +187,17 @@ class _HomeTabState extends State<HomeTab> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: isDark ? Colors.grey[850] : Colors.white,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: const Color(0xFF2196F3).withAlpha(77),
+                                  color: isDark 
+                                      ? const Color(0xFF2196F3).withAlpha(180)
+                                      : const Color(0xFF2196F3).withAlpha(77),
                                   width: 2,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withAlpha(13),
+                                    color: Colors.black.withAlpha(isDark ? 26 : 13),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -204,11 +207,16 @@ class _HomeTabState extends State<HomeTab> {
                                 child: DropdownButton<int>(
                                   value: _currentPage,
                                   isExpanded: true,
-                                  icon: const Icon(Icons.arrow_drop_down, size: 24, color: Color(0xFF2196F3)),
-                                  style: const TextStyle(
+                                  dropdownColor: isDark ? Colors.grey[850] : Colors.white,
+                                  icon: Icon(
+                                    Icons.arrow_drop_down, 
+                                    size: 24, 
+                                    color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                                  ),
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
+                                    color: isDark ? Colors.grey[300] : Colors.black87,
                                   ),
                                   onChanged: (int? newValue) {
                                     if (newValue != null) {
@@ -236,7 +244,7 @@ class _HomeTabState extends State<HomeTab> {
                                           Icon(
                                             Icons.phone_in_talk,
                                             size: 18,
-                                            color: const Color(0xFF2196F3),
+                                            color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(

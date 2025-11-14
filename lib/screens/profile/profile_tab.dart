@@ -238,6 +238,8 @@ class _ProfileTabState extends State<ProfileTab> {
     final userModel = authService.currentUserModel;
     final userId = authService.currentUser?.uid ?? '';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('단말'),
@@ -253,12 +255,18 @@ class _ProfileTabState extends State<ProfileTab> {
                 onTap: () => _showProfileImageOptions(context, authService),
                 child: CircleAvatar(
                   radius: 50,
-                  backgroundColor: const Color(0xFF2196F3).withAlpha(51),
+                  backgroundColor: isDark 
+                      ? const Color(0xFF2196F3).withAlpha(100)
+                      : const Color(0xFF2196F3).withAlpha(51),
                   backgroundImage: userModel?.profileImageUrl != null
                       ? NetworkImage(userModel!.profileImageUrl!)
                       : null,
                   child: userModel?.profileImageUrl == null
-                      ? const Icon(Icons.person, size: 50, color: Color(0xFF2196F3))
+                      ? Icon(
+                          Icons.person, 
+                          size: 50, 
+                          color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                        )
                       : null,
                 ),
               ),
@@ -270,9 +278,12 @@ class _ProfileTabState extends State<ProfileTab> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2196F3),
+                      color: isDark ? Colors.blue[700] : const Color(0xFF2196F3),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                      border: Border.all(
+                        color: isDark ? Colors.grey[800]! : Colors.white, 
+                        width: 2,
+                      ),
                     ),
                     child: const Icon(
                       Icons.camera_alt,
@@ -288,17 +299,21 @@ class _ProfileTabState extends State<ProfileTab> {
           Text(
             userModel?.email ?? '이메일 없음',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 18, 
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.grey[200] : Colors.black87,
+            ),
           ),
           const SizedBox(height: 8),
           // 단말번호 제한 안내
           Text(
             '단말번호 저장 가능: 최대 ${userModel?.maxExtensions ?? 1}개',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF2196F3),
+              color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
             ),
           ),
           const SizedBox(height: 4),
@@ -312,7 +327,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey[600],
+                    color: isDark ? Colors.grey[500] : Colors.grey[600],
                   ),
                 ),
               const SizedBox(width: 8),
