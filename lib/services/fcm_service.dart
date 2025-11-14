@@ -2925,6 +2925,60 @@ class FCMService {
       Navigator.of(context).pop();
     }
   }
+
+  /// 📳 새 기기 승인 요청 시 진동 트리거
+  /// 
+  /// 새 기기에서 로그인 시도가 감지되었을 때 사용자에게 알리기 위한 진동
+  Future<void> _triggerDeviceApprovalVibration() async {
+    try {
+      // 사용자 알림 설정 확인
+      final currentUser = AuthService().currentUser;
+      if (currentUser == null) {
+        debugPrint('⚠️ [VIBRATION-APPROVAL] 사용자 정보 없음 - 진동 스킵');
+        return;
+      }
+
+      // Firestore에서 사용자 알림 설정 조회
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      final settings = userDoc.data()?['notification_settings'];
+      final vibrationEnabled = settings?['vibrationEnabled'] ?? true;
+
+      if (!vibrationEnabled) {
+        debugPrint('⏭️ [VIBRATION-APPROVAL] 사용자가 진동을 비활성화함 - 진동 스킵');
+        return;
+      }
+
+      // 플랫폼 확인
+      if (kIsWeb) {
+        debugPrint('⚠️ [VIBRATION-APPROVAL] 웹 플랫폼 - 진동 미지원');
+        return;
+      }
+
+      // 기기 진동 지원 확인
+      final hasVibrator = await Vibration.hasVibrator();
+      debugPrint('📳 [VIBRATION-APPROVAL] 기기 진동 지원: $hasVibrator');
+
+      if (hasVibrator == true || hasVibrator == null) {
+        // 짧은 진동 패턴 (보안 알림용)
+        // 200ms 진동 → 100ms 정지 → 200ms 진동 → 100ms 정지 → 200ms 진동
+        await Vibration.vibrate(duration: 200);
+        await Future.delayed(const Duration(milliseconds: 100));
+        await Vibration.vibrate(duration: 200);
+        await Future.delayed(const Duration(milliseconds: 100));
+        await Vibration.vibrate(duration: 200);
+        
+        debugPrint('✅ [VIBRATION-APPROVAL] 새 기기 승인 요청 진동 완료');
+      } else {
+        debugPrint('⚠️ [VIBRATION-APPROVAL] 기기가 진동을 지원하지 않음');
+      }
+    } catch (e) {
+      debugPrint('❌ [VIBRATION-APPROVAL] 진동 실행 오류: $e');
+    }
+  }
 }
 
 /// 승인 대기 다이얼로그 위젯 (전체 화면 차단)
@@ -3089,59 +3143,5 @@ class _ApprovalWaitingDialogState extends State<_ApprovalWaitingDialog> {
         ),
       ),
     );
-  }
-
-  /// 📳 새 기기 승인 요청 시 진동 트리거
-  /// 
-  /// 새 기기에서 로그인 시도가 감지되었을 때 사용자에게 알리기 위한 진동
-  Future<void> _triggerDeviceApprovalVibration() async {
-    try {
-      // 사용자 알림 설정 확인
-      final currentUser = AuthService().currentUser;
-      if (currentUser == null) {
-        debugPrint('⚠️ [VIBRATION-APPROVAL] 사용자 정보 없음 - 진동 스킵');
-        return;
-      }
-
-      // Firestore에서 사용자 알림 설정 조회
-      final userDoc = await _firestore
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
-
-      final settings = userDoc.data()?['notification_settings'];
-      final vibrationEnabled = settings?['vibrationEnabled'] ?? true;
-
-      if (!vibrationEnabled) {
-        debugPrint('⏭️ [VIBRATION-APPROVAL] 사용자가 진동을 비활성화함 - 진동 스킵');
-        return;
-      }
-
-      // 플랫폼 확인
-      if (kIsWeb) {
-        debugPrint('⚠️ [VIBRATION-APPROVAL] 웹 플랫폼 - 진동 미지원');
-        return;
-      }
-
-      // 기기 진동 지원 확인
-      final hasVibrator = await Vibration.hasVibrator();
-      debugPrint('📳 [VIBRATION-APPROVAL] 기기 진동 지원: $hasVibrator');
-
-      if (hasVibrator == true || hasVibrator == null) {
-        // 짧은 진동 패턴 (보안 알림용)
-        // 200ms 진동 → 100ms 정지 → 200ms 진동 → 100ms 정지 → 200ms 진동
-        await Vibration.vibrate(duration: 200);
-        await Future.delayed(const Duration(milliseconds: 100));
-        await Vibration.vibrate(duration: 200);
-        await Future.delayed(const Duration(milliseconds: 100));
-        await Vibration.vibrate(duration: 200);
-        
-        debugPrint('✅ [VIBRATION-APPROVAL] 새 기기 승인 요청 진동 완료');
-      } else {
-        debugPrint('⚠️ [VIBRATION-APPROVAL] 기기가 진동을 지원하지 않음');
-      }
-    } catch (e) {
-      debugPrint('❌ [VIBRATION-APPROVAL] 진동 실행 오류: $e');
-    }
   }
 }
