@@ -542,66 +542,97 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     final userId = authService.currentUser?.uid ?? '';
 
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          // 🎯 간결한 프로필 헤더 (한 줄) - 로그아웃 아이콘 추가
-          Container(
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 12,
-              left: 16,
-              right: 16,
-              bottom: 12,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[200]!, width: 1),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white,
+              Colors.grey[50]!,
+            ],
+          ),
+        ),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            // 🎯 모던한 프로필 헤더 (그라데이션 배경)
+            Container(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 20,
+                left: 20,
+                right: 20,
+                bottom: 20,
               ),
-            ),
-            child: Row(
-              children: [
-                // 작은 썸네일
-                InkWell(
-                  onTap: () => _showProfileDetailDialog(context, authService),
-                  borderRadius: BorderRadius.circular(20),
-                  child: CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.transparent,
-                    backgroundImage: userModel?.profileImageUrl != null
-                        ? NetworkImage(userModel!.profileImageUrl!)
-                        : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
-                  ),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                const SizedBox(width: 12),
-                // 조직명 + 이메일 ID
-                Expanded(
-                  child: InkWell(
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2196F3).withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  // 프로필 아바타 (그림자 효과)
+                  InkWell(
                     onTap: () => _showProfileDetailDialog(context, authService),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
+                    borderRadius: BorderRadius.circular(30),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Colors.white,
+                        backgroundImage: userModel?.profileImageUrl != null
+                            ? NetworkImage(userModel!.profileImageUrl!)
+                            : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // 조직명 + 이메일
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _showProfileDetailDialog(context, authService),
+                      borderRadius: BorderRadius.circular(8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 조직명 (있는 경우)
+                          // 조직명
                           if (userModel?.companyName != null && userModel!.companyName!.isNotEmpty)
                             Text(
                               userModel.companyName!,
                               style: const TextStyle(
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: Colors.white,
+                                letterSpacing: 0.2,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          // 이메일 ID
+                          const SizedBox(height: 4),
+                          // 이메일
                           Text(
                             userModel?.email ?? '이메일 없음',
                             style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontWeight: FontWeight.w500,
                             ),
                             maxLines: 1,
@@ -611,61 +642,172 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       ),
                     ),
                   ),
-                ),
-                // 로그아웃 아이콘
-                IconButton(
-                  onPressed: () => _handleLogoutFromList(context),
-                  icon: const Icon(Icons.logout),
-                  color: Colors.red[400],
-                  tooltip: '로그아웃',
-                  iconSize: 22,
-                ),
-              ],
-            ),
-          ),
-          
-          // 기본 설정
-          ListTile(
-            leading: const Icon(Icons.settings, size: 20),
-            title: const Text('기본 설정', style: TextStyle(fontSize: 13)),
-            subtitle: const Text(
-              'API 서버, WebSocket 설정',
-              style: TextStyle(fontSize: 10),
-            ),
-            trailing: const Icon(Icons.chevron_right, size: 18),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => const ApiSettingsDialog(),
-              );
-            },
-          ),
-          const Divider(),
-          
-          // 🎯 간결한 내 단말번호 (한 줄)
-          if (userId.isNotEmpty)
-            StreamBuilder<List<MyExtensionModel>>(
-              stream: DatabaseService().getMyExtensions(userId),
-              builder: (context, snapshot) {
-                final extensions = snapshot.data ?? [];
-                final extensionCount = extensions.length;
-                
-                return ListTile(
-                  leading: const Icon(Icons.phone_android, size: 20, color: Color(0xFF2196F3)),
-                  title: const Text('내 단말번호', style: TextStyle(fontSize: 13)),
-                  subtitle: Text(
-                    extensionCount > 0 
-                        ? '등록됨: ${extensions.map((e) => e.extension).join(", ")}'
-                        : '등록된 단말번호가 없습니다',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: extensionCount > 0 ? Colors.grey[700] : Colors.grey[500],
+                  // 로그아웃 아이콘 (흰색)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    child: IconButton(
+                      onPressed: () => _handleLogoutFromList(context),
+                      icon: const Icon(Icons.logout_rounded),
+                      color: Colors.white,
+                      tooltip: '로그아웃',
+                      iconSize: 22,
+                    ),
                   ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+                ],
+              ),
+            ),
+            
+            // 🎯 모던한 설정 섹션
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 섹션 헤더
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, bottom: 8),
+                    child: Text(
+                      '설정',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[600],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  // 기본 설정 카드
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.settings_rounded,
+                          size: 20,
+                          color: Color(0xFF2196F3),
+                        ),
+                      ),
+                      title: const Text(
+                        '기본 설정',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'API 서버, WebSocket 설정',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: Colors.grey,
+                      ),
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const ApiSettingsDialog(),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          
+            // 🎯 모던한 내 단말번호 섹션
+            if (userId.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: StreamBuilder<List<MyExtensionModel>>(
+                  stream: DatabaseService().getMyExtensions(userId),
+                  builder: (context, snapshot) {
+                    final extensions = snapshot.data ?? [];
+                    final extensionCount = extensions.length;
+                    
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 섹션 헤더
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8, bottom: 8),
+                          child: Text(
+                            '단말 정보',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[600],
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        // 단말번호 카드
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.phone_android_rounded,
+                                size: 20,
+                                color: Color(0xFF2196F3),
+                              ),
+                            ),
+                            title: const Text(
+                              '내 단말번호',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              extensionCount > 0 
+                                  ? '등록됨: ${extensions.map((e) => e.extension).join(", ")}'
+                                  : '등록된 단말번호가 없습니다',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: extensionCount > 0 ? Colors.grey[700] : Colors.grey[500],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
                     children: [
                       if (extensionCount > 0)
                         Container(
@@ -683,15 +825,22 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                             ),
                           ),
                         ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.chevron_right, size: 18),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 20,
+                                color: Colors.grey,
+                              ),
+                            ],
+                          ),
+                          onTap: () => _showExtensionsManagementDialog(context, extensions),
+                        ),
+                      ),
                     ],
-                  ),
-                  onTap: () => _showExtensionsManagementDialog(context, extensions),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          const Divider(),
           
           // 📱 통합 알림 설정 (하나의 메뉴로 통합)
           Padding(
@@ -942,6 +1091,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           const SizedBox(height: 16),
         ],
       ),
+    ),
     );
   }
   
