@@ -1926,7 +1926,7 @@ class FCMService {
     }
   }
   
-  /// iOS 플랫폼 알림 표시 (DialogUtils 사용)
+  /// iOS 플랫폼 알림 표시 (네이티브 알림 사용)
   Future<void> _showIOSNotification(RemoteMessage message) async {
     if (!Platform.isIOS) return;
     
@@ -1962,9 +1962,13 @@ class FCMService {
       
       // 알림 설정 적용 (기본값: 모두 켜짐)
       final pushEnabled = settings?['pushEnabled'] ?? true;
+      final soundEnabled = settings?['soundEnabled'] ?? true;
+      final vibrationEnabled = settings?['vibrationEnabled'] ?? true;
       
       debugPrint('🔧 [FCM-알림설정-iOS] 적용:');
       debugPrint('   - 푸시 알림: $pushEnabled');
+      debugPrint('   - 알림음: $soundEnabled');
+      debugPrint('   - 진동: $vibrationEnabled');
       
       // 푸시 알림이 꺼져있으면 알림 표시 안함
       if (!pushEnabled) {
@@ -1972,18 +1976,38 @@ class FCMService {
         return;
       }
       
-      // _context가 있으면 DialogUtils로 알림 표시
-      if (_context != null) {
-        await DialogUtils.showInfo(
-          _context!,
-          body,
-          title: title,
-          duration: const Duration(seconds: 5),
-        );
-        debugPrint('✅ [FCM-iOS] 알림 다이얼로그 표시 완료');
-      } else {
-        debugPrint('⚠️ [FCM-iOS] BuildContext 없음 - 알림 표시 불가');
-      }
+      // iOS 네이티브 알림 표시 (소리/진동 제어)
+      final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+          FlutterLocalNotificationsPlugin();
+      
+      // iOS 알림 상세 설정 (사용자 설정 적용)
+      final DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: soundEnabled, // 🔊 사용자 설정 적용
+        sound: soundEnabled ? 'default' : null, // 기본 소리 또는 무음
+        badgeNumber: 0,
+        // iOS는 진동을 소리와 함께 제어 (sound가 있으면 진동도 함께 발생)
+        // 진동만 제어하려면 커스텀 사운드 파일 필요
+      );
+      
+      final NotificationDetails notificationDetails = NotificationDetails(
+        iOS: iosDetails,
+      );
+      
+      debugPrint('🔔 [FCM-iOS] 네이티브 알림 표시:');
+      debugPrint('   - presentSound: $soundEnabled');
+      debugPrint('   - 진동: ${soundEnabled ? "소리와 함께 발생" : "없음"}');
+      
+      // 알림 표시
+      await flutterLocalNotificationsPlugin.show(
+        message.hashCode, // 고유 알림 ID
+        title,
+        body,
+        notificationDetails,
+      );
+      
+      debugPrint('✅ [FCM-iOS] 네이티브 알림 표시 완료');
       
     } catch (e) {
       debugPrint('❌ [FCM-iOS] 알림 표시 오류: $e');
