@@ -1141,32 +1141,6 @@ class FCMService {
     // 3️⃣ FCM 모드: FCM으로 수신 전화 처리
     // ignore: avoid_print
     print('✅ [FCM-INCOMING] FCM 모드 설정됨 - FCM으로 수신 전화 처리');
-    
-    // 4️⃣ 사용자 알림 설정 확인 (pushEnabled)
-    final userId = authService.currentUser?.uid;
-    
-    if (userId != null) {
-      try {
-        final settings = await getUserNotificationSettings(userId);
-        final pushEnabled = settings?['pushEnabled'] ?? true;
-        
-        // ignore: avoid_print
-        print('📦 [FCM-INCOMING] 사용자 알림 설정:');
-        // ignore: avoid_print
-        print('   - pushEnabled: $pushEnabled');
-        
-        if (!pushEnabled) {
-          // ignore: avoid_print
-          print('⏭️ [FCM-INCOMING] 푸시 알림이 비활성화되어 수신 전화 표시 건너뜀');
-          return; // 알림 설정이 꺼져있으면 수신 전화 화면 표시 안 함
-        }
-      } catch (e) {
-        // ignore: avoid_print
-        print('⚠️ [FCM-INCOMING] 알림 설정 확인 실패: $e');
-        // 설정 확인 실패 시 기본 동작 (수신 전화 표시)
-      }
-    }
-    
     // ignore: avoid_print
     print('📞 [FCM-INCOMING] _showIncomingCallScreen() 호출 시작...');
     
