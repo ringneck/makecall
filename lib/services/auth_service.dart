@@ -28,14 +28,15 @@ class AuthService extends ChangeNotifier {
           debugPrint('   - Email: ${user.email}');
         }
         _loadUserModel(user.uid);
+        // ⚠️ 로그인 시에는 notifyListeners() 호출 안 함 (_loadUserModel에서 호출)
       } else {
         if (kDebugMode) {
           debugPrint('🔓 Auth 상태 변경: 로그아웃');
           debugPrint('   - currentUserModel 초기화');
         }
         _currentUserModel = null;
+        notifyListeners(); // ✅ 로그아웃 시에만 여기서 notifyListeners() 호출
       }
-      notifyListeners();
     });
   }
   
