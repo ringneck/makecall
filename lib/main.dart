@@ -5,6 +5,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'firebase_options.dart';
@@ -43,6 +45,34 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       debugPrint('❌ [FCM-BG] 승인 요청 저장 실패: $e');
     }
     return;
+  }
+  
+  // 📥 사용자 알림 설정 확인 (백그라운드에서도 체크)
+  try {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    
+    if (userId != null) {
+      // Firestore에서 알림 설정 가져오기
+      final settingsDoc = await FirebaseFirestore.instance
+          .collection('user_notification_settings')
+          .doc(userId)
+          .get();
+      
+      if (settingsDoc.exists) {
+        final pushEnabled = settingsDoc.data()?['pushEnabled'] ?? true;
+        
+        debugPrint('📦 [FCM-BG] 사용자 알림 설정:');
+        debugPrint('   - pushEnabled: $pushEnabled');
+        
+        if (!pushEnabled) {
+          debugPrint('⏭️ [FCM-BG] 푸시 알림이 비활성화되어 알림 표시 건너뜀');
+          return; // 알림 설정이 꺼져있으면 처리 중단
+        }
+      }
+    }
+  } catch (e) {
+    debugPrint('⚠️ [FCM-BG] 알림 설정 확인 실패: $e');
+    // 설정 확인 실패 시 기본 동작 (알림 표시)
   }
   
   // 📞 수신 전화 감지 (Android와 iOS 모두 지원)
