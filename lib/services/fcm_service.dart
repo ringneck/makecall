@@ -179,26 +179,62 @@ class FCMService {
         // ignore: avoid_print
         print('✅ [FCM] flutter_local_notifications 초기화 완료');
         
-        // 알림 채널 생성
+        // 알림 채널 생성 (4가지 조합: 소리/진동 ON/OFF)
         // ignore: avoid_print
-        print('🤖 [FCM] Android: 알림 채널 생성 중...');
+        print('🤖 [FCM] Android: 알림 채널 생성 중 (4가지 조합)...');
         
-        const AndroidNotificationChannel channel = AndroidNotificationChannel(
-          'high_importance_channel', // id
-          'High Importance Notifications', // name
-          description: 'This channel is used for important notifications.',
-          importance: Importance.high,
-          playSound: true,
-          enableVibration: true,
-        );
-        
-        await flutterLocalNotificationsPlugin
+        final androidPlugin = flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
-            ?.createNotificationChannel(channel);
+                AndroidFlutterLocalNotificationsPlugin>();
         
-        // ignore: avoid_print
-        print('✅ [FCM] Android: 알림 채널 생성 완료');
+        if (androidPlugin != null) {
+          // 1️⃣ 소리 O + 진동 O (기본)
+          const channel1 = AndroidNotificationChannel(
+            'notification_sound_on_vibration_on',
+            'Notifications with Sound and Vibration',
+            description: 'Notifications with both sound and vibration enabled',
+            importance: Importance.high,
+            playSound: true,
+            enableVibration: true,
+          );
+          await androidPlugin.createNotificationChannel(channel1);
+          
+          // 2️⃣ 소리 X + 진동 O
+          const channel2 = AndroidNotificationChannel(
+            'notification_sound_off_vibration_on',
+            'Notifications with Vibration Only',
+            description: 'Notifications with vibration only (no sound)',
+            importance: Importance.high,
+            playSound: false,
+            enableVibration: true,
+          );
+          await androidPlugin.createNotificationChannel(channel2);
+          
+          // 3️⃣ 소리 O + 진동 X
+          const channel3 = AndroidNotificationChannel(
+            'notification_sound_on_vibration_off',
+            'Notifications with Sound Only',
+            description: 'Notifications with sound only (no vibration)',
+            importance: Importance.high,
+            playSound: true,
+            enableVibration: false,
+          );
+          await androidPlugin.createNotificationChannel(channel3);
+          
+          // 4️⃣ 소리 X + 진동 X
+          const channel4 = AndroidNotificationChannel(
+            'notification_sound_off_vibration_off',
+            'Silent Notifications',
+            description: 'Notifications without sound and vibration',
+            importance: Importance.high,
+            playSound: false,
+            enableVibration: false,
+          );
+          await androidPlugin.createNotificationChannel(channel4);
+          
+          // ignore: avoid_print
+          print('✅ [FCM] Android: 4가지 알림 채널 생성 완료');
+        }
       }
       
       // 알림 권한 요청
@@ -1782,11 +1818,36 @@ class FCMService {
       final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
           FlutterLocalNotificationsPlugin();
       
-      // 알림 상세 설정 (사용자 설정 적용)
+      // 사용자 설정에 따라 적절한 알림 채널 선택
+      String channelId;
+      String channelName;
+      String channelDescription;
+      
+      if (soundEnabled && vibrationEnabled) {
+        channelId = 'notification_sound_on_vibration_on';
+        channelName = 'Notifications with Sound and Vibration';
+        channelDescription = 'Notifications with both sound and vibration enabled';
+      } else if (!soundEnabled && vibrationEnabled) {
+        channelId = 'notification_sound_off_vibration_on';
+        channelName = 'Notifications with Vibration Only';
+        channelDescription = 'Notifications with vibration only (no sound)';
+      } else if (soundEnabled && !vibrationEnabled) {
+        channelId = 'notification_sound_on_vibration_off';
+        channelName = 'Notifications with Sound Only';
+        channelDescription = 'Notifications with sound only (no vibration)';
+      } else {
+        channelId = 'notification_sound_off_vibration_off';
+        channelName = 'Silent Notifications';
+        channelDescription = 'Notifications without sound and vibration';
+      }
+      
+      debugPrint('📱 [FCM-알림] 선택된 채널: $channelId');
+      
+      // 알림 상세 설정 (사용자 설정에 맞는 채널 사용)
       final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-        'high_importance_channel', // channelId (AndroidManifest.xml과 동일)
-        'High Importance Notifications', // channelName
-        channelDescription: 'This channel is used for important notifications.',
+        channelId, // 사용자 설정에 맞는 채널 ID
+        channelName,
+        channelDescription: channelDescription,
         importance: Importance.high,
         priority: Priority.high,
         playSound: soundEnabled, // 🔊 사용자 설정 적용
