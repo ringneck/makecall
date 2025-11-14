@@ -818,21 +818,41 @@ class _ProfileTabState extends State<ProfileTab> {
 
       if (matchedExtensions.isEmpty) {
         if (context.mounted) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              icon: const Icon(Icons.info_outline, color: Colors.orange, size: 48),
-              title: const Text('단말번호 없음'),
+              backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+              icon: Icon(
+                Icons.info_outline, 
+                color: isDark ? Colors.orange[300] : Colors.orange, 
+                size: 48,
+              ),
+              title: Text(
+                '단말번호 없음',
+                style: TextStyle(
+                  color: isDark ? Colors.grey[200] : Colors.black87,
+                ),
+              ),
               content: Text(
                 '이메일이 "$userEmail"인 \n단말번호를 찾을 수 없습니다.\n\n'
                 '관리자에게 단말번호 등록을 요청하세요.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.grey[300] : Colors.black87,
+                ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('확인'),
+                  child: Text(
+                    '확인',
+                    style: TextStyle(
+                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -866,14 +886,27 @@ class _ProfileTabState extends State<ProfileTab> {
         }
         
         if (context.mounted) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Row(
+              backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+              title: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-                  SizedBox(width: 8),
-                  Text('등록 한도 초과', style: TextStyle(fontSize: 18)),
+                  Icon(
+                    Icons.warning_amber_rounded, 
+                    color: isDark ? Colors.orange[300] : Colors.orange, 
+                    size: 28,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '등록 한도 초과', 
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: isDark ? Colors.grey[200] : Colors.black87,
+                    ),
+                  ),
                 ],
               ),
               content: Column(
@@ -882,33 +915,51 @@ class _ProfileTabState extends State<ProfileTab> {
                 children: [
                   Text(
                     '단말번호는 최대 $maxExtensions개까지 등록할 수 있습니다.',
-                    style: const TextStyle(fontSize: 14),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey[300] : Colors.black87,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.orange[50],
+                      color: isDark 
+                          ? Colors.orange[900]!.withValues(alpha: 0.3)
+                          : Colors.orange[50],
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange[200]!),
+                      border: Border.all(
+                        color: isDark ? Colors.orange[700]! : Colors.orange[200]!,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                            Icon(
+                              Icons.info_outline, 
+                              size: 16, 
+                              color: isDark ? Colors.orange[300] : Colors.orange,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               '현재 등록된 단말번호: $currentExtensionCount개',
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 13, 
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.orange[200] : Colors.black87,
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           '더 많은 단말번호를 등록하려면 기존 단말번호를 삭제하거나 관리자에게 문의하세요.',
-                          style: TextStyle(fontSize: 12, color: Colors.black87),
+                          style: TextStyle(
+                            fontSize: 12, 
+                            color: isDark ? Colors.grey[400] : Colors.black87,
+                          ),
                         ),
                       ],
                     ),
@@ -918,7 +969,13 @@ class _ProfileTabState extends State<ProfileTab> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('확인', style: TextStyle(fontSize: 14)),
+                  child: Text(
+                    '확인', 
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -965,11 +1022,20 @@ class _ProfileTabState extends State<ProfileTab> {
     
     if (!context.mounted) return;
     
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     final selected = await showDialog<String>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('단말번호 선택', style: TextStyle(fontSize: 18)),
+          backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+          title: Text(
+            '단말번호 선택', 
+            style: TextStyle(
+              fontSize: 18,
+              color: isDark ? Colors.grey[200] : Colors.black87,
+            ),
+          ),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -988,7 +1054,9 @@ class _ProfileTabState extends State<ProfileTab> {
                 return ListTile(
                   leading: Icon(
                     isRegistered ? Icons.lock : Icons.phone_android,
-                    color: isRegistered ? Colors.grey : const Color(0xFF2196F3),
+                    color: isRegistered 
+                        ? (isDark ? Colors.grey[600] : Colors.grey) 
+                        : (isDark ? Colors.blue[300] : const Color(0xFF2196F3)),
                   ),
                   title: Row(
                     children: [
@@ -997,7 +1065,9 @@ class _ProfileTabState extends State<ProfileTab> {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: isRegistered ? Colors.grey : Colors.black,
+                          color: isRegistered 
+                              ? (isDark ? Colors.grey[500] : Colors.grey) 
+                              : (isDark ? Colors.grey[200] : Colors.black),
                         ),
                       ),
                       if (isRegistered) ...[
@@ -1005,12 +1075,15 @@ class _ProfileTabState extends State<ProfileTab> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.grey[300],
+                            color: isDark ? Colors.grey[700] : Colors.grey[300],
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
+                          child: Text(
                             '사용중',
-                            style: TextStyle(fontSize: 10, color: Colors.black54),
+                            style: TextStyle(
+                              fontSize: 10, 
+                              color: isDark ? Colors.grey[400] : Colors.black54,
+                            ),
                           ),
                         ),
                       ],
@@ -1020,13 +1093,30 @@ class _ProfileTabState extends State<ProfileTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (name.isNotEmpty) 
-                        Text(name, style: TextStyle(fontSize: 13, color: isRegistered ? Colors.grey : Colors.black87)),
+                        Text(
+                          name, 
+                          style: TextStyle(
+                            fontSize: 13, 
+                            color: isRegistered 
+                                ? (isDark ? Colors.grey[600] : Colors.grey) 
+                                : (isDark ? Colors.grey[400] : Colors.black87),
+                          ),
+                        ),
                       if (email.isNotEmpty) 
-                        Text(email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          email, 
+                          style: TextStyle(
+                            fontSize: 12, 
+                            color: isDark ? Colors.grey[500] : Colors.grey,
+                          ),
+                        ),
                       if (isRegistered && registeredEmail.isNotEmpty)
                         Text(
                           '🔒 등록자: $registeredEmail',
-                          style: const TextStyle(fontSize: 11, color: Colors.redAccent),
+                          style: TextStyle(
+                            fontSize: 11, 
+                            color: isDark ? Colors.red[300] : Colors.redAccent,
+                          ),
                         ),
                     ],
                   ),
@@ -1039,7 +1129,13 @@ class _ProfileTabState extends State<ProfileTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('취소', style: TextStyle(fontSize: 14)),
+              child: Text(
+                '취소', 
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                ),
+              ),
             ),
           ],
         );
@@ -1085,34 +1181,64 @@ class _ProfileTabState extends State<ProfileTab> {
           }
           
           if (context.mounted) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            
             showDialog(
               context: context,
               builder: (context) => AlertDialog(
-                title: const Text('등록 불가', style: TextStyle(fontSize: 18)),
+                backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+                title: Text(
+                  '등록 불가', 
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: isDark ? Colors.grey[200] : Colors.black87,
+                  ),
+                ),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('이 단말번호는 다른 사용자가 이미 등록했습니다.', 
-                      style: TextStyle(fontSize: 14)),
+                    Text(
+                      '이 단말번호는 다른 사용자가 이미 등록했습니다.', 
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.grey[300] : Colors.black87,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: isDark ? Colors.grey[850] : Colors.grey[100],
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('📱 단말번호: $selected', 
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          Text(
+                            '📱 단말번호: $selected', 
+                            style: TextStyle(
+                              fontSize: 13, 
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.grey[200] : Colors.black87,
+                            ),
+                          ),
                           if (registeredName.isNotEmpty)
-                            Text('👤 사용자: $registeredName', 
-                              style: const TextStyle(fontSize: 13)),
+                            Text(
+                              '👤 사용자: $registeredName', 
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? Colors.grey[300] : Colors.black87,
+                              ),
+                            ),
                           if (registeredEmail.isNotEmpty)
-                            Text('📧 이메일: $registeredEmail', 
-                              style: const TextStyle(fontSize: 13)),
+                            Text(
+                              '📧 이메일: $registeredEmail', 
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? Colors.grey[300] : Colors.black87,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -1121,7 +1247,13 @@ class _ProfileTabState extends State<ProfileTab> {
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('확인', style: TextStyle(fontSize: 14)),
+                    child: Text(
+                      '확인', 
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1223,15 +1355,33 @@ class _ProfileTabState extends State<ProfileTab> {
 
   // 단말번호 삭제
   Future<void> _deleteExtension(BuildContext context, MyExtensionModel extension) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('단말번호 삭제'),
-        content: Text('${extension.extension} (${extension.name})을(를) 삭제하시겠습니까?'),
+        backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+        title: Text(
+          '단말번호 삭제',
+          style: TextStyle(
+            color: isDark ? Colors.grey[200] : Colors.black87,
+          ),
+        ),
+        content: Text(
+          '${extension.extension} (${extension.name})을(를) 삭제하시겠습니까?',
+          style: TextStyle(
+            color: isDark ? Colors.grey[300] : Colors.black87,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
+            child: Text(
+              '취소',
+              style: TextStyle(
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -1285,15 +1435,33 @@ class _ProfileTabState extends State<ProfileTab> {
 
   // 전체 삭제
   Future<void> _deleteAllExtensions(BuildContext context, String userId) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('전체 삭제'),
-        content: const Text('저장된 모든 단말번호를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.'),
+        backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+        title: Text(
+          '전체 삭제',
+          style: TextStyle(
+            color: isDark ? Colors.grey[200] : Colors.black87,
+          ),
+        ),
+        content: Text(
+          '저장된 모든 단말번호를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.',
+          style: TextStyle(
+            color: isDark ? Colors.grey[300] : Colors.black87,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
+            child: Text(
+              '취소',
+              style: TextStyle(
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -1350,17 +1518,26 @@ class _ProfileTabState extends State<ProfileTab> {
 
   // 단말번호 상세 정보 표시
   void _showExtensionDetails(BuildContext context, MyExtensionModel extension) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark ? Colors.grey[900] : Colors.white,
         title: Row(
           children: [
-            const Icon(Icons.phone_android, color: Color(0xFF2196F3)),
+            Icon(
+              Icons.phone_android, 
+              color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 extension.extension,
-                style: const TextStyle(fontSize: 18),
+                style: TextStyle(
+                  fontSize: 18,
+                  color: isDark ? Colors.grey[200] : Colors.black87,
+                ),
               ),
             ),
           ],
@@ -1371,77 +1548,82 @@ class _ProfileTabState extends State<ProfileTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 기본 정보
-              _buildDetailRow('단말번호', extension.extension),
-              _buildDetailRow('이름', extension.name),
-              _buildDetailRow('계정코드', extension.accountCode),
+              _buildDetailRow('단말번호', extension.extension, isDark),
+              _buildDetailRow('이름', extension.name, isDark),
+              _buildDetailRow('계정코드', extension.accountCode, isDark),
               
               // 외부발신 정보
               if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty)
                 const Divider(height: 24),
               if (extension.externalCidName != null && extension.externalCidName!.isNotEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     '외부발신 정보',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF4CAF50),
+                      color: isDark ? Colors.green[300] : const Color(0xFF4CAF50),
                     ),
                   ),
                 ),
-              _buildDetailRow('외부발신 이름', extension.externalCidName),
-              _buildDetailRow('외부발신 번호', extension.externalCidNumber),
+              _buildDetailRow('외부발신 이름', extension.externalCidName, isDark),
+              _buildDetailRow('외부발신 번호', extension.externalCidNumber, isDark),
               
               // SIP 정보
               if (extension.sipUserId != null && extension.sipUserId!.isNotEmpty)
                 const Divider(height: 24),
               if (extension.sipUserId != null && extension.sipUserId!.isNotEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     'SIP 정보',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF2196F3),
+                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
                     ),
                   ),
                 ),
-              _buildDetailRow('SIP user id', extension.sipUserId),
-              _buildDetailRowWithCopy('SIP secret', extension.sipSecret, context),
+              _buildDetailRow('SIP user id', extension.sipUserId, isDark),
+              _buildDetailRowWithCopy('SIP secret', extension.sipSecret, context, isDark),
               
               // 시스템 정보
               const Divider(height: 24),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
                   '시스템 정보',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey,
+                    color: isDark ? Colors.grey[500] : Colors.grey,
                   ),
                 ),
               ),
-              _buildDetailRow('Extension ID', extension.extensionId),
-              _buildDetailRow('COS ID', extension.classOfServicesId),
-              _buildDetailRow('User ID', extension.userId),
-              _buildDetailRow('저장 시간', extension.createdAt.toString().substring(0, 19)),
+              _buildDetailRow('Extension ID', extension.extensionId, isDark),
+              _buildDetailRow('COS ID', extension.classOfServicesId, isDark),
+              _buildDetailRow('User ID', extension.userId, isDark),
+              _buildDetailRow('저장 시간', extension.createdAt.toString().substring(0, 19), isDark),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
+            child: Text(
+              '닫기',
+              style: TextStyle(
+                color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String? value) {
+  Widget _buildDetailRow(String label, String? value, bool isDark) {
     if (value == null || value.isEmpty) return const SizedBox.shrink();
     
     return Padding(
@@ -1453,19 +1635,19 @@ class _ProfileTabState extends State<ProfileTab> {
             width: 100,
             child: Text(
               '$label:',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
-                color: Colors.grey,
+                color: isDark ? Colors.grey[500] : Colors.grey,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Colors.black87,
+                color: isDark ? Colors.grey[300] : Colors.black87,
               ),
             ),
           ),
@@ -1474,7 +1656,7 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  Widget _buildDetailRowWithCopy(String label, String? value, BuildContext context) {
+  Widget _buildDetailRowWithCopy(String label, String? value, BuildContext context, bool isDark) {
     if (value == null || value.isEmpty) return const SizedBox.shrink();
     
     return Padding(
@@ -1486,24 +1668,28 @@ class _ProfileTabState extends State<ProfileTab> {
             width: 100,
             child: Text(
               '$label:',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
-                color: Colors.grey,
+                color: isDark ? Colors.grey[500] : Colors.grey,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Colors.black87,
+                color: isDark ? Colors.grey[300] : Colors.black87,
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.copy, size: 18),
+            icon: Icon(
+              Icons.copy, 
+              size: 18,
+              color: isDark ? Colors.grey[400] : Colors.grey[700],
+            ),
             onPressed: () async {
               Clipboard.setData(ClipboardData(text: value));
               await DialogUtils.showSuccess(
@@ -1680,15 +1866,33 @@ class _ProfileTabState extends State<ProfileTab> {
 
   // 프로필 사진 삭제
   Future<void> _deleteProfileImage(AuthService authService) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('프로필 사진 삭제'),
-        content: const Text('프로필 사진을 삭제하시겠습니까?'),
+        backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+        title: Text(
+          '프로필 사진 삭제',
+          style: TextStyle(
+            color: isDark ? Colors.grey[200] : Colors.black87,
+          ),
+        ),
+        content: Text(
+          '프로필 사진을 삭제하시겠습니까?',
+          style: TextStyle(
+            color: isDark ? Colors.grey[300] : Colors.black87,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
+            child: Text(
+              '취소',
+              style: TextStyle(
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
