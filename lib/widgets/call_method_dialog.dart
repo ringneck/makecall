@@ -10,6 +10,7 @@ import '../services/dcmiws_service.dart';
 import '../models/call_history_model.dart';
 import '../models/call_forward_info_model.dart';
 import '../providers/selected_extension_provider.dart';
+import '../theme/call_theme_extension.dart';
 
 class CallMethodDialog extends StatefulWidget {
   final String phoneNumber;
@@ -63,6 +64,8 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final callTheme = CallThemeColors(context);
+    
     return AlertDialog(
       title: const Text('발신 방법 선택'),
       content: Column(
@@ -71,10 +74,10 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
         children: [
           Text(
             widget.phoneNumber,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF2196F3),
+              color: callTheme.outgoingCallColor,
             ),
             textAlign: TextAlign.center,
           ),
@@ -117,8 +120,10 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    final callTheme = CallThemeColors(context);
+    
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF2196F3)),
+      leading: Icon(icon, color: callTheme.outgoingCallColor),
       title: Text(title),
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
       onTap: _isLoading ? null : onTap,
