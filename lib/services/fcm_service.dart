@@ -2787,7 +2787,7 @@ class FCMService {
             print('🔄 [FCM-DIALOG] 재요청 버튼 클릭');
             if (_currentApprovalRequestId != null && _currentUserId != null) {
               try {
-                await _resendApprovalRequest(_currentApprovalRequestId!, _currentUserId!);
+                await resendApprovalRequest(_currentApprovalRequestId!, _currentUserId!);
                 
                 // 사용자에게 성공 메시지 표시
                 final context = _context ?? navigatorKey.currentContext;
