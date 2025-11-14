@@ -3080,12 +3080,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         ),
                       ),
                     ),
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.pop(dialogContext),
@@ -3139,18 +3133,27 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red[50],
+                      color: isDark ? Colors.red[900]!.withAlpha(77) : Colors.red[50],
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red[200]!),
+                      border: Border.all(
+                        color: isDark ? Colors.red[700]! : Colors.red[200]!,
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                        Icon(
+                          Icons.error_outline, 
+                          color: isDark ? Colors.red[300] : Colors.red, 
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _searchError!,
-                            style: const TextStyle(fontSize: 12, color: Colors.red),
+                            style: TextStyle(
+                              fontSize: 12, 
+                              color: isDark ? Colors.red[300] : Colors.red,
+                            ),
                           ),
                         ),
                       ],
