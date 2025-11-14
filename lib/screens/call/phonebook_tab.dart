@@ -1004,8 +1004,8 @@ class _PhonebookTabState extends State<PhonebookTab> {
               Stack(
                 children: [
                   Container(
-                    width: _getResponsiveSize(context, 32),
-                    height: _getResponsiveSize(context, 32),
+                    width: _getResponsiveSize(context, 40), // 32에서 40으로 증가
+                    height: _getResponsiveSize(context, 40), // 32에서 40으로 증가
                     decoration: BoxDecoration(
                       color: contact.isFavorite
                           ? Colors.amber[100]
@@ -1014,7 +1014,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                     ),
                     child: Icon(
                       contact.isFavorite ? Icons.star : categoryIcon,
-                      size: _getResponsiveSize(context, 16),
+                      size: _getResponsiveSize(context, 20), // 16에서 20으로 증가
                       color: contact.isFavorite ? Colors.amber[700] : categoryColor,
                     ),
                   ),
@@ -1061,13 +1061,13 @@ class _PhonebookTabState extends State<PhonebookTab> {
                     ),
                 ],
               ),
-              SizedBox(height: _getResponsiveSize(context, 2)),
+              SizedBox(height: _getResponsiveSize(context, 4)), // 2에서 4로 증가
               
               // 이름
               Text(
                 translatedName,
                 style: TextStyle(
-                  fontSize: _getResponsiveSize(context, 9),
+                  fontSize: _getResponsiveSize(context, 11), // 9에서 11로 증가
                   fontWeight: FontWeight.bold,
                 ),
                 maxLines: 1,
@@ -1075,27 +1075,16 @@ class _PhonebookTabState extends State<PhonebookTab> {
                 textAlign: TextAlign.center,
               ),
               
-              // 전화번호 (크게 표시)
+              // 전화번호 (더 크게 표시)
               Text(
                 contact.telephone,
                 style: TextStyle(
-                  fontSize: _getResponsiveSize(context, 12), // 8에서 12로 증가
-                  fontWeight: FontWeight.w600, // w500에서 w600으로 증가
+                  fontSize: _getResponsiveSize(context, 14), // 12에서 14로 증가
+                  fontWeight: FontWeight.w700, // w600에서 w700으로 증가
                   color: Colors.black87,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: _getResponsiveSize(context, 4)),
-              
-              // 길게 눌러서 발신하세요 힌트
-              Text(
-                '길게 눌러 발신',
-                style: TextStyle(
-                  fontSize: _getResponsiveSize(context, 7),
-                  color: Colors.grey[600],
-                ),
                 textAlign: TextAlign.center,
               ),
             ],
