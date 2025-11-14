@@ -1854,58 +1854,57 @@ class _CallTabState extends State<CallTab> {
       padding: const EdgeInsets.only(top: 4),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 6,
-              vertical: 2,
-            ),
-            decoration: BoxDecoration(
-              color: badgeColor,
-              borderRadius: BorderRadius.circular(8),
-              border: isForwardEnabled
-                  ? Border.all(
-                      color: callTheme.forwardedCallBorderColor,
-                      width: 1,
-                    )
-                  : null,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.phone_android,
-                  size: 10,
-                  color: textColor,
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 3,
+              ),
+              decoration: BoxDecoration(
+                color: badgeColor,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isForwardEnabled
+                      ? callTheme.forwardedCallBorderColor
+                      : textColor.withValues(alpha: 0.5),
+                  width: 1,
                 ),
-                const SizedBox(width: 3),
-                Text(
-                  call.extensionUsed ?? '',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.phone_android,
+                    size: 12,
                     color: textColor,
                   ),
-                ),
-                
-                // 착신전환 활성화 시에만 화살표와 착신번호 표시
-                if (isForwardEnabled && destinationNumber.isNotEmpty) ...[
-                  const SizedBox(width: 3),
-                  Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 11,
-                    color: callTheme.forwardedCallColor,
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    destinationNumber,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: callTheme.forwardedCallColor,
-                    ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: isForwardEnabled && destinationNumber.isNotEmpty
+                        ? Text(
+                            '${call.extensionUsed} → $destinationNumber',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: textColor,
+                              letterSpacing: -0.3,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          )
+                        : Text(
+                            call.extensionUsed ?? '',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: textColor,
+                              letterSpacing: -0.3,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                   ),
                 ],
-              ],
+              ),
             ),
           ),
         ],
