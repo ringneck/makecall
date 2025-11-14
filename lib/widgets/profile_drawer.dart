@@ -794,11 +794,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                 color: Color(0xFF2196F3),
                               ),
                             ),
-                            title: const Text(
+                            title: Text(
                               '내 단말번호',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.grey[200] : Colors.black87,
                               ),
                             ),
                             subtitle: Text(
@@ -879,17 +880,21 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? Colors.blue[900]!.withValues(alpha: 0.5) : Colors.white,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.notifications_active, color: Color(0xFF2196F3), size: 24),
+                  child: Icon(
+                    Icons.notifications_active, 
+                    color: isDark ? Colors.blue[300] : const Color(0xFF2196F3), 
+                    size: 24,
+                  ),
                 ),
-                title: const Text(
+                title: Text(
                   '알림 설정',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
-                    color: Color(0xFF1976D2),
+                    color: isDark ? Colors.blue[300] : const Color(0xFF1976D2),
                   ),
                 ),
                 subtitle: Text(
@@ -898,7 +903,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     : '푸시 알림 비활성화',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.blue[900],
+                    color: isDark ? Colors.blue[200] : Colors.blue[900],
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -907,11 +912,16 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   children: [
                     Icon(
                       _pushEnabled ? Icons.check_circle : Icons.cancel,
-                      color: _pushEnabled ? Colors.green : Colors.grey,
+                      color: _pushEnabled 
+                          ? (isDark ? Colors.green[300] : Colors.green) 
+                          : (isDark ? Colors.grey[600] : Colors.grey),
                       size: 22,
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.chevron_right, color: Color(0xFF1976D2)),
+                    Icon(
+                      Icons.chevron_right, 
+                      color: isDark ? Colors.blue[300] : const Color(0xFF1976D2),
+                    ),
                   ],
                 ),
                 onTap: () => _showNotificationSettingsDialog(context),
@@ -1042,16 +1052,36 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     color: isDark ? Colors.white : Colors.black87,
                   ),
                 ),
-                subtitle: Text('이용약관, 개인정보처리방침', style: TextStyle(fontSize: 12)),
+                subtitle: Text(
+                  '이용약관, 개인정보처리방침', 
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey[400] : Colors.black54,
+                  ),
+                ),
               ),
             ),
           ),
           
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-            leading: const Icon(Icons.description, size: 22),
-            title: const Text('서비스 이용 약관', style: TextStyle(fontSize: 15)),
-            trailing: const Icon(Icons.chevron_right, size: 20),
+            leading: Icon(
+              Icons.description, 
+              size: 22, 
+              color: isDark ? Colors.grey[400] : Colors.black87,
+            ),
+            title: Text(
+              '서비스 이용 약관', 
+              style: TextStyle(
+                fontSize: 15,
+                color: isDark ? Colors.grey[200] : Colors.black87,
+              ),
+            ),
+            trailing: Icon(
+              Icons.chevron_right, 
+              size: 20,
+              color: isDark ? Colors.grey[500] : Colors.grey,
+            ),
             onTap: () {
               _showWebViewPage(
                 context,
@@ -1063,9 +1093,23 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-            leading: const Icon(Icons.privacy_tip, size: 22),
-            title: const Text('개인정보 처리방침', style: TextStyle(fontSize: 15)),
-            trailing: const Icon(Icons.chevron_right, size: 20),
+            leading: Icon(
+              Icons.privacy_tip, 
+              size: 22,
+              color: isDark ? Colors.grey[400] : Colors.black87,
+            ),
+            title: Text(
+              '개인정보 처리방침', 
+              style: TextStyle(
+                fontSize: 15,
+                color: isDark ? Colors.grey[200] : Colors.black87,
+              ),
+            ),
+            trailing: Icon(
+              Icons.chevron_right, 
+              size: 20,
+              color: isDark ? Colors.grey[500] : Colors.grey,
+            ),
             onTap: () {
               _showWebViewPage(
                 context,
@@ -1077,9 +1121,23 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-            leading: const Icon(Icons.code, size: 22),
-            title: const Text('오픈소스 라이선스', style: TextStyle(fontSize: 15)),
-            trailing: const Icon(Icons.chevron_right, size: 20),
+            leading: Icon(
+              Icons.code, 
+              size: 22,
+              color: isDark ? Colors.grey[400] : Colors.black87,
+            ),
+            title: Text(
+              '오픈소스 라이선스', 
+              style: TextStyle(
+                fontSize: 15,
+                color: isDark ? Colors.grey[200] : Colors.black87,
+              ),
+            ),
+            trailing: Icon(
+              Icons.chevron_right, 
+              size: 20,
+              color: isDark ? Colors.grey[500] : Colors.grey,
+            ),
             onTap: () {
               _showLicensePage(context);
             },
@@ -1094,9 +1152,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.green[50],
+                color: isDark ? Colors.green[900]!.withValues(alpha: 0.3) : Colors.green[50],
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green[100]!),
+                border: Border.all(
+                  color: isDark ? Colors.green[700]! : Colors.green[100]!,
+                ),
               ),
               child: FutureBuilder<PackageInfo>(
                 future: PackageInfo.fromPlatform(),
@@ -1104,14 +1164,24 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   final version = snapshot.data?.version ?? '1.0.0';
                   final buildNumber = snapshot.data?.buildNumber ?? '1';
                   return ListTile(
-                    leading: const Icon(Icons.info, color: Colors.green),
-                    title: const Text(
+                    leading: Icon(
+                      Icons.info, 
+                      color: isDark ? Colors.green[300] : Colors.green,
+                    ),
+                    title: Text(
                       '앱 버전',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.grey[200] : Colors.black87,
+                      ),
                     ),
                     subtitle: Text(
                       '$version ($buildNumber)',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 12, 
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.grey[400] : Colors.black54,
+                      ),
                     ),
                   );
                 },
