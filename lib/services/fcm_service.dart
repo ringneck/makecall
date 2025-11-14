@@ -1808,6 +1808,13 @@ class FCMService {
       debugPrint('   - 푸시 알림: $pushEnabled');
       debugPrint('   - 알림음: $soundEnabled');
       debugPrint('   - 진동: $vibrationEnabled');
+      debugPrint('');
+      debugPrint('⚠️ [안드로이드 알림 체크리스트]');
+      debugPrint('1. 기기 무음/진동 모드 확인: 설정 → 소리');
+      debugPrint('2. 방해 금지 모드 확인: 설정 → 방해 금지');
+      debugPrint('3. 앱 알림 설정 확인: 설정 → 앱 → MAKECALL → 알림');
+      debugPrint('4. 채널별 설정 확인: 각 채널의 소리/진동 개별 확인');
+      debugPrint('');
       
       // 푸시 알림이 꺼져있으면 알림 표시 안함
       if (!pushEnabled) {
@@ -1841,7 +1848,20 @@ class FCMService {
         channelDescription = 'Notifications without sound and vibration';
       }
       
-      debugPrint('📱 [FCM-알림] 선택된 채널: $channelId');
+      debugPrint('');
+      debugPrint('═══════════════════════════════════════════════');
+      debugPrint('📱 [FCM-알림] 채널 선택 정보:');
+      debugPrint('   - 채널 ID: $channelId');
+      debugPrint('   - 채널명: $channelName');
+      debugPrint('   - 알림음 요청: $soundEnabled');
+      debugPrint('   - 진동 요청: $vibrationEnabled');
+      debugPrint('');
+      debugPrint('🔍 [시스템 제한 가능성]:');
+      debugPrint('   - 기기 무음/진동 모드일 경우 알림음/진동 차단됨');
+      debugPrint('   - 방해 금지 모드일 경우 알림음/진동 차단됨');
+      debugPrint('   - 앱 설정에서 채널별 소리/진동 비활성화 가능');
+      debugPrint('═══════════════════════════════════════════════');
+      debugPrint('');
       
       // 알림 상세 설정 (사용자 설정에 맞는 채널 사용)
       final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
