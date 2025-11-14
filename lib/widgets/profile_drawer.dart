@@ -3045,18 +3045,19 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     required String value,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // 라벨
           SizedBox(
-            width: 80,
+            width: 70,
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: Colors.grey[600],
               ),
             ),
           ),
@@ -3065,23 +3066,31 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             child: Text(
               value,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
                 fontFamily: 'monospace',
+                letterSpacing: 0.3,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          const SizedBox(width: 4),
           // 복사 버튼
           IconButton(
-            icon: const Icon(Icons.copy, size: 18),
+            icon: const Icon(Icons.content_copy, size: 16),
             onPressed: () async {
               Clipboard.setData(ClipboardData(text: value));
               await DialogUtils.showCopySuccess(context, label, value);
             },
             tooltip: '복사',
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),
