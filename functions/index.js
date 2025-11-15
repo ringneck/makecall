@@ -560,9 +560,9 @@ exports.sendIncomingCallNotification = functions.https.onRequest(
 
 /**
  * 수신전화 알림 취소 Cloud Function
- * 
+ *
  * 한 기기에서 통화를 수락/거부하면 다른 모든 기기의 알림을 취소합니다.
- * 
+ *
  * @param {string} linkedid - 통화 고유 ID
  * @param {string} userId - 사용자 ID
  * @param {string} action - 취소 사유 (answered, rejected, timeout)
@@ -606,7 +606,7 @@ exports.cancelIncomingCallNotification = functions.https.onRequest(
 
         // 1. Firestore call_history 업데이트 (방법 3: Firestore 리스너용)
         console.log("💾 [FCM-CANCEL] call_history 업데이트 중...");
-        
+
         const callHistoryRef = admin.firestore()
             .collection("call_history")
             .doc(linkedid);
