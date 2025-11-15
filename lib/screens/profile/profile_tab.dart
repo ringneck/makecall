@@ -394,7 +394,7 @@ class _ProfileTabState extends State<ProfileTab> {
             leading: const Icon(Icons.settings, size: 22),
             title: const Text('기본 설정', style: TextStyle(fontSize: 15)),
             subtitle: const Text(
-              'API, WebSocket 설정',
+              'API 서버, WebSocket 설정',
               style: TextStyle(fontSize: 11),
             ),
             trailing: const Icon(Icons.chevron_right),
