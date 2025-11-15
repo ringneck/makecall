@@ -1015,10 +1015,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           ),
 
           
-          const SizedBox(height: 16),
-          const Divider(thickness: 1),
-          const SizedBox(height: 8),
-          
           // 📡 착신전화 수신 설정 (Premium 전용)
           if (_isPremium) ...[
             Padding(
@@ -1110,10 +1106,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 ),
               ),
             ),
-            
-            const SizedBox(height: 16),
-            const Divider(thickness: 1),
-            const SizedBox(height: 8),
           ],
           
           // 약관 및 정책 (펼침/접힘)
@@ -1228,10 +1220,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               ),
             ),
           ),
-          
-          const SizedBox(height: 16),
-          const Divider(thickness: 1),
-          const SizedBox(height: 8),
           
           // 앱 정보
           Padding(

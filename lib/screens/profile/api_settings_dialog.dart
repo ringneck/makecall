@@ -193,10 +193,21 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              // API 베이스 URL
-              const Text(
-                'API 서버 주소',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              // REST API 설정 헤더 (WebSocket과 동일한 스타일)
+              Row(
+                children: [
+                  Icon(Icons.api, size: 18, color: isDark ? Colors.blue[300] : Colors.blue),
+                  const SizedBox(width: 8),
+                  Text(
+                    'REST API 설정',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.blue[300] : Colors.blue),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'REST API 서버 설정',
+                style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -283,47 +294,116 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.teal[900]!.withValues(alpha: 0.3) : Colors.teal.shade50,
+                    color: isDark ? Colors.blue[900]!.withValues(alpha: 0.3) : Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isDark ? Colors.teal[700]! : Colors.teal.shade200,
+                      color: isDark ? Colors.blue[700]! : Colors.blue.shade200,
                     ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'API 주소:',
-                        style: TextStyle(
-                          fontSize: 10, 
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.teal[300] : Colors.teal.shade900,
-                        ),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.preview, 
+                            size: 14, 
+                            color: isDark ? Colors.blue[300] : Colors.blue.shade700,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'API 연결 주소 미리보기',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.blue[300] : Colors.blue.shade900,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${_apiUseSSL ? 'https' : 'http'}://${_apiBaseUrlController.text.trim()}/api/v2',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: _apiUseSSL 
-                              ? (isDark ? Colors.green[300] : Colors.green.shade700)
-                              : (isDark ? Colors.orange[300] : Colors.orange.shade700),
-                          fontFamily: 'monospace',
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 2,
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _apiUseSSL 
+                                  ? (isDark ? Colors.green[900]!.withValues(alpha: 0.3) : Colors.green.shade100)
+                                  : (isDark ? Colors.orange[900]!.withValues(alpha: 0.3) : Colors.orange.shade100),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _apiUseSSL ? 'https://' : 'http://',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: _apiUseSSL 
+                                    ? (isDark ? Colors.green[300] : Colors.green.shade900)
+                                    : (isDark ? Colors.orange[300] : Colors.orange.shade900),
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '${_apiBaseUrlController.text.trim()}/api/v2',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark ? Colors.blue[300] : Colors.blue.shade900,
+                                fontFamily: 'monospace',
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
               ],
-              const SizedBox(height: 24),
-              const Divider(),
               const SizedBox(height: 16),
-              // API 인증 정보
-              const Text(
-                'API 인증 정보',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              // API 인증 정보 (WebSocket과 동일한 스타일)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.blue[900]!.withValues(alpha: 0.3) : Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark ? Colors.blue[700]! : Colors.blue.shade200,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.security, 
+                          size: 16, 
+                          color: isDark ? Colors.blue[300] : Colors.blue.shade700,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'API 인증 정보 (필수)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: isDark ? Colors.blue[300] : Colors.blue.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'REST API 연결 시 Company ID와 App-Key 사용',
+                      style: TextStyle(
+                        fontSize: 10, 
+                        color: isDark ? Colors.blue[400] : Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -337,7 +417,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 // iOS에서 기본 컨텍스트 메뉴 사용 (길게 누르기 + 붙여넣기)
                 decoration: InputDecoration(
                   labelText: 'Company ID',
-                  hintText: 'REST API Company ID',
+                  hintText: '예: company001',
+                  prefixIcon: const Icon(Icons.business, size: 18),
                   border: const OutlineInputBorder(),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   labelStyle: const TextStyle(fontSize: 12),
@@ -380,7 +461,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 // iOS에서 기본 컨텍스트 메뉴 사용 (길게 누르기 + 붙여넣기)
                 decoration: InputDecoration(
                   labelText: 'App-Key',
-                  hintText: 'REST API App-Key',
+                  hintText: '예: your-app-key-here',
+                  prefixIcon: const Icon(Icons.vpn_key, size: 18),
                   border: const OutlineInputBorder(),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   labelStyle: const TextStyle(fontSize: 12),
