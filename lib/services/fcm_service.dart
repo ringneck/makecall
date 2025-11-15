@@ -2813,10 +2813,12 @@ class FCMService {
         print('   linkedid: $linkedid');
         
         // 상태만 업데이트 (FCM 수신 확인) - 타임아웃 5초
+        // 🔧 FIX: cancelled 필드 초기화 (iOS에서 이전 취소 상태가 남아있을 수 있음)
         await _firestore.collection('call_history').doc(linkedid).update({
           'fcmReceived': true,
           'fcmReceivedAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
+          'cancelled': false, // 🔧 새 수신 전화이므로 취소 상태 초기화
         }).timeout(
           const Duration(seconds: 5),
           onTimeout: () {
@@ -2846,6 +2848,7 @@ class FCMService {
         'callSubType': callType == 'voice' ? 'external' : callType,
         'status': 'fcm_received', // FCM으로 수신됨
         'fcmReceived': true,
+        'cancelled': false, // 🔧 새 수신 전화이므로 취소 상태 초기화
         'timestamp': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
