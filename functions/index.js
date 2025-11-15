@@ -557,3 +557,146 @@ exports.sendIncomingCallNotification = functions.https.onRequest(
       }
     },
 );
+
+/**
+ * 수신전화 알림 취소 Cloud Function
+ * 
+ * 한 기기에서 통화를 수락/거부하면 다른 모든 기기의 알림을 취소합니다.
+ * 
+ * @param {string} linkedid - 통화 고유 ID
+ * @param {string} userId - 사용자 ID
+ * @param {string} action - 취소 사유 (answered, rejected, timeout)
+ */
+exports.cancelIncomingCallNotification = functions.https.onRequest(
+    async (req, res) => {
+      // CORS 헤더 설정
+      res.set("Access-Control-Allow-Origin", "*");
+      res.set("Access-Control-Allow-Methods", "POST");
+      res.set("Access-Control-Allow-Headers", "Content-Type");
+
+      // OPTIONS 요청 처리
+      if (req.method === "OPTIONS") {
+        res.status(204).send("");
+        return;
+      }
+
+      // POST 요청만 허용
+      if (req.method !== "POST") {
+        res.status(405).json({error: "Method Not Allowed"});
+        return;
+      }
+
+      try {
+        const {linkedid, userId, action} = req.body;
+
+        console.log("🛑 [FCM-CANCEL] 수신전화 알림 취소 요청");
+        console.log(`   Linkedid: ${linkedid}`);
+        console.log(`   userId: ${userId}`);
+        console.log(`   Action: ${action}`);
+
+        // 필수 파라미터 검증
+        if (!linkedid || !userId) {
+          console.error("❌ [FCM-CANCEL] 필수 파라미터 누락");
+          res.status(400).json({
+            error: "Missing required parameters",
+            required: ["linkedid", "userId"],
+          });
+          return;
+        }
+
+        // 1. Firestore call_history 업데이트 (방법 3: Firestore 리스너용)
+        console.log("💾 [FCM-CANCEL] call_history 업데이트 중...");
+        
+        const callHistoryRef = admin.firestore()
+            .collection("call_history")
+            .doc(linkedid);
+
+        await callHistoryRef.update({
+          cancelled: true,
+          cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+          cancelledBy: action || "unknown",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        console.log("✅ [FCM-CANCEL] call_history 업데이트 완료");
+
+        // 2. 사용자의 모든 활성 FCM 토큰 조회 (방법 1: FCM 푸시용)
+        console.log("🔍 [FCM-CANCEL] FCM 토큰 조회 중...");
+
+        const tokensSnapshot = await admin.firestore()
+            .collection("fcm_tokens")
+            .where("userId", "==", userId)
+            .where("isActive", "==", true)
+            .get();
+
+        if (tokensSnapshot.empty) {
+          console.log("⚠️ [FCM-CANCEL] 활성 FCM 토큰 없음");
+          res.status(200).json({
+            success: true,
+            message: "No active tokens to cancel",
+            linkedid: linkedid,
+            firestoreUpdated: true,
+          });
+          return;
+        }
+
+        const tokens = tokensSnapshot.docs.map((doc) => doc.data().fcmToken);
+        console.log(`✅ [FCM-CANCEL] FCM 토큰 ${tokens.length}개 발견`);
+
+        // 3. FCM 취소 메시지 구성 (data-only message)
+        console.log("📤 [FCM-CANCEL] FCM 취소 메시지 전송 중...");
+
+        const cancelMessage = {
+          data: {
+            type: "incoming_call_cancelled",
+            linkedid: linkedid,
+            action: action || "unknown",
+            timestamp: new Date().toISOString(),
+          },
+          android: {
+            priority: "high",
+          },
+          apns: {
+            headers: {
+              "apns-priority": "10",
+            },
+            payload: {
+              aps: {
+                contentAvailable: true,
+              },
+            },
+          },
+        };
+
+        // 4. FCM 멀티캐스트 전송
+        const response = await admin.messaging().sendEachForMulticast({
+          tokens: tokens,
+          ...cancelMessage,
+        });
+
+        console.log(`✅ [FCM-CANCEL] FCM 취소 메시지 전송 완료`);
+        console.log(`   성공: ${response.successCount}/${tokens.length}`);
+
+        if (response.failureCount > 0) {
+          console.error(`⚠️ [FCM-CANCEL] 실패: ${response.failureCount}개`);
+        }
+
+        res.status(200).json({
+          success: true,
+          linkedid: linkedid,
+          userId: userId,
+          action: action,
+          sentCount: response.successCount,
+          failureCount: response.failureCount,
+          totalTokens: tokens.length,
+          firestoreUpdated: true,
+        });
+      } catch (error) {
+        console.error("❌ [FCM-CANCEL] 알림 취소 오류:", error);
+        res.status(500).json({
+          error: error.message,
+          stack: error.stack,
+        });
+      }
+    },
+);

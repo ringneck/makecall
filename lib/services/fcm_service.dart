@@ -1007,6 +1007,12 @@ class FCMService {
       return;
     }
     
+    // 🛑 수신전화 알림 취소 메시지 처리 (방법 1: FCM 푸시)
+    if (message.data['type'] == 'incoming_call_cancelled') {
+      _handleIncomingCallCancelled(message);
+      return;
+    }
+    
     // 📞 수신 전화 메시지 처리 (Android와 iOS 모두 지원)
     // Android: type == 'incoming_call'
     // iOS: linkedid가 있으면 수신 전화로 간주
@@ -1096,6 +1102,12 @@ class FCMService {
     // ✅ 기기 승인 응답 메시지 처리
     if (message.data['type'] == 'device_approval_response') {
       _handleDeviceApprovalResponse(message);
+      return;
+    }
+    
+    // 🛑 수신전화 알림 취소 메시지 처리 (방법 1: FCM 푸시)
+    if (message.data['type'] == 'incoming_call_cancelled') {
+      _handleIncomingCallCancelled(message);
       return;
     }
     
@@ -1710,6 +1722,55 @@ class FCMService {
       // 로그아웃 처리
       if (_onForceLogout != null) {
         _onForceLogout!();
+      }
+    }
+  }
+  
+  /// 🛑 수신전화 알림 취소 메시지 처리 (방법 1: FCM 푸시)
+  /// 
+  /// 다른 기기에서 통화를 수락/거부했을 때 현재 기기의 IncomingCallScreen을 닫습니다.
+  /// 앱이 백그라운드/종료 상태에서도 작동합니다.
+  void _handleIncomingCallCancelled(RemoteMessage message) {
+    final linkedid = message.data['linkedid'] as String?;
+    final action = message.data['action'] as String? ?? 'unknown';
+    
+    if (kDebugMode) {
+      debugPrint('🛑 [FCM-CANCEL] 수신전화 취소 메시지 수신');
+      debugPrint('   linkedid: $linkedid');
+      debugPrint('   action: $action');
+    }
+    
+    if (linkedid == null || linkedid.isEmpty) {
+      if (kDebugMode) {
+        debugPrint('❌ [FCM-CANCEL] linkedid 없음');
+      }
+      return;
+    }
+    
+    // Navigator를 통해 현재 표시된 IncomingCallScreen 닫기
+    final context = _context ?? navigatorKey.currentContext;
+    if (context == null) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [FCM-CANCEL] BuildContext 없음 - Navigator 사용 불가');
+        debugPrint('   → Firestore 리스너(방법 3)가 처리할 것입니다');
+      }
+      return;
+    }
+    
+    // 현재 라우트가 IncomingCallScreen인 경우에만 닫기
+    final currentRoute = ModalRoute.of(context);
+    if (currentRoute != null && currentRoute.isCurrent) {
+      Navigator.of(context).popUntil((route) {
+        // IncomingCallScreen이 아닌 라우트를 찾을 때까지 pop
+        return route.settings.name != '/incoming_call' || route.isFirst;
+      });
+      
+      if (kDebugMode) {
+        debugPrint('✅ [FCM-CANCEL] IncomingCallScreen 닫기 완료 (FCM 푸시)');
+      }
+    } else {
+      if (kDebugMode) {
+        debugPrint('ℹ️ [FCM-CANCEL] 현재 IncomingCallScreen이 표시되지 않음');
       }
     }
   }

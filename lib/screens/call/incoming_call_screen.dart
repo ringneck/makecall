@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
@@ -71,6 +73,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   
   // 📳 진동 관련
   bool _isVibrating = false;
+  
+  // 🔥 Firestore 리스너 (방법 3: 실시간 취소 감지)
+  StreamSubscription<DocumentSnapshot>? _callHistoryListener;
 
   @override
   void initState() {
@@ -114,6 +119,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     
     // 🎵 벨소리 및 진동 시작
     _startRingtoneAndVibration();
+    
+    // 🔥 Firestore 리스너 시작 (방법 3: 실시간 취소 감지)
+    _startCallHistoryListener();
   }
 
   @override
@@ -123,7 +131,60 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     _fadeController.dispose();
     _scaleController.dispose();
     _stopRingtoneAndVibration();
+    _callHistoryListener?.cancel(); // 🔥 리스너 정리
     super.dispose();
+  }
+  
+  /// 🔥 Firestore 리스너 시작 (방법 3: 실시간 취소 감지)
+  /// 
+  /// call_history 문서의 cancelled 필드를 실시간으로 감지하여
+  /// 다른 기기에서 통화를 처리하면 현재 화면을 자동으로 닫습니다.
+  void _startCallHistoryListener() {
+    if (kDebugMode) {
+      debugPrint('🔥 [FIRESTORE-LISTENER] call_history 리스너 시작');
+      debugPrint('   linkedid: ${widget.linkedid}');
+    }
+    
+    _callHistoryListener = FirebaseFirestore.instance
+        .collection('call_history')
+        .doc(widget.linkedid)
+        .snapshots()
+        .listen(
+      (snapshot) {
+        if (!mounted) return;
+        
+        if (snapshot.exists) {
+          final data = snapshot.data();
+          final cancelled = data?['cancelled'] as bool? ?? false;
+          final cancelledBy = data?['cancelledBy'] as String? ?? 'unknown';
+          
+          if (cancelled) {
+            if (kDebugMode) {
+              debugPrint('🛑 [FIRESTORE-LISTENER] 통화 취소 감지!');
+              debugPrint('   linkedid: ${widget.linkedid}');
+              debugPrint('   cancelledBy: $cancelledBy');
+            }
+            
+            // 벨소리 및 진동 중지
+            _stopRingtoneAndVibration();
+            
+            // 화면 닫기
+            if (mounted) {
+              Navigator.of(context).pop();
+              
+              if (kDebugMode) {
+                debugPrint('✅ [FIRESTORE-LISTENER] IncomingCallScreen 닫힌');
+              }
+            }
+          }
+        }
+      },
+      onError: (error) {
+        if (kDebugMode) {
+          debugPrint('❌ [FIRESTORE-LISTENER] 오류: $error');
+        }
+      },
+    );
   }
 
   /// 🎵 벨소리 및 진동 시작
@@ -286,6 +347,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   Future<void> _acceptCall() async {
     await _stopRingtoneAndVibration();
     await _scaleController.reverse();
+    
+    // 🛑 다른 기기의 알림 취소 (하이브리드 방식)
+    _cancelOtherDevicesNotification('answered');
+    
     widget.onAccept();
   }
 
@@ -293,7 +358,55 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   Future<void> _rejectCall() async {
     await _stopRingtoneAndVibration();
     await _fadeController.reverse();
+    
+    // 🛑 다른 기기의 알림 취소 (하이브리드 방식)
+    _cancelOtherDevicesNotification('rejected');
+    
     widget.onReject();
+  }
+  
+  /// 🛑 다른 기기의 알림 취소 (하이브리드: Cloud Function + Firestore)
+  /// 
+  /// 방법 1 (FCM 푸시): Cloud Function을 호출하여 모든 기기에 취소 메시지 전송
+  /// 방법 3 (Firestore): call_history 문서 업데이트로 실시간 리스너가 감지
+  Future<void> _cancelOtherDevicesNotification(String action) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🛑 [CANCEL] 다른 기기 알림 취소 시작');
+        debugPrint('   linkedid: ${widget.linkedid}');
+        debugPrint('   action: $action');
+      }
+      
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        if (kDebugMode) {
+          debugPrint('❌ [CANCEL] userId 없음');
+        }
+        return;
+      }
+      
+      // 🔥 방법 1: Cloud Function 호출 (FCM 푸시)
+      // 백그라운드/종료 상태의 기기에 즉시 전달
+      final functions = FirebaseFunctions.instance;
+      await functions.httpsCallable('cancelIncomingCallNotification').call({
+        'linkedid': widget.linkedid,
+        'userId': userId,
+        'action': action,
+      });
+      
+      if (kDebugMode) {
+        debugPrint('✅ [CANCEL] Cloud Function 호출 완료 (FCM 푸시)');
+      }
+      
+      // 🔥 방법 3: Firestore 업데이트는 Cloud Function에서 자동으로 수행됨
+      // (포그라운드 앱들이 실시간 리스너로 감지)
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [CANCEL] 알림 취소 오류: $e');
+        debugPrint('   → 다른 기기의 Firestore 리스너가 처리할 수 있습니다');
+      }
+    }
   }
 
   @override
