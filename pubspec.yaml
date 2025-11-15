@@ -64,7 +64,7 @@ dependencies:
   
   # Image & Camera
   image_picker: 1.1.2
-  image_cropper: 5.0.1
+  crop_your_image: ^1.0.2
   
   # UI Components
   flutter_slidable: 3.1.1
