@@ -1035,7 +1035,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             const SizedBox(height: 8),
           ],
           
-          // 약관 및 정책
+          // 약관 및 정책 (펼침/접힘)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Container(
@@ -1044,7 +1044,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: isDark ? Colors.purple[700]! : Colors.purple[100]!),
               ),
-              child: ListTile(
+              child: ExpansionTile(
                 leading: Icon(
                   Icons.description, 
                   color: isDark ? Colors.purple[300] : Colors.purple,
@@ -1053,90 +1053,99 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   '약관 및 정책',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
+                    fontSize: 15,
                     color: isDark ? Colors.white : Colors.black87,
                   ),
                 ),
                 subtitle: Text(
-                  '이용약관, 개인정보처리방침', 
+                  '이용약관, 개인정보처리방침, 라이선스', 
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark ? Colors.grey[400] : Colors.black54,
                   ),
                 ),
+                iconColor: isDark ? Colors.purple[300] : Colors.purple,
+                collapsedIconColor: isDark ? Colors.purple[300] : Colors.purple,
+                children: [
+                  // 서비스 이용 약관
+                  ListTile(
+                    contentPadding: const EdgeInsets.only(left: 56, right: 16),
+                    leading: Icon(
+                      Icons.description, 
+                      size: 20, 
+                      color: isDark ? Colors.grey[400] : Colors.black54,
+                    ),
+                    title: Text(
+                      '서비스 이용 약관', 
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.grey[200] : Colors.black87,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.open_in_new, 
+                      size: 18,
+                      color: isDark ? Colors.grey[500] : Colors.grey,
+                    ),
+                    onTap: () {
+                      _openExternalUrl('https://makecall.io/mcuc/terms_of_service.html');
+                    },
+                  ),
+                  
+                  // 개인정보 처리방침
+                  ListTile(
+                    contentPadding: const EdgeInsets.only(left: 56, right: 16),
+                    leading: Icon(
+                      Icons.privacy_tip, 
+                      size: 20,
+                      color: isDark ? Colors.grey[400] : Colors.black54,
+                    ),
+                    title: Text(
+                      '개인정보 처리방침', 
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.grey[200] : Colors.black87,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.open_in_new, 
+                      size: 18,
+                      color: isDark ? Colors.grey[500] : Colors.grey,
+                    ),
+                    onTap: () {
+                      _openExternalUrl('https://makecall.io/mcuc/privacy_policy.html');
+                    },
+                  ),
+                  
+                  // 오픈소스 라이선스
+                  ListTile(
+                    contentPadding: const EdgeInsets.only(left: 56, right: 16),
+                    leading: Icon(
+                      Icons.code, 
+                      size: 20,
+                      color: isDark ? Colors.grey[400] : Colors.black54,
+                    ),
+                    title: Text(
+                      '오픈소스 라이선스', 
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.grey[200] : Colors.black87,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right, 
+                      size: 18,
+                      color: isDark ? Colors.grey[500] : Colors.grey,
+                    ),
+                    onTap: () {
+                      _showLicensePage(context);
+                    },
+                  ),
+                  
+                  const SizedBox(height: 8),
+                ],
               ),
             ),
-          ),
-          
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-            leading: Icon(
-              Icons.description, 
-              size: 22, 
-              color: isDark ? Colors.grey[400] : Colors.black87,
-            ),
-            title: Text(
-              '서비스 이용 약관', 
-              style: TextStyle(
-                fontSize: 15,
-                color: isDark ? Colors.grey[200] : Colors.black87,
-              ),
-            ),
-            trailing: Icon(
-              Icons.chevron_right, 
-              size: 20,
-              color: isDark ? Colors.grey[500] : Colors.grey,
-            ),
-            onTap: () {
-              _openExternalUrl('https://makecall.io/mcuc/terms_of_service.html');
-            },
-          ),
-          
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-            leading: Icon(
-              Icons.privacy_tip, 
-              size: 22,
-              color: isDark ? Colors.grey[400] : Colors.black87,
-            ),
-            title: Text(
-              '개인정보 처리방침', 
-              style: TextStyle(
-                fontSize: 15,
-                color: isDark ? Colors.grey[200] : Colors.black87,
-              ),
-            ),
-            trailing: Icon(
-              Icons.chevron_right, 
-              size: 20,
-              color: isDark ? Colors.grey[500] : Colors.grey,
-            ),
-            onTap: () {
-              _openExternalUrl('https://makecall.io/mcuc/privacy_policy.html');
-            },
-          ),
-          
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-            leading: Icon(
-              Icons.code, 
-              size: 22,
-              color: isDark ? Colors.grey[400] : Colors.black87,
-            ),
-            title: Text(
-              '오픈소스 라이선스', 
-              style: TextStyle(
-                fontSize: 15,
-                color: isDark ? Colors.grey[200] : Colors.black87,
-              ),
-            ),
-            trailing: Icon(
-              Icons.chevron_right, 
-              size: 20,
-              color: isDark ? Colors.grey[500] : Colors.grey,
-            ),
-            onTap: () {
-              _showLicensePage(context);
-            },
           ),
           
           const SizedBox(height: 16),
