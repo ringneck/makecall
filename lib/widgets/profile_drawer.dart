@@ -683,19 +683,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 섹션 헤더
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8, bottom: 8),
-                    child: Text(
-                      '설정',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
+
                   // 기본 설정 카드
                   Container(
                     decoration: BoxDecoration(
@@ -777,19 +765,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 섹션 헤더
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8, bottom: 8),
-                          child: Text(
-                            '단말 정보',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.grey[400] : Colors.grey[600],
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
+
                         // 단말번호 카드
                         Container(
                           decoration: BoxDecoration(
@@ -891,19 +867,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 섹션 헤더
-                Padding(
-                  padding: const EdgeInsets.only(left: 8, bottom: 8),
-                  child: Text(
-                    '테마 설정',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
+
                 // 화면 테마 카드
                 Container(
                   decoration: BoxDecoration(
