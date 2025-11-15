@@ -2349,10 +2349,30 @@ class FCMService {
     _isShowingIncomingCall = true;
     
     try {
+      // 🔥 CRITICAL FIX: 기존 IncomingCallScreen이 있으면 제거 후 새로 표시
+      // 이렇게 하면 두 번째 전화에서 화면이 겹치지 않음
+      final navigator = Navigator.of(context);
+      
+      // 현재 route가 IncomingCallScreen인지 확인
+      final currentRoute = ModalRoute.of(context);
+      if (currentRoute != null && 
+          (currentRoute.settings.name == '/incoming_call' || 
+           currentRoute.isCurrent == false)) {
+        // ignore: avoid_print
+        print('🔄 [FCM-SCREEN] 기존 IncomingCallScreen 감지 - 교체 모드');
+        
+        // 기존 화면 제거
+        navigator.popUntil((route) => route.isFirst || route.settings.name != '/incoming_call');
+        
+        // ignore: avoid_print
+        print('✅ [FCM-SCREEN] 기존 화면 제거 완료');
+      }
+      
       // 수신 전화 화면 표시 (fullscreenDialog로 전체 화면)
       final result = await Navigator.of(context).push<Map<String, dynamic>>(
         MaterialPageRoute(
           fullscreenDialog: true,
+          settings: const RouteSettings(name: '/incoming_call'), // 🔧 Route 이름 설정
           builder: (context) => IncomingCallScreen(
           callerName: callerName,
           callerNumber: callerNumber,
@@ -2394,14 +2414,44 @@ class FCMService {
         final targetTabIndex = result['moveToTab'] as int;
         print('📲 [FCM] 최근통화 탭으로 이동 요청: index=$targetTabIndex');
         
-        // CallTab으로 이동하기 위해 현재 route를 최근통화 탭으로 교체
+        // 🔧 CRITICAL FIX: pushReplacement는 스택에 MainScreen이 중복으로 쌓일 수 있음
+        // 해결책: popUntil로 MainScreen까지 모두 제거한 후 새 MainScreen push
         if (context.mounted) {
-          // Navigator의 현재 route를 MainScreen으로 교체하되, 인자로 탭 인덱스 전달
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => MainScreen(initialTabIndex: targetTabIndex), // const 제거
-            ),
-          );
+          try {
+            // 1. Navigator 스택에서 MainScreen이 있는지 확인
+            final navigator = Navigator.of(context);
+            bool hasMainScreen = false;
+            
+            navigator.popUntil((route) {
+              if (route.settings.name == '/' || route.isFirst) {
+                hasMainScreen = true;
+                return true; // MainScreen을 찾으면 중단
+              }
+              return false; // 계속 pop
+            });
+            
+            if (kDebugMode) {
+              debugPrint('✅ [FCM] Navigator 정리 완료 (hasMainScreen: $hasMainScreen)');
+            }
+            
+            // 2. MainScreen을 새로 push (탭 인덱스 전달)
+            if (context.mounted) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  settings: const RouteSettings(name: '/'),
+                  builder: (context) => MainScreen(initialTabIndex: targetTabIndex),
+                ),
+              );
+              
+              if (kDebugMode) {
+                debugPrint('✅ [FCM] MainScreen 교체 완료 (tab: $targetTabIndex)');
+              }
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('⚠️ [FCM] Navigator 처리 오류: $e');
+            }
+          }
         }
       }
       
