@@ -9,6 +9,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:vibration/vibration.dart'; // 진동 기능
 import 'package:audioplayers/audioplayers.dart'; // 사운드 재생
+import 'package:shared_preferences/shared_preferences.dart'; // iOS deviceId 캐싱용
 import '../screens/call/incoming_call_screen.dart';
 import '../screens/home/main_screen.dart'; // MainScreen import 추가
 import '../models/fcm_token_model.dart';
@@ -2525,6 +2526,10 @@ class FCMService {
   /// 
   /// FCM 토큰과 함께 사용하여 기기를 고유하게 식별합니다.
   /// 중복 로그인 방지에 사용됩니다.
+  /// 캐시된 Device ID 저장용
+  static const String _deviceIdCacheKey = 'cached_device_id';
+  String? _cachedDeviceId;
+  
   Future<String> _getDeviceId() async {
     try {
       final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
@@ -2538,9 +2543,59 @@ class FCMService {
         // Android: androidId 사용 (고유한 기기 식별자)
         return androidInfo.id; // Example: "5d513e7a5fb1e2d5"
       } else if (Platform.isIOS) {
+        // 🔧 iOS 개선: SharedPreferences에서 캐시된 deviceId 먼저 확인
+        if (_cachedDeviceId != null) {
+          debugPrint('📱 [iOS] 메모리 캐시된 deviceId 사용: $_cachedDeviceId');
+          return _cachedDeviceId!;
+        }
+        
+        // SharedPreferences에서 확인
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final cachedId = prefs.getString(_deviceIdCacheKey);
+          
+          if (cachedId != null && cachedId.isNotEmpty) {
+            debugPrint('📱 [iOS] SharedPreferences 캐시된 deviceId 사용: $cachedId');
+            _cachedDeviceId = cachedId;
+            return cachedId;
+          }
+        } catch (e) {
+          debugPrint('⚠️ [iOS] SharedPreferences 읽기 실패: $e');
+        }
+        
         final iosInfo = await deviceInfo.iosInfo;
-        // iOS: identifierForVendor 사용 (앱 삭제 시 변경됨)
-        return iosInfo.identifierForVendor ?? 'ios_${DateTime.now().millisecondsSinceEpoch}';
+        final vendorId = iosInfo.identifierForVendor;
+        
+        if (vendorId != null && vendorId.isNotEmpty) {
+          // identifierForVendor 사용 가능 → 캐시에 저장
+          debugPrint('📱 [iOS] identifierForVendor 가져옴: $vendorId');
+          _cachedDeviceId = vendorId;
+          
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(_deviceIdCacheKey, vendorId);
+            debugPrint('✅ [iOS] deviceId 캐시에 저장 완료');
+          } catch (e) {
+            debugPrint('⚠️ [iOS] SharedPreferences 저장 실패: $e');
+          }
+          
+          return vendorId;
+        } else {
+          // identifierForVendor가 null → 캐시된 값도 없음 → 새로 생성
+          debugPrint('⚠️ [iOS] identifierForVendor가 null - 새 deviceId 생성');
+          final newId = 'ios_${DateTime.now().millisecondsSinceEpoch}';
+          _cachedDeviceId = newId;
+          
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(_deviceIdCacheKey, newId);
+            debugPrint('✅ [iOS] 새 deviceId 캐시에 저장: $newId');
+          } catch (e) {
+            debugPrint('⚠️ [iOS] SharedPreferences 저장 실패: $e');
+          }
+          
+          return newId;
+        }
       }
       
       // Fallback: FCM 토큰의 일부를 ID로 사용
@@ -2551,6 +2606,13 @@ class FCMService {
       return 'unknown_device_${DateTime.now().millisecondsSinceEpoch}';
     } catch (e) {
       debugPrint('⚠️ 기기 ID 조회 실패: $e');
+      
+      // iOS에서 캐시된 값이 있으면 사용
+      if (_cachedDeviceId != null) {
+        debugPrint('📱 오류 시 캐시된 deviceId 사용: $_cachedDeviceId');
+        return _cachedDeviceId!;
+      }
+      
       return 'fallback_device_${DateTime.now().millisecondsSinceEpoch}';
     }
   }
