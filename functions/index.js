@@ -567,27 +567,10 @@ exports.sendIncomingCallNotification = functions.https.onRequest(
  * @param {string} userId - 사용자 ID
  * @param {string} action - 취소 사유 (answered, rejected, timeout)
  */
-exports.cancelIncomingCallNotification = functions.https.onRequest(
-    async (req, res) => {
-      // CORS 헤더 설정
-      res.set("Access-Control-Allow-Origin", "*");
-      res.set("Access-Control-Allow-Methods", "POST");
-      res.set("Access-Control-Allow-Headers", "Content-Type");
-
-      // OPTIONS 요청 처리
-      if (req.method === "OPTIONS") {
-        res.status(204).send("");
-        return;
-      }
-
-      // POST 요청만 허용
-      if (req.method !== "POST") {
-        res.status(405).json({error: "Method Not Allowed"});
-        return;
-      }
-
+exports.cancelIncomingCallNotification = functions.https.onCall(
+    async (data, context) => {
       try {
-        const {linkedid, userId, action} = req.body;
+        const {linkedid, userId, action} = data;
 
         console.log("🛑 [FCM-CANCEL] 수신전화 알림 취소 요청");
         console.log(`   Linkedid: ${linkedid}`);
@@ -597,11 +580,10 @@ exports.cancelIncomingCallNotification = functions.https.onRequest(
         // 필수 파라미터 검증
         if (!linkedid || !userId) {
           console.error("❌ [FCM-CANCEL] 필수 파라미터 누락");
-          res.status(400).json({
-            error: "Missing required parameters",
-            required: ["linkedid", "userId"],
-          });
-          return;
+          throw new functions.https.HttpsError(
+              "invalid-argument",
+              "Missing required parameters: linkedid and userId are required",
+          );
         }
 
         // 1. Firestore call_history 업데이트 (방법 3: Firestore 리스너용)
@@ -631,13 +613,12 @@ exports.cancelIncomingCallNotification = functions.https.onRequest(
 
         if (tokensSnapshot.empty) {
           console.log("⚠️ [FCM-CANCEL] 활성 FCM 토큰 없음");
-          res.status(200).json({
+          return {
             success: true,
             message: "No active tokens to cancel",
             linkedid: linkedid,
             firestoreUpdated: true,
-          });
-          return;
+          };
         }
 
         const tokens = tokensSnapshot.docs.map((doc) => doc.data().fcmToken);
@@ -681,7 +662,7 @@ exports.cancelIncomingCallNotification = functions.https.onRequest(
           console.error(`⚠️ [FCM-CANCEL] 실패: ${response.failureCount}개`);
         }
 
-        res.status(200).json({
+        return {
           success: true,
           linkedid: linkedid,
           userId: userId,
@@ -690,13 +671,14 @@ exports.cancelIncomingCallNotification = functions.https.onRequest(
           failureCount: response.failureCount,
           totalTokens: tokens.length,
           firestoreUpdated: true,
-        });
+        };
       } catch (error) {
         console.error("❌ [FCM-CANCEL] 알림 취소 오류:", error);
-        res.status(500).json({
-          error: error.message,
-          stack: error.stack,
-        });
+        throw new functions.https.HttpsError(
+            "internal",
+            error.message,
+            error.stack,
+        );
       }
     },
 );
