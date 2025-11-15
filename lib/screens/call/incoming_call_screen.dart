@@ -76,6 +76,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   
   // 🔥 Firestore 리스너 (방법 3: 실시간 취소 감지)
   StreamSubscription<DocumentSnapshot>? _callHistoryListener;
+  
+  // 🔒 초기 데이터 로드 플래그 (첫 번째 스냅샷은 무시)
+  bool _isInitialLoad = true;
 
   @override
   void initState() {
@@ -153,6 +156,20 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         .snapshots()
         .listen(
       (snapshot) {
+        // 🔒 초기 로드 무시 (기존 데이터는 무시하고 변경사항만 감지)
+        if (_isInitialLoad) {
+          _isInitialLoad = false;
+          if (kDebugMode) {
+            debugPrint('🔥 [FIRESTORE-LISTENER] 초기 데이터 로드 - 무시');
+            if (snapshot.exists) {
+              final data = snapshot.data();
+              final cancelled = data?['cancelled'] as bool? ?? false;
+              debugPrint('   초기 cancelled 상태: $cancelled (무시됨)');
+            }
+          }
+          return;
+        }
+        
         // ⚠️ 안전 장치 1: mounted 체크
         if (!mounted) {
           if (kDebugMode) {
@@ -192,7 +209,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           
           if (cancelled) {
             if (kDebugMode) {
-              debugPrint('🛑 [FIRESTORE-LISTENER] 통화 취소 감지!');
+              debugPrint('🛑 [FIRESTORE-LISTENER] 통화 취소 감지! (변경 감지됨)');
               debugPrint('   linkedid: ${widget.linkedid}');
               debugPrint('   cancelledBy: $cancelledBy');
             }
