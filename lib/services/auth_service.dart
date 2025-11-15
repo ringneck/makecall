@@ -512,6 +512,38 @@ class AuthService extends ChangeNotifier {
         debugPrint('⚠️  [5/5] 수신전화 화면 닫기 오류 (무시 가능): $e');
       }
     }
+    
+    // 6️⃣ Navigator 스택 정리 및 로그인 화면으로 이동
+    try {
+      if (navigatorKey.currentContext != null) {
+        if (kDebugMode) {
+          debugPrint('🔔 [6/6] Navigator 스택 정리 시작...');
+        }
+        
+        // 약간의 지연을 두어 notifyListeners() 처리 완료 대기
+        await Future.delayed(const Duration(milliseconds: 50));
+        
+        // 현재 context가 여전히 유효한지 확인
+        if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
+          // 모든 route를 제거하고 root로 이동 (MaterialApp의 home이 다시 평가됨)
+          Navigator.of(navigatorKey.currentContext!).popUntil((route) => route.isFirst);
+          
+          if (kDebugMode) {
+            debugPrint('✅ [6/6] Navigator 스택 정리 완료');
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️  [6/6] Navigator 정리 오류: $e');
+        debugPrint('   → Consumer가 자동으로 LoginScreen 표시');
+      }
+    }
+    
+    if (kDebugMode) {
+      debugPrint('✅ [LOGOUT] 로그아웃 완료');
+      debugPrint('');
+    }
   }
   
   // 비밀번호 재설정

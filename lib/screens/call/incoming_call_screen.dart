@@ -1191,6 +1191,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         onTap: () async {
           // 벨소리/진동 중지
           await _stopRingtoneAndVibration();
+          
+          // 🛑 다른 기기의 알림 취소 (하이브리드 방식)
+          _cancelOtherDevicesNotification('answered');
+          
           // 통화 기록 저장
           await _saveCallHistory();
           // 화면 닫고 최근통화 탭으로 이동 (result: {'moveToTab': 1})
