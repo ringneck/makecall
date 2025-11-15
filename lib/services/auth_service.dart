@@ -2,8 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/user_model.dart';
+import '../main.dart' show navigatorKey;
 import 'account_manager_service.dart';
 import 'fcm_service.dart';
 import 'dcmiws_connection_manager.dart';
@@ -462,17 +464,46 @@ class AuthService extends ChangeNotifier {
     
     // 5️⃣ 모든 수신전화 화면 닫기 (로그아웃 후 null 참조 방지)
     try {
-      // GlobalKey를 사용해 현재 context 가져오기
-      final context = _auth.app.options.appId.isNotEmpty 
-          ? null 
-          : null; // NavigatorKey 사용 필요
-      
       if (kDebugMode) {
         debugPrint('🔔 [5/5] 수신전화 화면 닫기 시도');
       }
       
-      // Note: 실제 구현은 main.dart의 navigatorKey를 통해 수행됨
-      // FCMService에서 처리하도록 위임
+      // navigatorKey를 통해 IncomingCallScreen 닫기
+      if (navigatorKey.currentContext != null) {
+        final context = navigatorKey.currentContext!;
+        
+        // 현재 route 확인
+        final currentRoute = ModalRoute.of(context);
+        if (currentRoute != null) {
+          if (kDebugMode) {
+            debugPrint('   현재 route: ${currentRoute.settings.name ?? "이름 없음"}');
+          }
+          
+          // IncomingCallScreen이 열려있으면 닫기
+          try {
+            Navigator.of(context).popUntil((route) {
+              // 첫 화면이거나 IncomingCallScreen이 아니면 멈춤
+              return route.isFirst || route.settings.name != '/incoming_call';
+            });
+            
+            if (kDebugMode) {
+              debugPrint('✅ [5/5] 수신전화 화면 닫기 완료');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('⚠️  [5/5] popUntil 실패 (이미 닫혔을 수 있음): $e');
+            }
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('⚠️  [5/5] 현재 route 없음');
+          }
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('⚠️  [5/5] NavigatorKey context 없음 - 화면 닫기 스킵');
+        }
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('⚠️  [5/5] 수신전화 화면 닫기 오류 (무시 가능): $e');

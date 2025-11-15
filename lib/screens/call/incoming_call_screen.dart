@@ -165,11 +165,22 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser == null) {
           if (kDebugMode) {
-            debugPrint('⚠️ [FIRESTORE-LISTENER] 사용자 로그아웃됨 - 화면 닫기');
+            debugPrint('⚠️ [FIRESTORE-LISTENER] 사용자 로그아웃됨 - 리스너 취소 및 화면 닫기');
           }
+          
+          // 리스너 즉시 취소 (Firestore 오류 방지)
+          _callHistoryListener?.cancel();
+          _callHistoryListener = null;
+          
+          // 벨소리/진동 중지
           _stopRingtoneAndVibration();
+          
+          // 화면 닫기
           if (mounted) {
             Navigator.of(context).pop();
+            if (kDebugMode) {
+              debugPrint('✅ [FIRESTORE-LISTENER] 로그아웃으로 인한 화면 닫기 완료');
+            }
           }
           return;
         }
