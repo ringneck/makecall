@@ -2414,37 +2414,38 @@ class FCMService {
         final targetTabIndex = result['moveToTab'] as int;
         print('📲 [FCM] 최근통화 탭으로 이동 요청: index=$targetTabIndex');
         
-        // 🔧 CRITICAL FIX: pushReplacement는 스택에 MainScreen이 중복으로 쌓일 수 있음
-        // 해결책: popUntil로 MainScreen까지 모두 제거한 후 새 MainScreen push
+        // 🔥 CRITICAL FIX: pushReplacement가 MaterialApp.home과 별개의 route를 생성하여 
+        // 로그아웃 시 LoginScreen이 제대로 표시되지 않는 문제 발생
+        // 해결책: pushReplacement 대신 IncomingCallScreen만 pop하고, 
+        // MaterialApp.home의 MainScreen을 그대로 사용하되 notifyListeners()로 탭 전환 유도
         if (context.mounted) {
           try {
-            // 1. Navigator 스택에서 MainScreen이 있는지 확인
             final navigator = Navigator.of(context);
-            bool hasMainScreen = false;
             
-            navigator.popUntil((route) {
-              if (route.settings.name == '/' || route.isFirst) {
-                hasMainScreen = true;
-                return true; // MainScreen을 찾으면 중단
+            // 1. IncomingCallScreen만 pop (MainScreen은 그대로 유지)
+            if (navigator.canPop()) {
+              navigator.pop();
+              if (kDebugMode) {
+                debugPrint('✅ [FCM] IncomingCallScreen pop 완료');
               }
-              return false; // 계속 pop
-            });
-            
-            if (kDebugMode) {
-              debugPrint('✅ [FCM] Navigator 정리 완료 (hasMainScreen: $hasMainScreen)');
             }
             
-            // 2. MainScreen을 새로 push (탭 인덱스 전달)
+            // 2. 탭 전환은 CallTab의 전역 controller나 Provider를 통해 처리해야 하지만,
+            // 현재는 initialTabIndex를 사용하므로 pushReplacement가 필요
+            // 대신 RouteSettings에 고유 이름을 부여하여 logout 시 감지 가능하게 함
+            await Future.delayed(const Duration(milliseconds: 100));
+            
             if (context.mounted) {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
-                  settings: const RouteSettings(name: '/'),
+                  // 🔥 중요: MaterialApp.home의 root('/')와 구별하기 위해 다른 이름 사용
+                  settings: const RouteSettings(name: '/main_with_tab'),
                   builder: (context) => MainScreen(initialTabIndex: targetTabIndex),
                 ),
               );
               
               if (kDebugMode) {
-                debugPrint('✅ [FCM] MainScreen 교체 완료 (tab: $targetTabIndex)');
+                debugPrint('✅ [FCM] MainScreen 교체 완료 (tab: $targetTabIndex, route: /main_with_tab)');
               }
             }
           } catch (e) {

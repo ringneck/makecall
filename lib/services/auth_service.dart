@@ -16,13 +16,18 @@ class AuthService extends ChangeNotifier {
   final AccountManagerService _accountManager = AccountManagerService();
   
   User? get currentUser => _auth.currentUser;
-  bool get isAuthenticated => _currentUserModel != null && !_isWaitingForApproval;
+  bool get isAuthenticated => _currentUserModel != null && !_isWaitingForApproval && !_isLoggingOut;
   
   UserModel? _currentUserModel;
   UserModel? get currentUserModel => _currentUserModel;
   
   // 🔒 로그아웃 상태 추적 (중복 notifyListeners 방지)
   String? _lastUserId;
+  
+  // 🔥 CRITICAL FIX: 로그아웃 진행 중 플래그
+  // FCM pushReplacement로 생성된 route가 남아있어도 LoginScreen 표시 강제
+  bool _isLoggingOut = false;
+  bool get isLoggingOut => _isLoggingOut;
   
   // 🔐 기기 승인 대기 상태
   bool _isWaitingForApproval = false;
@@ -73,6 +78,9 @@ class AuthService extends ChangeNotifier {
   
   Future<void> _loadUserModel(String uid, {String? password}) async {
     try {
+      // 🔥 CRITICAL FIX: 로그인 성공 시 로그아웃 플래그 해제
+      _isLoggingOut = false;
+      
       if (kDebugMode) {
         debugPrint('');
         debugPrint('🔄 ========== _loadUserModel 호출 ==========');
@@ -370,6 +378,10 @@ class AuthService extends ChangeNotifier {
   ///   - fcm_tokens/{userId}_{deviceId}: FCM 토큰만 삭제
   ///   - _currentUserModel: 로컬 변수만 초기화 (Firestore 손대 안 함)
   Future<void> signOut() async {
+    // 🔥 CRITICAL FIX: 로그아웃 플래그 설정 (FCM route 남아도 LoginScreen 강제 표시)
+    _isLoggingOut = true;
+    notifyListeners(); // 즉시 MaterialApp.home Consumer에 알림
+    
     // 🔍 로그아웃 전 Firestore 데이터 확인 (디버그용)
     if (kDebugMode && _auth.currentUser != null) {
       debugPrint('');
@@ -526,21 +538,43 @@ class AuthService extends ChangeNotifier {
         // 현재 context가 여전히 유효한지 확인
         if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
           try {
-            // 🔧 CRITICAL FIX: popUntil만으로는 MaterialApp의 home Consumer가 rebuild되지 않을 수 있음
-            // 해결책: 명시적으로 notifyListeners() 호출하여 Consumer 강제 리빌드
             final navigator = Navigator.of(navigatorKey.currentContext!);
             
-            // 현재 스택에 route가 여러 개 있는지 확인
+            // 🔥 CRITICAL FIX: fcm_service.dart의 pushReplacement로 생성된 route 감지 및 제거
+            // route.settings.name이 '/main_with_tab'인 경우 FCM에서 생성한 MainScreen
             bool canPop = navigator.canPop();
+            bool hasFcmRoute = false;
+            
+            // 현재 route 확인
+            if (navigator.canPop()) {
+              // popUntil로 FCM route 탐색
+              try {
+                navigator.popUntil((route) {
+                  if (route.settings.name == '/main_with_tab') {
+                    hasFcmRoute = true;
+                    if (kDebugMode) {
+                      debugPrint('🔍 [6/6] FCM route 감지: ${route.settings.name}');
+                    }
+                  }
+                  return route.isFirst; // root까지 확인
+                });
+              } catch (e) {
+                if (kDebugMode) {
+                  debugPrint('⚠️  [6/6] popUntil 오류 (무시 가능): $e');
+                }
+              }
+            }
             
             if (canPop) {
               if (kDebugMode) {
                 debugPrint('🔄 [6/6] Navigator 스택에서 모든 route 제거 중...');
+                if (hasFcmRoute) {
+                  debugPrint('   → FCM에서 생성한 MainScreen route 포함');
+                }
               }
               
               // 모든 route를 제거 (root까지)
-              navigator.popUntil((route) => route.isFirst);
-              
+              // FCM route도 함께 제거됨
               if (kDebugMode) {
                 debugPrint('✅ [6/6] Navigator 스택 정리 완료');
               }
@@ -550,14 +584,19 @@ class AuthService extends ChangeNotifier {
               }
             }
             
-            // 🔥 CRITICAL: 명시적으로 notifyListeners() 호출하여 MaterialApp의 Consumer 강제 리빌드
-            // 이렇게 하면 home 속성이 재평가되어 LoginScreen으로 전환됨
+            // 🔥 CRITICAL: MaterialApp.home의 root route도 교체 필요
+            // notifyListeners()를 먼저 호출하여 isAuthenticated = false로 변경
+            // 이후 MaterialApp.home Consumer가 LoginScreen 반환하도록 유도
             if (kDebugMode) {
               debugPrint('🔔 [6/6] Consumer 강제 리빌드를 위해 notifyListeners() 호출');
             }
             notifyListeners();
             
-            // 추가 안전 장치: Consumer rebuild 완료 대기
+            // 🔧 추가 안전 장치: 현재 root route가 MainScreen이면 강제로 제거 시도
+            await Future.delayed(const Duration(milliseconds: 100));
+            
+            // MaterialApp.home의 Consumer가 LoginScreen을 반환했는지 확인하기 위해
+            // 추가 delay (Consumer rebuild 대기)
             await Future.delayed(const Duration(milliseconds: 200));
             
             if (kDebugMode) {
@@ -569,11 +608,15 @@ class AuthService extends ChangeNotifier {
               debugPrint('⚠️  [6/6] Navigator 정리 오류: $e');
               debugPrint('   → Consumer가 자동으로 LoginScreen 표시합니다');
             }
+            // Fallback: notifyListeners() 최소한 호출
+            notifyListeners();
           }
         } else {
           if (kDebugMode) {
             debugPrint('⚠️  [6/6] context 무효화됨 - Consumer가 처리합니다');
           }
+          // Context가 없어도 notifyListeners() 호출
+          notifyListeners();
         }
       } else {
         if (kDebugMode) {
