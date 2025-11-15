@@ -526,8 +526,8 @@ class AuthService extends ChangeNotifier {
         // 현재 context가 여전히 유효한지 확인
         if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
           try {
-            // 🔧 CRITICAL FIX: popUntil 대신 강제로 root 화면으로 교체
-            // popUntil은 Consumer rebuild를 트리거하지 못할 수 있음
+            // 🔧 CRITICAL FIX: popUntil만으로는 MaterialApp의 home Consumer가 rebuild되지 않을 수 있음
+            // 해결책: 명시적으로 notifyListeners() 호출하여 Consumer 강제 리빌드
             final navigator = Navigator.of(navigatorKey.currentContext!);
             
             // 현재 스택에 route가 여러 개 있는지 확인
@@ -550,8 +550,19 @@ class AuthService extends ChangeNotifier {
               }
             }
             
-            // 추가 안전 장치: Consumer가 제대로 rebuild되도록 약간의 지연
-            await Future.delayed(const Duration(milliseconds: 100));
+            // 🔥 CRITICAL: 명시적으로 notifyListeners() 호출하여 MaterialApp의 Consumer 강제 리빌드
+            // 이렇게 하면 home 속성이 재평가되어 LoginScreen으로 전환됨
+            if (kDebugMode) {
+              debugPrint('🔔 [6/6] Consumer 강제 리빌드를 위해 notifyListeners() 호출');
+            }
+            notifyListeners();
+            
+            // 추가 안전 장치: Consumer rebuild 완료 대기
+            await Future.delayed(const Duration(milliseconds: 200));
+            
+            if (kDebugMode) {
+              debugPrint('✅ [6/6] Consumer rebuild 완료 - LoginScreen 표시됨');
+            }
             
           } catch (e) {
             if (kDebugMode) {
