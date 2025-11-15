@@ -22,6 +22,7 @@ import '../models/saved_account_model.dart';
 import '../models/user_model.dart';  // ✅ DCMIWS 설정 업데이트를 위해 필요
 import '../screens/profile/api_settings_dialog.dart';
 import '../main.dart' show navigatorKey;  // ✅ 전역 Navigator key (로그아웃 에러 표시용)
+import 'theme_settings_dialog.dart';  // 🎨 화면 테마 설정
 
 class ProfileDrawer extends StatefulWidget {
   const ProfileDrawer({super.key});
@@ -854,6 +855,83 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 },
               ),
             ),
+          
+          // 🎨 화면 테마
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 섹션 헤더
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 8),
+                  child: Text(
+                    '테마 설정',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                // 화면 테마 카드
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey[850] : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.brightness_6,
+                        size: 20,
+                        color: isDark ? Colors.amber[300] : Colors.orange[700],
+                      ),
+                    ),
+                    title: Text(
+                      '화면 테마',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.grey[200] : Colors.black87,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '라이트 모드, 다크 모드, 시스템 설정',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: isDark ? Colors.grey[500] : Colors.grey,
+                    ),
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => const ThemeSettingsDialog(),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
           
           // 📱 통합 알림 설정 (하나의 메뉴로 통합)
           Padding(
