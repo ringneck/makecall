@@ -2421,59 +2421,86 @@ class FCMService {
           try {
             final navigator = Navigator.of(context);
             
-            // 현재 route 이름 확인 (IncomingCallScreen 아래의 route)
-            String? currentRouteName;
-            bool isAlreadyMainWithTab = false;
+            // 🔥 CRITICAL FIX: popUntil은 실제로 pop을 수행하므로 사용하지 말것!
+            // 대신: 첫 번째 수신전화인지 두 번째인지 판단하는 간단한 방법 사용
+            // - _isShowingIncomingCall 플래그가 이미 false라면 첫 번째
+            // - 이미 true라면 두 번째 (하지만 이 플래그는 finally에서 해제됨)
+            // 더 나은 방법: 현재 canPop 횟수로 판단
             
-            // Navigator 스택에서 현재 route 이름 찾기
-            navigator.popUntil((route) {
-              // IncomingCallScreen이 아닌 첫 번째 route의 이름 저장
-              if (route.settings.name != '/incoming_call') {
-                currentRouteName = route.settings.name;
-                if (currentRouteName == '/main_with_tab') {
-                  isAlreadyMainWithTab = true;
-                }
-              }
-              return true; // 바로 멈춤 (실제로 pop하지 않음, 정보만 수집)
-            });
+            // Navigator 스택 깊이 확인
+            int stackDepth = 0;
+            bool foundMainWithTab = false;
+            
+            // canPop()을 여러 번 시도하여 스택 깊이 측정 (실제 pop은 하지 않음)
+            // IncomingCallScreen 아래에 무엇이 있는지 확인
+            // - 스택: [MaterialApp, MainScreen, IncomingCallScreen] → canPop = true, 깊이 3
+            // - 스택: [MaterialApp, MainScreen(/main_with_tab), IncomingCallScreen] → canPop = true, 깊이 3
+            
+            // 간단한 해결책: 무조건 첫 번째 수신전화처럼 동작
+            // 이유: IncomingCallScreen을 pop하면 어차피 아래의 MainScreen이 보이므로
+            // pushReplacement를 하면 기존 MainScreen을 교체함
+            
+            // 하지만 두 번째 수신전화 때 이미 /main_with_tab이 있다면?
+            // → pop 후 /main_with_tab이 보임 → 다시 pushReplacement하면 /main_with_tab 교체
+            // 이것이 문제의 원인!
+            
+            // 🎯 최선의 해결책: 항상 popUntil로 /main_with_tab이나 /까지 모두 pop하고
+            // 새로운 MainScreen을 pushReplacement
+            // 이렇게 하면 스택이 깨끗해짐
             
             if (kDebugMode) {
-              debugPrint('🔍 [FCM] 현재 route 확인:');
-              debugPrint('   - currentRouteName: $currentRouteName');
-              debugPrint('   - isAlreadyMainWithTab: $isAlreadyMainWithTab');
+              debugPrint('🔍 [FCM] Navigator 스택 정리 시작');
             }
             
-            // 1. IncomingCallScreen만 pop
-            if (navigator.canPop()) {
-              navigator.pop();
-              if (kDebugMode) {
-                debugPrint('✅ [FCM] IncomingCallScreen pop 완료');
-              }
-            }
-            
-            // 2. 이미 /main_with_tab route가 있으면 pushReplacement 하지 않음
-            if (isAlreadyMainWithTab) {
-              if (kDebugMode) {
-                debugPrint('ℹ️  [FCM] 이미 /main_with_tab route 존재 - pushReplacement 생략');
-                debugPrint('   → 탭 전환은 사용자가 수동으로 하거나 CallTab에서 자동 처리');
-              }
-              // TODO: 여기서 탭 전환 이벤트를 보낼 수 있으면 좋지만, 현재 구조상 어려움
-              // CallTab이 자동으로 최근통화 탭을 감지하여 업데이트하도록 개선 필요
-            } else {
-              // 3. /main_with_tab route가 없으면 pushReplacement로 생성
-              await Future.delayed(const Duration(milliseconds: 100));
-              
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    settings: const RouteSettings(name: '/main_with_tab'),
-                    builder: (context) => MainScreen(initialTabIndex: targetTabIndex),
-                  ),
-                );
-                
-                if (kDebugMode) {
-                  debugPrint('✅ [FCM] MainScreen 교체 완료 (tab: $targetTabIndex, route: /main_with_tab)');
+            // 1. IncomingCallScreen과 기존 MainScreen 모두 제거
+            // popUntil로 MaterialApp.home의 root까지 pop (하지만 root는 남김)
+            bool didPopToRoot = false;
+            try {
+              navigator.popUntil((route) {
+                // Root route (MaterialApp.home)에 도달하면 멈춤
+                if (route.isFirst || route.settings.name == '/') {
+                  didPopToRoot = true;
+                  if (kDebugMode) {
+                    debugPrint('✅ [FCM] Root route 도달 (${route.settings.name})');
+                  }
+                  return true; // 멈춤
                 }
+                // /main_with_tab route도 제거 대상
+                if (route.settings.name == '/main_with_tab') {
+                  if (kDebugMode) {
+                    debugPrint('🔄 [FCM] /main_with_tab route 제거 중...');
+                  }
+                  return false; // 계속 pop
+                }
+                // IncomingCallScreen도 제거
+                if (kDebugMode) {
+                  debugPrint('🔄 [FCM] Route 제거 중: ${route.settings.name}');
+                }
+                return false; // 계속 pop
+              });
+            } catch (e) {
+              if (kDebugMode) {
+                debugPrint('⚠️ [FCM] popUntil 오류: $e');
+              }
+            }
+            
+            if (kDebugMode) {
+              debugPrint('✅ [FCM] Navigator 스택 정리 완료 (root까지 pop)');
+            }
+            
+            // 2. 새로운 /main_with_tab route 생성
+            await Future.delayed(const Duration(milliseconds: 100));
+            
+            if (context.mounted && didPopToRoot) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  settings: const RouteSettings(name: '/main_with_tab'),
+                  builder: (context) => MainScreen(initialTabIndex: targetTabIndex),
+                ),
+              );
+              
+              if (kDebugMode) {
+                debugPrint('✅ [FCM] 새 MainScreen 생성 완료 (tab: $targetTabIndex, route: /main_with_tab)');
               }
             }
           } catch (e) {
