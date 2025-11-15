@@ -2414,15 +2414,36 @@ class FCMService {
         final targetTabIndex = result['moveToTab'] as int;
         print('📲 [FCM] 최근통화 탭으로 이동 요청: index=$targetTabIndex');
         
-        // 🔥 CRITICAL FIX: pushReplacement가 MaterialApp.home과 별개의 route를 생성하여 
-        // 로그아웃 시 LoginScreen이 제대로 표시되지 않는 문제 발생
-        // 해결책: pushReplacement 대신 IncomingCallScreen만 pop하고, 
-        // MaterialApp.home의 MainScreen을 그대로 사용하되 notifyListeners()로 탭 전환 유도
+        // 🔥 CRITICAL FIX: 연속된 수신전화에서 두 번째 pushReplacement 시 검은 화면 발생
+        // 원인: 이미 /main_with_tab route가 존재하는데 또 pushReplacement 시도
+        // 해결책: 현재 route 이름 확인 후, 이미 /main_with_tab이면 pop만 수행
         if (context.mounted) {
           try {
             final navigator = Navigator.of(context);
             
-            // 1. IncomingCallScreen만 pop (MainScreen은 그대로 유지)
+            // 현재 route 이름 확인 (IncomingCallScreen 아래의 route)
+            String? currentRouteName;
+            bool isAlreadyMainWithTab = false;
+            
+            // Navigator 스택에서 현재 route 이름 찾기
+            navigator.popUntil((route) {
+              // IncomingCallScreen이 아닌 첫 번째 route의 이름 저장
+              if (route.settings.name != '/incoming_call') {
+                currentRouteName = route.settings.name;
+                if (currentRouteName == '/main_with_tab') {
+                  isAlreadyMainWithTab = true;
+                }
+              }
+              return true; // 바로 멈춤 (실제로 pop하지 않음, 정보만 수집)
+            });
+            
+            if (kDebugMode) {
+              debugPrint('🔍 [FCM] 현재 route 확인:');
+              debugPrint('   - currentRouteName: $currentRouteName');
+              debugPrint('   - isAlreadyMainWithTab: $isAlreadyMainWithTab');
+            }
+            
+            // 1. IncomingCallScreen만 pop
             if (navigator.canPop()) {
               navigator.pop();
               if (kDebugMode) {
@@ -2430,22 +2451,29 @@ class FCMService {
               }
             }
             
-            // 2. 탭 전환은 CallTab의 전역 controller나 Provider를 통해 처리해야 하지만,
-            // 현재는 initialTabIndex를 사용하므로 pushReplacement가 필요
-            // 대신 RouteSettings에 고유 이름을 부여하여 logout 시 감지 가능하게 함
-            await Future.delayed(const Duration(milliseconds: 100));
-            
-            if (context.mounted) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  // 🔥 중요: MaterialApp.home의 root('/')와 구별하기 위해 다른 이름 사용
-                  settings: const RouteSettings(name: '/main_with_tab'),
-                  builder: (context) => MainScreen(initialTabIndex: targetTabIndex),
-                ),
-              );
-              
+            // 2. 이미 /main_with_tab route가 있으면 pushReplacement 하지 않음
+            if (isAlreadyMainWithTab) {
               if (kDebugMode) {
-                debugPrint('✅ [FCM] MainScreen 교체 완료 (tab: $targetTabIndex, route: /main_with_tab)');
+                debugPrint('ℹ️  [FCM] 이미 /main_with_tab route 존재 - pushReplacement 생략');
+                debugPrint('   → 탭 전환은 사용자가 수동으로 하거나 CallTab에서 자동 처리');
+              }
+              // TODO: 여기서 탭 전환 이벤트를 보낼 수 있으면 좋지만, 현재 구조상 어려움
+              // CallTab이 자동으로 최근통화 탭을 감지하여 업데이트하도록 개선 필요
+            } else {
+              // 3. /main_with_tab route가 없으면 pushReplacement로 생성
+              await Future.delayed(const Duration(milliseconds: 100));
+              
+              if (context.mounted) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    settings: const RouteSettings(name: '/main_with_tab'),
+                    builder: (context) => MainScreen(initialTabIndex: targetTabIndex),
+                  ),
+                );
+                
+                if (kDebugMode) {
+                  debugPrint('✅ [FCM] MainScreen 교체 완료 (tab: $targetTabIndex, route: /main_with_tab)');
+                }
               }
             }
           } catch (e) {
