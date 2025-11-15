@@ -3065,13 +3065,13 @@ class FCMService {
         return;
       }
 
-      // Firestore에서 사용자 알림 설정 조회
-      final userDoc = await _firestore
-          .collection('users')
+      // Firestore에서 사용자 알림 설정 조회 (별도 컬렉션)
+      final settingsDoc = await _firestore
+          .collection('user_notification_settings')
           .doc(currentUser.uid)
           .get();
 
-      final settings = userDoc.data()?['notification_settings'];
+      final settings = settingsDoc.data();
       final vibrationEnabled = settings?['vibrationEnabled'] ?? true;
 
       if (!vibrationEnabled) {
@@ -3121,13 +3121,13 @@ class FCMService {
         return;
       }
 
-      // Firestore에서 사용자 알림 설정 조회
-      final userDoc = await _firestore
-          .collection('users')
+      // Firestore에서 사용자 알림 설정 조회 (별도 컬렉션)
+      final settingsDoc = await _firestore
+          .collection('user_notification_settings')
           .doc(currentUser.uid)
           .get();
 
-      final settings = userDoc.data()?['notification_settings'];
+      final settings = settingsDoc.data();
       final soundEnabled = settings?['soundEnabled'] ?? true;
 
       if (!soundEnabled) {

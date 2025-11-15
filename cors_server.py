@@ -9,6 +9,8 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Content-Security-Policy', 'frame-ancestors *')
         super().end_headers()
 
-with socketserver.TCPServer(('0.0.0.0', 5060), CORSRequestHandler) as httpd:
-    print('Flutter web server with CORS started on port 5060')
-    httpd.serve_forever()
+if __name__ == '__main__':
+    PORT = 5060
+    with socketserver.TCPServer(('0.0.0.0', PORT), CORSRequestHandler) as httpd:
+        print(f'Server running on port {PORT}')
+        httpd.serve_forever()
