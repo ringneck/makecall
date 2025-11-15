@@ -526,25 +526,37 @@ class AuthService extends ChangeNotifier {
         // 현재 context가 여전히 유효한지 확인
         if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
           try {
-            // 모든 route를 제거하고 root로 이동 (MaterialApp의 home이 다시 평가됨)
-            Navigator.of(navigatorKey.currentContext!).popUntil((route) => route.isFirst);
+            // 🔧 CRITICAL FIX: popUntil 대신 강제로 root 화면으로 교체
+            // popUntil은 Consumer rebuild를 트리거하지 못할 수 있음
+            final navigator = Navigator.of(navigatorKey.currentContext!);
             
-            if (kDebugMode) {
-              debugPrint('✅ [6/6] Navigator 스택 정리 완료');
+            // 현재 스택에 route가 여러 개 있는지 확인
+            bool canPop = navigator.canPop();
+            
+            if (canPop) {
+              if (kDebugMode) {
+                debugPrint('🔄 [6/6] Navigator 스택에서 모든 route 제거 중...');
+              }
+              
+              // 모든 route를 제거 (root까지)
+              navigator.popUntil((route) => route.isFirst);
+              
+              if (kDebugMode) {
+                debugPrint('✅ [6/6] Navigator 스택 정리 완료');
+              }
+            } else {
+              if (kDebugMode) {
+                debugPrint('ℹ️  [6/6] Navigator 스택이 이미 비어있음 (root만 존재)');
+              }
             }
+            
+            // 추가 안전 장치: Consumer가 제대로 rebuild되도록 약간의 지연
+            await Future.delayed(const Duration(milliseconds: 100));
+            
           } catch (e) {
             if (kDebugMode) {
-              debugPrint('⚠️  [6/6] popUntil 오류: $e');
-              debugPrint('   → pushAndRemoveUntil로 재시도...');
-            }
-            
-            // 대안: 모든 route를 제거하고 root로 이동
-            try {
-              Navigator.of(navigatorKey.currentContext!).pushNamedAndRemoveUntil('/', (route) => false);
-            } catch (e2) {
-              if (kDebugMode) {
-                debugPrint('⚠️  [6/6] pushAndRemoveUntil도 실패: $e2');
-              }
+              debugPrint('⚠️  [6/6] Navigator 정리 오류: $e');
+              debugPrint('   → Consumer가 자동으로 LoginScreen 표시합니다');
             }
           }
         } else {
