@@ -520,17 +520,41 @@ class AuthService extends ChangeNotifier {
           debugPrint('🔔 [6/6] Navigator 스택 정리 시작...');
         }
         
-        // 약간의 지연을 두어 notifyListeners() 처리 완료 대기
-        await Future.delayed(const Duration(milliseconds: 50));
+        // 충분한 지연을 두어 이전 화면의 pop() 완료 대기
+        await Future.delayed(const Duration(milliseconds: 200));
         
         // 현재 context가 여전히 유효한지 확인
         if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
-          // 모든 route를 제거하고 root로 이동 (MaterialApp의 home이 다시 평가됨)
-          Navigator.of(navigatorKey.currentContext!).popUntil((route) => route.isFirst);
-          
-          if (kDebugMode) {
-            debugPrint('✅ [6/6] Navigator 스택 정리 완료');
+          try {
+            // 모든 route를 제거하고 root로 이동 (MaterialApp의 home이 다시 평가됨)
+            Navigator.of(navigatorKey.currentContext!).popUntil((route) => route.isFirst);
+            
+            if (kDebugMode) {
+              debugPrint('✅ [6/6] Navigator 스택 정리 완료');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('⚠️  [6/6] popUntil 오류: $e');
+              debugPrint('   → pushAndRemoveUntil로 재시도...');
+            }
+            
+            // 대안: 모든 route를 제거하고 root로 이동
+            try {
+              Navigator.of(navigatorKey.currentContext!).pushNamedAndRemoveUntil('/', (route) => false);
+            } catch (e2) {
+              if (kDebugMode) {
+                debugPrint('⚠️  [6/6] pushAndRemoveUntil도 실패: $e2');
+              }
+            }
           }
+        } else {
+          if (kDebugMode) {
+            debugPrint('⚠️  [6/6] context 무효화됨 - Consumer가 처리합니다');
+          }
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('⚠️  [6/6] NavigatorKey context 없음 - Consumer가 처리합니다');
         }
       }
     } catch (e) {
