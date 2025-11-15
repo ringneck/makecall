@@ -628,10 +628,10 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
             width: 2,
           ),
         ),
-        child: const Column(
+        child: Column(
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 12),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 12),
             Text(
               '착신번호 조회 중...',
               style: TextStyle(
@@ -871,15 +871,15 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
           // 저장 중 표시
           if (_isSaving) ...[
             const SizedBox(height: 12),
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   '저장 중...',
                   style: TextStyle(
