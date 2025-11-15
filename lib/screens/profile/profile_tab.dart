@@ -386,7 +386,7 @@ class _ProfileTabState extends State<ProfileTab> {
               ),
             ],
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 96),
           const Divider(),
           
           // 기본 설정
