@@ -1758,20 +1758,37 @@ class FCMService {
       return;
     }
     
-    // 현재 라우트가 IncomingCallScreen인 경우에만 닫기
-    final currentRoute = ModalRoute.of(context);
-    if (currentRoute != null && currentRoute.isCurrent) {
-      Navigator.of(context).popUntil((route) {
-        // IncomingCallScreen이 아닌 라우트를 찾을 때까지 pop
-        return route.settings.name != '/incoming_call' || route.isFirst;
-      });
-      
-      if (kDebugMode) {
-        debugPrint('✅ [FCM-CANCEL] IncomingCallScreen 닫기 완료 (FCM 푸시)');
+    // 🔧 안전 장치: Context가 mounted 상태인지 확인 (이미 dispose된 경우 방지)
+    if (context is Element) {
+      if (!context.mounted) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [FCM-CANCEL] Context가 이미 deactivated - 화면이 이미 닫혔을 수 있음');
+        }
+        return;
       }
-    } else {
+    }
+    
+    // 현재 라우트가 IncomingCallScreen인 경우에만 닫기
+    try {
+      final currentRoute = ModalRoute.of(context);
+      if (currentRoute != null && currentRoute.isCurrent) {
+        Navigator.of(context).popUntil((route) {
+          // IncomingCallScreen이 아닌 라우트를 찾을 때까지 pop
+          return route.settings.name != '/incoming_call' || route.isFirst;
+        });
+        
+        if (kDebugMode) {
+          debugPrint('✅ [FCM-CANCEL] IncomingCallScreen 닫기 완료 (FCM 푸시)');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('ℹ️ [FCM-CANCEL] 현재 IncomingCallScreen이 표시되지 않음');
+        }
+      }
+    } catch (e) {
       if (kDebugMode) {
-        debugPrint('ℹ️ [FCM-CANCEL] 현재 IncomingCallScreen이 표시되지 않음');
+        debugPrint('⚠️ [FCM-CANCEL] Navigator 오류 (화면이 이미 닫혔을 수 있음): $e');
+        debugPrint('   → 이는 정상적인 동작입니다 (확인 버튼으로 이미 닫힘)');
       }
     }
   }
