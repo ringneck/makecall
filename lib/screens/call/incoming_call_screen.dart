@@ -139,18 +139,21 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         if (Platform.isAndroid) {
           await FlutterRingtonePlayer().play(
             android: AndroidSounds.ringtone, // 안드로이드 기본 벨소리
+            ios: IosSounds.glass, // iOS 플랫폼 파라미터 (Android에서는 무시됨)
             looping: true, // 반복 재생
             volume: 1.0, // 최대 볼륨
           );
           debugPrint('✅ [RINGTONE] 안드로이드 기본 벨소리 재생 시작 (반복 모드)');
         } 
-        // iOS: assets 파일 사용
+        // iOS: FlutterRingtonePlayer 사용
         else if (Platform.isIOS) {
-          _audioPlayer = AudioPlayer();
-          await _audioPlayer!.setReleaseMode(ReleaseMode.loop);
-          await _audioPlayer!.setVolume(1.0);
-          await _audioPlayer!.play(AssetSource('audio/ringtone.mp3'));
-          debugPrint('✅ [RINGTONE] iOS assets/audio/ringtone.mp3 재생 시작 (반복 모드)');
+          await FlutterRingtonePlayer().play(
+            android: AndroidSounds.ringtone, // Android 플랫폼 파라미터 (iOS에서는 무시됨)
+            ios: IosSounds.glass, // iOS 기본 사운드
+            looping: true, // 반복 재생
+            volume: 1.0, // 최대 볼륨
+          );
+          debugPrint('✅ [RINGTONE] iOS 기본 벨소리 재생 시작 (반복 모드)');
         } 
         else {
           debugPrint('⚠️ [RINGTONE] 웹 플랫폼 - 시스템 벨소리 미지원');
