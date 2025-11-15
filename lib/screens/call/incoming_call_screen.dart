@@ -139,6 +139,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   /// 
   /// call_history 문서의 cancelled 필드를 실시간으로 감지하여
   /// 다른 기기에서 통화를 처리하면 현재 화면을 자동으로 닫습니다.
+  /// 
+  /// ⚠️ 안전 장치: 로그아웃 시에도 안전하게 작동하도록 오류 처리 강화
   void _startCallHistoryListener() {
     if (kDebugMode) {
       debugPrint('🔥 [FIRESTORE-LISTENER] call_history 리스너 시작');
@@ -151,7 +153,26 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         .snapshots()
         .listen(
       (snapshot) {
-        if (!mounted) return;
+        // ⚠️ 안전 장치 1: mounted 체크
+        if (!mounted) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [FIRESTORE-LISTENER] 위젯이 dispose됨 - 리스너 무시');
+          }
+          return;
+        }
+        
+        // ⚠️ 안전 장치 2: userId 체크 (로그아웃 시 null)
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser == null) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [FIRESTORE-LISTENER] 사용자 로그아웃됨 - 화면 닫기');
+          }
+          _stopRingtoneAndVibration();
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+          return;
+        }
         
         if (snapshot.exists) {
           final data = snapshot.data();
@@ -183,7 +204,17 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         if (kDebugMode) {
           debugPrint('❌ [FIRESTORE-LISTENER] 오류: $error');
         }
+        
+        // ⚠️ 안전 장치 3: 리스너 오류 시 화면 닫기
+        _stopRingtoneAndVibration();
+        if (mounted) {
+          Navigator.of(context).pop();
+          if (kDebugMode) {
+            debugPrint('🔒 [FIRESTORE-LISTENER] 오류로 인해 화면 닫힘');
+          }
+        }
       },
+      cancelOnError: true, // 오류 발생 시 리스너 자동 취소
     );
   }
 
@@ -369,6 +400,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   /// 
   /// 방법 1 (FCM 푸시): Cloud Function을 호출하여 모든 기기에 취소 메시지 전송
   /// 방법 3 (Firestore): call_history 문서 업데이트로 실시간 리스너가 감지
+  /// 
+  /// ⚠️ 안전 장치: 로그아웃 등으로 userId가 없어도 안전하게 처리
   Future<void> _cancelOtherDevicesNotification(String action) async {
     try {
       if (kDebugMode) {
@@ -377,25 +410,49 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         debugPrint('   action: $action');
       }
       
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId == null) {
+      // ⚠️ 안전 장치: userId 체크 (로그아웃 시 null)
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
         if (kDebugMode) {
-          debugPrint('❌ [CANCEL] userId 없음');
+          debugPrint('⚠️ [CANCEL] 사용자가 로그아웃됨 - 알림 취소 건너뜀');
+          debugPrint('   → 로그아웃 시에는 다른 기기 취소가 불필요합니다');
         }
         return;
       }
       
+      final userId = currentUser.uid;
+      
       // 🔥 방법 1: Cloud Function 호출 (FCM 푸시)
       // 백그라운드/종료 상태의 기기에 즉시 전달
-      final functions = FirebaseFunctions.instance;
-      await functions.httpsCallable('cancelIncomingCallNotification').call({
-        'linkedid': widget.linkedid,
-        'userId': userId,
-        'action': action,
-      });
-      
-      if (kDebugMode) {
-        debugPrint('✅ [CANCEL] Cloud Function 호출 완료 (FCM 푸시)');
+      try {
+        final functions = FirebaseFunctions.instance;
+        await functions.httpsCallable('cancelIncomingCallNotification').call({
+          'linkedid': widget.linkedid,
+          'userId': userId,
+          'action': action,
+        }).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            if (kDebugMode) {
+              debugPrint('⏱️ [CANCEL] Cloud Function 타임아웃 (10초)');
+              debugPrint('   → Firestore 리스너(방법 3)가 대신 처리할 것입니다');
+            }
+            throw TimeoutException('Cloud Function timeout');
+          },
+        );
+        
+        if (kDebugMode) {
+          debugPrint('✅ [CANCEL] Cloud Function 호출 완료 (FCM 푸시)');
+        }
+      } on TimeoutException {
+        if (kDebugMode) {
+          debugPrint('⚠️ [CANCEL] Cloud Function 타임아웃 - Firestore 리스너가 처리합니다');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [CANCEL] Cloud Function 호출 오류: $e');
+          debugPrint('   → Firestore 리스너(방법 3)가 대신 처리할 것입니다');
+        }
       }
       
       // 🔥 방법 3: Firestore 업데이트는 Cloud Function에서 자동으로 수행됨

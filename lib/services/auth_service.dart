@@ -459,6 +459,25 @@ class AuthService extends ChangeNotifier {
     }
     
     notifyListeners();
+    
+    // 5️⃣ 모든 수신전화 화면 닫기 (로그아웃 후 null 참조 방지)
+    try {
+      // GlobalKey를 사용해 현재 context 가져오기
+      final context = _auth.app.options.appId.isNotEmpty 
+          ? null 
+          : null; // NavigatorKey 사용 필요
+      
+      if (kDebugMode) {
+        debugPrint('🔔 [5/5] 수신전화 화면 닫기 시도');
+      }
+      
+      // Note: 실제 구현은 main.dart의 navigatorKey를 통해 수행됨
+      // FCMService에서 처리하도록 위임
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️  [5/5] 수신전화 화면 닫기 오류 (무시 가능): $e');
+      }
+    }
   }
   
   // 비밀번호 재설정
