@@ -576,23 +576,24 @@ class _DialpadScreenState extends State<DialpadScreen> {
                           height: 1.0,
                         ),
                       ),
-                      // 문자
-                      if (letters.isNotEmpty)
-                        Padding(
-                          padding: EdgeInsets.only(top: isIOS ? 3 : 2),
-                          child: Text(
-                            letters,
-                            style: TextStyle(
-                              fontSize: isLandscape 
-                                  ? 8 
-                                  : (isIOS ? 10 : (isAndroidStyle ? 10 : 9)),
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? Colors.grey[400] : Colors.grey[600],
-                              letterSpacing: isIOS ? 1.0 : (isAndroidStyle ? 1.2 : 0.8),
-                              height: 1.0,
-                            ),
+                      // 문자 (항상 영역 확보, 빈 문자열은 투명하게)
+                      Padding(
+                        padding: EdgeInsets.only(top: isIOS ? 3 : 2),
+                        child: Text(
+                          letters.isNotEmpty ? letters : 'ABC',
+                          style: TextStyle(
+                            fontSize: isLandscape 
+                                ? 8 
+                                : (isIOS ? 10 : (isAndroidStyle ? 10 : 9)),
+                            fontWeight: FontWeight.w500,
+                            color: letters.isNotEmpty 
+                                ? (isDark ? Colors.grey[400] : Colors.grey[600])
+                                : Colors.transparent,
+                            letterSpacing: isIOS ? 1.0 : (isAndroidStyle ? 1.2 : 0.8),
+                            height: 1.0,
                           ),
                         ),
+                      ),
                     ],
                   ),
                 ),
