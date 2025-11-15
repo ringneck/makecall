@@ -248,7 +248,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               // http/https 프로토콜 선택
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: SwitchListTile(
@@ -257,7 +257,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                     _apiUseSSL ? 'https:// (보안 연결)' : 'http:// (일반 연결)',
                     style: TextStyle(
                       fontSize: 10,
-                      color: _apiUseSSL ? Colors.green : Colors.orange,
+                      color: _apiUseSSL 
+                          ? (isDark ? Colors.green[300] : Colors.green)
+                          : (isDark ? Colors.orange[300] : Colors.orange),
                     ),
                   ),
                   value: _apiUseSSL,
@@ -268,7 +270,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   },
                   secondary: Icon(
                     _apiUseSSL ? Icons.lock : Icons.lock_open,
-                    color: _apiUseSSL ? Colors.green : Colors.orange,
+                    color: _apiUseSSL 
+                        ? (isDark ? Colors.green[300] : Colors.green)
+                        : (isDark ? Colors.orange[300] : Colors.orange),
                     size: 20,
                   ),
                 ),
@@ -289,7 +293,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'CDR API 주소:',
+                        'API 주소:',
                         style: TextStyle(
                           fontSize: 10, 
                           fontWeight: FontWeight.bold,
@@ -298,10 +302,12 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${_apiUseSSL ? 'https' : 'http'}://${_apiBaseUrlController.text.trim()}/api/v2/cdr',
+                        '${_apiUseSSL ? 'https' : 'http'}://${_apiBaseUrlController.text.trim()}/api/v2',
                         style: TextStyle(
                           fontSize: 9,
-                          color: _apiUseSSL ? Colors.green.shade700 : Colors.orange.shade700,
+                          color: _apiUseSSL 
+                              ? (isDark ? Colors.green[300] : Colors.green.shade700)
+                              : (isDark ? Colors.orange[300] : Colors.orange.shade700),
                           fontFamily: 'monospace',
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -411,18 +417,18 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               // WebSocket 설정 헤더
               Row(
                 children: [
-                  const Icon(Icons.settings_input_antenna, size: 18, color: Colors.teal),
+                  Icon(Icons.settings_input_antenna, size: 18, color: isDark ? Colors.teal[300] : Colors.teal),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     'WebSocket 설정',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.teal),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.teal[300] : Colors.teal),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
-                'DCMIWS 실시간 수신을 위한 WebSocket 서버 설정',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+              Text(
+                'DCMIWS WebSocket 서버 설정',
+                style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey),
               ),
               const SizedBox(height: 12),
               Row(
@@ -510,7 +516,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               // ws/wss 프로토콜 선택
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: SwitchListTile(
@@ -519,7 +525,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                     _websocketUseSSL ? 'wss:// (보안 연결)' : 'ws:// (일반 연결)',
                     style: TextStyle(
                       fontSize: 10,
-                      color: _websocketUseSSL ? Colors.green : Colors.orange,
+                      color: _websocketUseSSL 
+                          ? (isDark ? Colors.green[300] : Colors.green)
+                          : (isDark ? Colors.orange[300] : Colors.orange),
                     ),
                   ),
                   value: _websocketUseSSL,
@@ -530,7 +538,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   },
                   secondary: Icon(
                     _websocketUseSSL ? Icons.lock : Icons.lock_open,
-                    color: _websocketUseSSL ? Colors.green : Colors.orange,
+                    color: _websocketUseSSL 
+                        ? (isDark ? Colors.green[300] : Colors.green)
+                        : (isDark ? Colors.orange[300] : Colors.orange),
                     size: 20,
                   ),
                 ),
@@ -711,7 +721,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: _websocketUseSSL ? Colors.green.shade100 : Colors.orange.shade100,
+                              color: _websocketUseSSL 
+                                  ? (isDark ? Colors.green[900]!.withValues(alpha: 0.3) : Colors.green.shade100)
+                                  : (isDark ? Colors.orange[900]!.withValues(alpha: 0.3) : Colors.orange.shade100),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -719,7 +731,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: _websocketUseSSL ? Colors.green.shade900 : Colors.orange.shade900,
+                                color: _websocketUseSSL 
+                                    ? (isDark ? Colors.green[300] : Colors.green.shade900)
+                                    : (isDark ? Colors.orange[300] : Colors.orange.shade900),
                                 fontFamily: 'monospace',
                               ),
                             ),
@@ -731,20 +745,20 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.blue.shade100,
+                                color: isDark ? Colors.blue[900]!.withValues(alpha: 0.3) : Colors.blue.shade100,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.lock, size: 10, color: Colors.blue.shade900),
+                                  Icon(Icons.lock, size: 10, color: isDark ? Colors.blue[300] : Colors.blue.shade900),
                                   const SizedBox(width: 3),
                                   Text(
                                     '${_websocketHttpAuthIdController.text.trim()}:***',
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.blue.shade900,
+                                      color: isDark ? Colors.blue[300] : Colors.blue.shade900,
                                       fontFamily: 'monospace',
                                     ),
                                   ),
@@ -755,7 +769,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                               '@',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.grey.shade600,
+                                color: isDark ? Colors.grey[400] : Colors.grey.shade600,
                                 fontFamily: 'monospace',
                               ),
                             ),
@@ -765,7 +779,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                               '${_websocketServerUrlController.text.trim()}:${_websocketServerPortController.text.trim()}',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.teal.shade900,
+                                color: isDark ? Colors.teal[300] : Colors.teal.shade900,
                                 fontFamily: 'monospace',
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -779,13 +793,13 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            Icon(Icons.check_circle, size: 12, color: Colors.green.shade700),
+                            Icon(Icons.check_circle, size: 12, color: isDark ? Colors.green[300] : Colors.green.shade700),
                             const SizedBox(width: 4),
                             Text(
                               'HTTP Basic Authentication 적용됨',
                               style: TextStyle(
                                 fontSize: 9,
-                                color: Colors.green.shade700,
+                                color: isDark ? Colors.green[300] : Colors.green.shade700,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
