@@ -407,21 +407,41 @@ class _ProfileTabState extends State<ProfileTab> {
           ),
           const Divider(),
           
-          // 화면 테마
-          ListTile(
-            leading: const Icon(Icons.brightness_6, size: 22),
-            title: const Text('화면 테마', style: TextStyle(fontSize: 15)),
-            subtitle: const Text(
-              '라이트 모드, 다크 모드, 시스템 설정',
-              style: TextStyle(fontSize: 11),
+          // 화면 테마 (🎨 눈에 띄는 스타일로 표시)
+          Container(
+            color: Colors.amber.withValues(alpha: 0.1),
+            child: ListTile(
+              leading: Icon(
+                Icons.brightness_6, 
+                size: 24,
+                color: isDark ? Colors.amber[300] : Colors.orange[700],
+              ),
+              title: Text(
+                '화면 테마',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.amber[300] : Colors.orange[800],
+                ),
+              ),
+              subtitle: const Text(
+                '라이트 모드, 다크 모드, 시스템 설정',
+                style: TextStyle(fontSize: 11),
+              ),
+              trailing: Icon(
+                Icons.chevron_right,
+                color: isDark ? Colors.amber[300] : Colors.orange[700],
+              ),
+              onTap: () {
+                if (kDebugMode) {
+                  debugPrint('🎨 화면 테마 메뉴 탭됨!');
+                }
+                showDialog(
+                  context: context,
+                  builder: (context) => const ThemeSettingsDialog(),
+                );
+              },
             ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => const ThemeSettingsDialog(),
-              );
-            },
           ),
           const Divider(),
           
