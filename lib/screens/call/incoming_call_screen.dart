@@ -469,8 +469,16 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       // 🔥 방법 1: Cloud Function 호출 (FCM 푸시)
       // 백그라운드/종료 상태의 기기에 즉시 전달
       try {
+        if (kDebugMode) {
+          debugPrint('📞 [CANCEL] Cloud Function 호출 시작...');
+          debugPrint('   Function: cancelIncomingCallNotification');
+          debugPrint('   linkedid: ${widget.linkedid}');
+          debugPrint('   userId: $userId');
+          debugPrint('   action: $action');
+        }
+        
         final functions = FirebaseFunctions.instance;
-        await functions.httpsCallable('cancelIncomingCallNotification').call({
+        final result = await functions.httpsCallable('cancelIncomingCallNotification').call({
           'linkedid': widget.linkedid,
           'userId': userId,
           'action': action,
@@ -487,14 +495,24 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         
         if (kDebugMode) {
           debugPrint('✅ [CANCEL] Cloud Function 호출 완료 (FCM 푸시)');
+          debugPrint('   Response: ${result.data}');
         }
       } on TimeoutException {
         if (kDebugMode) {
           debugPrint('⚠️ [CANCEL] Cloud Function 타임아웃 - Firestore 리스너가 처리합니다');
         }
+      } on FirebaseFunctionsException catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [CANCEL] Firebase Functions 오류:');
+          debugPrint('   Code: ${e.code}');
+          debugPrint('   Message: ${e.message}');
+          debugPrint('   Details: ${e.details}');
+          debugPrint('   → Firestore 리스너(방법 3)가 대신 처리할 것입니다');
+        }
       } catch (e) {
         if (kDebugMode) {
           debugPrint('❌ [CANCEL] Cloud Function 호출 오류: $e');
+          debugPrint('   Type: ${e.runtimeType}');
           debugPrint('   → Firestore 리스너(방법 3)가 대신 처리할 것입니다');
         }
       }
