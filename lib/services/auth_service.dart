@@ -444,6 +444,9 @@ class AuthService extends ChangeNotifier {
     }
     
     // 3️⃣ Firebase Authentication 로그아웃
+    // ⚠️ 중요: _lastUserId를 먼저 null로 설정하여 _authStateSubscription 중복 트리거 방지
+    _lastUserId = null;
+    
     await _auth.signOut();
     if (kDebugMode) {
       debugPrint('✅ [3/4] Firebase Authentication 로그아웃 완료');
