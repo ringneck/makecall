@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
@@ -1841,6 +1842,37 @@ class _ProfileTabState extends State<ProfileTab> {
         debugPrint('✅ Image picked: ${pickedFile.path}');
       }
 
+      // 이미지 크롭 (위치 조정)
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 85,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: '프로필 사진 조정',
+            toolbarColor: const Color(0xFF2196F3),
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: '프로필 사진 조정',
+            aspectRatioLockEnabled: true,
+          ),
+        ],
+      );
+
+      if (croppedFile == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ Image cropper cancelled by user');
+        }
+        return;
+      }
+
+      if (kDebugMode) {
+        debugPrint('✅ Image cropped: ${croppedFile.path}');
+      }
+
       // 로딩 다이얼로그 표시
       if (!mounted) return;
       
@@ -1868,7 +1900,7 @@ class _ProfileTabState extends State<ProfileTab> {
       );
 
       // Firebase Storage에 업로드 (비동기 처리)
-      final imageFile = File(pickedFile.path);
+      final imageFile = File(croppedFile.path);
       
       if (kDebugMode) {
         debugPrint('📤 Uploading image to Firebase Storage...');
