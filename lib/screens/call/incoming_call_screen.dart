@@ -237,15 +237,37 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           );
           debugPrint('✅ [RINGTONE] 안드로이드 기본 벨소리 재생 시작 (반복 모드)');
         } 
-        // iOS: FlutterRingtonePlayer 사용
+        // iOS: audioplayers 사용 (포그라운드에서 더 안정적)
         else if (Platform.isIOS) {
-          await FlutterRingtonePlayer().play(
-            android: AndroidSounds.ringtone, // Android 플랫폼 파라미터 (iOS에서는 무시됨)
-            ios: IosSounds.glass, // iOS 기본 사운드
-            looping: true, // 반복 재생
-            volume: 1.0, // 최대 볼륨
-          );
-          debugPrint('✅ [RINGTONE] iOS 기본 벨소리 재생 시작 (반복 모드)');
+          try {
+            // AudioPlayer 초기화 (없으면 생성)
+            _audioPlayer ??= AudioPlayer();
+            
+            // 오디오 모드 설정 (iOS에서 중요!)
+            await _audioPlayer!.setReleaseMode(ReleaseMode.loop); // 반복 재생
+            await _audioPlayer!.setVolume(1.0); // 최대 볼륨
+            
+            // 벨소리 파일 재생
+            await _audioPlayer!.play(AssetSource('audio/ringtone.mp3'));
+            
+            debugPrint('✅ [RINGTONE] iOS 커스텀 벨소리 재생 시작 (audioplayers)');
+          } catch (e) {
+            debugPrint('❌ [RINGTONE] iOS audioplayers 재생 실패: $e');
+            debugPrint('   → FlutterRingtonePlayer fallback 시도');
+            
+            // Fallback: FlutterRingtonePlayer 시도
+            try {
+              await FlutterRingtonePlayer().play(
+                android: AndroidSounds.ringtone,
+                ios: IosSounds.glass,
+                looping: true,
+                volume: 1.0,
+              );
+              debugPrint('✅ [RINGTONE] iOS FlutterRingtonePlayer fallback 성공');
+            } catch (fallbackError) {
+              debugPrint('❌ [RINGTONE] iOS fallback도 실패: $fallbackError');
+            }
+          }
         } 
         else {
           debugPrint('⚠️ [RINGTONE] 웹 플랫폼 - 시스템 벨소리 미지원');
@@ -350,12 +372,23 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           await FlutterRingtonePlayer().stop();
           debugPrint('✅ [RINGTONE] 안드로이드 시스템 벨소리 중지 완료');
         }
-        // iOS: AudioPlayer 중지
-        else if (_audioPlayer != null) {
-          await _audioPlayer!.stop();
-          await _audioPlayer!.dispose();
-          _audioPlayer = null;
-          debugPrint('✅ [RINGTONE] iOS AudioPlayer 중지 완료');
+        // iOS: AudioPlayer + FlutterRingtonePlayer 모두 중지
+        else if (Platform.isIOS) {
+          // AudioPlayer 중지 (메인 방법)
+          if (_audioPlayer != null) {
+            await _audioPlayer!.stop();
+            await _audioPlayer!.dispose();
+            _audioPlayer = null;
+            debugPrint('✅ [RINGTONE] iOS AudioPlayer 중지 완료');
+          }
+          
+          // FlutterRingtonePlayer도 중지 (fallback이 실행되었을 경우 대비)
+          try {
+            await FlutterRingtonePlayer().stop();
+            debugPrint('✅ [RINGTONE] iOS FlutterRingtonePlayer 중지 완료');
+          } catch (e) {
+            debugPrint('⚠️ [RINGTONE] FlutterRingtonePlayer 중지 실패 (무시): $e');
+          }
         }
       } catch (e) {
         debugPrint('❌ [RINGTONE] 벨소리 중지 오류: $e');
