@@ -55,6 +55,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     // 등록된 전화번호 불러오기 및 단말번호 업데이트
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authService = context.read<AuthService>();
+      
+      // 🔒 로그아웃 상태 체크 - userId가 없으면 모든 초기화 건너뛰기
+      if (authService.currentUser?.uid == null) {
+        if (kDebugMode) {
+          debugPrint('⏭️ [ProfileDrawer] 로그아웃 상태 - 초기화 건너뜀');
+        }
+        return;
+      }
+      
       if (authService.currentUserModel?.phoneNumber != null) {
         _phoneNumberController.text = authService.currentUserModel!.phoneNumber!;
       }
