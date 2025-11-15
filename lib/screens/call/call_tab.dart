@@ -916,6 +916,33 @@ class _CallTabState extends State<CallTab> {
 
   Widget _buildFavoritesTab() {
     final userId = context.watch<AuthService>().currentUser?.uid ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // 🔒 로그아웃 상태 체크
+    if (userId.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.login, 
+              size: 64, 
+              color: isDark ? Colors.grey[600] : Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '로그인이 필요합니다',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.grey[300] : Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     // 연락처와 단말번호 즐겨찾기를 모두 표시
     return StreamBuilder<List<ContactModel>>(
@@ -1041,6 +1068,33 @@ class _CallTabState extends State<CallTab> {
 
   Widget _buildCallHistoryTab() {
     final userId = context.watch<AuthService>().currentUser?.uid ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // 🔒 로그아웃 상태 체크
+    if (userId.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.login, 
+              size: 64, 
+              color: isDark ? Colors.grey[600] : Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '로그인이 필요합니다',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.grey[300] : Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return StreamBuilder<List<CallHistoryModel>>(
       stream: _databaseService.getUserCallHistory(userId),
@@ -1052,7 +1106,6 @@ class _CallTabState extends State<CallTab> {
         final callHistory = snapshot.data ?? [];
 
         if (callHistory.isEmpty) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1415,6 +1468,32 @@ class _CallTabState extends State<CallTab> {
   Widget _buildContactsTab() {
     final userId = context.watch<AuthService>().currentUser?.uid ?? '';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // 🔒 로그아웃 상태 체크
+    if (userId.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.login, 
+              size: 64, 
+              color: isDark ? Colors.grey[600] : Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '로그인이 필요합니다',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.grey[300] : Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Column(
       children: [

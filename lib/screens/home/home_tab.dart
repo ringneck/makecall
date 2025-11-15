@@ -42,7 +42,30 @@ class _HomeTabState extends State<HomeTab> {
       ),
       body: SafeArea(
         bottom: true,
-        child: StreamBuilder<List<MyExtensionModel>>(
+        child: userId.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.login, 
+                      size: 64, 
+                      color: isDark ? Colors.grey[600] : Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '로그인이 필요합니다',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.grey[300] : Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : StreamBuilder<List<MyExtensionModel>>(
         stream: _databaseService.getMyExtensions(userId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

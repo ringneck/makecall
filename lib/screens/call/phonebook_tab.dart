@@ -410,6 +410,40 @@ class _PhonebookTabState extends State<PhonebookTab> {
     final userId = context.watch<AuthService>().currentUser?.uid ?? '';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // 🔒 로그아웃 상태 체크 (userId가 비어있으면 로그인 필요)
+    if (userId.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.login, 
+              size: 64, 
+              color: isDark ? Colors.grey[600] : Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '로그인이 필요합니다',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.grey[300] : Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Phonebook을 사용하려면 로그인해주세요',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isDark ? Colors.grey[500] : Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (_isLoading) {
       return const Center(
         child: Column(
