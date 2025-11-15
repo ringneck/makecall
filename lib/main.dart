@@ -18,11 +18,11 @@ import 'services/dcmiws_connection_manager.dart';
 import 'services/inactivity_service.dart';
 import 'providers/selected_extension_provider.dart';
 import 'providers/dcmiws_event_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/approval_waiting_screen.dart';
 import 'screens/home/main_screen.dart';
 import 'screens/splash/splash_screen.dart';
-import 'theme/call_theme_extension.dart';
 
 /// 백그라운드 FCM 메시지 핸들러 (Top-level function)
 @pragma('vm:entry-point')
@@ -254,10 +254,16 @@ class _MyAppState extends State<MyApp> {
   
   // 🔒 로그인 유지 다이얼로그 표시 여부
   bool _isLoginKeepDialogShowing = false;
+  
+  // 🎨 테마 Provider
+  final ThemeProvider _themeProvider = ThemeProvider();
 
   @override
   void initState() {
     super.initState();
+    
+    // 🎨 테마 설정 로드
+    _themeProvider.loadThemeMode();
     
     // NavigatorKey 등록
     DCMIWSService.setNavigatorKey(navigatorKey);
@@ -325,6 +331,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => SelectedExtensionProvider()),
         ChangeNotifierProvider(create: (_) => DCMIWSEventProvider()),
+        ChangeNotifierProvider.value(value: _themeProvider),
       ],
       child: Builder(
         builder: (context) {
@@ -344,60 +351,63 @@ class _MyAppState extends State<MyApp> {
             });
           }
           
-          return MaterialApp(
-            title: 'MAKECALL',
-            navigatorKey: navigatorKey, // ✅ GlobalKey 등록
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF2196F3),
-                brightness: Brightness.light,
-              ),
-              useMaterial3: true,
-              appBarTheme: const AppBarTheme(
-                centerTitle: true,
-                elevation: 0,
-                backgroundColor: Color(0xFF2196F3),
-                foregroundColor: Colors.white,
-                iconTheme: IconThemeData(color: Colors.white),
-                titleTextStyle: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+          // 🎨 테마 변경 감지를 위한 Consumer
+          return Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) {
+              return MaterialApp(
+                title: 'MAKECALL',
+                navigatorKey: navigatorKey, // ✅ GlobalKey 등록
+                debugShowCheckedModeBanner: false,
+                theme: ThemeData(
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: const Color(0xFF2196F3),
+                    brightness: Brightness.light,
+                  ),
+                  useMaterial3: true,
+                  appBarTheme: const AppBarTheme(
+                    centerTitle: true,
+                    elevation: 0,
+                    backgroundColor: Color(0xFF2196F3),
+                    foregroundColor: Colors.white,
+                    iconTheme: IconThemeData(color: Colors.white),
+                    titleTextStyle: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            // 🌙 다크 모드 테마
-            darkTheme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF2196F3),
-                brightness: Brightness.dark,
-              ),
-              useMaterial3: true,
-              appBarTheme: AppBarTheme(
-                centerTitle: true,
-                elevation: 0,
-                backgroundColor: Colors.grey[900],
-                foregroundColor: Colors.white,
-                iconTheme: const IconThemeData(color: Colors.white),
-                titleTextStyle: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                // 🌙 다크 모드 테마
+                darkTheme: ThemeData(
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: const Color(0xFF2196F3),
+                    brightness: Brightness.dark,
+                  ),
+                  useMaterial3: true,
+                  appBarTheme: AppBarTheme(
+                    centerTitle: true,
+                    elevation: 0,
+                    backgroundColor: Colors.grey[900],
+                    foregroundColor: Colors.white,
+                    iconTheme: const IconThemeData(color: Colors.white),
+                    titleTextStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  cardTheme: CardThemeData(
+                    color: Colors.grey[850],
+                    elevation: 2,
+                  ),
+                  bottomNavigationBarTheme: BottomNavigationBarThemeData(
+                    backgroundColor: Colors.grey[900],
+                    selectedItemColor: const Color(0xFF2196F3),
+                    unselectedItemColor: Colors.grey[600],
+                  ),
                 ),
-              ),
-              cardTheme: CardThemeData(
-                color: Colors.grey[850],
-                elevation: 2,
-              ),
-              bottomNavigationBarTheme: BottomNavigationBarThemeData(
-                backgroundColor: Colors.grey[900],
-                selectedItemColor: const Color(0xFF2196F3),
-                unselectedItemColor: Colors.grey[600],
-              ),
-            ),
-            // 🎨 시스템 설정에 따라 자동 전환
-            themeMode: ThemeMode.system,
+                // 🎨 ThemeProvider로부터 테마 모드 가져오기
+                themeMode: themeProvider.themeMode,
             home: _isInitializing
                 ? const SplashScreen() // 💡 스플래시 스크린 표시
                 : Consumer<AuthService>(
@@ -576,6 +586,8 @@ class _MyAppState extends State<MyApp> {
                       }
                     },
                   ),
+              );
+            },
           );
         },
       ),

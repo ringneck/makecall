@@ -11,6 +11,7 @@ import '../../services/database_service.dart';
 import '../../models/my_extension_model.dart';
 import 'api_settings_dialog.dart';
 import 'active_sessions_screen.dart';
+import '../../widgets/theme_settings_dialog.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -401,6 +402,24 @@ class _ProfileTabState extends State<ProfileTab> {
               showDialog(
                 context: context,
                 builder: (context) => const ApiSettingsDialog(),
+              );
+            },
+          ),
+          const Divider(),
+          
+          // 화면 테마
+          ListTile(
+            leading: const Icon(Icons.brightness_6, size: 22),
+            title: const Text('화면 테마', style: TextStyle(fontSize: 15)),
+            subtitle: const Text(
+              '라이트 모드, 다크 모드, 시스템 설정',
+              style: TextStyle(fontSize: 11),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => const ThemeSettingsDialog(),
               );
             },
           ),
