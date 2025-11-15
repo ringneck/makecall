@@ -128,6 +128,8 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return PopScope(
       canPop: false, // 뒤로 가기 방지
       child: Scaffold(
@@ -138,10 +140,15 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xFF2196F3).withValues(alpha: 0.1),
-                Colors.white,
-              ],
+              colors: isDark
+                  ? [
+                      const Color(0xFF2196F3).withValues(alpha: 0.2),
+                      Colors.grey[900]!,
+                    ]
+                  : [
+                      const Color(0xFF2196F3).withValues(alpha: 0.1),
+                      Colors.white,
+                    ],
             ),
           ),
           child: SafeArea(
@@ -155,31 +162,33 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                        color: isDark
+                            ? const Color(0xFF2196F3).withValues(alpha: 0.2)
+                            : const Color(0xFF2196F3).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF2196F3).withValues(alpha: 0.2),
+                            color: const Color(0xFF2196F3).withValues(alpha: isDark ? 0.3 : 0.2),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
                         ],
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.devices,
                         size: 64,
-                        color: Color(0xFF2196F3),
+                        color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
                       ),
                     ),
                     const SizedBox(height: 32),
                     
                     // 제목
-                    const Text(
+                    Text(
                       '기기 승인 대기 중',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: isDark ? Colors.grey[200] : Colors.black87,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -190,7 +199,7 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
                       '다른 기기에서 이 기기의 로그인을\n승인해주세요.',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey[700],
+                        color: isDark ? Colors.grey[400] : Colors.grey[700],
                         height: 1.5,
                       ),
                       textAlign: TextAlign.center,
@@ -201,11 +210,11 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? Colors.grey[850] : Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
+                            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -214,19 +223,19 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.timer_outlined,
                             size: 24,
-                            color: Color(0xFF2196F3),
+                            color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
                           ),
                           const SizedBox(width: 12),
                           Text(
                             _formatTime(_remainingSeconds),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF2196F3),
-                              fontFeatures: [FontFeature.tabularFigures()],
+                              color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                         ],
@@ -235,12 +244,12 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
                     const SizedBox(height: 32),
                     
                     // 로딩 인디케이터
-                    const SizedBox(
+                    SizedBox(
                       width: 48,
                       height: 48,
                       child: CircularProgressIndicator(
                         strokeWidth: 3,
-                        color: Color(0xFF2196F3),
+                        color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
                       ),
                     ),
                     const SizedBox(height: 48),
@@ -249,10 +258,13 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
                     OutlinedButton.icon(
                       onPressed: _isResending ? null : _handleResendRequest,
                       icon: _isResending
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                              ),
                             )
                           : const Icon(Icons.refresh),
                       label: Text(_isResending ? '전송 중...' : '승인 요청 재전송'),
@@ -261,8 +273,10 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
                           horizontal: 24,
                           vertical: 16,
                         ),
-                        side: const BorderSide(color: Color(0xFF2196F3)),
-                        foregroundColor: const Color(0xFF2196F3),
+                        side: BorderSide(
+                          color: isDark ? Colors.blue[300]! : const Color(0xFF2196F3),
+                        ),
+                        foregroundColor: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -271,22 +285,30 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.blue[50],
+                        color: isDark 
+                            ? Colors.blue[900]!.withValues(alpha: 0.3)
+                            : Colors.blue[50],
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue[100]!),
+                        border: Border.all(
+                          color: isDark ? Colors.blue[700]! : Colors.blue[100]!,
+                        ),
                       ),
                       child: Column(
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.info_outline, size: 20, color: Colors.blue[700]),
+                              Icon(
+                                Icons.info_outline, 
+                                size: 20, 
+                                color: isDark ? Colors.blue[300] : Colors.blue[700],
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 '승인 방법',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue[900],
+                                  color: isDark ? Colors.blue[300] : Colors.blue[900],
                                 ),
                               ),
                             ],
@@ -298,7 +320,7 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
                             '3. 승인이 완료되면 자동으로 로그인됩니다',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.blue[800],
+                              color: isDark ? Colors.blue[200] : Colors.blue[800],
                               height: 1.5,
                             ),
                           ),

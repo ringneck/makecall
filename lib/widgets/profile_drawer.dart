@@ -679,7 +679,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             
             // 🎯 모던한 설정 섹션
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -755,7 +755,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             // 🎯 모던한 내 단말번호 섹션
             if (userId.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: StreamBuilder<List<MyExtensionModel>>(
                   stream: DatabaseService().getMyExtensions(userId),
                   builder: (context, snapshot) {
@@ -863,7 +863,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           
           // 🎨 화면 테마
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
