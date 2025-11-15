@@ -155,6 +155,9 @@ class _CallForwardInfoCardState extends State<CallForwardInfoCard> {
 
   @override
   Widget build(BuildContext context) {
+    // 다크모드 감지
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     // 설정이 없으면 표시하지 않음
     if (!_hasValidConfig()) {
       return const SizedBox.shrink();
@@ -181,7 +184,7 @@ class _CallForwardInfoCardState extends State<CallForwardInfoCard> {
               '착신번호 조회 중...',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
               ),
             ),
           ],
@@ -320,7 +323,7 @@ class _CallForwardInfoCardState extends State<CallForwardInfoCard> {
               '착신번호 미설정',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey[600],
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
                 fontStyle: FontStyle.italic,
               ),
             ),

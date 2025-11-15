@@ -385,91 +385,95 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
 
     final result = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.phone_forwarded, color: Color(0xFFFF9800)),
-            SizedBox(width: 12),
-            Text('착신번호 설정'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '전화를 받을 번호를 입력하세요',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
+      builder: (dialogContext) {
+        final dialogIsDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        
+        return AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.phone_forwarded, color: Color(0xFFFF9800)),
+              const SizedBox(width: 12),
+              Text('착신번호 설정', style: TextStyle(color: dialogIsDark ? Colors.white : Colors.black87)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '전화를 받을 번호를 입력하세요',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: dialogIsDark ? Colors.grey[400] : Colors.grey[600],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: '착신번호',
-                hintText: '예: 01012345678',
-                prefixIcon: Icon(Icons.phone),
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: '착신번호',
+                  hintText: '예: 01012345678',
+                  prefixIcon: Icon(Icons.phone),
+                  border: OutlineInputBorder(),
+                ),
+                autofocus: true,
               ),
-              autofocus: true,
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, size: 20, color: Colors.blue),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '하이픈(-) 없이 숫자만 입력하세요',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue,
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 20, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '하이픈(-) 없이 숫자만 입력하세요',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final number = controller.text.trim();
+                if (number.isEmpty) {
+                  // 다이얼로그 내부에서는 try-catch로 안전하게 처리
+                  try {
+                    await DialogUtils.showError(dialogContext, '착신번호를 입력하세요', duration: const Duration(seconds: 3));
+                  } catch (e) {
+                    if (kDebugMode) {
+                      debugPrint('⚠️ Dialog SnackBar 건너뜀: $e');
+                    }
+                  }
+                  return;
+                }
+                Navigator.pop(dialogContext, number);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF9800),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('저장'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final number = controller.text.trim();
-              if (number.isEmpty) {
-                // 다이얼로그 내부에서는 try-catch로 안전하게 처리
-                try {
-                  await DialogUtils.showError(context, '착신번호를 입력하세요', duration: const Duration(seconds: 3));
-                } catch (e) {
-                  if (kDebugMode) {
-                    debugPrint('⚠️ Dialog SnackBar 건너뜀: $e');
-                  }
-                }
-                return;
-              }
-              Navigator.pop(context, number);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF9800),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('저장'),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (result != null) {
@@ -603,6 +607,9 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
 
   @override
   Widget build(BuildContext context) {
+    // 다크모드 감지
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     // 설정이 없으면 표시하지 않음
     if (!_hasValidConfig()) {
       return const SizedBox.shrink();
@@ -629,7 +636,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
               '착신번호 조회 중...',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
               ),
             ),
           ],
@@ -729,11 +736,11 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? Colors.grey[850] : Colors.white,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: (isDark ? Colors.black : Colors.black).withValues(alpha: isDark ? 0.3 : 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -786,7 +793,9 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                               Icon(
                                 Icons.phone,
                                 size: 12,
-                                color: isDefaultNumber ? Colors.grey : Colors.blue,
+                                color: isDefaultNumber 
+                                    ? (isDark ? Colors.grey[600] : Colors.grey)
+                                    : Colors.blue,
                               ),
                               const SizedBox(width: 4),
                               Expanded(
@@ -795,7 +804,9 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: isDefaultNumber ? Colors.grey : Colors.black87,
+                                    color: isDefaultNumber 
+                                        ? (isDark ? Colors.grey[600] : Colors.grey)
+                                        : (isDark ? Colors.white : Colors.black87),
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
@@ -805,7 +816,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                               Icon(
                                 Icons.edit,
                                 size: 12,
-                                color: Colors.grey[600],
+                                color: isDark ? Colors.grey[400] : Colors.grey[600],
                               ),
                             ],
                           ),
@@ -832,7 +843,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: Colors.grey[700],
+                        color: isDark ? Colors.grey[400] : Colors.grey[700],
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -873,7 +884,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                   '저장 중...',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
                   ),
                 ),
               ],
