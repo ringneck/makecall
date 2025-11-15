@@ -690,11 +690,21 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   // 기본 설정 카드
                   Container(
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.grey[850] : Colors.white,
+                      gradient: LinearGradient(
+                        colors: isDark 
+                            ? [Colors.blue[900]!.withValues(alpha: 0.3), Colors.blue[800]!.withValues(alpha: 0.3)]
+                            : [Colors.blue[50]!, Colors.blue[100]!],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? Colors.blue[700]! : Colors.blue[200]!, 
+                        width: 1.5,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                          color: Colors.blue.withValues(alpha: isDark ? 0.2 : 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -704,8 +714,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2196F3).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          color: isDark ? Colors.blue[900]!.withValues(alpha: 0.5) : Colors.white,
+                          shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.settings_rounded,
@@ -718,20 +728,20 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.grey[200] : Colors.black87,
+                          color: isDark ? Colors.blue[200] : Colors.blue[900],
                         ),
                       ),
                       subtitle: Text(
                         'API 서버, WebSocket 설정',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          color: isDark ? Colors.blue[300] : Colors.blue[700],
                         ),
                       ),
                       trailing: Icon(
                         Icons.chevron_right_rounded,
                         size: 20,
-                        color: isDark ? Colors.grey[500] : Colors.grey,
+                        color: isDark ? Colors.blue[400] : Colors.blue[600],
                       ),
                       onTap: () {
                         showDialog(
@@ -774,11 +784,21 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         // 단말번호 카드
                         Container(
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.grey[850] : Colors.white,
+                            gradient: LinearGradient(
+                              colors: isDark 
+                                  ? [Colors.cyan[900]!.withValues(alpha: 0.3), Colors.cyan[800]!.withValues(alpha: 0.3)]
+                                  : [Colors.cyan[50]!, Colors.cyan[100]!],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark ? Colors.cyan[700]! : Colors.cyan[200]!, 
+                              width: 1.5,
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                                color: Colors.cyan.withValues(alpha: isDark ? 0.2 : 0.1),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -788,13 +808,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                             leading: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2196F3).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
+                                color: isDark ? Colors.cyan[900]!.withValues(alpha: 0.5) : Colors.white,
+                                shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.phone_android_rounded,
                                 size: 20,
-                                color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                                color: isDark ? Colors.cyan[300] : Colors.cyan[700],
                               ),
                             ),
                             title: Text(
@@ -802,7 +822,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.grey[200] : Colors.black87,
+                                color: isDark ? Colors.cyan[200] : Colors.cyan[900],
                               ),
                             ),
                             subtitle: Text(
@@ -812,8 +832,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isDark 
-                                    ? (extensionCount > 0 ? Colors.grey[400] : Colors.grey[600])
-                                    : (extensionCount > 0 ? Colors.grey[700] : Colors.grey[500]),
+                                    ? (extensionCount > 0 ? Colors.cyan[300] : Colors.cyan[400])
+                                    : (extensionCount > 0 ? Colors.cyan[700] : Colors.cyan[600]),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -826,8 +846,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: isDark 
-                                ? Colors.blue[900]!.withValues(alpha: 0.5)
-                                : const Color(0xFF2196F3).withAlpha(26),
+                                ? Colors.cyan[900]!.withValues(alpha: 0.5)
+                                : Colors.cyan[700]!.withAlpha(26),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -835,7 +855,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                              color: isDark ? Colors.cyan[300] : Colors.cyan[700],
                             ),
                           ),
                         ),
@@ -843,7 +863,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                               Icon(
                                 Icons.chevron_right_rounded,
                                 size: 20,
-                                color: isDark ? Colors.grey[500] : Colors.grey,
+                                color: isDark ? Colors.cyan[400] : Colors.cyan[600],
                               ),
                             ],
                           ),
@@ -878,11 +898,21 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 // 화면 테마 카드
                 Container(
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[850] : Colors.white,
+                    gradient: LinearGradient(
+                      colors: isDark 
+                          ? [Colors.amber[900]!.withValues(alpha: 0.3), Colors.orange[900]!.withValues(alpha: 0.3)]
+                          : [Colors.amber[50]!, Colors.orange[100]!],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? Colors.amber[700]! : Colors.orange[200]!, 
+                      width: 1.5,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                        color: Colors.orange.withValues(alpha: isDark ? 0.2 : 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -892,8 +922,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
+                        color: isDark ? Colors.amber[900]!.withValues(alpha: 0.5) : Colors.white,
+                        shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.brightness_6,
@@ -906,20 +936,20 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.grey[200] : Colors.black87,
+                        color: isDark ? Colors.amber[200] : Colors.orange[900],
                       ),
                     ),
                     subtitle: Text(
                       '라이트 모드, 다크 모드, 시스템 설정',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        color: isDark ? Colors.amber[300] : Colors.orange[700],
                       ),
                     ),
                     trailing: Icon(
                       Icons.chevron_right_rounded,
                       size: 20,
-                      color: isDark ? Colors.grey[500] : Colors.grey,
+                      color: isDark ? Colors.amber[400] : Colors.orange[600],
                     ),
                     onTap: () {
                       showDialog(
