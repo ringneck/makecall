@@ -2491,6 +2491,14 @@ class FCMService {
             // 2. 새로운 /main_with_tab route 생성
             await Future.delayed(const Duration(milliseconds: 100));
             
+            // 🔒 CRITICAL FIX: 로그아웃 상태에서는 MainScreen push 안 함
+            if (_authService == null || !_authService!.isAuthenticated) {
+              if (kDebugMode) {
+                debugPrint('⚠️ [FCM] 로그아웃 상태 - MainScreen push 스킵');
+              }
+              return;
+            }
+            
             if (context.mounted && didPopToRoot) {
               Navigator.of(context).push(
                 MaterialPageRoute(
