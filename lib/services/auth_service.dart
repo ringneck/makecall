@@ -31,6 +31,9 @@ class AuthService extends ChangeNotifier {
   // 🔒 로그아웃 상태 추적 (중복 notifyListeners 방지)
   String? _lastUserId;
   
+  // 🔒 로그아웃 진행 중 플래그 (authStateChanges 리스너 무시)
+  bool _isSigningOut = false;
+  
   // 🔥 CRITICAL FIX: 로그아웃 진행 중 플래그
   // FCM pushReplacement로 생성된 route가 남아있어도 LoginScreen 표시 강제
   bool _isLoggingOut = false;
@@ -57,6 +60,14 @@ class AuthService extends ChangeNotifier {
   
   AuthService() {
     _auth.authStateChanges().listen((User? user) {
+      // 🔒 CRITICAL FIX: 로그아웃 진행 중에는 authStateChanges 무시
+      if (_isSigningOut) {
+        if (kDebugMode) {
+          debugPrint('⚠️ Auth 상태 변경 무시 (로그아웃 진행 중)');
+        }
+        return;
+      }
+      
       if (user != null) {
         // 🔐 로그인 상태
         _lastUserId = user.uid;
@@ -387,6 +398,7 @@ class AuthService extends ChangeNotifier {
   Future<void> signOut() async {
     // 🔥 CRITICAL FIX: 로그아웃 플래그 설정 (FCM route 남아도 LoginScreen 강제 표시)
     _isLoggingOut = true;
+    _isSigningOut = true; // authStateChanges 리스너 무시
     notifyListeners(); // 즉시 MaterialApp.home Consumer에 알림
     
     // 🔍 로그아웃 전 Firestore 데이터 확인 (디버그용)
@@ -608,11 +620,13 @@ class AuthService extends ChangeNotifier {
     
     // 🔥 CRITICAL FIX: 로그아웃 플래그 해제 (LoginScreen 렌더링 허용)
     _isLoggingOut = false;
+    _isSigningOut = false; // authStateChanges 리스너 재활성화
     notifyListeners(); // 최종 상태 업데이트 알림
     
     if (kDebugMode) {
       debugPrint('✅ [LOGOUT] 로그아웃 완료');
       debugPrint('🔓 _isLoggingOut = false로 리셋');
+      debugPrint('🔓 _isSigningOut = false로 리셋');
       debugPrint('');
     }
   }
