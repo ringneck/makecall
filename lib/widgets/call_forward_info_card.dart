@@ -176,10 +176,10 @@ class _CallForwardInfoCardState extends State<CallForwardInfoCard> {
             width: 2,
           ),
         ),
-        child: const Column(
+        child: Column(
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 12),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 12),
             Text(
               '착신번호 조회 중...',
               style: TextStyle(
