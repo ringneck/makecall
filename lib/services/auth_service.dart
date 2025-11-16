@@ -16,7 +16,14 @@ class AuthService extends ChangeNotifier {
   final AccountManagerService _accountManager = AccountManagerService();
   
   User? get currentUser => _auth.currentUser;
-  bool get isAuthenticated => _currentUserModel != null && !_isWaitingForApproval && !_isLoggingOut;
+  bool get isAuthenticated {
+    final result = _currentUserModel != null && !_isWaitingForApproval && !_isLoggingOut;
+    // 🔍 CRITICAL DEBUG: isAuthenticated getter 호출 로깅
+    if (kDebugMode && !result && _auth.currentUser == null) {
+      debugPrint('🔍 isAuthenticated = false (_currentUserModel: ${_currentUserModel != null}, _isWaitingForApproval: $_isWaitingForApproval, _isLoggingOut: $_isLoggingOut)');
+    }
+    return result;
+  }
   
   UserModel? _currentUserModel;
   UserModel? get currentUserModel => _currentUserModel;
