@@ -589,13 +589,18 @@ class _MyAppState extends State<MyApp> {
                       if (authService.isAuthenticated) {
                         // ⏱️ 사용자 활동 감지 (GestureDetector로 전체 앱 감싸기)
                         return GestureDetector(
+                          key: ValueKey('gesture_${authService.currentUser?.uid}'),
                           onTap: () => _inactivityService.updateActivity(),
                           onPanDown: (_) => _inactivityService.updateActivity(),
                           behavior: HitTestBehavior.translucent,
-                          child: const MainScreen(), // 로그인 후 MAKECALL 메인 화면으로 이동
+                          child: MainScreen(
+                            key: ValueKey('main_${authService.currentUser?.uid}'),
+                          ), // 로그인 후 MAKECALL 메인 화면으로 이동
                         );
                       } else {
-                        return const LoginScreen();
+                        return LoginScreen(
+                          key: ValueKey('login_${DateTime.now().millisecondsSinceEpoch}'),
+                        );
                       }
                     },
                   ),
