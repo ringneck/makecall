@@ -697,7 +697,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     ),
                   ),
 
-                  // 기본 설정 카드
+                  // 기본 API 설정 카드
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -734,7 +734,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         ),
                       ),
                       title: Text(
-                        '기본 설정',
+                        '기본 API 설정',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
