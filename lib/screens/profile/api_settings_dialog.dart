@@ -182,7 +182,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     final dialogWidth = screenWidth > 600 ? 500.0 : screenWidth * 0.9;
     
     return AlertDialog(
-      title: const Text('기본 설정', style: TextStyle(fontSize: 16)),
+      title: const Text('기본 API 설정', style: TextStyle(fontSize: 16)),
       contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       content: SizedBox(
         width: dialogWidth,
@@ -220,8 +220,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 textInputAction: TextInputAction.next,
                 // iOS에서 기본 컨텍스트 메뉴 사용 (길게 누르기 + 붙여넣기)
                 decoration: InputDecoration(
-                  labelText: 'API Base URL',
-                  hintText: '예: api.example.com',
+                  labelText: 'REST API Base URL',
+                  hintText: '예: api.makecall.io',
                   border: const OutlineInputBorder(),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   labelStyle: const TextStyle(fontSize: 12),
@@ -233,7 +233,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                       final value = _apiBaseUrlController.text.trim();
                       if (value.isNotEmpty) {
                         Clipboard.setData(ClipboardData(text: value));
-                        await DialogUtils.showCopySuccess(context, 'API Base URL', value);
+                        await DialogUtils.showCopySuccess(context, 'REST API Base URL', value);
                       }
                     },
                     tooltip: '복사',
@@ -247,7 +247,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'API Base URL을 입력해주세요';
+                    return 'REST API Base URL을 입력해주세요';
                   }
                   if (value.contains('://')) {
                     return 'http://, https:// 제외하고 입력해주세요';
@@ -312,7 +312,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'API 연결 주소 미리보기',
+                            'REST API 연결 주소 미리보기',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -385,7 +385,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'API 인증 정보 (필수)',
+                          'REST API 인증 정보 (필수)',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
