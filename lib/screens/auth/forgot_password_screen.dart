@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io' show Platform;
@@ -68,6 +68,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         email: _emailController.text.trim(),
       );
 
+      if (kDebugMode) {
+        print('✅ 비밀번호 재설정 이메일 전송 성공: ${_emailController.text.trim()}');
+      }
+
       setState(() {
         _emailSent = true;
         _isLoading = false;
@@ -80,6 +84,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         );
       }
     } on FirebaseAuthException catch (e) {
+      if (kDebugMode) {
+        print('❌ 비밀번호 재설정 이메일 전송 실패: ${e.code} - ${e.message}');
+      }
+      
       String message = '비밀번호 재설정 이메일 발송에 실패했습니다.';
       
       switch (e.code) {
