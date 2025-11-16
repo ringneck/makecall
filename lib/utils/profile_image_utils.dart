@@ -163,85 +163,115 @@ class ProfileImageUtils {
       if (!context.mounted) return;
 
       if (kDebugMode) {
-        debugPrint('🖼️ [ProfileImageUtils] Showing croppy image cropper...');
+        debugPrint('🖼️ [ProfileImageUtils] Preparing image file...');
         debugPrint('🖼️ [ProfileImageUtils] Platform: ${Theme.of(context).platform}');
       }
 
       final imageFile = File(pickedFile.path);
 
       // 플랫폼에 맞는 크롭 UI 표시
-      final CropImageResult? croppedImage;
+      CropImageResult? croppedImage;
+      
+      try {
+        if (kDebugMode) {
+          debugPrint('🖼️ [ProfileImageUtils] Attempting to show image cropper...');
+        }
 
-      if (Theme.of(context).platform == TargetPlatform.iOS) {
-        // iOS: Cupertino 스타일 (iOS Photos 앱 느낌)
-        if (kDebugMode) {
-          debugPrint('🍎 [ProfileImageUtils] Using Cupertino cropper for iOS');
+        if (Theme.of(context).platform == TargetPlatform.iOS) {
+          // iOS: Cupertino 스타일 (iOS Photos 앱 느낌)
+          if (kDebugMode) {
+            debugPrint('🍎 [ProfileImageUtils] Using Cupertino cropper for iOS');
+          }
+          croppedImage = await showCupertinoImageCropper(
+            context,
+            imageProvider: FileImage(imageFile),
+            allowedAspectRatios: [
+              const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
+            ],
+          );
+        } else {
+          // Android/Web/기타: Material 스타일 (Google Photos 느낌)
+          if (kDebugMode) {
+            debugPrint('🤖 [ProfileImageUtils] Using Material cropper for Android');
+          }
+          croppedImage = await showMaterialImageCropper(
+            context,
+            imageProvider: FileImage(imageFile),
+            allowedAspectRatios: [
+              const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
+            ],
+          );
         }
-        croppedImage = await showCupertinoImageCropper(
-          context,
-          imageProvider: FileImage(imageFile),
-          allowedAspectRatios: [
-            const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
-          ],
-        );
-      } else {
-        // Android/Web/기타: Material 스타일 (Google Photos 느낌)
+
         if (kDebugMode) {
-          debugPrint('🤖 [ProfileImageUtils] Using Material cropper');
+          debugPrint('🖼️ [ProfileImageUtils] Crop result: ${croppedImage != null ? "success" : "cancelled"}');
         }
-        croppedImage = await showMaterialImageCropper(
-          context,
-          imageProvider: FileImage(imageFile),
-          allowedAspectRatios: [
-            const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
-          ],
-        );
+      } catch (cropError) {
+        if (kDebugMode) {
+          debugPrint('❌ [ProfileImageUtils] Crop UI failed: $cropError');
+          debugPrint('⚠️ [ProfileImageUtils] Falling back to direct upload without crop');
+        }
+        // 크롭 실패 시 원본 이미지 사용
+        croppedImage = null;
       }
 
-      if (kDebugMode) {
-        debugPrint('🖼️ [ProfileImageUtils] Crop result: ${croppedImage != null ? "success" : "cancelled"}');
-      }
-
+      // 크롭 이미지 또는 원본 이미지 처리
+      ui.Image originalImage;
+      
       if (croppedImage == null) {
         if (kDebugMode) {
-          debugPrint('⚠️ [ProfileImageUtils] Image cropper cancelled by user');
+          debugPrint('⚠️ [ProfileImageUtils] No crop result - loading original image');
         }
-        return;
+        
+        // 원본 이미지 로드
+        final bytes = await imageFile.readAsBytes();
+        final codec = await ui.instantiateImageCodec(bytes);
+        final frame = await codec.getNextFrame();
+        originalImage = frame.image;
+        
+        if (kDebugMode) {
+          debugPrint('✅ [ProfileImageUtils] Original image loaded: ${originalImage.width}x${originalImage.height}');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('✅ [ProfileImageUtils] Image cropped successfully');
+        }
+        originalImage = croppedImage.uiImage;
       }
 
-      if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] Image cropped successfully');
-      }
-
-      // 크롭된 이미지를 적절한 크기로 리사이즈 (512x512)
-      final originalImage = croppedImage.uiImage;
+      // 이미지를 적절한 크기로 리사이즈 (512x512)
       final targetSize = 512;
       
-      // 이미 작으면 리사이즈 생략
-      final needsResize = originalImage.width > targetSize || originalImage.height > targetSize;
+      // 이미지를 정사각형으로 크롭 (중앙 기준)
+      final minDimension = originalImage.width < originalImage.height 
+          ? originalImage.width 
+          : originalImage.height;
       
-      ui.Image resizedImage;
-      if (needsResize) {
-        if (kDebugMode) {
-          debugPrint('📐 [ProfileImageUtils] Resizing image from ${originalImage.width}x${originalImage.height} to ${targetSize}x$targetSize');
-        }
-        
-        // 리사이즈를 위한 PictureRecorder 사용
-        final recorder = ui.PictureRecorder();
-        final canvas = Canvas(recorder);
-        
-        // 정사각형으로 리사이즈
-        canvas.drawImageRect(
-          originalImage,
-          Rect.fromLTWH(0, 0, originalImage.width.toDouble(), originalImage.height.toDouble()),
-          Rect.fromLTWH(0, 0, targetSize.toDouble(), targetSize.toDouble()),
-          Paint(),
-        );
-        
-        final picture = recorder.endRecording();
-        resizedImage = await picture.toImage(targetSize, targetSize);
-      } else {
-        resizedImage = originalImage;
+      final cropX = (originalImage.width - minDimension) / 2;
+      final cropY = (originalImage.height - minDimension) / 2;
+      
+      if (kDebugMode) {
+        debugPrint('📐 [ProfileImageUtils] Original image: ${originalImage.width}x${originalImage.height}');
+        debugPrint('📐 [ProfileImageUtils] Cropping to square: ${minDimension}x$minDimension');
+        debugPrint('📐 [ProfileImageUtils] Crop offset: ($cropX, $cropY)');
+      }
+      
+      // 정사각형으로 크롭하고 리사이즈
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      
+      canvas.drawImageRect(
+        originalImage,
+        Rect.fromLTWH(cropX, cropY, minDimension.toDouble(), minDimension.toDouble()),
+        Rect.fromLTWH(0, 0, targetSize.toDouble(), targetSize.toDouble()),
+        Paint(),
+      );
+      
+      final picture = recorder.endRecording();
+      final resizedImage = await picture.toImage(targetSize, targetSize);
+      
+      if (kDebugMode) {
+        debugPrint('✅ [ProfileImageUtils] Image resized to ${targetSize}x$targetSize');
       }
 
       // 리사이즈된 이미지를 Uint8List로 변환
