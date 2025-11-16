@@ -2527,11 +2527,15 @@ class FCMService {
       
       // 🔧 FIX: _fcmToken이 null이어도 deviceId로 토큰 비활성화 시도
       final deviceId = await _getDeviceId();
+      final platform = await _getPlatformName();
       // ignore: avoid_print
       print('   deviceId: $deviceId');
+      // ignore: avoid_print
+      print('   platform: $platform');
       
       // 🔧 FIX: 삭제가 아니라 isActive를 false로 변경
-      await _databaseService.deactivateFcmToken(userId, deviceId);
+      // 🔑 CRITICAL: Platform 포함으로 iOS/Android 기기 구분
+      await _databaseService.deactivateFcmToken(userId, deviceId, platform);
       
       // ignore: avoid_print
       print('✅ [FCM-DEACTIVATE] 현재 기기 토큰 비활성화 완료');

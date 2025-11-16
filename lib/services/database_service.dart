@@ -1055,13 +1055,13 @@ class DatabaseService {
       // ignore: avoid_print
       print('   platform: ${tokenModel.platform}');
 
-      // 1. 다중 기기 로그인 허용 - 동일 기기의 기존 토큰만 확인
+      // 1. 다중 기기 로그인 허용 - 동일 기기+플랫폼의 기존 토큰만 확인
       // ignore: avoid_print
-      print('   🔄 [다중 기기 지원] 동일 기기의 토큰만 업데이트');
+      print('   🔄 [다중 기기 지원] 동일 기기+플랫폼의 토큰만 업데이트');
       
       final sameDeviceDoc = await _firestore
           .collection('fcm_tokens')
-          .doc('${tokenModel.userId}_${tokenModel.deviceId}')
+          .doc('${tokenModel.userId}_${tokenModel.deviceId}_${tokenModel.platform}')
           .get();
 
       if (sameDeviceDoc.exists) {
@@ -1072,10 +1072,11 @@ class DatabaseService {
         print('   ℹ️ 새 기기 토큰 추가 (중복 로그인 허용)');
       }
 
-      // 2. 새 토큰 저장 (deviceId를 문서 ID로 사용하여 중복 방지)
+      // 2. 새 토큰 저장 (deviceId + platform을 문서 ID로 사용하여 중복 방지)
+      // 🔑 CRITICAL: Platform 포함으로 iOS/Android 기기 구분
       final docRef = _firestore
           .collection('fcm_tokens')
-          .doc('${tokenModel.userId}_${tokenModel.deviceId}');
+          .doc('${tokenModel.userId}_${tokenModel.deviceId}_${tokenModel.platform}');
 
       await docRef.set(tokenModel.toMap());
 
@@ -1208,7 +1209,8 @@ class DatabaseService {
   /// 
   /// @param userId 사용자 ID
   /// @param deviceId 기기 ID
-  Future<void> deactivateFcmToken(String userId, String deviceId) async {
+  /// @param platform 플랫폼 (iOS, Android 등)
+  Future<void> deactivateFcmToken(String userId, String deviceId, String platform) async {
     try {
       // ignore: avoid_print
       print('🔓 [DatabaseService] FCM 토큰 비활성화 시작');
@@ -1217,9 +1219,12 @@ class DatabaseService {
       // ignore: avoid_print
       print('   deviceId: $deviceId');
       // ignore: avoid_print
-      print('   🎯 현재 기기만 비활성화 (다른 기기는 계속 활성)');
+      print('   platform: $platform');
+      // ignore: avoid_print
+      print('   🎯 현재 기기+플랫폼만 비활성화 (다른 기기는 계속 활성)');
 
-      final docId = '${userId}_$deviceId';
+      // 🔑 CRITICAL: Platform 포함으로 iOS/Android 기기 구분
+      final docId = '${userId}_${deviceId}_$platform';
       
       // 🔧 FIX: 삭제가 아니라 isActive를 false로 변경
       await _firestore.collection('fcm_tokens').doc(docId).update({
