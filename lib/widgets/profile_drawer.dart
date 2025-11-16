@@ -975,7 +975,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   ),
                 ),
                 title: Text(
-                  '알림 설정',
+                  '앱 알림 설정',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
@@ -4172,7 +4172,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '알림 설정',
+                    '앱 알림 설정',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
