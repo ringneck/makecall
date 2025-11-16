@@ -1603,49 +1603,6 @@ class _ProfileTabState extends State<ProfileTab> {
       useModernUI: true, // profile_tab은 Modern UI 사용
     );
   }
-        ),
-        content: Text(
-          '프로필 사진을 삭제하시겠습니까?',
-          style: TextStyle(
-            color: isDark ? Colors.grey[300] : Colors.black87,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              '취소',
-              style: TextStyle(
-                color: isDark ? Colors.grey[400] : Colors.grey[600],
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await authService.deleteProfileImage();
-        
-        if (context.mounted) {
-          await DialogUtils.showSuccess(context, '프로필 사진이 삭제되었습니다', duration: const Duration(seconds: 2));
-        }
-      } catch (e) {
-        if (context.mounted) {
-          await DialogUtils.showError(
-            context,
-            '삭제 실패: $e',
-          );
-        }
-      }
-    }
-  }
 
 
 }
