@@ -679,7 +679,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             
             // 🎯 모던한 설정 섹션
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
