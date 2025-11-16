@@ -4,12 +4,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:croppy/croppy.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
+import 'dart:ui' as ui;
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../services/database_service.dart';
@@ -1540,40 +1542,129 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
   Future<void> _pickImage(ImageSource source, AuthService authService) async {
     try {
+      if (kDebugMode) {
+        debugPrint('🖼️ [ProfileDrawer] Starting image picker with source: $source');
+      }
+      
       final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
+      final XFile? pickedFile = await picker.pickImage(
         source: source,
         maxWidth: 512,
         maxHeight: 512,
         imageQuality: 85,
       );
 
-      if (image != null) {
-        if (!mounted) return;
-        
-        // 로딩 표시
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
+      if (pickedFile == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [ProfileDrawer] Image picker cancelled');
+        }
+        return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ [ProfileDrawer] Image picked: ${pickedFile.path}');
+      }
 
-        // 이미지 업로드
-        final imageUrl = await authService.uploadProfileImage(File(image.path));
+      // 이미지 크롭 (croppy 사용)
+      if (!mounted) return;
+      
+      final imageFile = File(pickedFile.path);
+      
+      if (kDebugMode) {
+        debugPrint('🖼️ [ProfileDrawer] Showing croppy image cropper...');
+        debugPrint('🖼️ [ProfileDrawer] Platform: ${Theme.of(context).platform}');
+      }
+      
+      // 플랫폼에 맞는 크롭 UI 표시
+      final CroppableImageResult? croppedImage;
+      
+      if (Theme.of(context).platform == TargetPlatform.iOS) {
+        // iOS: Cupertino 스타일
+        if (kDebugMode) {
+          debugPrint('🍎 [ProfileDrawer] Using Cupertino cropper for iOS');
+        }
+        croppedImage = await showCupertinoImageCropper(
+          context,
+          imageProvider: FileImage(imageFile),
+          allowedAspectRatios: [
+            const CropAspectRatio(width: 1, height: 1),
+          ],
+        );
+      } else {
+        // Android/Web: Material 스타일
+        if (kDebugMode) {
+          debugPrint('🤖 [ProfileDrawer] Using Material cropper');
+        }
+        croppedImage = await showMaterialImageCropper(
+          context,
+          imageProvider: FileImage(imageFile),
+          allowedAspectRatios: [
+            const CropAspectRatio(width: 1, height: 1),
+          ],
+        );
+      }
+
+      if (kDebugMode) {
+        debugPrint('🖼️ [ProfileDrawer] Crop result: ${croppedImage != null ? "success" : "cancelled"}');
+      }
+
+      if (croppedImage == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [ProfileDrawer] Image cropper cancelled');
+        }
+        return;
+      }
+
+      if (kDebugMode) {
+        debugPrint('✅ [ProfileDrawer] Image cropped successfully');
+      }
+      
+      // 크롭된 이미지를 Uint8List로 변환
+      final byteData = await croppedImage.uiImage.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+      
+      if (byteData == null) {
+        if (kDebugMode) {
+          debugPrint('❌ [ProfileDrawer] Failed to convert cropped image');
+        }
+        return;
+      }
+      
+      final croppedBytes = byteData.buffer.asUint8List();
+      
+      // 크롭된 이미지를 임시 파일로 저장
+      final tempDir = Directory.systemTemp;
+      final tempFile = File('${tempDir.path}/cropped_profile_${DateTime.now().millisecondsSinceEpoch}.png');
+      await tempFile.writeAsBytes(croppedBytes);
+
+      if (!mounted) return;
+      
+      // 로딩 다이얼로그 표시
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      // 이미지 업로드
+      final imageUrl = await authService.uploadProfileImage(tempFile);
+      
+      if (mounted) {
+        Navigator.pop(context); // 로딩 다이얼로그 닫기
         
-        if (mounted) {
-          Navigator.pop(context); // 로딩 다이얼로그 닫기
-          
-          if (imageUrl != null) {
-            await DialogUtils.showInfo(context, '프로필 사진이 업데이트되었습니다', duration: const Duration(seconds: 2));
-          } else {
-            await DialogUtils.showInfo(context, '이미지 업로드에 실패했습니다', duration: const Duration(seconds: 2));
-          }
+        if (imageUrl != null) {
+          await DialogUtils.showInfo(context, '프로필 사진이 업데이트되었습니다', duration: const Duration(seconds: 2));
+        } else {
+          await DialogUtils.showInfo(context, '이미지 업로드에 실패했습니다', duration: const Duration(seconds: 2));
         }
       }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [ProfileDrawer] Error: $e');
+      }
       if (mounted) {
         await DialogUtils.showError(context, '오류: $e');
       }
