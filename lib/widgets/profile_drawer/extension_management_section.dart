@@ -93,19 +93,7 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (extensionCount > 0) ...[
-                        // 수신번호 표시
-                        Text(
-                          '수신번호: ${extensions.map((e) => e.accountCode ?? '미설정').join(", ")}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.green[300] : Colors.green[700],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
+                      if (extensionCount > 0)
                         // 단말번호 표시
                         Text(
                           '등록됨: ${extensions.map((e) => e.extension).join(", ")}',
@@ -115,8 +103,8 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                        ),
-                      ] else
+                        )
+                      else
                         Text(
                           '등록된 단말번호가 없습니다',
                           style: TextStyle(
@@ -254,14 +242,16 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              '등록된 단말: ${extensions.length}개',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.white.withAlpha(204),
-                                fontWeight: FontWeight.w500,
+                            // isPremium이 true일 때만 단말 수 표시
+                            if (userModel?.isPremium == true)
+                              Text(
+                                '등록된 단말: ${extensions.length}개',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white.withAlpha(204),
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
