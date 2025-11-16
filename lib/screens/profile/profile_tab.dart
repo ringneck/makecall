@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../utils/dialog_utils.dart';
+import '../../utils/profile_image_utils.dart';
+import '../../utils/common_utils.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:croppy/croppy.dart';
-import 'dart:io';
-import 'dart:ui' as ui;
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
 import '../../services/database_service.dart';
+import '../../services/extension_management_service.dart';
 import '../../models/my_extension_model.dart';
 import 'api_settings_dialog.dart';
 import 'active_sessions_screen.dart';
@@ -48,191 +47,35 @@ class _ProfileTabState extends State<ProfileTab> {
     super.dispose();
   }
 
+  // ✅ 리팩토링: CommonUtils 사용
   // 수동 업데이트 핸들러 (Firestore에서 사용자 데이터 새로고침)
   Future<void> _handleManualRefresh() async {
-    if (_isRefreshing) return;
-    
-    setState(() {
-      _isRefreshing = true;
-    });
-
-    try {
-      final authService = context.read<AuthService>();
-      final userId = authService.currentUser?.uid;
-      
-      if (userId == null) {
-        if (kDebugMode) {
-          debugPrint('⚠️ 사용자 ID가 없어서 새로고침을 건너뜁니다');
+    await CommonUtils.handleManualRefresh(
+      context,
+      context.read<AuthService>(),
+      isRefreshing: _isRefreshing,
+      setRefreshing: (value) {
+        if (mounted) {
+          setState(() {
+            _isRefreshing = value;
+          });
         }
-        return;
-      }
-
-      // Firestore에서 사용자 데이터 강제 새로고침
-      await authService.refreshUserModel();
-      
-      if (kDebugMode) {
-        debugPrint('✅ 사용자 데이터 새로고침 완료');
-      }
-
-      if (mounted) {
-        await DialogUtils.showSuccess(
-          context,
-          '정보가 업데이트되었습니다',
-          duration: const Duration(seconds: 2),
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ 새로고침 실패: $e');
-      }
-      
-      if (mounted) {
-        await DialogUtils.showError(
-          context,
-          '업데이트 실패: $e',
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isRefreshing = false;
-        });
-      }
-    }
+      },
+    );
   }
 
+  // ✅ 리팩토링: CommonUtils 사용
   // 타임스탬프 포맷 함수 (한국어 형식)
   String _formatUpdateTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    // 1분 이내
-    if (difference.inSeconds < 60) {
-      return '방금 업데이트됨';
-    }
-    // 1시간 이내
-    else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}분 전 업데이트';
-    }
-    // 24시간 이내
-    else if (difference.inHours < 24) {
-      return '${difference.inHours}시간 전 업데이트';
-    }
-    // 그 외 - 전체 날짜 표시
-    else {
-      final year = timestamp.year;
-      final month = timestamp.month;
-      final day = timestamp.day;
-      final hour = timestamp.hour;
-      final minute = timestamp.minute;
-      final period = hour >= 12 ? '오후' : '오전';
-      final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
-      
-      return '$year년 $month월 $day일 $period $displayHour:${minute.toString().padLeft(2, '0')} 업데이트';
-    }
+    return CommonUtils.formatUpdateTimestamp(timestamp);
   }
 
+  // ✅ 리팩토링: ExtensionManagementService 사용
   // 등록된 단말번호 정보 업데이트
   Future<void> _updateSavedExtensions() async {
     final authService = context.read<AuthService>();
-    final userModel = authService.currentUserModel;
-    final userId = authService.currentUser?.uid ?? '';
-
-    // API 설정이 없으면 종료
-    if (userModel?.apiBaseUrl == null) {
-      return;
-    }
-
-    try {
-      final dbService = DatabaseService();
-      
-      // 1. registered_extensions에서 내가 등록한 단말번호 가져오기
-      final registeredExtensions = await dbService.getUserRegisteredExtensions(userId);
-      
-      // 2. my_extensions에서 이미 있는 단말번호 목록 가져오기
-      final savedExtensions = await dbService.getMyExtensions(userId).first;
-      final existingExtensionNumbers = savedExtensions.map((e) => e.extension).toSet();
-      
-      // 3. registered_extensions에는 있지만 my_extensions에는 없는 단말번호 찾기
-      final missingExtensions = registeredExtensions
-          .where((ext) => !existingExtensionNumbers.contains(ext))
-          .toList();
-      
-      // 4. 누락된 단말번호를 my_extensions에 추가 (마이그레이션)
-      if (missingExtensions.isNotEmpty) {
-        if (kDebugMode) {
-          debugPrint('🔄 마이그레이션 시작: ${missingExtensions.length}개 단말번호를 my_extensions에 추가');
-        }
-        
-        for (final extension in missingExtensions) {
-          final myExtension = MyExtensionModel(
-            id: '',
-            userId: userId,
-            extensionId: '',
-            extension: extension,
-            name: extension, // 이름을 모르므로 단말번호를 이름으로 사용
-            classOfServicesId: '',
-            createdAt: DateTime.now(),
-            apiBaseUrl: userModel?.apiBaseUrl,
-            companyId: userModel?.companyId,
-            appKey: userModel?.appKey,
-            apiHttpPort: userModel?.apiHttpPort,
-            apiHttpsPort: userModel?.apiHttpsPort,
-          );
-          
-          await dbService.addMyExtension(myExtension);
-          
-          if (kDebugMode) {
-            debugPrint('   ✅ $extension 추가 완료');
-          }
-        }
-      }
-      
-      // 5. 등록된 단말번호 가져오기 (마이그레이션 후)
-      final allSavedExtensions = await dbService.getMyExtensions(userId).first;
-
-      if (allSavedExtensions.isEmpty) {
-        return;
-      }
-
-      // API Service 생성
-      // apiHttpPort가 3501이면 HTTPS 사용, 3500이면 HTTP 사용
-      final useHttps = (userModel!.apiHttpPort ?? 3500) == 3501;
-      
-      final apiService = ApiService(
-        baseUrl: userModel.getApiUrl(useHttps: useHttps),
-        companyId: userModel.companyId,
-        appKey: userModel.appKey,
-      );
-
-      // API에서 전체 단말번호 목록 가져오기
-      final dataList = await apiService.getExtensions();
-
-      // 저장된 각 단말번호에 대해 업데이트
-      for (final savedExtension in allSavedExtensions) {
-        // API 데이터에서 매칭되는 단말번호 찾기
-        final matchedData = dataList.firstWhere(
-          (item) => item['extension']?.toString() == savedExtension.extension,
-          orElse: () => <String, dynamic>{},
-        );
-
-        if (matchedData.isNotEmpty) {
-          // 새로운 정보로 업데이트
-          final updatedExtension = MyExtensionModel.fromApi(
-            userId: userId,
-            apiData: matchedData,
-          );
-
-          // DB 업데이트 (addMyExtension은 중복 시 업데이트 수행)
-          await dbService.addMyExtension(updatedExtension);
-        }
-      }
-
-      print('✅ 등록된 단말번호 정보 업데이트 완료 (${savedExtensions.length}개)');
-    } catch (e) {
-      print('⚠️ 단말번호 업데이트 실패: $e');
-      // 에러가 발생해도 UI는 정상적으로 표시되도록 무시
-    }
+    final extensionService = ExtensionManagementService(authService);
+    await extensionService.updateSavedExtensions();
   }
 
   @override
@@ -1751,253 +1594,15 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
+  // ✅ 리팩토링: ProfileImageUtils 사용
   // 프로필 사진 옵션 다이얼로그
   void _showProfileImageOptions(BuildContext context, AuthService authService) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 16),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '프로필 사진',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.camera_alt, color: Color(0xFF2196F3)),
-              title: const Text('사진 촬영'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera, authService);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library, color: Color(0xFF2196F3)),
-              title: const Text('갤러리에서 선택'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery, authService);
-              },
-            ),
-            if (authService.currentUserModel?.profileImageUrl != null)
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('프로필 사진 삭제'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _deleteProfileImage(authService);
-                },
-              ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+    ProfileImageUtils.showImageOptions(
+      context,
+      authService,
+      useModernUI: true, // profile_tab은 Modern UI 사용
     );
   }
-
-  // 이미지 선택
-  Future<void> _pickImage(ImageSource source, AuthService authService) async {
-    try {
-      if (kDebugMode) {
-        debugPrint('🖼️ Starting image picker with source: $source');
-      }
-      
-      final picker = ImagePicker();
-      
-      // iOS hang 방지: 약간의 지연을 추가하여 UI 스레드가 완전히 정리되도록 함
-      await Future.delayed(const Duration(milliseconds: 100));
-      
-      final pickedFile = await picker.pickImage(
-        source: source,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 85,
-        requestFullMetadata: false,  // iOS에서 메타데이터 요청을 건너뛰어 성능 향상
-      );
-
-      if (pickedFile == null) {
-        if (kDebugMode) {
-          debugPrint('⚠️ Image picker cancelled by user');
-        }
-        return;
-      }
-
-      if (kDebugMode) {
-        debugPrint('✅ Image picked: ${pickedFile.path}');
-      }
-
-      // 이미지 크롭 (croppy 사용)
-      if (!mounted) return;
-      
-      if (kDebugMode) {
-        debugPrint('📸 Reading image file...');
-      }
-      
-      final imageFile = File(pickedFile.path);
-      
-      if (kDebugMode) {
-        debugPrint('🖼️ Showing croppy image cropper...');
-        debugPrint('🖼️ Platform: ${Theme.of(context).platform}');
-      }
-      
-      // 플랫폼에 맞는 크롭 UI 표시
-      final CroppableImageResult? croppedImage;
-      
-      if (Theme.of(context).platform == TargetPlatform.iOS) {
-        // iOS: Cupertino 스타일 (iOS Photos 앱 느낌)
-        if (kDebugMode) {
-          debugPrint('🍎 Using Cupertino cropper for iOS');
-        }
-        croppedImage = await showCupertinoImageCropper(
-          context,
-          imageProvider: FileImage(imageFile),
-          allowedAspectRatios: [
-            const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
-          ],
-        );
-      } else {
-        // Android/Web/기타: Material 스타일 (Google Photos 느낌)
-        if (kDebugMode) {
-          debugPrint('🤖 Using Material cropper');
-        }
-        croppedImage = await showMaterialImageCropper(
-          context,
-          imageProvider: FileImage(imageFile),
-          allowedAspectRatios: [
-            const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
-          ],
-        );
-      }
-
-      if (kDebugMode) {
-        debugPrint('🖼️ Crop result: ${croppedImage != null ? "success" : "cancelled"}');
-      }
-
-      if (croppedImage == null) {
-        if (kDebugMode) {
-          debugPrint('⚠️ Image cropper cancelled by user');
-        }
-        return;
-      }
-
-      if (kDebugMode) {
-        debugPrint('✅ Image cropped successfully');
-      }
-      
-      // 크롭된 이미지를 Uint8List로 변환
-      final byteData = await croppedImage.uiImage.toByteData(
-        format: ui.ImageByteFormat.png,
-      );
-      
-      if (byteData == null) {
-        if (kDebugMode) {
-          debugPrint('❌ Failed to convert cropped image to bytes');
-        }
-        return;
-      }
-      
-      final croppedBytes = byteData.buffer.asUint8List();
-
-      // 로딩 다이얼로그 표시
-      if (!mounted) return;
-      
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => PopScope(
-          canPop: false,  // 백버튼으로 닫기 방지
-          child: const Center(
-            child: Card(
-              child: Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('프로필 사진 업로드 중...'),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      // 크롭된 이미지를 임시 파일로 저장
-      final tempDir = Directory.systemTemp;
-      final tempFile = File('${tempDir.path}/cropped_profile_${DateTime.now().millisecondsSinceEpoch}.png');
-      await tempFile.writeAsBytes(croppedBytes);
-      
-      // Firebase Storage에 업로드 (비동기 처리)
-      final uploadFile = tempFile;
-      
-      if (kDebugMode) {
-        debugPrint('📤 Uploading image to Firebase Storage...');
-      }
-      
-      await authService.uploadProfileImage(uploadFile);
-
-      if (kDebugMode) {
-        debugPrint('✅ Image upload completed successfully');
-      }
-
-      if (!mounted) return;
-      
-      Navigator.pop(context); // 로딩 다이얼로그 닫기
-      
-      await DialogUtils.showSuccess(
-        context,
-        '프로필 사진이 업데이트되었습니다',
-        duration: const Duration(seconds: 2),
-      );
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ Image upload error: $e');
-      }
-      
-      if (!mounted) return;
-      
-      // 로딩 다이얼로그가 열려있으면 닫기
-      Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
-      
-      await DialogUtils.showError(
-        context,
-        '이미지 업로드 실패: ${e.toString()}',
-      );
-    }
-  }
-
-  // 프로필 사진 삭제
-  Future<void> _deleteProfileImage(AuthService authService) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? Colors.grey[900] : Colors.white,
-        title: Text(
-          '프로필 사진 삭제',
-          style: TextStyle(
-            color: isDark ? Colors.grey[200] : Colors.black87,
-          ),
         ),
         content: Text(
           '프로필 사진을 삭제하시겠습니까?',
