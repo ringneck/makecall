@@ -188,6 +188,12 @@ class _CallTabState extends State<CallTab> {
   /// - Idempotent: 이미 설정된 경우 재설정하지 않음
   /// - Fail Silent: 에러 시 조용히 처리 (사용자 경험 저해 방지)
   Future<void> _initializeExtensions() async {
+    // 🔒 Early Return: 인증 상태 검증 (CRITICAL FIX for blank screen issue)
+    if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
+      if (kDebugMode) debugPrint('⚠️ 단말번호 초기화 스킵: 로그아웃 상태');
+      return;
+    }
+    
     // 🔒 Early Return: userId 검증
     final userId = _authService?.currentUser?.uid;
     if (userId == null || userId.isEmpty) {
@@ -248,6 +254,12 @@ class _CallTabState extends State<CallTab> {
     _hasCheckedNewUser = true;
 
     try {
+      // 🔒 Early Return: 인증 상태 검증 (CRITICAL FIX for blank screen issue)
+      if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
+        if (kDebugMode) debugPrint('⚠️ 신규 사용자 체크 스킵: 로그아웃 상태');
+        return;
+      }
+      
       final userId = _authService?.currentUser?.uid;
       if (userId == null) return;
 
@@ -338,6 +350,12 @@ class _CallTabState extends State<CallTab> {
     // 🔒 중복 실행 방지
     if (_hasCheckedSettings) {
       if (kDebugMode) debugPrint('✅ 설정 체크 이미 완료됨');
+      return;
+    }
+    
+    // 🔒 Early Return: 인증 상태 검증 (CRITICAL FIX for blank screen issue)
+    if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
+      if (kDebugMode) debugPrint('⚠️ 설정 체크 스킵: 로그아웃 상태');
       return;
     }
     
