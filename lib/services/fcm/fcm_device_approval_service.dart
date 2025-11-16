@@ -91,21 +91,42 @@ class FCMDeviceApprovalService {
           .where('isActive', isEqualTo: true)
           .get();
       
+      // ignore: avoid_print
+      print('🔍 [FCM-APPROVAL] 전체 활성 토큰 조회 결과: ${existingTokens.docs.length}개');
+      
+      // 🔧 디버깅: 모든 활성 토큰 출력
+      for (var doc in existingTokens.docs) {
+        final data = doc.data();
+        // ignore: avoid_print
+        print('   📱 활성 토큰: ${data['deviceName']} (${data['deviceId']}_${data['platform']})');
+        // ignore: avoid_print
+        print('      - 문서 ID: ${doc.id}');
+        // ignore: avoid_print
+        print('      - isActive: ${data['isActive']}');
+      }
+      
       // 🔑 CRITICAL: Device ID + Platform 조합으로 기기 구분
       final newDeviceKey = '${newDeviceId}_$newPlatform';
+      // ignore: avoid_print
+      print('🆕 [FCM-APPROVAL] 새 기기 키: $newDeviceKey');
       
       // 새 기기를 제외한 기존 기기들만 필터링
       final otherDeviceTokens = existingTokens.docs
           .where((doc) {
             final data = doc.data();
             final existingDeviceKey = '${data['deviceId']}_${data['platform']}';
-            return existingDeviceKey != newDeviceKey;
+            final isSameDevice = existingDeviceKey == newDeviceKey;
+            
+            // ignore: avoid_print
+            print('   🔍 비교: $existingDeviceKey == $newDeviceKey ? $isSameDevice');
+            
+            return !isSameDevice;
           })
           .toList();
       
       if (otherDeviceTokens.isEmpty) {
         // ignore: avoid_print
-        print('ℹ️ [FCM-APPROVAL] 다른 활성 기기 없음 - 승인 요청 불필요');
+        print('✅ [FCM-APPROVAL] 다른 활성 기기 없음 - 승인 요청 불필요 (첫 로그인)');
         throw Exception('No other devices found');
       }
       
@@ -114,7 +135,7 @@ class FCMDeviceApprovalService {
       for (var token in otherDeviceTokens) {
         final data = token.data();
         // ignore: avoid_print
-        print('   - ${data['deviceName']} (${data['deviceId']}_${data['platform']})');
+        print('   ⚠️ 승인 필요: ${data['deviceName']} (${data['deviceId']}_${data['platform']})');
       }
       
       // 🔑 CRITICAL: 문서 ID를 userId_deviceId_platform 형식으로 명시
