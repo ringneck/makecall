@@ -559,16 +559,29 @@ class AuthService extends ChangeNotifier {
           try {
             final navigator = Navigator.of(navigatorKey.currentContext!);
             
-            // 🔥 CRITICAL FIX: MaterialApp.home route는 pop 불가
-            // Navigator 조작 대신 notifyListeners()로 Consumer 리빌드 유도
+            // 🔥 CRITICAL FIX: Navigator 스택에서 MainScreen 제거
             final canPop = navigator.canPop();
             if (kDebugMode) {
               debugPrint('🔄 [6/6] Navigator 스택 상태 확인');
               debugPrint('   canPop: $canPop');
-              if (canPop) {
-                debugPrint('   ⚠️ MaterialApp.home route는 pop 불가 - Consumer 리빌드로 처리');
-              } else {
-                debugPrint('   ℹ️ Navigator 스택이 비어있음 (root만 존재)');
+            }
+            
+            // Navigator 스택에 MainScreen이 있으면 제거
+            if (canPop) {
+              try {
+                // root (MaterialApp.home)까지 pop
+                navigator.popUntil((route) => route.isFirst);
+                if (kDebugMode) {
+                  debugPrint('✅ [6/6] Navigator 스택 정리 완료 (MainScreen 제거)');
+                }
+              } catch (e) {
+                if (kDebugMode) {
+                  debugPrint('⚠️  [6/6] Navigator popUntil 오류: $e');
+                }
+              }
+            } else {
+              if (kDebugMode) {
+                debugPrint('ℹ️  [6/6] Navigator 스택이 이미 비어있음');
               }
             }
             
