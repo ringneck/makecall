@@ -1387,13 +1387,24 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   /// 📝 통화 기록 저장
   Future<void> _saveCallHistory() async {
     try {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId == null) {
+      // ⚠️ 안전 장치 1: 위젯이 dispose되었는지 확인
+      if (!mounted) {
         if (kDebugMode) {
-          debugPrint('⚠️ 사용자 ID가 없어서 통화 기록을 저장하지 않습니다');
+          debugPrint('⚠️ [SAVE-HISTORY] 위젯이 dispose됨 - 통화 기록 저장 건너뜀');
         }
         return;
       }
+      
+      // ⚠️ 안전 장치 2: 사용자 로그인 상태 확인
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [SAVE-HISTORY] 사용자 로그아웃됨 - 통화 기록 저장 건너뜀');
+        }
+        return;
+      }
+      
+      final userId = currentUser.uid;
 
       final callHistoryData = {
         'userId': userId,
@@ -1416,19 +1427,31 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         if (widget.myExternalCidNumber != null) 'myExternalCidNumber': widget.myExternalCidNumber,
       };
 
+      // ⚠️ 안전 장치 3: Firestore 쓰기 전 다시 한번 로그인 상태 확인
+      if (FirebaseAuth.instance.currentUser == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [SAVE-HISTORY] Firestore 쓰기 직전 로그아웃 감지 - 저장 중단');
+        }
+        return;
+      }
+
       await FirebaseFirestore.instance
           .collection('call_history')
           .add(callHistoryData);
 
       if (kDebugMode) {
-        debugPrint('✅ 통화 기록 저장 완료');
+        debugPrint('✅ [SAVE-HISTORY] 통화 기록 저장 완료');
         debugPrint('  발신자: ${widget.callerName} (${widget.callerNumber})');
         debugPrint('  수신번호: ${widget.receiverNumber}');
         debugPrint('  타입: incoming (confirmed)');
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ 통화 기록 저장 실패: $e');
+        debugPrint('❌ [SAVE-HISTORY] 통화 기록 저장 실패: $e');
+        // 로그아웃으로 인한 권한 오류는 조용히 무시
+        if (e.toString().contains('permission') || e.toString().contains('unauthorized')) {
+          debugPrint('   → 권한 오류 (로그아웃 가능성) - 무시');
+        }
       }
     }
   }
