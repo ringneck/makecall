@@ -547,47 +547,16 @@ class AuthService extends ChangeNotifier {
           try {
             final navigator = Navigator.of(navigatorKey.currentContext!);
             
-            // 🔥 CRITICAL FIX: fcm_service.dart의 pushReplacement로 생성된 route 감지 및 제거
-            // route.settings.name이 '/main_with_tab'인 경우 FCM에서 생성한 MainScreen
-            bool canPop = navigator.canPop();
-            bool hasFcmRoute = false;
-            
-            // 현재 route 확인
-            if (navigator.canPop()) {
-              // popUntil로 FCM route 탐색
-              try {
-                navigator.popUntil((route) {
-                  if (route.settings.name == '/main_with_tab') {
-                    hasFcmRoute = true;
-                    if (kDebugMode) {
-                      debugPrint('🔍 [6/6] FCM route 감지: ${route.settings.name}');
-                    }
-                  }
-                  return route.isFirst; // root까지 확인
-                });
-              } catch (e) {
-                if (kDebugMode) {
-                  debugPrint('⚠️  [6/6] popUntil 오류 (무시 가능): $e');
-                }
-              }
-            }
-            
-            if (canPop) {
-              if (kDebugMode) {
-                debugPrint('🔄 [6/6] Navigator 스택에서 모든 route 제거 중...');
-                if (hasFcmRoute) {
-                  debugPrint('   → FCM에서 생성한 MainScreen route 포함');
-                }
-              }
-              
-              // 모든 route를 제거 (root까지)
-              // FCM route도 함께 제거됨
-              if (kDebugMode) {
-                debugPrint('✅ [6/6] Navigator 스택 정리 완료');
-              }
-            } else {
-              if (kDebugMode) {
-                debugPrint('ℹ️  [6/6] Navigator 스택이 이미 비어있음 (root만 존재)');
+            // 🔥 CRITICAL FIX: MaterialApp.home route는 pop 불가
+            // Navigator 조작 대신 notifyListeners()로 Consumer 리빌드 유도
+            final canPop = navigator.canPop();
+            if (kDebugMode) {
+              debugPrint('🔄 [6/6] Navigator 스택 상태 확인');
+              debugPrint('   canPop: $canPop');
+              if (canPop) {
+                debugPrint('   ⚠️ MaterialApp.home route는 pop 불가 - Consumer 리빌드로 처리');
+              } else {
+                debugPrint('   ℹ️ Navigator 스택이 비어있음 (root만 존재)');
               }
             }
             
