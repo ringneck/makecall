@@ -2409,10 +2409,12 @@ class FCMService {
         ),
       );
       
-      // ✅ 수신 알림 화면에서 "확인" 버튼 눌렀을 때 최근통화 탭으로 이동
+      // ⚠️ DEPRECATED: 수신 알림 화면에서 "확인" 버튼 눌렀을 때 최근통화 탭으로 이동
+      // 이유: moveToTab이 로그아웃 후에도 실행되어 MainScreen을 push하는 문제 발생
+      // 현재: IncomingCallScreen은 moveToTab 없이 pop만 수행
       if (result != null && result['moveToTab'] != null) {
         final targetTabIndex = result['moveToTab'] as int;
-        print('📲 [FCM] 최근통화 탭으로 이동 요청: index=$targetTabIndex');
+        print('⚠️ [FCM-DEPRECATED] 최근통화 탭으로 이동 요청 (더 이상 사용 안 함): index=$targetTabIndex');
         
         // 🔥 CRITICAL FIX: 연속된 수신전화에서 두 번째 pushReplacement 시 검은 화면 발생
         // 원인: 이미 /main_with_tab route가 존재하는데 또 pushReplacement 시도
