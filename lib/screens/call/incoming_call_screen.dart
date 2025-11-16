@@ -1231,6 +1231,19 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     return Center(
       child: GestureDetector(
         onTap: () async {
+          if (kDebugMode) {
+            debugPrint('✅ [INCOMING-CALL] 확인 버튼 클릭 - 리소스 정리 시작');
+          }
+          
+          // 🔥 CRITICAL: Firestore 리스너 즉시 취소 (로그아웃 시 에러 방지)
+          if (_callHistoryListener != null) {
+            await _callHistoryListener!.cancel();
+            _callHistoryListener = null;
+            if (kDebugMode) {
+              debugPrint('✅ [INCOMING-CALL] Firestore 리스너 취소 완료');
+            }
+          }
+          
           // 벨소리/진동 중지
           await _stopRingtoneAndVibration();
           
@@ -1239,6 +1252,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           
           // 통화 기록 저장
           await _saveCallHistory();
+          
           // 화면 닫고 최근통화 탭으로 이동 (result: {'moveToTab': 1})
           if (mounted) {
             Navigator.of(context).pop({'moveToTab': 1}); // 1 = 최근통화 탭
