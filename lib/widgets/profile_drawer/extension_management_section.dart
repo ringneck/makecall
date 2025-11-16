@@ -93,7 +93,19 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (extensionCount > 0)
+                      if (extensionCount > 0) ...[
+                        // 수신번호 표시
+                        Text(
+                          '수신번호: ${extensions.map((e) => e.accountCode ?? '미설정').join(", ")}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.green[300] : Colors.green[700],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
                         // 단말번호 표시
                         Text(
                           '등록됨: ${extensions.map((e) => e.extension).join(", ")}',
@@ -103,8 +115,8 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                        )
-                      else
+                        ),
+                      ] else
                         Text(
                           '등록된 단말번호가 없습니다',
                           style: TextStyle(
@@ -639,49 +651,6 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // 수신번호 (세 번째 줄 - 모던 배지)
-                  if (ext.accountCode != null && ext.accountCode!.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: (isDark ? Colors.green[900]! : Colors.green[50]!).withAlpha(128),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isDark ? Colors.green[700]! : Colors.green[300]!,
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.call_received_rounded,
-                            size: 16,
-                            color: isDark ? Colors.green[300] : Colors.green[700],
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '수신번호: ',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.grey[400] : Colors.grey[700],
-                            ),
-                          ),
-                          Text(
-                            ext.accountCode!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.green[300] : Colors.green[800],
-                              fontFamily: 'monospace',
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 10),
                   
                   // 수신번호 (길게 누르면 복사)
                   if (ext.accountCode != null && ext.accountCode!.isNotEmpty) ...[
