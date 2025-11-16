@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/main_number_model.dart';
 import '../models/extension_model.dart';
 import '../models/call_history_model.dart';
@@ -12,6 +13,20 @@ import '../models/fcm_token_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  /// 🛡️ Stream 에러 핸들러: 로그아웃 시 Permission Denied 에러를 조용히 무시
+  Stream<T> _handleStreamErrors<T>(Stream<T> stream) {
+    return stream.handleError((error) {
+      // Permission denied 에러는 조용히 무시 (로그아웃 시 정상)
+      if (!error.toString().contains('PERMISSION_DENIED')) {
+        if (kDebugMode) {
+          debugPrint('❌ [DB-STREAM] Unexpected error: $error');
+        }
+      }
+      // 빈 스트림 반환하여 에러 전파 방지
+      throw error; // rethrow to let StreamBuilder handle it
+    });
+  }
   
   // ===== 대표번호 관리 =====
   
@@ -145,6 +160,13 @@ class DatabaseService {
         .collection('call_history')
         .where('userId', isEqualTo: userId)
         .snapshots()
+        .handleError((error) {
+          // 로그아웃 시 permission denied 에러 조용히 무시
+          if (kDebugMode && !error.toString().contains('PERMISSION_DENIED')) {
+            debugPrint('❌ [DB] getUserCallHistory error: $error');
+          }
+          return const Stream<QuerySnapshot<Map<String, dynamic>>>.empty();
+        })
         .map((snapshot) {
           final history = snapshot.docs
               .map((doc) => CallHistoryModel.fromMap(doc.data(), doc.id))
@@ -221,28 +243,31 @@ class DatabaseService {
   
   // 사용자의 연락처 조회
   Stream<List<ContactModel>> getUserContacts(String userId) {
-    return _firestore
-        .collection('contacts')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) {
-          final contacts = snapshot.docs
-              .map((doc) => ContactModel.fromMap(doc.data(), doc.id))
-              .toList();
-          // 메모리에서 이름으로 정렬 (복합 인덱스 불필요)
-          contacts.sort((a, b) => a.name.compareTo(b.name));
-          return contacts;
-        });
+    return _handleStreamErrors(
+      _firestore
+          .collection('contacts')
+          .where('userId', isEqualTo: userId)
+          .snapshots()
+          .map((snapshot) {
+            final contacts = snapshot.docs
+                .map((doc) => ContactModel.fromMap(doc.data(), doc.id))
+                .toList();
+            // 메모리에서 이름으로 정렬 (복합 인덱스 불필요)
+            contacts.sort((a, b) => a.name.compareTo(b.name));
+            return contacts;
+          }),
+    );
   }
   
   // 즐겨찾기 연락처 조회
   Stream<List<ContactModel>> getFavoriteContacts(String userId) {
-    return _firestore
-        .collection('contacts')
-        .where('userId', isEqualTo: userId)
-        .where('isFavorite', isEqualTo: true)
-        .snapshots()
-        .map((snapshot) {
+    return _handleStreamErrors(
+      _firestore
+          .collection('contacts')
+          .where('userId', isEqualTo: userId)
+          .where('isFavorite', isEqualTo: true)
+          .snapshots()
+          .map((snapshot) {
           final contacts = snapshot.docs
               .map((doc) => ContactModel.fromMap(doc.data(), doc.id))
               .toList();
@@ -365,18 +390,20 @@ class DatabaseService {
   
   // 사용자의 내 단말번호 목록 조회
   Stream<List<MyExtensionModel>> getMyExtensions(String userId) {
-    return _firestore
-        .collection('my_extensions')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) {
-          final extensions = snapshot.docs
-              .map((doc) => MyExtensionModel.fromFirestore(doc.data(), doc.id))
-              .toList();
-          // 메모리에서 생성 시간으로 정렬 (최신순)
-          extensions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return extensions;
-        });
+    return _handleStreamErrors(
+      _firestore
+          .collection('my_extensions')
+          .where('userId', isEqualTo: userId)
+          .snapshots()
+          .map((snapshot) {
+            final extensions = snapshot.docs
+                .map((doc) => MyExtensionModel.fromFirestore(doc.data(), doc.id))
+                .toList();
+            // 메모리에서 생성 시간으로 정렬 (최신순)
+            extensions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return extensions;
+          }),
+    );
   }
   
   // 내 단말번호 삭제
@@ -639,25 +666,29 @@ class DatabaseService {
   
   // 특정 Phonebook의 연락처 목록 조회
   Stream<List<PhonebookContactModel>> getPhonebookContacts(String userId, String phonebookId) {
-    return _firestore
-        .collection('phonebook_contacts')
-        .where('userId', isEqualTo: userId)
-        .where('phonebookId', isEqualTo: phonebookId)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => PhonebookContactModel.fromFirestore(doc.data(), doc.id))
-            .toList());
+    return _handleStreamErrors(
+      _firestore
+          .collection('phonebook_contacts')
+          .where('userId', isEqualTo: userId)
+          .where('phonebookId', isEqualTo: phonebookId)
+          .snapshots()
+          .map((snapshot) => snapshot.docs
+              .map((doc) => PhonebookContactModel.fromFirestore(doc.data(), doc.id))
+              .toList()),
+    );
   }
   
   // 사용자의 모든 Phonebook 연락처 조회
   Stream<List<PhonebookContactModel>> getAllPhonebookContacts(String userId) {
-    return _firestore
-        .collection('phonebook_contacts')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => PhonebookContactModel.fromFirestore(doc.data(), doc.id))
-            .toList());
+    return _handleStreamErrors(
+      _firestore
+          .collection('phonebook_contacts')
+          .where('userId', isEqualTo: userId)
+          .snapshots()
+          .map((snapshot) => snapshot.docs
+              .map((doc) => PhonebookContactModel.fromFirestore(doc.data(), doc.id))
+              .toList()),
+    );
   }
   
   // Phonebook 연락처 즐겨찾기 토글
@@ -679,12 +710,13 @@ class DatabaseService {
   
   // Phonebook 즐겨찾기 연락처만 조회
   Stream<List<PhonebookContactModel>> getFavoritePhonebookContacts(String userId) {
-    return _firestore
-        .collection('phonebook_contacts')
-        .where('userId', isEqualTo: userId)
-        .where('isFavorite', isEqualTo: true)
-        .snapshots()
-        .map((snapshot) {
+    return _handleStreamErrors(
+      _firestore
+          .collection('phonebook_contacts')
+          .where('userId', isEqualTo: userId)
+          .where('isFavorite', isEqualTo: true)
+          .snapshots()
+          .map((snapshot) {
           final contacts = snapshot.docs
               .map((doc) => PhonebookContactModel.fromFirestore(doc.data(), doc.id))
               .toList();
