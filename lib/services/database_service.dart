@@ -1263,7 +1263,7 @@ class DatabaseService {
     }
   }
 
-  Future<void> deleteFcmToken(String userId, String deviceId) async {
+  Future<void> deleteFcmToken(String userId, String deviceId, String platform) async {
     try {
       // ignore: avoid_print
       print('🗑️  [DatabaseService] FCM 토큰 삭제 시작');
@@ -1272,9 +1272,12 @@ class DatabaseService {
       // ignore: avoid_print
       print('   deviceId: $deviceId');
       // ignore: avoid_print
+      print('   platform: $platform');
+      // ignore: avoid_print
       print('   ⚠️  삭제 범위: fcm_tokens 컬렉션만 (단일 문서)');
 
-      final docId = '${userId}_$deviceId';
+      // 🔑 CRITICAL: Platform 포함으로 iOS/Android 기기 구분
+      final docId = '${userId}_${deviceId}_$platform';
       await _firestore.collection('fcm_tokens').doc(docId).delete();
 
       // ignore: avoid_print
@@ -1300,9 +1303,11 @@ class DatabaseService {
   /// 
   /// @param userId 사용자 ID
   /// @param deviceId 기기 ID
-  Future<void> updateFcmTokenActivity(String userId, String deviceId) async {
+  /// @param platform 플랫폼 (ios, android, web)
+  Future<void> updateFcmTokenActivity(String userId, String deviceId, String platform) async {
     try {
-      final docId = '${userId}_$deviceId';
+      // 🔑 CRITICAL: Platform 포함으로 iOS/Android 기기 구분
+      final docId = '${userId}_${deviceId}_$platform';
       await _firestore.collection('fcm_tokens').doc(docId).update({
         'lastActiveAt': FieldValue.serverTimestamp(),
       });
@@ -1368,6 +1373,76 @@ class DatabaseService {
       if (kDebugMode) {
         debugPrint('❌ FCM 토큰 정리 실패: $e');
       }
+    }
+  }
+
+  /// 🔧 레거시 FCM 토큰 정리 (플랫폼 정보 없는 옛날 토큰 삭제)
+  /// 
+  /// 문서 ID 형식: userId_deviceId (플랫폼 없음)
+  /// 새 형식: userId_deviceId_platform
+  /// 
+  /// 로그인 시 자동으로 호출되어 오래된 형식의 토큰을 정리합니다.
+  Future<void> cleanupLegacyFcmTokens(String userId) async {
+    try {
+      // ignore: avoid_print
+      print('🧹 [DatabaseService] 레거시 FCM 토큰 정리 시작...');
+      
+      // 해당 사용자의 모든 토큰 조회
+      final allTokens = await _firestore
+          .collection('fcm_tokens')
+          .where('userId', isEqualTo: userId)
+          .get();
+      
+      // 플랫폼 정보가 없는 옛날 형식 필터링
+      // 새 형식: userId_deviceId_platform (3개 파트)
+      // 옛날 형식: userId_deviceId (2개 파트)
+      final legacyTokens = allTokens.docs.where((doc) {
+        final docId = doc.id;
+        final parts = docId.split('_');
+        // 2개 파트면 옛날 형식 (userId_deviceId)
+        return parts.length == 2;
+      }).toList();
+      
+      if (legacyTokens.isEmpty) {
+        // ignore: avoid_print
+        print('✅ [DatabaseService] 정리할 레거시 토큰 없음');
+        return;
+      }
+      
+      // ignore: avoid_print
+      print('🗑️ [DatabaseService] ${legacyTokens.length}개의 레거시 토큰 삭제 중...');
+      
+      // 배치 삭제 (최대 500개씩)
+      final batch = _firestore.batch();
+      int count = 0;
+      
+      for (var doc in legacyTokens) {
+        batch.delete(doc.reference);
+        count++;
+        
+        // ignore: avoid_print
+        print('   - 삭제: ${doc.id}');
+        
+        if (count >= 500) {
+          await batch.commit();
+          // ignore: avoid_print
+          print('   ✅ 500개 배치 삭제 완료');
+          count = 0;
+        }
+      }
+      
+      // 남은 문서 삭제
+      if (count > 0) {
+        await batch.commit();
+      }
+      
+      // ignore: avoid_print
+      print('✅ [DatabaseService] 레거시 토큰 ${legacyTokens.length}개 정리 완료');
+      
+    } catch (e) {
+      // ignore: avoid_print
+      print('⚠️ [DatabaseService] 레거시 토큰 정리 중 오류 (무시): $e');
+      // 에러를 던지지 않음 - 로그인은 계속 진행
     }
   }
 

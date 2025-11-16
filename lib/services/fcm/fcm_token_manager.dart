@@ -60,6 +60,14 @@ class FCMTokenManager {
       // ignore: avoid_print
       print('   - Platform: $platform');
       
+      // 🔧 레거시 토큰 정리 (플랫폼 정보 없는 옛날 토큰 삭제)
+      try {
+        await _databaseService.cleanupLegacyFcmTokens(userId);
+      } catch (e) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-SAVE] 레거시 토큰 정리 실패 (무시): $e');
+      }
+      
       // 1. 모든 기존 활성 토큰 조회 (다중 기기 지원)
       // ignore: avoid_print
       print('🔍 [FCM-SAVE] 모든 활성 토큰 조회 중...');
