@@ -245,6 +245,10 @@ class ProfileImageUtils {
       }
 
       // 리사이즈된 이미지를 Uint8List로 변환
+      if (kDebugMode) {
+        debugPrint('🔄 [ProfileImageUtils] Converting image to bytes...');
+      }
+      
       final byteData = await resizedImage.toByteData(
         format: ui.ImageByteFormat.png,
       );
@@ -253,59 +257,110 @@ class ProfileImageUtils {
         if (kDebugMode) {
           debugPrint('❌ [ProfileImageUtils] Failed to convert image to bytes');
         }
-        return;
+        throw Exception('이미지 변환 실패');
       }
 
       final croppedBytes = byteData.buffer.asUint8List();
       
       if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] Final image size: ${croppedBytes.length ~/ 1024}KB');
+        debugPrint('✅ [ProfileImageUtils] Image converted to bytes');
+        debugPrint('📊 [ProfileImageUtils] Final image size: ${croppedBytes.length ~/ 1024}KB');
       }
 
       // 마운트 확인
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [ProfileImageUtils] Context not mounted, aborting');
+        }
+        return;
+      }
 
       // 로딩 다이얼로그 표시
+      if (kDebugMode) {
+        debugPrint('⏳ [ProfileImageUtils] Showing loading dialog...');
+      }
       _showLoadingDialog(context, useModernUI: useModernLoadingUI);
 
       // 크롭된 이미지를 임시 파일로 저장
+      if (kDebugMode) {
+        debugPrint('💾 [ProfileImageUtils] Saving image to temp file...');
+      }
+      
       final tempDir = Directory.systemTemp;
       final tempFile = File(
         '${tempDir.path}/cropped_profile_${DateTime.now().millisecondsSinceEpoch}.png',
       );
+      
+      if (kDebugMode) {
+        debugPrint('📁 [ProfileImageUtils] Temp file path: ${tempFile.path}');
+      }
+      
       await tempFile.writeAsBytes(croppedBytes);
+      
+      if (kDebugMode) {
+        debugPrint('✅ [ProfileImageUtils] Image saved to temp file');
+        debugPrint('📊 [ProfileImageUtils] Temp file exists: ${await tempFile.exists()}');
+        debugPrint('📊 [ProfileImageUtils] Temp file size: ${await tempFile.length()} bytes');
+      }
 
       if (kDebugMode) {
-        debugPrint('📤 [ProfileImageUtils] Uploading image to Firebase Storage...');
+        debugPrint('📤 [ProfileImageUtils] Starting Firebase Storage upload...');
+        debugPrint('📤 [ProfileImageUtils] File path: ${tempFile.path}');
+        debugPrint('📤 [ProfileImageUtils] File size: ${await tempFile.length()} bytes');
       }
 
       // Firebase Storage에 업로드
-      await authService.uploadProfileImage(tempFile);
-
-      if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] Image upload completed successfully');
+      try {
+        await authService.uploadProfileImage(tempFile);
+        
+        if (kDebugMode) {
+          debugPrint('✅ [ProfileImageUtils] Firebase upload completed successfully');
+        }
+      } catch (uploadError) {
+        if (kDebugMode) {
+          debugPrint('❌ [ProfileImageUtils] Firebase upload failed: $uploadError');
+        }
+        rethrow;
       }
 
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [ProfileImageUtils] Context not mounted after upload');
+        }
+        return;
+      }
 
       // 로딩 다이얼로그 닫기
+      if (kDebugMode) {
+        debugPrint('✅ [ProfileImageUtils] Closing loading dialog');
+      }
       Navigator.pop(context);
 
       // 성공 메시지
+      if (kDebugMode) {
+        debugPrint('✅ [ProfileImageUtils] Showing success message');
+      }
       await DialogUtils.showSuccess(
         context,
         '프로필 사진이 업데이트되었습니다',
         duration: const Duration(seconds: 2),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         debugPrint('❌ [ProfileImageUtils] Image upload error: $e');
+        debugPrint('📚 [ProfileImageUtils] Stack trace: $stackTrace');
       }
 
       if (!context.mounted) return;
 
       // 로딩 다이얼로그가 열려있으면 닫기
-      Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+      try {
+        Navigator.of(context, rootNavigator: true).pop();
+      } catch (navError) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [ProfileImageUtils] Failed to close loading dialog: $navError');
+        }
+      }
 
       await DialogUtils.showError(
         context,
