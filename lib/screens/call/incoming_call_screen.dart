@@ -1253,9 +1253,15 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           // 통화 기록 저장
           await _saveCallHistory();
           
-          // 화면 닫고 최근통화 탭으로 이동 (result: {'moveToTab': 1})
+          // 🔒 CRITICAL FIX: moveToTab 반환하지 않음 (로그아웃 후 MainScreen push 방지)
+          // 이유: 로그아웃 시 이 result가 Future로 대기 중이면, 로그아웃 후에도 MainScreen을 push함
+          // 해결: 그냥 pop만 하고, 사용자는 이미 MaterialApp.home (MainScreen)에 있음
           if (mounted) {
-            Navigator.of(context).pop({'moveToTab': 1}); // 1 = 최근통화 탭
+            Navigator.of(context).pop(); // moveToTab 제거
+            
+            if (kDebugMode) {
+              debugPrint('✅ [INCOMING-CALL] 화면 닫기 완료 (moveToTab 없이 pop만 수행)');
+            }
           }
         },
         child: Column(
