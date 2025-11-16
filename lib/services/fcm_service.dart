@@ -20,6 +20,14 @@ import 'database_service.dart';
 import 'package:provider/provider.dart';
 import '../utils/dialog_utils.dart';
 
+// 🔧 Phase 1, 2, 3, 4 Refactoring: FCM 모듈화
+import 'fcm/fcm_platform_utils.dart';
+import 'fcm/fcm_token_manager.dart';
+import 'fcm/fcm_device_approval_service.dart';
+import 'fcm/fcm_message_handler.dart';
+import 'fcm/fcm_notification_service.dart';
+import 'fcm/fcm_incoming_call_handler.dart';
+
 /// FCM(Firebase Cloud Messaging) 서비스
 /// 
 /// 다중 기기 로그인 지원 기능 포함:
@@ -31,6 +39,14 @@ class FCMService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final DatabaseService _databaseService = DatabaseService();
   
+  // 🔧 Phase 1, 2, 3, 4 Refactoring: 모듈화된 유틸리티 클래스
+  final FCMPlatformUtils _platformUtils = FCMPlatformUtils();
+  final FCMTokenManager _tokenManager = FCMTokenManager();
+  final FCMDeviceApprovalService _approvalService = FCMDeviceApprovalService();
+  final FCMMessageHandler _messageHandler = FCMMessageHandler();
+  final FCMNotificationService _notificationService = FCMNotificationService();
+  final FCMIncomingCallHandler _incomingCallHandler = FCMIncomingCallHandler();
+  
   String? _fcmToken;
   static BuildContext? _context; // 전역 BuildContext 저장
   static Function()? _onForceLogout; // 강제 로그아웃 콜백
@@ -40,8 +56,7 @@ class FCMService {
   static bool _isInitializing = false;
   static String? _initializedUserId;
   static StreamSubscription<String>? _tokenRefreshSubscription;
-  String? _lastSavedToken;
-  DateTime? _lastSaveTime;
+  // 🔧 Phase 1: _lastSavedToken, _lastSaveTime은 FCMTokenManager로 이동
   
   // 🔒 초기화 완료를 기다리기 위한 Completer
   static Completer<void>? _initializationCompleter;
@@ -61,6 +76,10 @@ class FCMService {
   /// BuildContext 설정 (main.dart에서 호출)
   static void setContext(BuildContext context) {
     _context = context;
+    // 🔧 Phase 2, 3, 4: 모듈에도 Context 전달
+    FCMDeviceApprovalService.setContext(context);
+    FCMNotificationService.setContext(context);
+    FCMIncomingCallHandler.setContext(context);
   }
   
   /// 강제 로그아웃 콜백 설정
@@ -71,10 +90,14 @@ class FCMService {
   /// AuthService 설정 (승인 대기 상태 변경용)
   static void setAuthService(AuthService authService) {
     _authService = authService;
+    // 🔧 Phase 2: 모듈에도 AuthService 전달
+    FCMDeviceApprovalService.setAuthService(authService);
   }
   
   /// ✅ OPTION 1: iOS Method Channel에서 호출하는 공개 메서드
   /// RemoteMessage를 받아서 포그라운드/백그라운드 핸들러로 전달
+  /// 
+  /// 🔧 Phase 2: FCMMessageHandler 사용
   Future<void> handleRemoteMessage(RemoteMessage message, {required bool isForeground}) async {
     // ignore: avoid_print
     print('📨 [FCM-PUBLIC] handleRemoteMessage() 호출됨');
@@ -84,10 +107,29 @@ class FCMService {
     print('   - messageId: ${message.messageId}');
     
     if (isForeground) {
-      _handleForegroundMessage(message);
+      _messageHandler.handleForegroundMessage(message);
     } else {
-      _handleMessageOpenedApp(message);
+      _messageHandler.handleMessageOpenedApp(message);
     }
+  }
+  
+  /// 🔧 Phase 2, 3, 4: 메시지 핸들러 콜백 설정
+  void _setupMessageHandlerCallbacks() {
+    _messageHandler.onForceLogout = _handleForceLogout;
+    _messageHandler.onDeviceApprovalRequest = (message) => _approvalService.handleDeviceApprovalRequest(message);
+    _messageHandler.onDeviceApprovalResponse = _handleDeviceApprovalResponse;
+    _messageHandler.onIncomingCallCancelled = (message) => _incomingCallHandler.handleIncomingCallCancelled(message);
+    _messageHandler.onIncomingCall = (message) => _incomingCallHandler.handleIncomingCallFCM(message);
+    _messageHandler.onGeneralNotification = (message) {
+      // 🔧 Phase 3: 일반 알림 표시를 FCMNotificationService로 위임
+      if (kIsWeb) {
+        _notificationService.showWebNotification(message);
+      } else if (Platform.isAndroid) {
+        _notificationService.showAndroidNotification(message);
+      } else if (Platform.isIOS) {
+        _notificationService.showIOSNotification(message);
+      }
+    };
   }
   
   /// FCM 초기화
@@ -98,7 +140,7 @@ class FCMService {
       // ignore: avoid_print
       print('   User ID: $userId');
       // ignore: avoid_print
-      print('   Platform: ${_getPlatformName()}');
+      print('   Platform: ${_platformUtils.getPlatformName()}');
       
       // 🔒 중복 초기화 방지 체크
       if (_isInitializing) {
@@ -139,22 +181,25 @@ class FCMService {
       // ignore: avoid_print
       print('📡 [FCM] 메시지 리스너 등록 시작 (최우선)');
       
-      // 포그라운드 메시지 리스너
-      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-      // ignore: avoid_print
-      print('✅ [FCM] onMessage 리스너 등록 완료');
+      // 🔧 Phase 2: 메시지 핸들러 콜백 설정
+      _setupMessageHandlerCallbacks();
       
-      // 백그라운드/종료 상태에서 알림 클릭 시 처리
-      FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
+      // 포그라운드 메시지 리스너 (🔧 Phase 2: FCMMessageHandler 사용)
+      FirebaseMessaging.onMessage.listen(_messageHandler.handleForegroundMessage);
       // ignore: avoid_print
-      print('✅ [FCM] onMessageOpenedApp 리스너 등록 완료');
+      print('✅ [FCM] onMessage 리스너 등록 완료 (FCMMessageHandler 사용)');
+      
+      // 백그라운드/종료 상태에서 알림 클릭 시 처리 (🔧 Phase 2: FCMMessageHandler 사용)
+      FirebaseMessaging.onMessageOpenedApp.listen(_messageHandler.handleMessageOpenedApp);
+      // ignore: avoid_print
+      print('✅ [FCM] onMessageOpenedApp 리스너 등록 완료 (FCMMessageHandler 사용)');
       
       // 앱이 종료된 상태에서 알림 클릭으로 시작된 경우 처리
       _messaging.getInitialMessage().then((RemoteMessage? message) {
         if (message != null) {
           // ignore: avoid_print
           print('🚀 [FCM] 앱이 종료 상태에서 알림 클릭으로 시작됨');
-          _handleMessageOpenedApp(message);
+          _messageHandler.handleMessageOpenedApp(message);
         }
       });
       // ignore: avoid_print
@@ -337,14 +382,14 @@ class FCMService {
           // ignore: avoid_print
           print('   - 전체 길이: ${_fcmToken!.length}자');
           // ignore: avoid_print
-          print('   - 플랫폼: ${_getPlatformName()}');
+          print('   - 플랫폼: ${_platformUtils.getPlatformName()}');
           // ignore: avoid_print
           print('   - 사용자 ID: $userId');
           
-          // Firestore에 토큰 저장
+          // Firestore에 토큰 저장 (🔧 Phase 1: FCMTokenManager 사용)
           // ignore: avoid_print
           print('💾 [FCM] Firestore 저장 시작...');
-          await _saveFCMToken(userId, _fcmToken!);
+          await _saveFCMTokenWithApproval(userId, _fcmToken!);
           // ignore: avoid_print
           print('✅ [FCM] Firestore 저장 완료');
           
@@ -356,17 +401,9 @@ class FCMService {
               // ignore: avoid_print
               print('🔄 [FCM] 토큰 갱신 이벤트: ${newToken.substring(0, 20)}...');
               
-              // 중복 저장 방지: 동일 토큰이 1분 내에 저장되었으면 스킵
-              if (_lastSavedToken == newToken && 
-                  _lastSaveTime != null && 
-                  DateTime.now().difference(_lastSaveTime!) < const Duration(minutes: 1)) {
-                // ignore: avoid_print
-                print('⏭️  [FCM] 동일 토큰이 최근에 저장됨 - 중복 저장 스킵');
-                return;
-              }
-              
               _fcmToken = newToken;
-              _saveFCMToken(userId, newToken);
+              // 🔧 Phase 1: 리팩토링된 메서드 사용
+              _saveFCMTokenWithApproval(userId, newToken);
             });
             // ignore: avoid_print
             print('✅ [FCM] 토큰 갱신 리스너 등록 완료');
@@ -449,119 +486,32 @@ class FCMService {
     }
   }
   
-  /// FCM 토큰을 Firestore에 저장 (중복 로그인 방지 포함)
+  /// 🔧 Phase 1 Refactoring: FCM 토큰 저장 및 승인 로직 래퍼
   /// 
-  /// ⚠️ 중요: 사용자 데이터(users 컬렉션)는 절대 삭제하지 않음!
-  /// 
-  /// 중복 로그인 방지 프로세스:
-  /// 1. 기존 활성 토큰 조회 (fcm_tokens 컬렉션)
-  /// 2. 다른 기기 감지 시 → 기존 기기에 강제 로그아웃 FCM 알림 전송
-  /// 3. 기존 FCM 토큰만 비활성화 (fcm_tokens 컬렉션에서만 처리)
-  /// 4. 새 FCM 토큰 저장
-  /// 
-  /// ✅ 보존되는 데이터:
-  /// - users/{userId}: API 서버 설정, WebSocket 설정, 회사 정보, 단말번호 등 모든 사용자 데이터
-  /// - my_extensions/{extensionId}: 등록된 단말번호 정보
-  /// - call_forward_info/{infoId}: 착신전환 설정
-  /// 
-  /// ❌ 삭제되는 데이터:
-  /// - fcm_tokens/{userId}_{deviceId}: 이전 기기의 FCM 토큰만 (세션 관리용)
-  Future<void> _saveFCMToken(String userId, String token) async {
+  /// FCMTokenManager를 사용하여 토큰 저장 후 필요 시 승인 프로세스 실행
+  Future<void> _saveFCMTokenWithApproval(String userId, String token) async {
     try {
-      // ignore: avoid_print
-      print('💾 [FCM-SAVE] 토큰 저장 시작');
+      // 🔧 Phase 1: FCMTokenManager 사용하여 토큰 저장
+      final (needsApproval, otherDevices) = await _tokenManager.saveFCMToken(
+        userId: userId,
+        token: token,
+      );
       
-      // 🔒 중복 저장 방지: 동일 토큰이 최근 1분 내에 저장되었으면 스킵
-      if (_lastSavedToken == token && 
-          _lastSaveTime != null && 
-          DateTime.now().difference(_lastSaveTime!) < const Duration(minutes: 1)) {
-        // ignore: avoid_print
-        print('⏭️  [FCM-SAVE] 동일 토큰이 최근에 저장됨 - 중복 저장 스킵');
-        // ignore: avoid_print
-        print('   - 마지막 저장: ${DateTime.now().difference(_lastSaveTime!).inSeconds}초 전');
-        return;
-      }
-      
-      final deviceId = await _getDeviceId();
-      final deviceName = await _getDeviceName();
-      final platform = _getPlatformName();
-      
-      // ignore: avoid_print
-      print('   - Device ID: $deviceId');
-      // ignore: avoid_print
-      print('   - Device Name: $deviceName');
-      // ignore: avoid_print
-      print('   - Platform: $platform');
-      
-      // 1. 모든 기존 활성 토큰 조회 (다중 기기 지원)
-      // ignore: avoid_print
-      print('🔍 [FCM-SAVE] 모든 활성 토큰 조회 중...');
-      final existingTokens = await _databaseService.getAllActiveFcmTokens(userId);
-      
-      // 🔑 CRITICAL: Device ID + Platform 조합으로 기기 구분
-      // 같은 Device ID라도 플랫폼이 다르면 다른 기기로 취급
-      final currentDeviceKey = '${deviceId}_$platform';
-      
-      // 🔧 FIX: 같은 기기의 기존 토큰을 먼저 비활성화 (중복 방지)
-      final sameDeviceTokens = existingTokens
-          .where((token) => '${token.deviceId}_${token.platform}' == currentDeviceKey)
-          .toList();
-      
-      if (sameDeviceTokens.isNotEmpty) {
-        // ignore: avoid_print
-        print('🧹 [FCM-SAVE] 같은 기기의 기존 토큰 ${sameDeviceTokens.length}개 발견 - 비활성화 중...');
-        for (var oldToken in sameDeviceTokens) {
-          // Firestore에서 직접 비활성화
-          await _firestore
-              .collection('fcm_tokens')
-              .where('fcmToken', isEqualTo: oldToken.fcmToken)
-              .get()
-              .then((snapshot) async {
-            for (var doc in snapshot.docs) {
-              await doc.reference.update({'isActive': false});
-            }
-          });
-          // ignore: avoid_print
-          print('   ✅ 비활성화 완료: ${oldToken.fcmToken.substring(0, 20)}...');
-        }
-      }
-      
-      // 현재 기기를 제외한 다른 기기들 필터링
-      final otherDevices = existingTokens
-          .where((token) => '${token.deviceId}_${token.platform}' != currentDeviceKey)
-          .toList();
-      
-      // 🔍 플랫폼 변경 감지: 같은 Device ID지만 다른 플랫폼
-      final sameDeviceIdDifferentPlatform = existingTokens
-          .where((token) => token.deviceId == deviceId && token.platform != platform)
-          .toList();
-      
-      if (sameDeviceIdDifferentPlatform.isNotEmpty) {
-        // ignore: avoid_print
-        print('⚠️  [FCM-SAVE] 플랫폼 변경 감지!');
-        // ignore: avoid_print
-        print('   - Device ID: $deviceId');
-        // ignore: avoid_print
-        print('   - 이전 플랫폼: ${sameDeviceIdDifferentPlatform.first.platform}');
-        // ignore: avoid_print
-        print('   - 새 플랫폼: $platform');
-        // ignore: avoid_print
-        print('   - 🚨 다른 플랫폼으로 간주하여 승인 요청 진행');
-      }
-      
-      if (otherDevices.isNotEmpty) {
-        // 다른 기기에서 로그인 감지 - 모든 기존 기기에 승인 요청 전송
+      // 승인이 필요한 경우 승인 프로세스 실행
+      if (needsApproval && otherDevices.isNotEmpty) {
+        final deviceId = await _platformUtils.getDeviceId();
+        final deviceName = await _platformUtils.getDeviceName();
+        final platform = _platformUtils.getPlatformName();
+        
         // ignore: avoid_print
         print('🔔 [FCM-SAVE] 새 기기 로그인 감지!');
         // ignore: avoid_print
         print('   - 새 기기: $deviceName ($platform)');
         // ignore: avoid_print
-        print('   - Device Key: $currentDeviceKey');
-        // ignore: avoid_print
         print('   - 기존 기기 ${otherDevices.length}개에 알림 전송 예정');
         
-        // ✅ 승인 요청 전송 및 승인 대기
-        final approvalRequestId = await _sendDeviceApprovalRequestAndWait(
+        // ✅ 승인 요청 전송 및 승인 대기 (🔧 Phase 2: FCMDeviceApprovalService 사용)
+        final approvalRequestId = await _approvalService.sendDeviceApprovalRequestAndWait(
           userId: userId,
           newDeviceId: deviceId,
           newDeviceName: deviceName,
@@ -577,12 +527,11 @@ class FCMService {
         
         // ignore: avoid_print
         print('⏳ [FCM-SAVE] 기존 기기의 승인 대기 중...');
-        // ignore: avoid_print
-        print('🔒 [FCM-SAVE] 중요: _waitForDeviceApproval() 호출 - 이 함수가 반환될 때까지 대기');
         
         // 🎨 승인 요청 정보 저장
         _currentApprovalRequestId = approvalRequestId;
         _currentUserId = userId;
+        _approvalService.setApprovalRequestInfo(approvalRequestId, userId);
         
         // 🔐 AuthService에 승인 대기 상태 설정
         if (_authService != null) {
@@ -591,8 +540,8 @@ class FCMService {
           print('✅ [FCM-SAVE] AuthService 승인 대기 상태 설정 완료');
         }
         
-        // 승인 대기 (최대 5분)
-        final approved = await _waitForDeviceApproval(approvalRequestId);
+        // 승인 대기 (최대 5분) - 🔧 Phase 2: FCMDeviceApprovalService 사용
+        final approved = await _approvalService.waitForDeviceApproval(approvalRequestId);
         
         // 🔐 AuthService 승인 대기 상태 해제
         if (_authService != null) {
@@ -604,63 +553,20 @@ class FCMService {
         // 🎨 승인 요청 정보 초기화
         _currentApprovalRequestId = null;
         _currentUserId = null;
+        _approvalService.setApprovalRequestInfo(null, null);
         
         // ignore: avoid_print
-        print('🔙 [FCM-SAVE] _waitForDeviceApproval() 반환됨: $approved');
+        print('🔙 [FCM-SAVE] waitForDeviceApproval() 반환됨: $approved');
         
         if (!approved) {
           // ignore: avoid_print
           print('❌ [FCM-SAVE] 기기 승인 거부됨 또는 시간 초과 - 로그인 중단');
-          // ignore: avoid_print
-          print('🚫 [FCM-SAVE] Exception 던지기: Device approval denied or timeout');
           throw Exception('Device approval denied or timeout');
         }
         
         // ignore: avoid_print
         print('✅ [FCM-SAVE] 기기 승인 완료! 로그인 진행');
-        
-      } else if (existingTokens.any((token) => '${token.deviceId}_${token.platform}' == currentDeviceKey)) {
-        // ignore: avoid_print
-        print('ℹ️ [FCM-SAVE] 동일 기기 토큰 갱신');
-        // ignore: avoid_print
-        print('   - Device Key: $currentDeviceKey');
-      } else {
-        // ignore: avoid_print
-        print('ℹ️ [FCM-SAVE] 첫 로그인 (다른 활성 기기 없음)');
-        // ignore: avoid_print
-        print('   - Device Key: $currentDeviceKey');
       }
-      
-      // 2. 새 토큰 모델 생성 및 저장
-      final tokenModel = FcmTokenModel(
-        userId: userId,
-        fcmToken: token,
-        deviceId: deviceId,
-        deviceName: deviceName,
-        platform: platform,
-        createdAt: DateTime.now(),
-        lastActiveAt: DateTime.now(),
-        isActive: true,
-      );
-      
-      // ignore: avoid_print
-      print('💾 [FCM-SAVE] DatabaseService.saveFcmToken() 호출 중...');
-      await _databaseService.saveFcmToken(tokenModel);
-      
-      // ignore: avoid_print
-      print('✅ [FCM-SAVE] Firestore 저장 완료!');
-      // ignore: avoid_print
-      print('   - 컬렉션: fcm_tokens');
-      // ignore: avoid_print
-      print('   - 문서 ID: ${userId}_$deviceId');
-      // ignore: avoid_print
-      print('   - 기기: $deviceName ($platform)');
-      
-      // 🔒 저장 성공 - 추적 정보 업데이트
-      _lastSavedToken = token;
-      _lastSaveTime = DateTime.now();
-      // ignore: avoid_print
-      print('🔒 [FCM-SAVE] 중복 저장 추적 업데이트 완료');
       
     } catch (e, stackTrace) {
       // ignore: avoid_print
@@ -683,6 +589,14 @@ class FCMService {
       // ignore: avoid_print
       print('⚠️ [FCM-SAVE] 토큰 저장 실패했지만 로그인은 허용');
     }
+  }
+  
+  /// ⚠️ DEPRECATED: 레거시 메서드 - FCMTokenManager.saveFCMToken() 사용
+  /// 
+  /// 이 메서드는 하위 호환성을 위해 유지되며, 내부적으로 _saveFCMTokenWithApproval()을 호출합니다.
+  @Deprecated('Use _saveFCMTokenWithApproval() instead')
+  Future<void> _saveFCMToken(String userId, String token) async {
+    await _saveFCMTokenWithApproval(userId, token);
   }
   
   /// 기존 기기에 기기 승인 요청 FCM 메시지 전송 및 승인 대기
@@ -711,17 +625,9 @@ class FCMService {
     }
   }
   
-  /// 기존 기기에 기기 승인 요청 FCM 메시지 전송
-  /// 
-  /// 새 기기에서 로그인 시도 시 기존 기기에 승인 요청을 보냅니다.
-  /// 기존 기기에서 승인하면 새 기기 로그인이 완료됩니다.
-  /// 
-  /// ✅ Firestore 트리거 방식 사용:
-  /// - Flutter는 fcm_approval_notification_queue에 데이터 쓰기
-  /// - Cloud Functions의 sendApprovalNotification 트리거가 자동 실행
-  /// - Cloud Functions가 FCM 알림 전송 처리
-  /// 
-  /// Returns: approval request ID
+  /// ⚠️ DEPRECATED: Use FCMDeviceApprovalService.sendDeviceApprovalRequestAndWait() instead
+  /// This method has been moved to FCMDeviceApprovalService for better modularity.
+  @Deprecated('Use FCMDeviceApprovalService.sendDeviceApprovalRequestAndWait()')
   Future<String> _sendDeviceApprovalRequest({
     required String userId,
     required String newDeviceId,
@@ -729,130 +635,27 @@ class FCMService {
     required String newPlatform,
     required String newDeviceToken,
   }) async {
-    try {
-      // ignore: avoid_print
-      print('📤 [FCM-APPROVAL] 기기 승인 요청 생성 시작');
-      
-      // 기존 활성 기기들의 토큰 조회 (새 기기 제외)
-      final existingTokens = await _firestore
-          .collection('fcm_tokens')
-          .where('userId', isEqualTo: userId)
-          .where('isActive', isEqualTo: true)
-          .get();
-      
-      // 🔑 CRITICAL: Device ID + Platform 조합으로 기기 구분
-      // 같은 Device ID라도 플랫폼이 다르면 다른 기기로 취급
-      final newDeviceKey = '${newDeviceId}_$newPlatform';
-      
-      // 새 기기를 제외한 기존 기기들만 필터링
-      final otherDeviceTokens = existingTokens.docs
-          .where((doc) {
-            final data = doc.data();
-            final existingDeviceKey = '${data['deviceId']}_${data['platform']}';
-            return existingDeviceKey != newDeviceKey;
-          })
-          .toList();
-      
-      if (otherDeviceTokens.isEmpty) {
-        // ignore: avoid_print
-        print('ℹ️ [FCM-APPROVAL] 다른 활성 기기 없음 - 승인 요청 불필요');
-        throw Exception('No other devices found');
-      }
-      
-      // ignore: avoid_print
-      print('📋 [FCM-APPROVAL] 다른 활성 기기 ${otherDeviceTokens.length}개 발견');
-      
-      // 🔑 CRITICAL: 문서 ID를 userId_deviceId_platform 형식으로 명시
-      // 이렇게 하면 Firestore 보안 규칙에서 docId로 권한 체크 가능
-      final approvalRequestId = '${userId}_${newDeviceId}_$newPlatform';
-      
-      // ignore: avoid_print
-      print('📝 [FCM-APPROVAL] 승인 요청 문서 ID: $approvalRequestId');
-      
-      // Firestore에 승인 요청 저장 (5분 TTL) - .set()으로 명시적 ID 지정
-      await _firestore.collection('device_approval_requests').doc(approvalRequestId).set({
-        'userId': userId,
-        'newDeviceId': newDeviceId,
-        'newDeviceName': newDeviceName,
-        'newPlatform': newPlatform,
-        'newDeviceToken': newDeviceToken,
-        'status': 'pending', // pending, approved, rejected, expired
-        'createdAt': FieldValue.serverTimestamp(),
-        'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(minutes: 5))),
-      });
-      
-      // ignore: avoid_print
-      print('✅ [FCM-APPROVAL] 승인 요청 문서 생성: $approvalRequestId');
-      
-      // ✅ FIXED: Firestore 트리거 방식으로 변경
-      // Callable 함수 대신 fcm_approval_notification_queue에 직접 쓰기
-      // Cloud Functions의 sendApprovalNotification 트리거가 자동으로 FCM 전송
-      
-      // 모든 기존 기기에 FCM 알림 큐 등록 (새 기기 제외)
-      for (var tokenDoc in otherDeviceTokens) {
-        final tokenData = tokenDoc.data();
-        final targetToken = tokenData['fcmToken'] as String?;
-        final targetDeviceName = tokenData['deviceName'] as String? ?? 'Unknown Device';
-        
-        if (targetToken == null || targetToken.isEmpty) {
-          // ignore: avoid_print
-          print('⚠️ [FCM-APPROVAL] FCM 토큰 없음: ${tokenDoc.id}');
-          continue;
-        }
-        
-        // ignore: avoid_print
-        print('📤 [FCM-APPROVAL] 승인 요청 알림 큐 등록: $targetDeviceName');
-        
-        // ✅ Firestore에 직접 쓰기 → Cloud Functions 트리거 자동 실행
-        await _firestore.collection('fcm_approval_notification_queue').add({
-          'targetToken': targetToken,
-          'targetDeviceName': targetDeviceName,
-          'approvalRequestId': approvalRequestId,
-          'newDeviceName': newDeviceName,
-          'newPlatform': newPlatform,
-          'userId': userId,
-          'message': {
-            'type': 'device_approval_request',
-            'title': '🔐 새 기기 로그인 감지',
-            'body': '$newDeviceName ($newPlatform)에서 로그인 시도',
-            'approvalRequestId': approvalRequestId,
-          },
-          'createdAt': FieldValue.serverTimestamp(),
-          'processed': false,
-        });
-        
-        // ignore: avoid_print
-        print('✅ [FCM-APPROVAL] 알림 큐 등록 완료: $targetDeviceName');
-        // ignore: avoid_print
-        print('   ⏳ Cloud Functions sendApprovalNotification 트리거 대기 중...');
-      }
-      
-      // ignore: avoid_print
-      print('✅ [FCM-APPROVAL] 모든 기존 기기에 승인 요청 큐 등록 완료');
-      // ignore: avoid_print
-      print('   📡 Cloud Functions가 FCM 알림 전송 처리합니다');
-      
-      // approval request ID 반환
-      return approvalRequestId;
-      
-    } catch (e, stackTrace) {
-      // ignore: avoid_print
-      print('❌ [FCM-APPROVAL] 승인 요청 전송 실패: $e');
-      // ignore: avoid_print
-      print('Stack trace:');
-      // ignore: avoid_print
-      print(stackTrace);
-      rethrow;
-    }
+    // Delegate to new modular service
+    final approvalRequestId = await _approvalService.sendDeviceApprovalRequestAndWait(
+      userId: userId,
+      newDeviceId: newDeviceId,
+      newDeviceName: newDeviceName,
+      newPlatform: newPlatform,
+      newDeviceToken: newDeviceToken,
+    );
+    return approvalRequestId ?? '';
   }
   
-  /// 기기 승인 대기 (폴링)
-  /// 
-  /// device_approval_requests 문서의 status 필드를 모니터링하여
-  /// approved, rejected, 또는 expired 상태가 될 때까지 대기합니다.
-  /// 
-  /// Returns: true (승인됨), false (거부됨 또는 시간 초과)
+  /// ⚠️ DEPRECATED: Use FCMDeviceApprovalService.waitForDeviceApproval() instead
+  /// This method has been moved to FCMDeviceApprovalService for better modularity.
+  @Deprecated('Use FCMDeviceApprovalService.waitForDeviceApproval()')
   Future<bool> _waitForDeviceApproval(String approvalRequestId) async {
+    // Delegate to new modular service
+    return await _approvalService.waitForDeviceApproval(approvalRequestId);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService
+  Future<bool> _waitForDeviceApprovalOriginal(String approvalRequestId) async {
     try {
       // ignore: avoid_print
       print('⏳ [FCM-WAIT] 기기 승인 대기 시작: $approvalRequestId');
@@ -937,8 +740,16 @@ class FCMService {
     }
   }
   
-  /// 포그라운드 메시지 처리
+  /// ⚠️ DEPRECATED: Use FCMMessageHandler.handleForegroundMessage() instead
+  /// This method has been moved to FCMMessageHandler for better modularity.
+  @Deprecated('Use FCMMessageHandler.handleForegroundMessage()')
   void _handleForegroundMessage(RemoteMessage message) {
+    // Delegate to new modular service
+    _messageHandler.handleForegroundMessage(message);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMMessageHandler
+  void _handleForegroundMessageOriginal(RemoteMessage message) {
     // ignore: avoid_print
     print('');
     // ignore: avoid_print
@@ -1068,10 +879,16 @@ class FCMService {
     }
   }
   
-  /// 백그라운드/종료 상태에서 알림 클릭 시 처리
-  /// 
-  /// 사용자가 알림바에서 알림을 클릭하면 호출됩니다.
+  /// ⚠️ DEPRECATED: Use FCMMessageHandler.handleMessageOpenedApp() instead
+  /// This method has been moved to FCMMessageHandler for better modularity.
+  @Deprecated('Use FCMMessageHandler.handleMessageOpenedApp()')
   void _handleMessageOpenedApp(RemoteMessage message) {
+    // Delegate to new modular service
+    _messageHandler.handleMessageOpenedApp(message);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMMessageHandler
+  void _handleMessageOpenedAppOriginal(RemoteMessage message) {
     // ignore: avoid_print
     print('');
     // ignore: avoid_print
@@ -1132,8 +949,16 @@ class FCMService {
   
   /// FCM 수신 전화 메시지 처리
   /// 
-  /// DCMIWS 웹소켓 연결이 중지되었을 때 FCM으로 수신전화를 처리합니다.
+  /// ⚠️ DEPRECATED: Use FCMIncomingCallHandler.handleIncomingCallFCM() instead
+  /// This method has been moved to FCMIncomingCallHandler for better modularity.
+  @Deprecated('Use FCMIncomingCallHandler.handleIncomingCallFCM()')
   Future<void> _handleIncomingCallFCM(RemoteMessage message) async {
+    // Delegate to new modular service
+    await _incomingCallHandler.handleIncomingCallFCM(message);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMIncomingCallHandler
+  Future<void> _handleIncomingCallFCMOriginal(RemoteMessage message) async {
     // ignore: avoid_print
     print('📞 [FCM-INCOMING] 수신 전화 FCM 메시지 처리 시작');
     // ignore: avoid_print
@@ -1236,8 +1061,16 @@ class FCMService {
     }
   }
   
-  /// Context가 준비될 때까지 대기 후 수신전화 화면 표시 (백그라운드용)
+  /// ⚠️ DEPRECATED: Use FCMIncomingCallHandler.waitForContextAndShowIncomingCall() instead
+  /// This method has been moved to FCMIncomingCallHandler for better modularity.
+  @Deprecated('Use FCMIncomingCallHandler.waitForContextAndShowIncomingCall()')
   Future<void> _waitForContextAndShowIncomingCall(RemoteMessage message) async {
+    // Delegate to new modular service
+    await _incomingCallHandler.waitForContextAndShowIncomingCall(message);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMIncomingCallHandler
+  Future<void> _waitForContextAndShowIncomingCallOriginal(RemoteMessage message) async {
     int retryCount = 0;
     const maxRetries = 30; // 3초 (100ms * 30)
     
@@ -1457,10 +1290,16 @@ class FCMService {
     _waitForContextAndShowApprovalDialog(message);
   }
   
-  /// 기기 승인 요청 메시지 처리
-  /// 
-  /// 새 기기에서 로그인 시도 시 기존 기기에서 승인 다이얼로그를 표시합니다.
+  /// ⚠️ DEPRECATED: Use FCMDeviceApprovalService.handleDeviceApprovalRequest() instead
+  /// This method has been moved to FCMDeviceApprovalService for better modularity.
+  @Deprecated('Use FCMDeviceApprovalService.handleDeviceApprovalRequest()')
   void _handleDeviceApprovalRequest(RemoteMessage message) {
+    // Delegate to new modular service
+    _approvalService.handleDeviceApprovalRequest(message);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService
+  void _handleDeviceApprovalRequestOriginal(RemoteMessage message) {
     // ignore: avoid_print
     print('');
     // ignore: avoid_print
@@ -1727,11 +1566,16 @@ class FCMService {
     }
   }
   
-  /// 🛑 수신전화 알림 취소 메시지 처리 (방법 1: FCM 푸시)
-  /// 
-  /// 다른 기기에서 통화를 수락/거부했을 때 현재 기기의 IncomingCallScreen을 닫습니다.
-  /// 앱이 백그라운드/종료 상태에서도 작동합니다.
+  /// ⚠️ DEPRECATED: Use FCMIncomingCallHandler.handleIncomingCallCancelled() instead
+  /// This method has been moved to FCMIncomingCallHandler for better modularity.
+  @Deprecated('Use FCMIncomingCallHandler.handleIncomingCallCancelled()')
   void _handleIncomingCallCancelled(RemoteMessage message) {
+    // Delegate to new modular service
+    _incomingCallHandler.handleIncomingCallCancelled(message);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMIncomingCallHandler
+  void _handleIncomingCallCancelledOriginal(RemoteMessage message) {
     final linkedid = message.data['linkedid'] as String?;
     final action = message.data['action'] as String? ?? 'unknown';
     
@@ -1793,8 +1637,15 @@ class FCMService {
     }
   }
   
-  /// 기기 승인 처리 (최적화 버전)
+  /// ⚠️ DEPRECATED: This method is now handled internally by FCMDeviceApprovalService
+  /// Device approval is now processed automatically within FCMDeviceApprovalService.
+  @Deprecated('Handled internally by FCMDeviceApprovalService')
   Future<void> _approveDeviceApproval(String approvalRequestId) async {
+    debugPrint('⚠️ [FCM] _approveDeviceApproval is deprecated - handled internally by FCMDeviceApprovalService');
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService  
+  Future<void> _approveDeviceApprovalOriginal(String approvalRequestId) async {
     try {
       debugPrint('✅ [FCM] 기기 승인 처리 시작: $approvalRequestId');
       
@@ -1842,8 +1693,15 @@ class FCMService {
     }
   }
   
-  /// 기기 승인 거부 처리 (최적화 버전)
+  /// ⚠️ DEPRECATED: This method is now handled internally by FCMDeviceApprovalService
+  /// Device rejection is now processed automatically within FCMDeviceApprovalService.
+  @Deprecated('Handled internally by FCMDeviceApprovalService')
   Future<void> _rejectDeviceApproval(String approvalRequestId) async {
+    debugPrint('⚠️ [FCM] _rejectDeviceApproval is deprecated - handled internally by FCMDeviceApprovalService');
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService
+  Future<void> _rejectDeviceApprovalOriginal(String approvalRequestId) async {
     try {
       debugPrint('❌ [FCM] 기기 승인 거부 처리 시작: $approvalRequestId');
       
@@ -1888,8 +1746,16 @@ class FCMService {
     }
   }
   
-  /// 안드로이드 로컬 알림 표시 (포그라운드 전용)
+  /// ⚠️ DEPRECATED: Use FCMNotificationService.showAndroidNotification() instead
+  /// This method has been moved to FCMNotificationService for better modularity.
+  @Deprecated('Use FCMNotificationService.showAndroidNotification()')
   Future<void> _showAndroidNotification(RemoteMessage message) async {
+    // Delegate to new modular service
+    await _notificationService.showAndroidNotification(message);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
+  Future<void> _showAndroidNotificationOriginal(RemoteMessage message) async {
     if (!Platform.isAndroid) return;
     
     try {
@@ -2019,8 +1885,16 @@ class FCMService {
     }
   }
   
-  /// 웹 플랫폼 알림 표시
+  /// ⚠️ DEPRECATED: Use FCMNotificationService.showWebNotification() instead
+  /// This method has been moved to FCMNotificationService for better modularity.
+  @Deprecated('Use FCMNotificationService.showWebNotification()')
   Future<void> _showWebNotification(RemoteMessage message) async {
+    // Delegate to new modular service
+    await _notificationService.showWebNotification(message);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
+  Future<void> _showWebNotificationOriginal(RemoteMessage message) async {
     if (!kIsWeb) return;
     
     try {
@@ -2048,8 +1922,16 @@ class FCMService {
     }
   }
   
-  /// iOS 플랫폼 알림 표시 (네이티브 알림 사용)
+  /// ⚠️ DEPRECATED: Use FCMNotificationService.showIOSNotification() instead
+  /// This method has been moved to FCMNotificationService for better modularity.
+  @Deprecated('Use FCMNotificationService.showIOSNotification()')
   Future<void> _showIOSNotification(RemoteMessage message) async {
+    // Delegate to new modular service
+    await _notificationService.showIOSNotification(message);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
+  Future<void> _showIOSNotificationOriginal(RemoteMessage message) async {
     if (!Platform.isIOS) return;
     
     try {
@@ -2221,8 +2103,16 @@ class FCMService {
   // 🔧 수신 전화 화면 표시 중복 방지 플래그
   bool _isShowingIncomingCall = false;
   
-  /// 수신 전화 풀스크린 표시
+  /// ⚠️ DEPRECATED: Use FCMIncomingCallHandler.showIncomingCallScreen() instead
+  /// This method has been moved to FCMIncomingCallHandler for better modularity.
+  @Deprecated('Use FCMIncomingCallHandler.showIncomingCallScreen()')
   Future<void> _showIncomingCallScreen(RemoteMessage message, {bool soundEnabled = true, bool vibrationEnabled = true}) async {
+    // Delegate to new modular service
+    await _incomingCallHandler.showIncomingCallScreen(message, soundEnabled: soundEnabled, vibrationEnabled: vibrationEnabled);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMIncomingCallHandler
+  Future<void> _showIncomingCallScreenOriginal(RemoteMessage message, {bool soundEnabled = true, bool vibrationEnabled = true}) async {
     // ignore: avoid_print
     print('🎬 [FCM-SCREEN] _showIncomingCallScreen() 시작');
     
@@ -2421,8 +2311,16 @@ class FCMService {
     }
   }
   
-  /// 사용자 알림 설정 가져오기
+  /// ⚠️ DEPRECATED: Use FCMNotificationService.getUserNotificationSettings() instead
+  /// This method has been moved to FCMNotificationService for better modularity.
+  @Deprecated('Use FCMNotificationService.getUserNotificationSettings()')
   Future<Map<String, dynamic>?> getUserNotificationSettings(String userId) async {
+    // Delegate to new modular service
+    return await _notificationService.getUserNotificationSettings(userId);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
+  Future<Map<String, dynamic>?> getUserNotificationSettingsOriginal(String userId) async {
     try {
       final doc = await _firestore
           .collection('user_notification_settings')
@@ -2453,8 +2351,19 @@ class FCMService {
     }
   }
   
-  /// 사용자 알림 설정 업데이트
+  /// ⚠️ DEPRECATED: Use FCMNotificationService.updateNotificationSettings() instead
+  /// This method has been moved to FCMNotificationService for better modularity.
+  @Deprecated('Use FCMNotificationService.updateNotificationSettings()')
   Future<void> updateNotificationSettings(
+    String userId,
+    Map<String, dynamic> settings,
+  ) async {
+    // Delegate to new modular service
+    await _notificationService.updateNotificationSettings(userId, settings);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
+  Future<void> updateNotificationSettingsOriginal(
     String userId,
     Map<String, dynamic> settings,
   ) async {
@@ -2514,238 +2423,21 @@ class FCMService {
   ///   - call_forward_info: 착신전환 설정
   /// 
   /// 로그아웃 시 현재 기기의 FCM 토큰만 삭제합니다.
+  /// 
+  /// 🔧 Phase 1 Refactoring: FCMTokenManager 사용
   Future<void> deactivateToken(String userId) async {
-    try {
-      // ignore: avoid_print
-      print('');
-      // ignore: avoid_print
-      print('🔓 [FCM-DEACTIVATE] 현재 기기 토큰 비활성화 시작');
-      // ignore: avoid_print
-      print('   userId: $userId');
-      // ignore: avoid_print
-      print('   _fcmToken: ${_fcmToken != null ? "${_fcmToken!.substring(0, 20)}..." : "null"}');
-      
-      // 🔧 FIX: _fcmToken이 null이어도 deviceId로 토큰 비활성화 시도
-      final deviceId = await _getDeviceId();
-      final platform = await _getPlatformName();
-      // ignore: avoid_print
-      print('   deviceId: $deviceId');
-      // ignore: avoid_print
-      print('   platform: $platform');
-      
-      // 🔧 FIX: 삭제가 아니라 isActive를 false로 변경
-      // 🔑 CRITICAL: Platform 포함으로 iOS/Android 기기 구분
-      await _databaseService.deactivateFcmToken(userId, deviceId, platform);
-      
-      // ignore: avoid_print
-      print('✅ [FCM-DEACTIVATE] 현재 기기 토큰 비활성화 완료');
-      // ignore: avoid_print
-      print('   ℹ️  다른 기기의 토큰은 영향 없음 (계속 활성 유지)');
-      print('');
-    } catch (e) {
-      // ignore: avoid_print
-      print('❌ [FCM-DEACTIVATE] 토큰 비활성화 오류: $e');
-      // 🔧 에러를 던지지 않음 - 로그아웃은 계속 진행
-    }
+    await _tokenManager.deactivateToken(userId, _fcmToken);
   }
   
-  /// 기기 ID 가져오기
+  /// 🔧 Phase 1 Refactoring: 플랫폼 유틸리티 메서드들을 FCMPlatformUtils로 이동
   /// 
-  /// FCM 토큰과 함께 사용하여 기기를 고유하게 식별합니다.
-  /// 중복 로그인 방지에 사용됩니다.
-  /// 캐시된 Device ID 저장용
-  static const String _deviceIdCacheKey = 'cached_device_id';
-  String? _cachedDeviceId;
-  
-  Future<String> _getDeviceId() async {
-    try {
-      final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-      
-      if (kIsWeb) {
-        final webInfo = await deviceInfo.webBrowserInfo;
-        // 웹: 브라우저 + OS 조합으로 ID 생성
-        return 'web_${webInfo.browserName.name}_${webInfo.platform ?? "unknown"}';
-      } else if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo;
-        // Android: androidId 사용 (고유한 기기 식별자)
-        return androidInfo.id; // Example: "5d513e7a5fb1e2d5"
-      } else if (Platform.isIOS) {
-        // 🔧 iOS 개선: SharedPreferences에서 캐시된 deviceId 먼저 확인
-        if (_cachedDeviceId != null) {
-          debugPrint('📱 [iOS] 메모리 캐시된 deviceId 사용: $_cachedDeviceId');
-          return _cachedDeviceId!;
-        }
-        
-        // SharedPreferences에서 확인
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          final cachedId = prefs.getString(_deviceIdCacheKey);
-          
-          if (cachedId != null && cachedId.isNotEmpty) {
-            debugPrint('📱 [iOS] SharedPreferences 캐시된 deviceId 사용: $cachedId');
-            _cachedDeviceId = cachedId;
-            return cachedId;
-          }
-        } catch (e) {
-          debugPrint('⚠️ [iOS] SharedPreferences 읽기 실패: $e');
-        }
-        
-        final iosInfo = await deviceInfo.iosInfo;
-        final vendorId = iosInfo.identifierForVendor;
-        
-        if (vendorId != null && vendorId.isNotEmpty) {
-          // identifierForVendor 사용 가능 → 캐시에 저장
-          debugPrint('📱 [iOS] identifierForVendor 가져옴: $vendorId');
-          _cachedDeviceId = vendorId;
-          
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString(_deviceIdCacheKey, vendorId);
-            debugPrint('✅ [iOS] deviceId 캐시에 저장 완료');
-          } catch (e) {
-            debugPrint('⚠️ [iOS] SharedPreferences 저장 실패: $e');
-          }
-          
-          return vendorId;
-        } else {
-          // identifierForVendor가 null → 캐시된 값도 없음 → 새로 생성
-          debugPrint('⚠️ [iOS] identifierForVendor가 null - 새 deviceId 생성');
-          final newId = 'ios_${DateTime.now().millisecondsSinceEpoch}';
-          _cachedDeviceId = newId;
-          
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString(_deviceIdCacheKey, newId);
-            debugPrint('✅ [iOS] 새 deviceId 캐시에 저장: $newId');
-          } catch (e) {
-            debugPrint('⚠️ [iOS] SharedPreferences 저장 실패: $e');
-          }
-          
-          return newId;
-        }
-      }
-      
-      // Fallback: FCM 토큰의 일부를 ID로 사용
-      if (_fcmToken != null) {
-        return _fcmToken!.substring(0, 50);
-      }
-      
-      return 'unknown_device_${DateTime.now().millisecondsSinceEpoch}';
-    } catch (e) {
-      debugPrint('⚠️ 기기 ID 조회 실패: $e');
-      
-      // iOS에서 캐시된 값이 있으면 사용
-      if (_cachedDeviceId != null) {
-        debugPrint('📱 오류 시 캐시된 deviceId 사용: $_cachedDeviceId');
-        return _cachedDeviceId!;
-      }
-      
-      return 'fallback_device_${DateTime.now().millisecondsSinceEpoch}';
-    }
-  }
-  
-  /// 기기 이름 가져오기
+  /// ⚠️ DEPRECATED: 아래 메서드들은 FCMPlatformUtils에서 제공됩니다:
+  /// - _getDeviceId() → _platformUtils.getDeviceId()
+  /// - _getDeviceName() → _platformUtils.getDeviceName()
+  /// - _getPlatformName() → _platformUtils.getPlatformName()
+  /// - _getiOSFriendlyName() → _platformUtils.getiOSFriendlyName()
   /// 
-  /// 사용자에게 표시할 기기 이름을 반환합니다.
-  /// 실제 기기 모델명과 OS 버전을 포함합니다.
-  Future<String> _getDeviceName() async {
-    try {
-      final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-      
-      if (kIsWeb) {
-        final webInfo = await deviceInfo.webBrowserInfo;
-        // 웹: 브라우저 이름 + OS
-        final browser = webInfo.browserName.name;
-        final platform = webInfo.platform ?? 'Unknown OS';
-        return '$browser on $platform';
-      } else if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo;
-        // Android: 제조사 + 모델명
-        // 예: "Samsung Galaxy S21", "Google Pixel 6"
-        final manufacturer = androidInfo.manufacturer;
-        final model = androidInfo.model;
-        return '$manufacturer $model';
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo;
-        // iOS: 모델명 + iOS 버전
-        // 예: "iPhone 15 Pro", "iPad Pro"
-        final model = iosInfo.utsname.machine; // 예: "iPhone14,3"
-        final name = iosInfo.name; // 예: "iPhone"
-        final version = iosInfo.systemVersion; // 예: "17.0"
-        
-        // 사용자 친화적인 모델명 변환
-        final friendlyName = _getiOSFriendlyName(model);
-        return '$friendlyName (iOS $version)';
-      }
-      
-      return 'Unknown Device';
-    } catch (e) {
-      debugPrint('⚠️ 기기 이름 조회 실패: $e');
-      
-      // Fallback: 플랫폼 기본 이름
-      if (kIsWeb) {
-        return 'Web Browser';
-      } else if (Platform.isAndroid) {
-        return 'Android Device';
-      } else if (Platform.isIOS) {
-        return 'iOS Device';
-      }
-      return 'Unknown Device';
-    }
-  }
-  
-  /// iOS 기기 코드를 사용자 친화적인 이름으로 변환
-  /// 
-  /// 예: "iPhone14,3" → "iPhone 13 Pro Max"
-  String _getiOSFriendlyName(String machineCode) {
-    // 주요 iPhone 모델 매핑 (최신 모델 위주)
-    final Map<String, String> iosModels = {
-      // iPhone 15 시리즈
-      'iPhone16,1': 'iPhone 15 Pro',
-      'iPhone16,2': 'iPhone 15 Pro Max',
-      'iPhone15,4': 'iPhone 15',
-      'iPhone15,5': 'iPhone 15 Plus',
-      
-      // iPhone 14 시리즈
-      'iPhone15,2': 'iPhone 14 Pro',
-      'iPhone15,3': 'iPhone 14 Pro Max',
-      'iPhone14,7': 'iPhone 14',
-      'iPhone14,8': 'iPhone 14 Plus',
-      
-      // iPhone 13 시리즈
-      'iPhone14,2': 'iPhone 13 Pro',
-      'iPhone14,3': 'iPhone 13 Pro Max',
-      'iPhone14,4': 'iPhone 13 Mini',
-      'iPhone14,5': 'iPhone 13',
-      
-      // iPhone 12 시리즈
-      'iPhone13,1': 'iPhone 12 Mini',
-      'iPhone13,2': 'iPhone 12',
-      'iPhone13,3': 'iPhone 12 Pro',
-      'iPhone13,4': 'iPhone 12 Pro Max',
-      
-      // iPad 시리즈 (주요 모델)
-      'iPad13,18': 'iPad Pro 12.9" (6th gen)',
-      'iPad13,16': 'iPad Pro 11" (4th gen)',
-      'iPad13,1': 'iPad Air (4th gen)',
-      'iPad14,1': 'iPad mini (6th gen)',
-    };
-    
-    // 매핑된 이름이 있으면 반환, 없으면 원래 코드 반환
-    return iosModels[machineCode] ?? machineCode;
-  }
-  
-  /// 플랫폼 이름 가져오기
-  String _getPlatformName() {
-    if (kIsWeb) {
-      return 'web';
-    } else if (Platform.isAndroid) {
-      return 'android';
-    } else if (Platform.isIOS) {
-      return 'ios';
-    }
-    return 'unknown';
-  }
+  /// 이 주석 블록은 리팩토링 완료 확인을 위해 임시로 유지됩니다.
   
   /// iOS APNs 토큰 상태 확인 (디버깅용)
   Future<Map<String, dynamic>> checkIOSAPNsStatus() async {
@@ -2980,8 +2672,16 @@ class FCMService {
     );
   }
   
-  /// 승인 요청 재전송 (공개 메서드)
+  /// ⚠️ DEPRECATED: Use FCMDeviceApprovalService.resendApprovalRequest() instead
+  /// This method has been moved to FCMDeviceApprovalService for better modularity.
+  @Deprecated('Use FCMDeviceApprovalService.resendApprovalRequest()')
   Future<void> resendApprovalRequest(String approvalRequestId, String userId) async {
+    // Delegate to new modular service
+    await _approvalService.resendApprovalRequest(approvalRequestId, userId);
+  }
+
+  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService
+  Future<void> resendApprovalRequestOriginal(String approvalRequestId, String userId) async {
     try {
       // ignore: avoid_print
       print('');
