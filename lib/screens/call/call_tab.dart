@@ -79,6 +79,14 @@ class _CallTabState extends State<CallTab> {
       // 🔒 AuthService 참조를 안전하게 저장 (dispose에서 사용)
       _authService = context.read<AuthService>();
       
+      // 🔒 CRITICAL FIX: 로그아웃 상태 체크 (빈 화면 방지)
+      if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
+        if (kDebugMode) {
+          debugPrint('⚠️ CallTab 초기화 스킵: 로그아웃 상태');
+        }
+        return;
+      }
+      
       // AuthService 리스너 등록 (사용자 전환 감지)
       _authService?.addListener(_onUserModelChanged);
       
@@ -158,6 +166,14 @@ class _CallTabState extends State<CallTab> {
     if (!mounted) {
       if (kDebugMode) {
         debugPrint('⚠️ Widget이 이미 dispose됨 - 리스너 콜백 무시');
+      }
+      return;
+    }
+    
+    // 🔒 CRITICAL FIX: 로그아웃 상태 체크 (빈 화면 방지)
+    if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
+      if (kDebugMode) {
+        debugPrint('⚠️ 리스너 콜백 무시: 로그아웃 상태');
       }
       return;
     }
