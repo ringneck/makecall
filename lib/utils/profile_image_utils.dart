@@ -159,22 +159,24 @@ class ProfileImageUtils {
         debugPrint('✅ [ProfileImageUtils] Image picked: ${pickedFile.path}');
       }
 
-      // 마운트 확인
+      // Image picker 후 짧은 지연 (context가 다시 mount될 시간 제공)
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // 마운트 확인 (경고만 출력하고 계속 진행)
       if (kDebugMode) {
-        debugPrint('🔍 [ProfileImageUtils] Checking context mount status...');
-      }
-      
-      if (!context.mounted) {
-        if (kDebugMode) {
-          debugPrint('❌ [ProfileImageUtils] Context not mounted after image picker - aborting');
+        debugPrint('🔍 [ProfileImageUtils] Context mount status: ${context.mounted}');
+        if (!context.mounted) {
+          debugPrint('⚠️ [ProfileImageUtils] Context not mounted but continuing anyway');
         }
-        return;
       }
       
       if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] Context is mounted - continuing');
         debugPrint('🖼️ [ProfileImageUtils] Preparing image file...');
-        debugPrint('🖼️ [ProfileImageUtils] Platform: ${Theme.of(context).platform}');
+        try {
+          debugPrint('🖼️ [ProfileImageUtils] Platform: ${Theme.of(context).platform}');
+        } catch (e) {
+          debugPrint('⚠️ [ProfileImageUtils] Cannot access Theme: $e');
+        }
       }
 
       if (kDebugMode) {
@@ -197,10 +199,23 @@ class ProfileImageUtils {
       try {
         if (kDebugMode) {
           debugPrint('🖼️ [ProfileImageUtils] Attempting to show image cropper...');
-          debugPrint('🖼️ [ProfileImageUtils] Context mounted before cropper: ${context.mounted}');
         }
 
-        if (Theme.of(context).platform == TargetPlatform.iOS) {
+        // Platform 감지 (try-catch로 보호)
+        TargetPlatform? platform;
+        try {
+          platform = Theme.of(context).platform;
+          if (kDebugMode) {
+            debugPrint('🖼️ [ProfileImageUtils] Detected platform: $platform');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [ProfileImageUtils] Cannot detect platform, defaulting to Android: $e');
+          }
+          platform = TargetPlatform.android;
+        }
+
+        if (platform == TargetPlatform.iOS) {
           // iOS: Cupertino 스타일 (iOS Photos 앱 느낌)
           if (kDebugMode) {
             debugPrint('🍎 [ProfileImageUtils] Using Cupertino cropper for iOS');
@@ -342,19 +357,21 @@ class ProfileImageUtils {
         debugPrint('📊 [ProfileImageUtils] Final image size: ${croppedBytes.length ~/ 1024}KB');
       }
 
-      // 마운트 확인
-      if (!context.mounted) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [ProfileImageUtils] Context not mounted, aborting');
-        }
-        return;
-      }
-
-      // 로딩 다이얼로그 표시
+      // 로딩 다이얼로그 표시 (try-catch로 보호)
       if (kDebugMode) {
-        debugPrint('⏳ [ProfileImageUtils] Showing loading dialog...');
+        debugPrint('⏳ [ProfileImageUtils] Attempting to show loading dialog...');
       }
-      _showLoadingDialog(context, useModernUI: useModernLoadingUI);
+      
+      try {
+        _showLoadingDialog(context, useModernUI: useModernLoadingUI);
+        if (kDebugMode) {
+          debugPrint('✅ [ProfileImageUtils] Loading dialog shown');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [ProfileImageUtils] Failed to show loading dialog (continuing anyway): $e');
+        }
+      }
 
       // 크롭된 이미지를 임시 파일로 저장
       if (kDebugMode) {
@@ -398,49 +415,67 @@ class ProfileImageUtils {
         rethrow;
       }
 
-      if (!context.mounted) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [ProfileImageUtils] Context not mounted after upload');
-        }
-        return;
-      }
-
       // 로딩 다이얼로그 닫기
       if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] Closing loading dialog');
+        debugPrint('✅ [ProfileImageUtils] Attempting to close loading dialog');
       }
-      Navigator.pop(context);
+      
+      try {
+        Navigator.pop(context);
+        if (kDebugMode) {
+          debugPrint('✅ [ProfileImageUtils] Loading dialog closed');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [ProfileImageUtils] Failed to close loading dialog: $e');
+        }
+      }
 
       // 성공 메시지
       if (kDebugMode) {
         debugPrint('✅ [ProfileImageUtils] Showing success message');
       }
-      await DialogUtils.showSuccess(
-        context,
-        '프로필 사진이 업데이트되었습니다',
-        duration: const Duration(seconds: 2),
-      );
+      
+      try {
+        await DialogUtils.showSuccess(
+          context,
+          '프로필 사진이 업데이트되었습니다',
+          duration: const Duration(seconds: 2),
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [ProfileImageUtils] Failed to show success message: $e');
+        }
+      }
     } catch (e, stackTrace) {
       if (kDebugMode) {
         debugPrint('❌ [ProfileImageUtils] Image upload error: $e');
         debugPrint('📚 [ProfileImageUtils] Stack trace: $stackTrace');
       }
 
-      if (!context.mounted) return;
-
       // 로딩 다이얼로그가 열려있으면 닫기
       try {
         Navigator.of(context, rootNavigator: true).pop();
+        if (kDebugMode) {
+          debugPrint('✅ [ProfileImageUtils] Loading dialog closed after error');
+        }
       } catch (navError) {
         if (kDebugMode) {
           debugPrint('⚠️ [ProfileImageUtils] Failed to close loading dialog: $navError');
         }
       }
 
-      await DialogUtils.showError(
-        context,
-        '이미지 업로드 실패: ${e.toString()}',
-      );
+      // 에러 메시지 표시
+      try {
+        await DialogUtils.showError(
+          context,
+          '이미지 업로드 실패: ${e.toString()}',
+        );
+      } catch (dialogError) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [ProfileImageUtils] Failed to show error dialog: $dialogError');
+        }
+      }
     }
   }
 
