@@ -2011,75 +2011,110 @@ class _ImageCropDialogState extends State<_ImageCropDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final dialogWidth = screenSize.width > 600 ? 500.0 : screenSize.width * 0.9;
+    final cropHeight = screenSize.width > 600 ? 500.0 : screenSize.width * 0.9;
+    
     return Dialog(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 헤더
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-            ),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    '프로필 사진 조정',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: dialogWidth,
+        decoration: BoxDecoration(
+          color: Theme.of(context).dialogBackgroundColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 헤더
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+              ),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      '프로필 사진 조정',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          
-          // 크롭 영역
-          SizedBox(
-            height: 400,
-            child: Crop(
-              image: widget.imageBytes,
-              controller: _cropController,
-              onCropped: (croppedData) {
-                Navigator.pop(context, croppedData);
-              },
-              aspectRatio: 1.0,  // 정사각형
-              initialSize: 0.8,
-              maskColor: Colors.black.withOpacity(0.7),
-              cornerDotBuilder: (size, edgeAlignment) => const DotControl(color: Colors.blue),
-            ),
-          ),
-          
-          // 버튼
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('취소'),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _cropController.crop(),
-                    child: const Text('완료'),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+            
+            // 크롭 영역
+            Container(
+              color: Colors.black,
+              child: SizedBox(
+                width: dialogWidth,
+                height: cropHeight,
+                child: Crop(
+                  image: widget.imageBytes,
+                  controller: _cropController,
+                  onCropped: (croppedData) {
+                    Navigator.pop(context, croppedData);
+                  },
+                  aspectRatio: 1.0,  // 정사각형
+                  initialSize: 0.8,
+                  maskColor: Colors.black.withValues(alpha: 0.7),
+                  cornerDotBuilder: (size, edgeAlignment) => const DotControl(color: Colors.blue),
+                  interactive: true,
+                ),
+              ),
+            ),
+            
+            // 안내 텍스트
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              color: Theme.of(context).dialogBackgroundColor,
+              child: Text(
+                '드래그하여 위치를 조정하고, 모서리를 드래그하여 크기를 조절하세요',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            
+            // 버튼
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).dialogBackgroundColor,
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('취소'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _cropController.crop(),
+                      child: const Text('완료'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
