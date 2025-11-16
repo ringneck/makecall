@@ -201,8 +201,6 @@ class ProfileImageUtils {
           debugPrint('🖼️ [ProfileImageUtils] Starting native image cropper...');
         }
 
-        final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
-
         // image_cropper는 native UI를 사용하므로 context 문제 없음
         croppedFile = await ImageCropper().cropImage(
           sourcePath: imageFile.path,
@@ -212,12 +210,12 @@ class ProfileImageUtils {
           maxHeight: 2048,
           compressFormat: ImageCompressFormat.jpg,
           uiSettings: [
-            // Android 설정
+            // Android 설정 (다크 테마 기본 사용)
             AndroidUiSettings(
               toolbarTitle: '프로필 사진 크롭',
-              toolbarColor: isDark ? Colors.grey[900] : const Color(0xFF2196F3),
+              toolbarColor: Colors.grey[900]!,
               toolbarWidgetColor: Colors.white,
-              backgroundColor: isDark ? Colors.black : Colors.white,
+              backgroundColor: Colors.black,
               activeControlsWidgetColor: const Color(0xFF2196F3),
               initAspectRatio: CropAspectRatioPreset.square,
               lockAspectRatio: true,
