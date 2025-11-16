@@ -503,13 +503,15 @@ class AccountManagementUtils {
         Navigator.pop(context);
       }
 
-      await FirebaseAuth.instance.signOut();
+      // 🔧 CRITICAL FIX: AuthService.signOut()을 호출하여 FCM 토큰 비활성화 수행
+      final authService = Provider.of<AuthService>(context, listen: false);
+      await authService.signOut();
 
       if (kDebugMode) {
         debugPrint('✅ 로그아웃 완료');
       }
 
-      // 🔥 CRITICAL: AuthService.logout()이 자동으로 로그인 화면으로 이동
+      // 🔥 CRITICAL: AuthService.signOut()이 자동으로 로그인 화면으로 이동
       // 여기서 명시적으로 navigate하지 않아도 AuthService가 처리함
     } catch (e) {
       if (kDebugMode) {
