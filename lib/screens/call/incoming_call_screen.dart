@@ -129,12 +129,32 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   @override
   void dispose() {
+    if (kDebugMode) {
+      debugPrint('🧹 [INCOMING-CALL] dispose() 시작 - 모든 리소스 정리');
+    }
+    
+    // 🔥 Firestore 리스너 즉시 취소 (가장 먼저!)
+    if (_callHistoryListener != null) {
+      _callHistoryListener!.cancel();
+      _callHistoryListener = null;
+      if (kDebugMode) {
+        debugPrint('✅ [INCOMING-CALL] Firestore 리스너 취소 완료');
+      }
+    }
+    
+    // 애니메이션 컨트롤러 정리
     _rippleController.dispose();
     _glowController.dispose();
     _fadeController.dispose();
     _scaleController.dispose();
+    
+    // 벨소리/진동 중지
     _stopRingtoneAndVibration();
-    _callHistoryListener?.cancel(); // 🔥 리스너 정리
+    
+    if (kDebugMode) {
+      debugPrint('✅ [INCOMING-CALL] dispose() 완료 - 모든 리소스 정리됨');
+    }
+    
     super.dispose();
   }
   
@@ -156,29 +176,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         .snapshots()
         .listen(
       (snapshot) {
-        // 🔒 초기 로드 무시 (기존 데이터는 무시하고 변경사항만 감지)
-        if (_isInitialLoad) {
-          _isInitialLoad = false;
-          if (kDebugMode) {
-            debugPrint('🔥 [FIRESTORE-LISTENER] 초기 데이터 로드 - 무시');
-            if (snapshot.exists) {
-              final data = snapshot.data();
-              final cancelled = data?['cancelled'] as bool? ?? false;
-              debugPrint('   초기 cancelled 상태: $cancelled (무시됨)');
-            }
-          }
-          return;
-        }
-        
-        // ⚠️ 안전 장치 1: mounted 체크
-        if (!mounted) {
-          if (kDebugMode) {
-            debugPrint('⚠️ [FIRESTORE-LISTENER] 위젯이 dispose됨 - 리스너 무시');
-          }
-          return;
-        }
-        
-        // ⚠️ 안전 장치 2: userId 체크 (로그아웃 시 null)
+        // ⚠️ 안전 장치 1: userId 체크 먼저 (로그아웃 시 null)
+        // 초기 로드 체크보다 먼저 확인하여 로그아웃 즉시 감지
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser == null) {
           if (kDebugMode) {
@@ -198,6 +197,28 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
             if (kDebugMode) {
               debugPrint('✅ [FIRESTORE-LISTENER] 로그아웃으로 인한 화면 닫기 완료');
             }
+          }
+          return;
+        }
+        
+        // 🔒 초기 로드 무시 (기존 데이터는 무시하고 변경사항만 감지)
+        if (_isInitialLoad) {
+          _isInitialLoad = false;
+          if (kDebugMode) {
+            debugPrint('🔥 [FIRESTORE-LISTENER] 초기 데이터 로드 - 무시');
+            if (snapshot.exists) {
+              final data = snapshot.data();
+              final cancelled = data?['cancelled'] as bool? ?? false;
+              debugPrint('   초기 cancelled 상태: $cancelled (무시됨)');
+            }
+          }
+          return;
+        }
+        
+        // ⚠️ 안전 장치 2: mounted 체크
+        if (!mounted) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [FIRESTORE-LISTENER] 위젯이 dispose됨 - 리스너 무시');
           }
           return;
         }
@@ -231,14 +252,18 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       onError: (error) {
         if (kDebugMode) {
           debugPrint('❌ [FIRESTORE-LISTENER] 오류: $error');
+          debugPrint('   오류 타입: ${error.runtimeType}');
         }
         
-        // ⚠️ 안전 장치 3: 리스너 오류 시 화면 닫기
+        // ⚠️ 안전 장치 3: 리스너 취소 및 화면 닫기
+        _callHistoryListener?.cancel();
+        _callHistoryListener = null;
         _stopRingtoneAndVibration();
+        
         if (mounted) {
           Navigator.of(context).pop();
           if (kDebugMode) {
-            debugPrint('🔒 [FIRESTORE-LISTENER] 오류로 인해 화면 닫힘');
+            debugPrint('🔒 [FIRESTORE-LISTENER] 오류로 인해 리스너 취소 및 화면 닫힘');
           }
         }
       },
