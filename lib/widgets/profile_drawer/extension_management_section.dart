@@ -173,50 +173,119 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
     
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (dialogContext) => Dialog(
-        backgroundColor: isDark ? Colors.grey[900] : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         child: Container(
-          constraints: const BoxConstraints(maxHeight: 600),
+          constraints: const BoxConstraints(
+            maxHeight: 650,
+            maxWidth: 500,
+          ),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.grey[900] : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(77),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 헤더
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.phone_android, 
-                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '내 단말번호 관리',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.grey[200] : Colors.black87,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(dialogContext),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+              // 🎨 모던 그라데이션 헤더
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF1976D2), const Color(0xFF1565C0)]
+                        : [const Color(0xFF2196F3), const Color(0xFF1976D2)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2196F3).withAlpha(77),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 16, 20),
+                  child: Row(
+                    children: [
+                      // 아이콘 with 배경
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(51),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.phone_android,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // 제목 및 서브타이틀
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '내 단말번호 관리',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '등록된 단말: ${extensions.length}개',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white.withAlpha(204),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // 닫기 버튼
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => Navigator.pop(dialogContext),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const Divider(height: 1),
               
-              // 단말번호 조회 버튼
+              // 🔍 단말번호 조회 버튼 (모던 디자인)
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -231,51 +300,83 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2,
+                              strokeWidth: 2.5,
                               color: Colors.white,
                             ),
                           )
-                        : const Icon(Icons.search, size: 20),
-                    label: Text(_isSearching ? '조회 중...' : '단말번호 조회 및 등록'),
+                        : const Icon(Icons.search_rounded, size: 22),
+                    label: Text(
+                      _isSearching ? '조회 중...' : '단말번호 조회 및 등록',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2196F3),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 2,
+                      shadowColor: const Color(0xFF2196F3).withAlpha(102),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
                 ),
               ),
               
-              // 에러 메시지
+              // 에러 메시지 (모던 디자인)
               if (_searchError != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   child: Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.red[900]!.withAlpha(77) : Colors.red[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark ? Colors.red[700]! : Colors.red[200]!,
+                      gradient: LinearGradient(
+                        colors: isDark 
+                            ? [Colors.red[900]!.withAlpha(128), Colors.red[800]!.withAlpha(102)]
+                            : [Colors.red[50]!, Colors.red[100]!.withAlpha(128)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? Colors.red[700]! : Colors.red[300]!,
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isDark ? Colors.red[900]! : Colors.red).withAlpha(51),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.error_outline, 
-                          color: isDark ? Colors.red[300] : Colors.red, 
-                          size: 20,
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: (isDark ? Colors.red[300]! : Colors.red).withAlpha(51),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.error_rounded, 
+                            color: isDark ? Colors.red[300] : Colors.red[700], 
+                            size: 20,
+                          ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             _searchError!,
                             style: TextStyle(
-                              fontSize: 12, 
-                              color: isDark ? Colors.red[300] : Colors.red,
+                              fontSize: 13, 
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? Colors.red[200] : Colors.red[800],
+                              letterSpacing: -0.2,
                             ),
                           ),
                         ),
@@ -284,32 +385,91 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                   ),
                 ),
               
-              const Divider(height: 24),
-              
-              // 등록된 단말번호 목록 헤더
+              // 구분선
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [Colors.grey[800]!, Colors.grey[700]!, Colors.grey[800]!]
+                          : [Colors.grey[200]!, Colors.grey[300]!, Colors.grey[200]!],
+                    ),
+                  ),
+                ),
+              ),
+              
+              // 등록된 단말번호 목록 헤더 (모던 디자인)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      '등록된 단말번호',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: (isDark ? Colors.blue[900]! : const Color(0xFF2196F3)).withAlpha(51),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.list_rounded,
+                            size: 18,
+                            color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          '등록된 단말번호',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ],
                     ),
                     if (extensions.isNotEmpty)
-                      TextButton.icon(
-                        onPressed: () {
-                          Navigator.pop(dialogContext);
-                          _deleteAllExtensions(context, userId);
-                        },
-                        icon: const Icon(Icons.delete_sweep, size: 16),
-                        label: const Text('전체 삭제', style: TextStyle(fontSize: 12)),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.pop(dialogContext);
+                            _deleteAllExtensions(context, userId);
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: (isDark ? Colors.red[900]! : Colors.red[50]!).withAlpha(128),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isDark ? Colors.red[700]! : Colors.red[300]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.delete_sweep_rounded,
+                                  size: 16,
+                                  color: isDark ? Colors.red[300] : Colors.red[700],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '전체 삭제',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.red[300] : Colors.red[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                   ],
@@ -320,31 +480,41 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
               Flexible(
                 child: extensions.isEmpty
                     ? Padding(
-                        padding: const EdgeInsets.all(32),
+                        padding: const EdgeInsets.all(40),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.inbox_outlined, 
-                              size: 64, 
-                              color: isDark ? Colors.grey[700] : Colors.grey[400],
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: (isDark ? Colors.grey[800]! : Colors.grey[100]!).withAlpha(128),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.phone_disabled_rounded, 
+                                size: 64, 
+                                color: isDark ? Colors.grey[600] : Colors.grey[400],
+                              ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 24),
                             Text(
                               '등록된 단말번호가 없습니다',
                               style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.grey[300] : Colors.grey[700],
+                                letterSpacing: -0.3,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              '위의 조회 버튼을 눌러주세요',
+                              '위의 조회 버튼을 눌러 단말번호를 등록하세요',
                               style: TextStyle(
-                                fontSize: 12, 
-                                color: isDark ? Colors.grey[500] : Colors.grey[500],
+                                fontSize: 13, 
+                                color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                letterSpacing: -0.2,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
@@ -353,7 +523,7 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                         shrinkWrap: true,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         itemCount: extensions.length,
-                        separatorBuilder: (context, index) => const Divider(height: 1),
+                        separatorBuilder: (context, index) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final ext = extensions[index];
                           return _buildExtensionCard(context, ext, index, dialogContext);
@@ -378,53 +548,68 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: isDark
+              ? [Colors.grey[850]!, Colors.grey[900]!]
+              : [Colors.white, Colors.grey[50]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? Colors.grey[700]! : Colors.grey[300]!, 
-          width: 1,
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
             color: isDark 
-                ? Colors.black.withAlpha(51)
-                : Colors.grey.withAlpha(26),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+                ? Colors.black.withAlpha(77)
+                : const Color(0xFF2196F3).withAlpha(26),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 작은 숫자 아이콘
+            // 모던 숫자 배지
             Container(
-              width: 24,
-              height: 24,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
-                color: isDark 
-                    ? Colors.blue[900]!.withAlpha(128)
-                    : const Color(0xFF2196F3).withAlpha(26),
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [Colors.blue[800]!, Colors.blue[900]!]
+                      : [const Color(0xFF2196F3), const Color(0xFF1976D2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2196F3).withAlpha(77),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Center(
                 child: Text(
                   '${index + 1}',
-                  style: TextStyle(
-                    color: isDark 
-                        ? Colors.blue[300] 
-                        : const Color(0xFF2196F3),
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 11,
+                    fontSize: 14,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             
             // 정보 영역
             Expanded(
@@ -435,51 +620,75 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                   Text(
                     ext.name,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.grey[200] : Colors.black87,
+                      color: isDark ? Colors.grey[100] : Colors.black87,
+                      letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   // 단말번호 (두 번째 줄)
-                  Text(
-                    ext.extension,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.blue[900]! : const Color(0xFF2196F3)).withAlpha(51),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      ext.extension,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.blue[300] : const Color(0xFF1976D2),
+                        fontFamily: 'monospace',
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  // 수신번호 (세 번째 줄 - 강조 표시)
+                  const SizedBox(height: 8),
+                  // 수신번호 (세 번째 줄 - 모던 배지)
                   if (ext.accountCode != null && ext.accountCode!.isNotEmpty)
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.call_received,
-                          size: 14,
-                          color: isDark ? Colors.green[300] : Colors.green[700],
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: (isDark ? Colors.green[900]! : Colors.green[50]!).withAlpha(128),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark ? Colors.green[700]! : Colors.green[300]!,
+                          width: 1,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '수신번호: ',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
-                          ),
-                        ),
-                        Text(
-                          ext.accountCode!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.call_received_rounded,
+                            size: 16,
                             color: isDark ? Colors.green[300] : Colors.green[700],
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Text(
+                            '수신번호: ',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.grey[400] : Colors.grey[700],
+                            ),
+                          ),
+                          Text(
+                            ext.accountCode!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.green[300] : Colors.green[800],
+                              fontFamily: 'monospace',
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   
                   // 수신번호 (길게 누르면 복사)
                   if (ext.accountCode != null && ext.accountCode!.isNotEmpty) ...[
@@ -513,20 +722,32 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
               ),
             ),
             
-            // 삭제 버튼
-            IconButton(
-              icon: Icon(
-                Icons.delete_outline, 
-                size: 20,
-                color: isDark ? Colors.red[300] : Colors.red,
+            // 모던 삭제 버튼
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  Navigator.pop(dialogContext);
+                  _deleteExtension(context, ext);
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: (isDark ? Colors.red[900]! : Colors.red[50]!).withAlpha(102),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isDark ? Colors.red[700]! : Colors.red[300]!,
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.delete_rounded, 
+                    size: 20,
+                    color: isDark ? Colors.red[300] : Colors.red[700],
+                  ),
+                ),
               ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                _deleteExtension(context, ext);
-              },
-              tooltip: '삭제',
             ),
           ],
         ),
@@ -534,7 +755,7 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
     );
   }
 
-  /// 복사 버튼이 있는 정보 행 빌더
+  /// 복사 버튼이 있는 정보 행 빌더 (모던 디자인)
   Widget _buildLongPressCopyRow({
     required BuildContext context,
     required String label,
@@ -542,53 +763,70 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: (isDark ? Colors.grey[800]! : Colors.grey[100]!).withAlpha(128),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+          width: 1,
+        ),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 라벨 (60px로 축소하여 값 표시 공간 확보)
+          // 라벨
           SizedBox(
-            width: 60,
+            width: 70,
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.grey[500] : Colors.grey[600],
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.grey[400] : Colors.grey[700],
+                letterSpacing: -0.2,
               ),
             ),
           ),
-          // 값 (더 많은 문자 표시 가능)
+          // 값
           Expanded(
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
                 color: isDark ? Colors.grey[300] : Colors.black87,
                 fontFamily: 'monospace',
-                letterSpacing: 0.2,
+                letterSpacing: 0.3,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 2),
-          // 복사 버튼 (최소 크기로 더 많은 텍스트 공간 확보)
-          IconButton(
-            icon: const Icon(Icons.content_copy, size: 14),
-            onPressed: () async {
-              Clipboard.setData(ClipboardData(text: value));
-              await DialogUtils.showCopySuccess(context, label, value);
-            },
-            tooltip: '복사',
-            padding: const EdgeInsets.all(2),
-            constraints: const BoxConstraints(
-              minWidth: 28,
-              minHeight: 28,
+          // 모던 복사 버튼
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () async {
+                Clipboard.setData(ClipboardData(text: value));
+                await DialogUtils.showCopySuccess(context, label, value);
+              },
+              borderRadius: BorderRadius.circular(6),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: (isDark ? Colors.blue[900]! : const Color(0xFF2196F3)).withAlpha(51),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.copy_rounded,
+                  size: 16,
+                  color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                ),
+              ),
             ),
-            visualDensity: VisualDensity.compact,
           ),
         ],
       ),
