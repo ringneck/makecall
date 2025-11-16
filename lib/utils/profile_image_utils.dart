@@ -160,14 +160,36 @@ class ProfileImageUtils {
       }
 
       // 마운트 확인
-      if (!context.mounted) return;
-
       if (kDebugMode) {
+        debugPrint('🔍 [ProfileImageUtils] Checking context mount status...');
+      }
+      
+      if (!context.mounted) {
+        if (kDebugMode) {
+          debugPrint('❌ [ProfileImageUtils] Context not mounted after image picker - aborting');
+        }
+        return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ [ProfileImageUtils] Context is mounted - continuing');
         debugPrint('🖼️ [ProfileImageUtils] Preparing image file...');
         debugPrint('🖼️ [ProfileImageUtils] Platform: ${Theme.of(context).platform}');
       }
 
+      if (kDebugMode) {
+        debugPrint('📂 [ProfileImageUtils] Creating File object from path...');
+      }
+      
       final imageFile = File(pickedFile.path);
+      
+      if (kDebugMode) {
+        debugPrint('✅ [ProfileImageUtils] File object created');
+        debugPrint('📊 [ProfileImageUtils] File exists: ${await imageFile.exists()}');
+        if (await imageFile.exists()) {
+          debugPrint('📊 [ProfileImageUtils] File size: ${await imageFile.length()} bytes');
+        }
+      }
 
       // 플랫폼에 맞는 크롭 UI 표시
       CropImageResult? croppedImage;
@@ -175,6 +197,7 @@ class ProfileImageUtils {
       try {
         if (kDebugMode) {
           debugPrint('🖼️ [ProfileImageUtils] Attempting to show image cropper...');
+          debugPrint('🖼️ [ProfileImageUtils] Context mounted before cropper: ${context.mounted}');
         }
 
         if (Theme.of(context).platform == TargetPlatform.iOS) {
@@ -182,9 +205,20 @@ class ProfileImageUtils {
           if (kDebugMode) {
             debugPrint('🍎 [ProfileImageUtils] Using Cupertino cropper for iOS');
           }
+          
+          if (kDebugMode) {
+            debugPrint('🍎 [ProfileImageUtils] Creating FileImage provider...');
+          }
+          
+          final imageProvider = FileImage(imageFile);
+          
+          if (kDebugMode) {
+            debugPrint('🍎 [ProfileImageUtils] Calling showCupertinoImageCropper...');
+          }
+          
           croppedImage = await showCupertinoImageCropper(
             context,
-            imageProvider: FileImage(imageFile),
+            imageProvider: imageProvider,
             allowedAspectRatios: [
               const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
             ],
@@ -194,9 +228,20 @@ class ProfileImageUtils {
           if (kDebugMode) {
             debugPrint('🤖 [ProfileImageUtils] Using Material cropper for Android');
           }
+          
+          if (kDebugMode) {
+            debugPrint('🤖 [ProfileImageUtils] Creating FileImage provider...');
+          }
+          
+          final imageProvider = FileImage(imageFile);
+          
+          if (kDebugMode) {
+            debugPrint('🤖 [ProfileImageUtils] Calling showMaterialImageCropper...');
+          }
+          
           croppedImage = await showMaterialImageCropper(
             context,
-            imageProvider: FileImage(imageFile),
+            imageProvider: imageProvider,
             allowedAspectRatios: [
               const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
             ],
