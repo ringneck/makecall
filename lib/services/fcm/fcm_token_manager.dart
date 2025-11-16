@@ -46,7 +46,7 @@ class FCMTokenManager {
         print('⏭️  [FCM-SAVE] 동일 토큰이 최근에 저장됨 - 중복 저장 스킵');
         // ignore: avoid_print
         print('   - 마지막 저장: ${DateTime.now().difference(_lastSaveTime!).inSeconds}초 전');
-        return (false, []);
+        return (false, <FcmTokenModel>[]);
       }
       
       final deviceId = await _platformUtils.getDeviceId();
@@ -196,7 +196,7 @@ class FCMTokenManager {
       // 일반적인 토큰 저장 오류는 무시 (로그인은 계속 진행)
       // ignore: avoid_print
       print('⚠️ [FCM-SAVE] 토큰 저장 실패했지만 로그인은 허용');
-      return (false, []);
+      return (false, <FcmTokenModel>[]);
     }
   }
 

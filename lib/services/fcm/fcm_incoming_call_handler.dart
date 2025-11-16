@@ -417,8 +417,16 @@ class FCMIncomingCallHandler {
             channel: channel,
             receiverNumber: receiverNumber,
             callType: callType,
-            soundEnabled: soundEnabled, // 사용자 알림 설정 전달
-            vibrationEnabled: vibrationEnabled, // 사용자 알림 설정 전달
+            shouldPlaySound: soundEnabled, // 사용자 알림 설정 전달
+            shouldVibrate: vibrationEnabled, // 사용자 알림 설정 전달
+            onAccept: () {
+              // Accept 처리는 IncomingCallScreen 내부에서 수행
+              Navigator.of(context).pop();
+            },
+            onReject: () {
+              // Reject 처리는 IncomingCallScreen 내부에서 수행
+              Navigator.of(context).pop();
+            },
           ),
         ),
       );
