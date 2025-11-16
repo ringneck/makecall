@@ -251,14 +251,16 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              '등록된 단말: ${extensions.length}개',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.white.withAlpha(204),
-                                fontWeight: FontWeight.w500,
+                            // isPremium이 true일 때만 단말 수 표시
+                            if (userModel?.isPremium == true)
+                              Text(
+                                '등록된 단말: ${extensions.length}개',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white.withAlpha(204),
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
