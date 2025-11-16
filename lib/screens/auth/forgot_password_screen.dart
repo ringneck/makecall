@@ -64,12 +64,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: _emailController.text.trim(),
-      );
+      final email = _emailController.text.trim();
+      final timestamp = DateTime.now();
+      
+      if (kDebugMode) {
+        print('');
+        print('📧 ========== 비밀번호 재설정 이메일 전송 시도 ==========');
+        print('   이메일: $email');
+        print('   시간: ${timestamp.toIso8601String()}');
+        print('   Firebase 프로젝트: makecallio');
+      }
+      
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
 
       if (kDebugMode) {
-        print('✅ 비밀번호 재설정 이메일 전송 성공: ${_emailController.text.trim()}');
+        print('✅ Firebase sendPasswordResetEmail() 호출 성공');
+        print('   → Firebase Auth가 이메일 발송 처리 중');
+        print('   → 발신자: noreply@makecallio.firebaseapp.com');
+        print('   → 수신자: $email');
+        print('');
+        print('📌 이메일이 도착하지 않으면:');
+        print('   1. 스팸함 확인');
+        print('   2. 5-10분 대기 (발송 지연 가능)');
+        print('   3. Firebase Console에서 발송 기록 확인');
+        print('   4. 다른 이메일 주소로 재시도');
+        print('================================================');
+        print('');
       }
 
       setState(() {
@@ -80,7 +100,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       if (mounted) {
         await DialogUtils.showSuccess(
           context,
-          '비밀번호 재설정 이메일이 발송되었습니다.\n이메일을 확인해주세요.',
+          '비밀번호 재설정 이메일이 발송되었습니다.\n이메일을 확인해주세요.\n\n※ 스팸함도 확인해주세요',
         );
       }
     } on FirebaseAuthException catch (e) {
