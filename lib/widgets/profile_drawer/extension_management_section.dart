@@ -28,6 +28,7 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
     final userId = authService.currentUser?.uid ?? '';
+    final userModel = authService.currentUserModel;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (userId.isEmpty) {
@@ -128,7 +129,8 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (extensionCount > 0)
+                      // isPremium이 true일 때만 단말 수 배지 표시
+                      if (extensionCount > 0 && userModel?.isPremium == true)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
@@ -146,7 +148,8 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                             ),
                           ),
                         ),
-                      const SizedBox(width: 8),
+                      if (extensionCount > 0 && userModel?.isPremium == true)
+                        const SizedBox(width: 8),
                       Icon(
                         Icons.chevron_right_rounded,
                         size: 20,
@@ -251,16 +254,14 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                               ),
                             ),
                             const SizedBox(height: 4),
-                            // isPremium이 true일 때만 단말 수 표시
-                            if (userModel?.isPremium == true)
-                              Text(
-                                '등록된 단말: ${extensions.length}개',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.white.withAlpha(204),
-                                  fontWeight: FontWeight.w500,
-                                ),
+                            Text(
+                              '등록된 단말: ${extensions.length}개',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white.withAlpha(204),
+                                fontWeight: FontWeight.w500,
                               ),
+                            ),
                           ],
                         ),
                       ),
