@@ -123,7 +123,7 @@ class FCMDeviceApprovalService {
       // ignore: avoid_print
       print('📝 [FCM-APPROVAL] 승인 요청 문서 ID: $approvalRequestId');
       
-      // 🔧 FIX: 이전 승인 요청이 남아있을 수 있으므로 먼저 삭제
+      // 🔧 FIX 1: 이전 승인 요청이 남아있을 수 있으므로 먼저 삭제
       try {
         final existingRequest = await _firestore
             .collection('device_approval_requests')
@@ -143,6 +143,52 @@ class FCMDeviceApprovalService {
       } catch (e) {
         // ignore: avoid_print
         print('⚠️ [FCM-APPROVAL] 기존 요청 삭제 중 오류 (무시): $e');
+      }
+      
+      // 🔧 FIX 2: 해당 사용자의 모든 승인 알림 큐 정리 (강제 클린업)
+      try {
+        // ignore: avoid_print
+        print('🧹 [FCM-APPROVAL] 사용자의 모든 승인 알림 큐 정리 시작...');
+        
+        final allQueues = await _firestore
+            .collection('fcm_approval_notification_queue')
+            .where('userId', isEqualTo: userId)
+            .get();
+        
+        if (allQueues.docs.isNotEmpty) {
+          // ignore: avoid_print
+          print('🗑️ [FCM-APPROVAL] ${allQueues.docs.length}개의 큐 삭제 중...');
+          
+          // 배치 삭제 (최대 500개씩)
+          final batch = _firestore.batch();
+          int count = 0;
+          for (var doc in allQueues.docs) {
+            batch.delete(doc.reference);
+            count++;
+            
+            // Firestore 배치 제한 (500개)
+            if (count >= 500) {
+              await batch.commit();
+              // ignore: avoid_print
+              print('   ✅ 500개 배치 삭제 완료');
+              count = 0;
+            }
+          }
+          
+          // 남은 문서 삭제
+          if (count > 0) {
+            await batch.commit();
+          }
+          
+          // ignore: avoid_print
+          print('✅ [FCM-APPROVAL] 모든 큐 ${allQueues.docs.length}개 삭제 완료');
+        } else {
+          // ignore: avoid_print
+          print('✅ [FCM-APPROVAL] 정리할 큐 없음');
+        }
+      } catch (e) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-APPROVAL] 큐 정리 중 오류 (무시): $e');
       }
       
       // Firestore에 새 승인 요청 저장 (5분 TTL)
