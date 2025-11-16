@@ -141,12 +141,10 @@ class ProfileImageUtils {
         await Future.delayed(const Duration(milliseconds: 100));
       }
 
-      // 이미지 선택
+      // 이미지 선택 (원본 크기 유지 - 크롭 후 리사이즈)
       final pickedFile = await picker.pickImage(
         source: source,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 85,
+        imageQuality: 100, // 원본 품질 유지
         requestFullMetadata: false,
       );
 
@@ -215,19 +213,54 @@ class ProfileImageUtils {
         debugPrint('✅ [ProfileImageUtils] Image cropped successfully');
       }
 
-      // 크롭된 이미지를 Uint8List로 변환
-      final byteData = await croppedImage.uiImage.toByteData(
+      // 크롭된 이미지를 적절한 크기로 리사이즈 (512x512)
+      final originalImage = croppedImage.uiImage;
+      final targetSize = 512;
+      
+      // 이미 작으면 리사이즈 생략
+      final needsResize = originalImage.width > targetSize || originalImage.height > targetSize;
+      
+      ui.Image resizedImage;
+      if (needsResize) {
+        if (kDebugMode) {
+          debugPrint('📐 [ProfileImageUtils] Resizing image from ${originalImage.width}x${originalImage.height} to ${targetSize}x$targetSize');
+        }
+        
+        // 리사이즈를 위한 PictureRecorder 사용
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        
+        // 정사각형으로 리사이즈
+        canvas.drawImageRect(
+          originalImage,
+          Rect.fromLTWH(0, 0, originalImage.width.toDouble(), originalImage.height.toDouble()),
+          Rect.fromLTWH(0, 0, targetSize.toDouble(), targetSize.toDouble()),
+          Paint(),
+        );
+        
+        final picture = recorder.endRecording();
+        resizedImage = await picture.toImage(targetSize, targetSize);
+      } else {
+        resizedImage = originalImage;
+      }
+
+      // 리사이즈된 이미지를 Uint8List로 변환
+      final byteData = await resizedImage.toByteData(
         format: ui.ImageByteFormat.png,
       );
 
       if (byteData == null) {
         if (kDebugMode) {
-          debugPrint('❌ [ProfileImageUtils] Failed to convert cropped image to bytes');
+          debugPrint('❌ [ProfileImageUtils] Failed to convert image to bytes');
         }
         return;
       }
 
       final croppedBytes = byteData.buffer.asUint8List();
+      
+      if (kDebugMode) {
+        debugPrint('✅ [ProfileImageUtils] Final image size: ${croppedBytes.length ~/ 1024}KB');
+      }
 
       // 마운트 확인
       if (!context.mounted) return;
