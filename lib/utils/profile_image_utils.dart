@@ -193,73 +193,98 @@ class ProfileImageUtils {
         }
       }
 
-      // 플랫폼에 맞는 크롭 UI 표시
+      // 크롭 화면으로 네비게이션 (새로운 BuildContext 사용)
       CropImageResult? croppedImage;
       
       try {
         if (kDebugMode) {
-          debugPrint('🖼️ [ProfileImageUtils] Attempting to show image cropper...');
+          debugPrint('🖼️ [ProfileImageUtils] Navigating to crop screen...');
         }
 
-        // Platform 감지 (try-catch로 보호)
-        TargetPlatform? platform;
-        try {
-          platform = Theme.of(context).platform;
-          if (kDebugMode) {
-            debugPrint('🖼️ [ProfileImageUtils] Detected platform: $platform');
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('⚠️ [ProfileImageUtils] Cannot detect platform, defaulting to Android: $e');
-          }
-          platform = TargetPlatform.android;
+        // Platform 감지
+        final platform = defaultTargetPlatform;
+        
+        if (kDebugMode) {
+          debugPrint('🖼️ [ProfileImageUtils] Detected platform: $platform');
         }
 
+        final imageProvider = FileImage(imageFile);
+
+        // Navigator.push를 사용하여 새로운 route로 크롭 화면 열기
+        // 이렇게 하면 새로운 BuildContext가 생성되어 deactivated 문제 해결
         if (platform == TargetPlatform.iOS) {
-          // iOS: Cupertino 스타일 (iOS Photos 앱 느낌)
           if (kDebugMode) {
-            debugPrint('🍎 [ProfileImageUtils] Using Cupertino cropper for iOS');
+            debugPrint('🍎 [ProfileImageUtils] Opening Cupertino cropper in new route...');
           }
           
-          if (kDebugMode) {
-            debugPrint('🍎 [ProfileImageUtils] Creating FileImage provider...');
-          }
-          
-          final imageProvider = FileImage(imageFile);
-          
-          if (kDebugMode) {
-            debugPrint('🍎 [ProfileImageUtils] Calling showCupertinoImageCropper...');
-          }
-          
-          croppedImage = await showCupertinoImageCropper(
-            context,
-            imageProvider: imageProvider,
-            allowedAspectRatios: [
-              const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
-            ],
+          croppedImage = await Navigator.of(context).push<CropImageResult>(
+            MaterialPageRoute(
+              fullscreenDialog: true,
+              builder: (newContext) {
+                // 새로운 context 사용 - deactivated 문제 없음
+                return Material(
+                  child: Builder(
+                    builder: (builderContext) {
+                      // 즉시 크롭 UI 표시
+                      WidgetsBinding.instance.addPostFrameCallback((_) async {
+                        final result = await showCupertinoImageCropper(
+                          builderContext,
+                          imageProvider: imageProvider,
+                          allowedAspectRatios: [
+                            const CropAspectRatio(width: 1, height: 1),
+                          ],
+                        );
+                        if (builderContext.mounted) {
+                          Navigator.of(builderContext).pop(result);
+                        }
+                      });
+                      
+                      // 로딩 표시
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
           );
         } else {
-          // Android/Web/기타: Material 스타일 (Google Photos 느낌)
           if (kDebugMode) {
-            debugPrint('🤖 [ProfileImageUtils] Using Material cropper for Android');
+            debugPrint('🤖 [ProfileImageUtils] Opening Material cropper in new route...');
           }
           
-          if (kDebugMode) {
-            debugPrint('🤖 [ProfileImageUtils] Creating FileImage provider...');
-          }
-          
-          final imageProvider = FileImage(imageFile);
-          
-          if (kDebugMode) {
-            debugPrint('🤖 [ProfileImageUtils] Calling showMaterialImageCropper...');
-          }
-          
-          croppedImage = await showMaterialImageCropper(
-            context,
-            imageProvider: imageProvider,
-            allowedAspectRatios: [
-              const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
-            ],
+          croppedImage = await Navigator.of(context).push<CropImageResult>(
+            MaterialPageRoute(
+              fullscreenDialog: true,
+              builder: (newContext) {
+                // 새로운 context 사용 - deactivated 문제 없음
+                return Material(
+                  child: Builder(
+                    builder: (builderContext) {
+                      // 즉시 크롭 UI 표시
+                      WidgetsBinding.instance.addPostFrameCallback((_) async {
+                        final result = await showMaterialImageCropper(
+                          builderContext,
+                          imageProvider: imageProvider,
+                          allowedAspectRatios: [
+                            const CropAspectRatio(width: 1, height: 1),
+                          ],
+                        );
+                        if (builderContext.mounted) {
+                          Navigator.of(builderContext).pop(result);
+                        }
+                      });
+                      
+                      // 로딩 표시
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
           );
         }
 
@@ -271,7 +296,6 @@ class ProfileImageUtils {
           debugPrint('❌ [ProfileImageUtils] Crop UI failed: $cropError');
           debugPrint('⚠️ [ProfileImageUtils] Falling back to direct upload without crop');
         }
-        // 크롭 실패 시 원본 이미지 사용
         croppedImage = null;
       }
 
