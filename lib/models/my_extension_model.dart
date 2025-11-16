@@ -8,7 +8,7 @@ class MyExtensionModel {
   final String? externalCid; // 외부발신 정보 원본 (예: "외부발신" <16682471>)
   final String? externalCidName; // 외부발신 이름 (파싱됨)
   final String? externalCidNumber; // 외부발신 번호 (파싱됨)
-  final String? accountCode; // 계정 코드
+  final String? accountCode; // 수신번호 (accountcode)
   final String? sipUserId; // SIP user id (devices.user)
   final String? sipSecret; // SIP secret (devices.secret)
   final DateTime createdAt; // 생성 시간

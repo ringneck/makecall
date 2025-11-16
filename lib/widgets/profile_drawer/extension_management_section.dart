@@ -89,18 +89,41 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                       color: isDark ? Colors.cyan[200] : Colors.cyan[900],
                     ),
                   ),
-                  subtitle: Text(
-                    extensionCount > 0 
-                        ? '등록됨: ${extensions.map((e) => e.extension).join(", ")}'
-                        : '등록된 단말번호가 없습니다',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark 
-                          ? (extensionCount > 0 ? Colors.cyan[300] : Colors.cyan[400])
-                          : (extensionCount > 0 ? Colors.cyan[700] : Colors.cyan[600]),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (extensionCount > 0) ...[
+                        // 수신번호 표시
+                        Text(
+                          '수신번호: ${extensions.map((e) => e.accountCode ?? '미설정').join(", ")}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.green[300] : Colors.green[700],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        // 단말번호 표시
+                        Text(
+                          '등록됨: ${extensions.map((e) => e.extension).join(", ")}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.cyan[300] : Colors.cyan[700],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ] else
+                        Text(
+                          '등록된 단말번호가 없습니다',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.cyan[400] : Colors.cyan[600],
+                          ),
+                        ),
+                    ],
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -427,6 +450,35 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
                       color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  // 수신번호 (세 번째 줄 - 강조 표시)
+                  if (ext.accountCode != null && ext.accountCode!.isNotEmpty)
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.call_received,
+                          size: 14,
+                          color: isDark ? Colors.green[300] : Colors.green[700],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '수신번호: ',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          ext.accountCode!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.green[300] : Colors.green[700],
+                          ),
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 8),
                   
                   // 수신번호 (길게 누르면 복사)
