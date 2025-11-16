@@ -35,6 +35,10 @@ import 'fcm/fcm_incoming_call_handler.dart';
 /// - FCM 메시지를 통한 기기 승인/거부 알림
 /// - 여러 기기에서 동시 로그인 가능
 class FCMService {
+  // 🔧 싱글톤 패턴
+  static final FCMService _instance = FCMService._internal();
+  factory FCMService() => _instance;
+  
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final DatabaseService _databaseService = DatabaseService();
@@ -70,13 +74,13 @@ class FCMService {
   static final Set<String> _processingApprovalIds = {}; // 처리 중인 승인 요청 ID
   static String? _currentDisplayedApprovalId; // 현재 표시 중인 다이얼로그의 승인 요청 ID
   
-  // 🔧 생성자: 콜백 설정을 가장 먼저 수행 (iOS Method Channel 호출 대응)
-  FCMService() {
+  // 🔧 Private 생성자: 콜백 설정을 가장 먼저 수행 (iOS Method Channel 호출 대응)
+  FCMService._internal() {
     // ignore: avoid_print
-    print('🏗️ [FCM] FCMService 생성자 실행 - 콜백 설정');
+    print('🏗️ [FCM] FCMService 싱글톤 생성자 실행 - 콜백 설정');
     _setupMessageHandlerCallbacks();
     // ignore: avoid_print
-    print('✅ [FCM] 생성자에서 콜백 설정 완료');
+    print('✅ [FCM] 싱글톤 생성자에서 콜백 설정 완료');
   }
   
   /// FCM 토큰 가져오기
