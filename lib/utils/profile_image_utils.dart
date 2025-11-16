@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:croppy/croppy.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import '../services/auth_service.dart';
@@ -193,116 +193,63 @@ class ProfileImageUtils {
         }
       }
 
-      // 크롭 화면으로 네비게이션 (새로운 BuildContext 사용)
-      CropImageResult? croppedImage;
+      // Native 크롭 UI 사용 (image_cropper 패키지)
+      CroppedFile? croppedFile;
       
       try {
         if (kDebugMode) {
-          debugPrint('🖼️ [ProfileImageUtils] Navigating to crop screen...');
+          debugPrint('🖼️ [ProfileImageUtils] Starting native image cropper...');
         }
 
-        // Platform 감지
-        final platform = defaultTargetPlatform;
-        
-        if (kDebugMode) {
-          debugPrint('🖼️ [ProfileImageUtils] Detected platform: $platform');
-        }
+        final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
 
-        final imageProvider = FileImage(imageFile);
-
-        // Navigator.push를 사용하여 새로운 route로 크롭 화면 열기
-        // 이렇게 하면 새로운 BuildContext가 생성되어 deactivated 문제 해결
-        if (platform == TargetPlatform.iOS) {
-          if (kDebugMode) {
-            debugPrint('🍎 [ProfileImageUtils] Opening Cupertino cropper in new route...');
-          }
-          
-          croppedImage = await Navigator.of(context).push<CropImageResult>(
-            MaterialPageRoute(
-              fullscreenDialog: true,
-              builder: (newContext) {
-                // 새로운 context 사용 - deactivated 문제 없음
-                return Material(
-                  child: Builder(
-                    builder: (builderContext) {
-                      // 즉시 크롭 UI 표시
-                      WidgetsBinding.instance.addPostFrameCallback((_) async {
-                        final result = await showCupertinoImageCropper(
-                          builderContext,
-                          imageProvider: imageProvider,
-                          allowedAspectRatios: [
-                            const CropAspectRatio(width: 1, height: 1),
-                          ],
-                        );
-                        if (builderContext.mounted) {
-                          Navigator.of(builderContext).pop(result);
-                        }
-                      });
-                      
-                      // 로딩 표시
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    },
-                  ),
-                );
-              },
+        // image_cropper는 native UI를 사용하므로 context 문제 없음
+        croppedFile = await ImageCropper().cropImage(
+          sourcePath: imageFile.path,
+          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // 정사각형
+          compressQuality: 100, // 최고 품질
+          maxWidth: 2048, // 최대 크기 (나중에 512로 리사이즈)
+          maxHeight: 2048,
+          compressFormat: ImageCompressFormat.jpg,
+          uiSettings: [
+            // Android 설정
+            AndroidUiSettings(
+              toolbarTitle: '프로필 사진 크롭',
+              toolbarColor: isDark ? Colors.grey[900] : const Color(0xFF2196F3),
+              toolbarWidgetColor: Colors.white,
+              backgroundColor: isDark ? Colors.black : Colors.white,
+              activeControlsWidgetColor: const Color(0xFF2196F3),
+              initAspectRatio: CropAspectRatioPreset.square,
+              lockAspectRatio: true,
+              hideBottomControls: false,
+              showCropGrid: true,
             ),
-          );
-        } else {
-          if (kDebugMode) {
-            debugPrint('🤖 [ProfileImageUtils] Opening Material cropper in new route...');
-          }
-          
-          croppedImage = await Navigator.of(context).push<CropImageResult>(
-            MaterialPageRoute(
-              fullscreenDialog: true,
-              builder: (newContext) {
-                // 새로운 context 사용 - deactivated 문제 없음
-                return Material(
-                  child: Builder(
-                    builder: (builderContext) {
-                      // 즉시 크롭 UI 표시
-                      WidgetsBinding.instance.addPostFrameCallback((_) async {
-                        final result = await showMaterialImageCropper(
-                          builderContext,
-                          imageProvider: imageProvider,
-                          allowedAspectRatios: [
-                            const CropAspectRatio(width: 1, height: 1),
-                          ],
-                        );
-                        if (builderContext.mounted) {
-                          Navigator.of(builderContext).pop(result);
-                        }
-                      });
-                      
-                      // 로딩 표시
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    },
-                  ),
-                );
-              },
+            // iOS 설정
+            IOSUiSettings(
+              title: '프로필 사진 크롭',
+              aspectRatioLockEnabled: true,
+              resetAspectRatioEnabled: false,
+              aspectRatioPickerButtonHidden: true,
+              rotateButtonsHidden: false,
             ),
-          );
-        }
+          ],
+        );
 
         if (kDebugMode) {
-          debugPrint('🖼️ [ProfileImageUtils] Crop result: ${croppedImage != null ? "success" : "cancelled"}');
+          debugPrint('🖼️ [ProfileImageUtils] Crop result: ${croppedFile != null ? "success" : "cancelled"}');
         }
       } catch (cropError) {
         if (kDebugMode) {
           debugPrint('❌ [ProfileImageUtils] Crop UI failed: $cropError');
           debugPrint('⚠️ [ProfileImageUtils] Falling back to direct upload without crop');
         }
-        croppedImage = null;
+        croppedFile = null;
       }
 
       // 크롭 이미지 또는 원본 이미지 처리
       ui.Image originalImage;
       
-      if (croppedImage == null) {
+      if (croppedFile == null) {
         if (kDebugMode) {
           debugPrint('⚠️ [ProfileImageUtils] No crop result - loading original image');
         }
@@ -319,8 +266,19 @@ class ProfileImageUtils {
       } else {
         if (kDebugMode) {
           debugPrint('✅ [ProfileImageUtils] Image cropped successfully');
+          debugPrint('📁 [ProfileImageUtils] Cropped file path: ${croppedFile.path}');
         }
-        originalImage = croppedImage.uiImage;
+        
+        // 크롭된 이미지 로드
+        final croppedImageFile = File(croppedFile.path);
+        final bytes = await croppedImageFile.readAsBytes();
+        final codec = await ui.instantiateImageCodec(bytes);
+        final frame = await codec.getNextFrame();
+        originalImage = frame.image;
+        
+        if (kDebugMode) {
+          debugPrint('✅ [ProfileImageUtils] Cropped image loaded: ${originalImage.width}x${originalImage.height}');
+        }
       }
 
       // 이미지를 적절한 크기로 리사이즈 (512x512)
