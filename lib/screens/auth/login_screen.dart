@@ -41,6 +41,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   void initState() {
     super.initState();
     
+    if (kDebugMode) {
+      debugPrint('');
+      debugPrint('✅ ========== LoginScreen initState ==========');
+      debugPrint('   prefilledEmail: ${widget.prefilledEmail}');
+      debugPrint('===========================================');
+      debugPrint('');
+    }
+    
     // 애니메이션 초기화
     _animationController = AnimationController(
       vsync: this,

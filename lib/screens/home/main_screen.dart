@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../call/call_tab.dart';
 
@@ -12,7 +13,20 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   @override
+  void initState() {
+    super.initState();
+    if (kDebugMode) {
+      debugPrint('🚨 [MainScreen] initState 호출됨!');
+      debugPrint('   initialTabIndex: ${widget.initialTabIndex}');
+    }
+  }
+  
+  @override
   Widget build(BuildContext context) {
+    if (kDebugMode) {
+      debugPrint('🚨 [MainScreen] build 호출됨!');
+    }
+    
     // CallTab이 신규 사용자 감지 및 ProfileDrawer 자동 열기를 처리
     return CallTab(
       autoOpenProfileForNewUser: true,
