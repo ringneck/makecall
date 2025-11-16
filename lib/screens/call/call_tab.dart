@@ -951,6 +951,14 @@ class _CallTabState extends State<CallTab> {
         return StreamBuilder<List<PhonebookContactModel>>(
           stream: _databaseService.getFavoritePhonebookContacts(userId),
           builder: (context, phonebookSnapshot) {
+            // 🔒 에러 처리
+            if (contactSnapshot.hasError || phonebookSnapshot.hasError) {
+              if (kDebugMode) {
+                debugPrint('⚠️ [FAVORITES] Stream error ignored (likely logout)');
+              }
+              // 에러 시 빈 리스트로 처리
+            }
+            
             if (contactSnapshot.connectionState == ConnectionState.waiting ||
                 phonebookSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -1099,6 +1107,35 @@ class _CallTabState extends State<CallTab> {
     return StreamBuilder<List<CallHistoryModel>>(
       stream: _databaseService.getUserCallHistory(userId),
       builder: (context, snapshot) {
+        // 🔒 에러 처리: 권한 에러 시 빈 리스트 표시
+        if (snapshot.hasError) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [CALL-TAB] Stream error: ${snapshot.error}');
+          }
+          // 권한 에러는 로그아웃 상태이므로 빈 리스트 표시
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.history,
+                  size: 80,
+                  color: isDark ? Colors.grey[700] : Colors.grey[300],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  '통화 기록이 없습니다',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.grey[400] : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -1597,6 +1634,17 @@ class _CallTabState extends State<CallTab> {
     return StreamBuilder<List<ContactModel>>(
       stream: _databaseService.getUserContacts(userId),
       builder: (context, snapshot) {
+        // 🔒 에러 처리
+        if (snapshot.hasError) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [CONTACTS] Stream error ignored (likely logout)');
+          }
+          // 에러 시 빈 리스트
+          return const Center(
+            child: Text('연락처를 불러올 수 없습니다'),
+          );
+        }
+        
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }

@@ -164,7 +164,7 @@ class DatabaseService {
   
   // 사용자의 통화 기록 조회
   Stream<List<CallHistoryModel>> getUserCallHistory(String userId, {int limit = 50}) {
-    // 🔒 로그아웃 체크: userId가 비어있으면 빈 Stream 반환
+    // 🔒 로그아웃 체크: userId가 비어있거나 null이면 빈 Stream 반환
     if (userId.isEmpty) {
       if (kDebugMode) {
         debugPrint('⚠️ [DB] getUserCallHistory: userId empty, returning empty stream');
@@ -177,6 +177,13 @@ class DatabaseService {
           .collection('call_history')
           .where('userId', isEqualTo: userId)
           .snapshots()
+          .handleError((error) {
+            // Permission denied 에러 시 빈 리스트 반환
+            if (kDebugMode) {
+              debugPrint('⚠️ [DB] getUserCallHistory error: $error');
+            }
+            return <CallHistoryModel>[];
+          })
           .map((snapshot) {
             final history = snapshot.docs
                 .map((doc) => CallHistoryModel.fromMap(doc.data(), doc.id))
