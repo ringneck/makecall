@@ -164,26 +164,29 @@ class DatabaseService {
   
   // 사용자의 통화 기록 조회
   Stream<List<CallHistoryModel>> getUserCallHistory(String userId, {int limit = 50}) {
-    return _firestore
-        .collection('call_history')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .handleError((error) {
-          // 로그아웃 시 permission denied 에러 조용히 무시
-          if (kDebugMode && !error.toString().contains('PERMISSION_DENIED')) {
-            debugPrint('❌ [DB] getUserCallHistory error: $error');
-          }
-          return const Stream<QuerySnapshot<Map<String, dynamic>>>.empty();
-        })
-        .map((snapshot) {
-          final history = snapshot.docs
-              .map((doc) => CallHistoryModel.fromMap(doc.data(), doc.id))
-              .toList();
-          // 메모리에서 통화 시간으로 정렬 (최신순, 복합 인덱스 불필요)
-          history.sort((a, b) => b.callTime.compareTo(a.callTime));
-          // limit 적용
-          return history.take(limit).toList();
-        });
+    // 🔒 로그아웃 체크: userId가 비어있으면 빈 Stream 반환
+    if (userId.isEmpty) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [DB] getUserCallHistory: userId empty, returning empty stream');
+      }
+      return Stream.value([]);
+    }
+    
+    return _handleStreamErrors(
+      _firestore
+          .collection('call_history')
+          .where('userId', isEqualTo: userId)
+          .snapshots()
+          .map((snapshot) {
+            final history = snapshot.docs
+                .map((doc) => CallHistoryModel.fromMap(doc.data(), doc.id))
+                .toList();
+            // 메모리에서 통화 시간으로 정렬 (최신순, 복합 인덱스 불필요)
+            history.sort((a, b) => b.callTime.compareTo(a.callTime));
+            // limit 적용
+            return history.take(limit).toList();
+          }),
+    );
   }
   
   // ===== 연락처 관리 =====
@@ -251,6 +254,11 @@ class DatabaseService {
   
   // 사용자의 연락처 조회
   Stream<List<ContactModel>> getUserContacts(String userId) {
+    // 🔒 로그아웃 체크
+    if (userId.isEmpty) {
+      return Stream.value([]);
+    }
+    
     return _handleStreamErrors(
       _firestore
           .collection('contacts')
@@ -269,6 +277,11 @@ class DatabaseService {
   
   // 즐겨찾기 연락처 조회
   Stream<List<ContactModel>> getFavoriteContacts(String userId) {
+    // 🔒 로그아웃 체크
+    if (userId.isEmpty) {
+      return Stream.value([]);
+    }
+    
     return _handleStreamErrors(
       _firestore
           .collection('contacts')
@@ -399,6 +412,11 @@ class DatabaseService {
   
   // 사용자의 내 단말번호 목록 조회
   Stream<List<MyExtensionModel>> getMyExtensions(String userId) {
+    // 🔒 로그아웃 체크
+    if (userId.isEmpty) {
+      return Stream.value([]);
+    }
+    
     return _handleStreamErrors(
       _firestore
           .collection('my_extensions')
@@ -689,6 +707,11 @@ class DatabaseService {
   
   // 사용자의 모든 Phonebook 연락처 조회
   Stream<List<PhonebookContactModel>> getAllPhonebookContacts(String userId) {
+    // 🔒 로그아웃 체크
+    if (userId.isEmpty) {
+      return Stream.value([]);
+    }
+    
     return _handleStreamErrors(
       _firestore
           .collection('phonebook_contacts')
@@ -719,6 +742,11 @@ class DatabaseService {
   
   // Phonebook 즐겨찾기 연락처만 조회
   Stream<List<PhonebookContactModel>> getFavoritePhonebookContacts(String userId) {
+    // 🔒 로그아웃 체크
+    if (userId.isEmpty) {
+      return Stream.value([]);
+    }
+    
     return _handleStreamErrors(
       _firestore
           .collection('phonebook_contacts')
