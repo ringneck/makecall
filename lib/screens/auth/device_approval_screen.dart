@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 import '../../utils/dialog_utils.dart';
+import '../../services/auth_service.dart';
 
 /// 기기 승인 대기 화면
 /// 
@@ -143,9 +146,13 @@ class _DeviceApprovalScreenState extends State<DeviceApprovalScreen> with Ticker
       duration: const Duration(seconds: 2),
     );
     
-    // 메인 화면으로 이동 (Navigator를 완전히 교체)
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    // 🔥 CRITICAL FIX: Navigator 조작 대신 AuthService 상태만 변경
+    // MaterialApp.home Consumer가 자동으로 MainScreen으로 전환함
+    final authService = context.read<AuthService>();
+    authService.setWaitingForApproval(false);
+    
+    if (kDebugMode) {
+      debugPrint('✅ [APPROVAL] 승인 완료 - MaterialApp.home이 MainScreen으로 전환됨');
     }
   }
 
