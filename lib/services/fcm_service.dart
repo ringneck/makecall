@@ -2447,6 +2447,17 @@ class FCMService {
   /// 🔧 Phase 1 Refactoring: FCMTokenManager 사용
   Future<void> deactivateToken(String userId) async {
     await _tokenManager.deactivateToken(userId, _fcmToken);
+    
+    // 🔧 싱글톤 상태 리셋: 재로그인 시 승인 프로세스가 다시 실행되도록
+    // ignore: avoid_print
+    print('🔄 [FCM] 싱글톤 상태 리셋 (재로그인 시 승인 프로세스 재실행 허용)');
+    _fcmToken = null;
+    _initializedUserId = null;
+    _isInitializing = false;
+    _initializationCompleter = null;
+    _tokenManager.clearSaveTracking();
+    // ignore: avoid_print
+    print('✅ [FCM] 상태 리셋 완료');
   }
   
   /// 🔧 Phase 1 Refactoring: 플랫폼 유틸리티 메서드들을 FCMPlatformUtils로 이동
