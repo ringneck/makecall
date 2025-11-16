@@ -630,8 +630,13 @@ class AuthService extends ChangeNotifier {
       }
     }
     
+    // 🔥 CRITICAL FIX: 로그아웃 플래그 해제 (LoginScreen 렌더링 허용)
+    _isLoggingOut = false;
+    notifyListeners(); // 최종 상태 업데이트 알림
+    
     if (kDebugMode) {
       debugPrint('✅ [LOGOUT] 로그아웃 완료');
+      debugPrint('🔓 _isLoggingOut = false로 리셋');
       debugPrint('');
     }
   }
