@@ -111,6 +111,11 @@ class FCMDeviceApprovalService {
       
       // ignore: avoid_print
       print('📋 [FCM-APPROVAL] 다른 활성 기기 ${otherDeviceTokens.length}개 발견');
+      for (var token in otherDeviceTokens) {
+        final data = token.data();
+        // ignore: avoid_print
+        print('   - ${data['deviceName']} (${data['deviceId']}_${data['platform']})');
+      }
       
       // 🔑 CRITICAL: 문서 ID를 userId_deviceId_platform 형식으로 명시
       final approvalRequestId = '${userId}_${newDeviceId}_$newPlatform';
@@ -118,7 +123,29 @@ class FCMDeviceApprovalService {
       // ignore: avoid_print
       print('📝 [FCM-APPROVAL] 승인 요청 문서 ID: $approvalRequestId');
       
-      // Firestore에 승인 요청 저장 (5분 TTL)
+      // 🔧 FIX: 이전 승인 요청이 남아있을 수 있으므로 먼저 삭제
+      try {
+        final existingRequest = await _firestore
+            .collection('device_approval_requests')
+            .doc(approvalRequestId)
+            .get();
+        
+        if (existingRequest.exists) {
+          // ignore: avoid_print
+          print('🗑️ [FCM-APPROVAL] 기존 승인 요청 발견 - 삭제 중...');
+          await _firestore
+              .collection('device_approval_requests')
+              .doc(approvalRequestId)
+              .delete();
+          // ignore: avoid_print
+          print('✅ [FCM-APPROVAL] 기존 승인 요청 삭제 완료');
+        }
+      } catch (e) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-APPROVAL] 기존 요청 삭제 중 오류 (무시): $e');
+      }
+      
+      // Firestore에 새 승인 요청 저장 (5분 TTL)
       await _firestore.collection('device_approval_requests').doc(approvalRequestId).set({
         'userId': userId,
         'newDeviceId': newDeviceId,
@@ -266,6 +293,15 @@ class FCMDeviceApprovalService {
     if (approvalRequestId == null) {
       // ignore: avoid_print
       print('❌ [FCM-APPROVAL] approvalRequestId 없음');
+      return;
+    }
+    
+    // 🔧 FIX: 현재 기기가 로그아웃 상태면 승인 요청 무시
+    if (_authService == null || _authService!.currentUser == null) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-APPROVAL] 로그아웃 상태 - 승인 요청 무시');
+      // ignore: avoid_print
+      print('   (로그아웃한 기기에서 푸시 수신은 정상 동작이나, 다이얼로그는 표시하지 않음)');
       return;
     }
     
