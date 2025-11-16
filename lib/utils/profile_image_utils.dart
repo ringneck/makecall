@@ -147,7 +147,7 @@ class ProfileImageUtils {
         maxWidth: 512,
         maxHeight: 512,
         imageQuality: 85,
-        requestFullMetadata: useIOSOptimization ? false : null,
+        requestFullMetadata: false,
       );
 
       if (pickedFile == null) {
@@ -172,7 +172,7 @@ class ProfileImageUtils {
       final imageFile = File(pickedFile.path);
 
       // 플랫폼에 맞는 크롭 UI 표시
-      final CroppableImageResult? croppedImage;
+      final CropImageResult? croppedImage;
 
       if (Theme.of(context).platform == TargetPlatform.iOS) {
         // iOS: Cupertino 스타일 (iOS Photos 앱 느낌)
