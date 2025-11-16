@@ -268,13 +268,14 @@ class DatabaseService {
           .where('isFavorite', isEqualTo: true)
           .snapshots()
           .map((snapshot) {
-          final contacts = snapshot.docs
-              .map((doc) => ContactModel.fromMap(doc.data(), doc.id))
-              .toList();
-          // 메모리에서 이름으로 정렬 (복합 인덱스 불필요)
-          contacts.sort((a, b) => a.name.compareTo(b.name));
-          return contacts;
-        });
+            final contacts = snapshot.docs
+                .map((doc) => ContactModel.fromMap(doc.data(), doc.id))
+                .toList();
+            // 메모리에서 이름으로 정렬 (복합 인덱스 불필요)
+            contacts.sort((a, b) => a.name.compareTo(b.name));
+            return contacts;
+          }),
+    );
   }
   
   // 연락처 업데이트
@@ -717,13 +718,14 @@ class DatabaseService {
           .where('isFavorite', isEqualTo: true)
           .snapshots()
           .map((snapshot) {
-          final contacts = snapshot.docs
-              .map((doc) => PhonebookContactModel.fromFirestore(doc.data(), doc.id))
-              .toList();
-          // 메모리에서 이름으로 정렬
-          contacts.sort((a, b) => a.name.compareTo(b.name));
-          return contacts;
-        });
+            final contacts = snapshot.docs
+                .map((doc) => PhonebookContactModel.fromFirestore(doc.data(), doc.id))
+                .toList();
+            // 메모리에서 이름으로 정렬
+            contacts.sort((a, b) => a.name.compareTo(b.name));
+            return contacts;
+          }),
+    );
   }
 
   // ===== 등록된 단말번호 관리 (중복 방지) =====
