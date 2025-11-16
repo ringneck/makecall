@@ -18,13 +18,21 @@ class DatabaseService {
   Stream<T> _handleStreamErrors<T>(Stream<T> stream) {
     return stream.handleError((error) {
       // Permission denied 에러는 조용히 무시 (로그아웃 시 정상)
-      if (!error.toString().contains('PERMISSION_DENIED')) {
+      final errorString = error.toString();
+      if (errorString.contains('PERMISSION_DENIED') || 
+          errorString.contains('Missing or insufficient permissions')) {
         if (kDebugMode) {
-          debugPrint('❌ [DB-STREAM] Unexpected error: $error');
+          debugPrint('🔒 [DB-STREAM] Permission denied (logged out) - ignoring');
         }
+        // 에러를 조용히 무시하고 전파하지 않음
+        return;
       }
-      // 빈 스트림 반환하여 에러 전파 방지
-      throw error; // rethrow to let StreamBuilder handle it
+      
+      // 다른 예상치 못한 에러는 로그 출력 후 rethrow
+      if (kDebugMode) {
+        debugPrint('❌ [DB-STREAM] Unexpected error: $error');
+      }
+      throw error;
     });
   }
   
