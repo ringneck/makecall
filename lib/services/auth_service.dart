@@ -429,29 +429,15 @@ class AuthService extends ChangeNotifier {
     final userId = _auth.currentUser?.uid;
     
     // 1️⃣ FCM 토큰 비활성화
-    // ignore: avoid_print
-    print('🔍 [AUTH-LOGOUT] FCM 토큰 비활성화 시도');
-    // ignore: avoid_print
-    print('   userId: $userId');
-    
     try {
       if (userId != null) {
-        // ignore: avoid_print
-        print('✅ [AUTH-LOGOUT] userId 존재 - FCMService.deactivateToken() 호출');
         final fcmService = FCMService();
         await fcmService.deactivateToken(userId);
-        // ignore: avoid_print
-        print('✅ [AUTH-LOGOUT] FCM 토큰 비활성화 완료');
         if (kDebugMode) {
           debugPrint('✅ [1/4] FCM 토큰 비활성화 완료');
         }
-      } else {
-        // ignore: avoid_print
-        print('❌ [AUTH-LOGOUT] userId가 null - FCM 토큰 비활성화 스킵');
       }
     } catch (e) {
-      // ignore: avoid_print
-      print('❌ [AUTH-LOGOUT] FCM 토큰 비활성화 오류: $e');
       if (kDebugMode) {
         debugPrint('⚠️  [1/4] FCM 토큰 비활성화 오류: $e');
       }

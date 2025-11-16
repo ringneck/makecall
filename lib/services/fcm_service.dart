@@ -156,23 +156,7 @@ class FCMService {
   Future<void> initialize(String userId) async {
     try {
       // ignore: avoid_print
-      print('🔔 [FCM] 초기화 시작');
-      // ignore: avoid_print
-      print('   User ID: $userId');
-      // ignore: avoid_print
-      print('   Platform: ${_platformUtils.getPlatformName()}');
-      
-      // 🔍 디버깅: 초기화 시작 시점의 싱글톤 상태 확인
-      // ignore: avoid_print
-      print('🔍 [FCM-DEBUG] 초기화 시작 시점 싱글톤 상태:');
-      // ignore: avoid_print
-      print('   _fcmToken: ${_fcmToken != null ? "EXISTS (${_fcmToken!.substring(0, 20)}...)" : "NULL"}');
-      // ignore: avoid_print
-      print('   _initializedUserId: $_initializedUserId');
-      // ignore: avoid_print
-      print('   _isInitializing: $_isInitializing');
-      // ignore: avoid_print
-      print('   _initializationCompleter: ${_initializationCompleter != null ? "EXISTS" : "NULL"}');
+      print('🔔 [FCM] 초기화 시작 (User: $userId, Platform: ${_platformUtils.getPlatformName()})');
       
       // 🔒 중복 초기화 방지 체크
       if (_isInitializing) {
@@ -196,41 +180,15 @@ class FCMService {
         return;
       }
       
-      // 🔍 디버깅: 재초기화 스킵 조건 상세 로깅
-      // ignore: avoid_print
-      print('🔍 [FCM-DEBUG] 재초기화 스킵 조건 체크:');
-      // ignore: avoid_print
-      print('   _initializedUserId: $_initializedUserId');
-      // ignore: avoid_print
-      print('   현재 userId: $userId');
-      // ignore: avoid_print
-      print('   _fcmToken: ${_fcmToken != null ? "EXISTS (${_fcmToken!.substring(0, 20)}...)" : "NULL"}');
-      // ignore: avoid_print
-      print('   사용자 ID 일치: ${_initializedUserId == userId}');
-      // ignore: avoid_print
-      print('   토큰 존재: ${_fcmToken != null}');
-      // ignore: avoid_print
-      print('   스킵 조건 충족: ${_initializedUserId == userId && _fcmToken != null}');
-      
       if (_initializedUserId == userId && _fcmToken != null) {
         // ignore: avoid_print
-        print('✅ [FCM] 이미 동일 사용자로 초기화 완료 - 재초기화 스킵');
-        // ignore: avoid_print
-        print('   기존 토큰: ${_fcmToken!.substring(0, 20)}...');
+        print('✅ [FCM] 이미 초기화 완료 - 재초기화 스킵');
         return;
       }
-      
-      // ignore: avoid_print
-      print('🆕 [FCM-DEBUG] 재초기화 스킵 조건 불충족 - 새로운 초기화 진행');
-      
-      // ignore: avoid_print
-      print('🔓 [FCM] 초기화 잠금 설정');
       _isInitializing = true;
       _initializationCompleter = Completer<void>();
       
       // ✅ STEP 1: 메시지 리스너를 가장 먼저 등록! (메시지 누락 방지)
-      // ignore: avoid_print
-      print('📡 [FCM] 메시지 리스너 등록 시작 (최우선)');
       
       // 🔧 Phase 2: 메시지 핸들러 콜백 설정
       _setupMessageHandlerCallbacks();
@@ -2478,26 +2436,11 @@ class FCMService {
   /// 🔧 Phase 1 Refactoring: FCMTokenManager 사용
   Future<void> deactivateToken(String userId) async {
     // ignore: avoid_print
-    print('🚪 [FCM-LOGOUT] deactivateToken() 호출됨');
-    // ignore: avoid_print
-    print('   userId: $userId');
-    // ignore: avoid_print
-    print('   현재 _fcmToken: ${_fcmToken != null ? "EXISTS (${_fcmToken!.substring(0, 20)}...)" : "NULL"}');
-    // ignore: avoid_print
-    print('   현재 _initializedUserId: $_initializedUserId');
+    print('🚪 [FCM] 토큰 비활성화 및 상태 리셋 (userId: $userId)');
     
     await _tokenManager.deactivateToken(userId, _fcmToken);
     
     // 🔧 싱글톤 상태 리셋: 재로그인 시 승인 프로세스가 다시 실행되도록
-    // ignore: avoid_print
-    print('🔄 [FCM-LOGOUT] 싱글톤 상태 리셋 시작 (재로그인 시 승인 프로세스 재실행 허용)');
-    // ignore: avoid_print
-    print('   리셋 전 - _fcmToken: ${_fcmToken != null ? "EXISTS" : "NULL"}');
-    // ignore: avoid_print
-    print('   리셋 전 - _initializedUserId: $_initializedUserId');
-    // ignore: avoid_print
-    print('   리셋 전 - _isInitializing: $_isInitializing');
-    
     _fcmToken = null;
     _initializedUserId = null;
     _isInitializing = false;
@@ -2505,13 +2448,7 @@ class FCMService {
     _tokenManager.clearSaveTracking();
     
     // ignore: avoid_print
-    print('   리셋 후 - _fcmToken: ${_fcmToken != null ? "EXISTS" : "NULL"}');
-    // ignore: avoid_print
-    print('   리셋 후 - _initializedUserId: $_initializedUserId');
-    // ignore: avoid_print
-    print('   리셋 후 - _isInitializing: $_isInitializing');
-    // ignore: avoid_print
-    print('✅ [FCM-LOGOUT] 상태 리셋 완료 - 다음 initialize() 호출 시 새로운 초기화 실행됨');
+    print('✅ [FCM] 상태 리셋 완료');
   }
   
   /// 🔧 Phase 1 Refactoring: 플랫폼 유틸리티 메서드들을 FCMPlatformUtils로 이동
