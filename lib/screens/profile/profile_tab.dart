@@ -4,8 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:crop_your_image/crop_your_image.dart';
+import 'package:croppy/croppy.dart';
 import 'dart:io';
+import 'dart:ui' as ui;
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
 import '../../services/database_service.dart';
@@ -1842,20 +1843,33 @@ class _ProfileTabState extends State<ProfileTab> {
         debugPrint('✅ Image picked: ${pickedFile.path}');
       }
 
-      // 이미지 크롭 다이얼로그 표시
+      // 이미지 크롭 (croppy 사용 - Material Design 스타일)
       if (!mounted) return;
       
-      final imageBytes = await File(pickedFile.path).readAsBytes();
+      if (kDebugMode) {
+        debugPrint('📸 Reading image file...');
+      }
       
-      if (!mounted) return;
+      final imageFile = File(pickedFile.path);
       
-      final croppedBytes = await showDialog<Uint8List>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => _ImageCropDialog(imageBytes: imageBytes),
+      if (kDebugMode) {
+        debugPrint('🖼️ Showing croppy image cropper...');
+      }
+      
+      // Material 스타일 크롭 UI 표시 (Google Photos 스타일)
+      final croppedImage = await showMaterialImageCropper(
+        context,
+        imageProvider: FileImage(imageFile),
+        allowedAspectRatios: [
+          const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
+        ],
       );
 
-      if (croppedBytes == null) {
+      if (kDebugMode) {
+        debugPrint('🖼️ Crop result: ${croppedImage != null ? "success" : "cancelled"}');
+      }
+
+      if (croppedImage == null) {
         if (kDebugMode) {
           debugPrint('⚠️ Image cropper cancelled by user');
         }
@@ -1865,6 +1879,20 @@ class _ProfileTabState extends State<ProfileTab> {
       if (kDebugMode) {
         debugPrint('✅ Image cropped successfully');
       }
+      
+      // 크롭된 이미지를 Uint8List로 변환
+      final byteData = await croppedImage.uiImage.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+      
+      if (byteData == null) {
+        if (kDebugMode) {
+          debugPrint('❌ Failed to convert cropped image to bytes');
+        }
+        return;
+      }
+      
+      final croppedBytes = byteData.buffer.asUint8List();
 
       // 로딩 다이얼로그 표시
       if (!mounted) return;
@@ -1894,17 +1922,17 @@ class _ProfileTabState extends State<ProfileTab> {
 
       // 크롭된 이미지를 임시 파일로 저장
       final tempDir = Directory.systemTemp;
-      final tempFile = File('${tempDir.path}/cropped_profile_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final tempFile = File('${tempDir.path}/cropped_profile_${DateTime.now().millisecondsSinceEpoch}.png');
       await tempFile.writeAsBytes(croppedBytes);
       
       // Firebase Storage에 업로드 (비동기 처리)
-      final imageFile = tempFile;
+      final uploadFile = tempFile;
       
       if (kDebugMode) {
         debugPrint('📤 Uploading image to Firebase Storage...');
       }
       
-      await authService.uploadProfileImage(imageFile);
+      await authService.uploadProfileImage(uploadFile);
 
       if (kDebugMode) {
         debugPrint('✅ Image upload completed successfully');
@@ -1994,128 +2022,4 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
 
-}
-
-// 이미지 크롭 다이얼로그 위젯
-class _ImageCropDialog extends StatefulWidget {
-  final Uint8List imageBytes;
-
-  const _ImageCropDialog({required this.imageBytes});
-
-  @override
-  State<_ImageCropDialog> createState() => _ImageCropDialogState();
-}
-
-class _ImageCropDialogState extends State<_ImageCropDialog> {
-  final _cropController = CropController();
-
-  @override
-  Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final dialogWidth = screenSize.width > 600 ? 500.0 : screenSize.width * 0.9;
-    final cropHeight = screenSize.width > 600 ? 500.0 : screenSize.width * 0.9;
-    
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: Container(
-        width: dialogWidth,
-        decoration: BoxDecoration(
-          color: Theme.of(context).dialogBackgroundColor,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 헤더
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-              ),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      '프로필 사진 조정',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            
-            // 크롭 영역
-            Container(
-              color: Colors.black,
-              child: SizedBox(
-                width: dialogWidth,
-                height: cropHeight,
-                child: Crop(
-                  image: widget.imageBytes,
-                  controller: _cropController,
-                  onCropped: (croppedData) {
-                    Navigator.pop(context, croppedData);
-                  },
-                  aspectRatio: 1.0,  // 정사각형
-                  initialSize: 0.8,
-                  maskColor: Colors.black.withValues(alpha: 0.7),
-                  cornerDotBuilder: (size, edgeAlignment) => const DotControl(color: Colors.blue),
-                  interactive: true,
-                ),
-              ),
-            ),
-            
-            // 안내 텍스트
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              color: Theme.of(context).dialogBackgroundColor,
-              child: Text(
-                '드래그하여 위치를 조정하고, 모서리를 드래그하여 크기를 조절하세요',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            
-            // 버튼
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).dialogBackgroundColor,
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('취소'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _cropController.crop(),
-                      child: const Text('완료'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

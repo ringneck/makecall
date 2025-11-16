@@ -97,6 +97,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
+  cassowary:
+    dependency: transitive
+    description:
+      name: cassowary
+      sha256: f304452beaf93b9349daaeeda23f853578c9dd8674c06c6100fda0319c46b967
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.3"
   characters:
     dependency: transitive
     description:
@@ -201,14 +209,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.1"
-  crop_your_image:
+  croppy:
     dependency: "direct main"
     description:
-      name: crop_your_image
-      sha256: "9ae3b33042de5bda5321fc48aad41054c196bf2cc28350cd30cb8a85c1a7b1bd"
+      name: croppy
+      sha256: ceea4ea0bc36354ea2b3d2cc515a29d6bccf75196c8080148f4174902d185a53
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.0"
+    version: "1.4.1"
   cross_file:
     dependency: transitive
     description:
@@ -257,6 +265,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.3"
+  equatable:
+    dependency: transitive
+    description:
+      name: equatable
+      sha256: "567c64b3cb4cf82397aac55f4f0cbd3ca20d77c6c03bedbc4ceaddc08904aef7"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.7"
   fake_async:
     dependency: transitive
     description:
