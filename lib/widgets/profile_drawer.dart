@@ -679,10 +679,23 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             
             // 🎯 모던한 설정 섹션
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 설정 서브 텍스트
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 8),
+                    child: Text(
+                      '설정',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
 
                   // 기본 설정 카드
                   Container(
