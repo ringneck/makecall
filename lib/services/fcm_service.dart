@@ -70,6 +70,15 @@ class FCMService {
   static final Set<String> _processingApprovalIds = {}; // 처리 중인 승인 요청 ID
   static String? _currentDisplayedApprovalId; // 현재 표시 중인 다이얼로그의 승인 요청 ID
   
+  // 🔧 생성자: 콜백 설정을 가장 먼저 수행 (iOS Method Channel 호출 대응)
+  FCMService() {
+    // ignore: avoid_print
+    print('🏗️ [FCM] FCMService 생성자 실행 - 콜백 설정');
+    _setupMessageHandlerCallbacks();
+    // ignore: avoid_print
+    print('✅ [FCM] 생성자에서 콜백 설정 완료');
+  }
+  
   /// FCM 토큰 가져오기
   String? get fcmToken => _fcmToken;
   
@@ -105,6 +114,13 @@ class FCMService {
     print('   - isForeground: $isForeground');
     // ignore: avoid_print
     print('   - messageId: ${message.messageId}');
+    
+    // 🔧 안전장치: 콜백이 설정되지 않았다면 지금 설정
+    if (_messageHandler.onDeviceApprovalRequest == null) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-PUBLIC] 콜백이 null - 지금 설정');
+      _setupMessageHandlerCallbacks();
+    }
     
     if (isForeground) {
       _messageHandler.handleForegroundMessage(message);
