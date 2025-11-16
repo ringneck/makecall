@@ -1843,7 +1843,7 @@ class _ProfileTabState extends State<ProfileTab> {
         debugPrint('✅ Image picked: ${pickedFile.path}');
       }
 
-      // 이미지 크롭 (croppy 사용 - Material Design 스타일)
+      // 이미지 크롭 (croppy 사용)
       if (!mounted) return;
       
       if (kDebugMode) {
@@ -1854,16 +1854,37 @@ class _ProfileTabState extends State<ProfileTab> {
       
       if (kDebugMode) {
         debugPrint('🖼️ Showing croppy image cropper...');
+        debugPrint('🖼️ Platform: ${Theme.of(context).platform}');
       }
       
-      // Material 스타일 크롭 UI 표시 (Google Photos 스타일)
-      final croppedImage = await showMaterialImageCropper(
-        context,
-        imageProvider: FileImage(imageFile),
-        allowedAspectRatios: [
-          const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
-        ],
-      );
+      // 플랫폼에 맞는 크롭 UI 표시
+      final CroppableImageResult? croppedImage;
+      
+      if (Theme.of(context).platform == TargetPlatform.iOS) {
+        // iOS: Cupertino 스타일 (iOS Photos 앱 느낌)
+        if (kDebugMode) {
+          debugPrint('🍎 Using Cupertino cropper for iOS');
+        }
+        croppedImage = await showCupertinoImageCropper(
+          context,
+          imageProvider: FileImage(imageFile),
+          allowedAspectRatios: [
+            const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
+          ],
+        );
+      } else {
+        // Android/Web/기타: Material 스타일 (Google Photos 느낌)
+        if (kDebugMode) {
+          debugPrint('🤖 Using Material cropper');
+        }
+        croppedImage = await showMaterialImageCropper(
+          context,
+          imageProvider: FileImage(imageFile),
+          allowedAspectRatios: [
+            const CropAspectRatio(width: 1, height: 1), // 정사각형만 허용
+          ],
+        );
+      }
 
       if (kDebugMode) {
         debugPrint('🖼️ Crop result: ${croppedImage != null ? "success" : "cancelled"}');
