@@ -1,0 +1,86 @@
+🍎 iOS Firebase 인증 상태 확인
+
+================================================
+✅ iOS Firebase 설정 완료!
+================================================
+
+📱 Bundle Identifier:
+   com.olssoo.makecall
+
+✅ GoogleService-Info.plist:
+   위치: ios/Runner/GoogleService-Info.plist
+   Bundle ID: com.olssoo.makecall (일치!)
+
+================================================
+🎯 iOS에서 비밀번호 재설정 이메일 테스트
+================================================
+
+iOS는 Android와 달리 SHA 인증서가 필요 없습니다!
+Bundle ID만 일치하면 자동으로 작동합니다.
+
+테스트 방법:
+1. iOS 시뮬레이터 또는 실제 기기 실행
+   flutter run
+
+2. 비밀번호 재설정 화면 이동
+
+3. 이메일 주소 입력 및 전송
+
+4. 로그 확인:
+   ✅ "Firebase sendPasswordResetEmail() 호출 성공"
+   ❌ "empty reCAPTCHA token" 경고 없음 (iOS는 자동 처리!)
+
+5. 이메일 확인:
+   - 받은 편지함 확인 (5-10분 대기)
+   - 스팸함 확인
+
+================================================
+📊 Android vs iOS 비교
+================================================
+
+┌─────────────────┬──────────────────────┬─────────────────┐
+│ 구분            │ Android              │ iOS             │
+├─────────────────┼──────────────────────┼─────────────────┤
+│ 인증 방식       │ SHA-1/SHA-256 인증서 │ Bundle ID       │
+│ 설정 파일       │ google-services.json │ GoogleService-  │
+│                 │                      │ Info.plist      │
+│ reCAPTCHA       │ 수동 설정 필요 ⚠️    │ 자동 처리 ✅    │
+│ 추가 작업       │ SHA 등록 필수        │ 설정 불필요     │
+└─────────────────┴──────────────────────┴─────────────────┘
+
+================================================
+🚨 Android 설정 필요!
+================================================
+
+iOS는 이미 준비 완료되었지만,
+Android는 SHA 인증서를 Firebase Console에 등록해야 합니다!
+
+⚠️ Android에서 비밀번호 재설정 이메일 미도착 원인:
+   "Password reset request with empty reCAPTCHA token"
+
+✅ Android SHA 인증서 등록:
+   SHA_CERTIFICATES.txt 파일 참고
+   Firebase Console → Project Settings → Android app
+   → Add fingerprint
+
+================================================
+📌 참고 문서
+================================================
+
+- iOS 설정 가이드: FIREBASE_IOS_SETUP.md
+- Android SHA 인증서: SHA_CERTIFICATES.txt
+- reCAPTCHA 설정: FIREBASE_RECAPTCHA_SETUP.md
+- 이메일 체크리스트: firebase_email_check.md
+
+================================================
+✅ 결론
+================================================
+
+iOS: ✅ 설정 완료, 바로 테스트 가능
+      Bundle ID 일치, GoogleService-Info.plist 정상
+
+Android: ⚠️ SHA 인증서 등록 필요
+         Firebase Console에 SHA-1/SHA-256 등록 후 사용 가능
+
+iOS에서 비밀번호 재설정 이메일이 정상적으로 발송되면,
+Android는 SHA 인증서 등록 후 동일하게 작동합니다!
