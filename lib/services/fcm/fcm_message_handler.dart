@@ -83,7 +83,23 @@ class FCMMessageHandler {
     if (messageType == 'device_approval_request') {
       // ignore: avoid_print
       print('🔔 [FCM-HANDLER] 기기 승인 요청 메시지');
-      onDeviceApprovalRequest?.call(message);
+      if (onDeviceApprovalRequest == null) {
+        // ignore: avoid_print
+        print('❌ [FCM-HANDLER] onDeviceApprovalRequest 콜백이 null입니다!');
+        return;
+      }
+      // ignore: avoid_print
+      print('📞 [FCM-HANDLER] onDeviceApprovalRequest 콜백 호출 중...');
+      try {
+        onDeviceApprovalRequest?.call(message);
+        // ignore: avoid_print
+        print('✅ [FCM-HANDLER] onDeviceApprovalRequest 콜백 호출 완료');
+      } catch (e, stackTrace) {
+        // ignore: avoid_print
+        print('❌ [FCM-HANDLER] onDeviceApprovalRequest 콜백 실행 중 예외: $e');
+        // ignore: avoid_print
+        print('Stack trace: $stackTrace');
+      }
       return;
     }
     
