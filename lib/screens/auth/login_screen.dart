@@ -240,9 +240,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: isDark 
-          ? Theme.of(context).scaffoldBackgroundColor
-          : (_isWeb ? Colors.grey[50] : Colors.white),
+      // 🔍 CRITICAL DEBUG: 눈에 띄는 배경색으로 LoginScreen 렌더링 확인
+      backgroundColor: Colors.lightBlue[50], // 임시 디버그 색상
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
