@@ -742,7 +742,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         ),
                       ),
                       subtitle: Text(
-                        'API 서버, WebSocket 설정',
+                        'REST, WebSocket 설정',
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark ? Colors.blue[300] : Colors.blue[700],
