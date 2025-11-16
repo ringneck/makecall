@@ -602,18 +602,9 @@ class DCMIWSService {
       // 활성 통화 목록에서 제거
       _activeIncomingCalls.remove(linkedid);
       
-      // 🔒 CRITICAL FIX: IncomingCallScreen 자동 닫기 (moveToTab 제거)
-      // 이유: 로그아웃 시 moveToTab이 Future로 대기 중이면, 로그아웃 후에도 MainScreen을 push함
-      // 해결: 그냥 pop만 하고, 사용자는 이미 MaterialApp.home (MainScreen)에 있음
+      // IncomingCallScreen 자동 닫기 (BridgeEnter 자동 확인)
       if (_navigatorKey?.currentState != null) {
-        if (kDebugMode) {
-          debugPrint('📱 IncomingCallScreen 자동 닫기 (BridgeEnter 자동 확인)');
-        }
-        _navigatorKey!.currentState!.pop(); // moveToTab 제거
-        
-        if (kDebugMode) {
-          debugPrint('✅ IncomingCallScreen 닫기 완료 (moveToTab 없이 pop만 수행)');
-        }
+        _navigatorKey!.currentState!.pop();
       }
       
     } catch (e) {
@@ -1555,29 +1546,7 @@ class DCMIWSService {
       ),
     );
     
-    // ⚠️ DEPRECATED: IncomingCallScreen 결과 처리 (moveToTab 제거됨)
-    // 이유: moveToTab이 로그아웃 후에도 실행되어 MainScreen을 push하는 문제 발생
-    // 현재: IncomingCallScreen은 moveToTab 없이 pop만 수행
-    if (result != null && result is Map && result['moveToTab'] != null) {
-      final tabIndex = result['moveToTab'] as int;
-      
-      if (kDebugMode) {
-        debugPrint('');
-        debugPrint('⚠️ [DEPRECATED] IncomingCallScreen 결과 수신 (더 이상 사용 안 함)');
-        debugPrint('  → 탭 이동 요청: $tabIndex (1=최근통화)');
-      }
-      
-      // 이벤트 스트림으로 탭 이동 요청 전송 (레거시 코드)
-      _eventController.add({
-        'type': 'MOVE_TO_TAB',
-        'tabIndex': tabIndex,
-      });
-      
-      if (kDebugMode) {
-        debugPrint('  ✅ 탭 이동 이벤트 전송 완료');
-        debugPrint('');
-      }
-    }
+    // DEPRECATED: moveToTab 로직 제거됨
   }
 
   /// 에러 핸들러

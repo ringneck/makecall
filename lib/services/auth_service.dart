@@ -17,12 +17,7 @@ class AuthService extends ChangeNotifier {
   
   User? get currentUser => _auth.currentUser;
   bool get isAuthenticated {
-    final result = _currentUserModel != null && !_isWaitingForApproval && !_isLoggingOut;
-    // 🔍 CRITICAL DEBUG: isAuthenticated getter 호출 로깅
-    if (kDebugMode && !result && _auth.currentUser == null) {
-      debugPrint('🔍 isAuthenticated = false (_currentUserModel: ${_currentUserModel != null}, _isWaitingForApproval: $_isWaitingForApproval, _isLoggingOut: $_isLoggingOut)');
-    }
-    return result;
+    return _currentUserModel != null && !_isWaitingForApproval && !_isLoggingOut;
   }
   
   UserModel? _currentUserModel;
@@ -62,31 +57,18 @@ class AuthService extends ChangeNotifier {
     _auth.authStateChanges().listen((User? user) {
       // 🔒 CRITICAL FIX: 로그아웃 진행 중에는 authStateChanges 무시
       if (_isSigningOut) {
-        if (kDebugMode) {
-          debugPrint('⚠️ Auth 상태 변경 무시 (로그아웃 진행 중)');
-        }
-        return;
+        return; // 로그아웃 진행 중에는 무시
       }
       
       if (user != null) {
-        // 🔐 로그인 상태
+        // 로그인 상태
         _lastUserId = user.uid;
-        if (kDebugMode) {
-          debugPrint('🔐 Auth 상태 변경: 로그인');
-          debugPrint('   - UID: ${user.uid}');
-          debugPrint('   - Email: ${user.email}');
-        }
         _loadUserModel(user.uid);
-        // ⚠️ 로그인 시에는 notifyListeners() 호출 안 함 (_loadUserModel에서 호출)
       } else if (_lastUserId != null) {
-        // 🔓 로그아웃 상태 (최초 1회만)
-        if (kDebugMode) {
-          debugPrint('🔓 Auth 상태 변경: 로그아웃');
-          debugPrint('   - currentUserModel 초기화');
-        }
+        // 로그아웃 상태 (최초 1회만)
         _lastUserId = null;
         _currentUserModel = null;
-        notifyListeners(); // ✅ 로그아웃 시에만 여기서 notifyListeners() 호출
+        notifyListeners();
       }
     });
   }

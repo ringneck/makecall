@@ -574,18 +574,6 @@ class _MyAppState extends State<MyApp> {
                         );
                       }
                       
-                      // 🔍 CRITICAL DEBUG: 인증 상태 로깅
-                      if (kDebugMode) {
-                        debugPrint('');
-                        debugPrint('🔍 ========== MaterialApp.home 라우팅 ==========');
-                        debugPrint('   isAuthenticated: ${authService.isAuthenticated}');
-                        debugPrint('   currentUser: ${authService.currentUser?.uid}');
-                        debugPrint('   currentUserModel: ${authService.currentUserModel != null}');
-                        debugPrint('   → ${authService.isAuthenticated ? "MainScreen" : "LoginScreen"} 렌더링');
-                        debugPrint('================================================');
-                        debugPrint('');
-                      }
-                      
                       if (authService.isAuthenticated) {
                         // ⏱️ 사용자 활동 감지 (GestureDetector로 전체 앱 감싸기)
                         return GestureDetector(

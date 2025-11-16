@@ -13,31 +13,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   @override
-  void initState() {
-    super.initState();
-    if (kDebugMode) {
-      debugPrint('🚨 [MainScreen] initState 호출됨!');
-      debugPrint('   initialTabIndex: ${widget.initialTabIndex}');
-      debugPrint('   key: ${widget.key}');
-    }
-  }
-  
-  @override
-  void dispose() {
-    if (kDebugMode) {
-      debugPrint('🗑️ [MainScreen] dispose 호출됨! (정리 완료)');
-      debugPrint('   key: ${widget.key}');
-    }
-    super.dispose();
-  }
-  
-  @override
   Widget build(BuildContext context) {
-    if (kDebugMode) {
-      debugPrint('🚨 [MainScreen] build 호출됨!');
-      debugPrint('   key: ${widget.key}');
-    }
-    
     // CallTab이 신규 사용자 감지 및 ProfileDrawer 자동 열기를 처리
     return CallTab(
       autoOpenProfileForNewUser: true,

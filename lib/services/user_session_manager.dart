@@ -51,26 +51,12 @@ class UserSessionManager {
       final bool userChanged = _hasUserChanged(currentUserId);
       
       if (userChanged) {
-        if (kDebugMode) {
-          debugPrint('🔄 사용자 계정 전환 감지!');
-          debugPrint('   이전 사용자: ${_lastKnownUserId ?? "없음"}');
-          debugPrint('   현재 사용자: ${currentUserId ?? "없음"}');
-        }
-
-        // 2️⃣ 전체 세션 데이터 초기화
+        // 전체 세션 데이터 초기화
         await _clearAllSessionData();
 
-        // 3️⃣ 새 사용자 ID 저장
+        // 새 사용자 ID 저장
         _lastKnownUserId = currentUserId;
         await _saveLastUserId(currentUserId);
-
-        if (kDebugMode) {
-          debugPrint('✅ 사용자 세션 초기화 완료');
-        }
-      } else {
-        if (kDebugMode) {
-          debugPrint('ℹ️ 사용자 변경 없음 (현재: $currentUserId)');
-        }
       }
     } catch (e) {
       if (kDebugMode) {
@@ -97,79 +83,17 @@ class UserSessionManager {
     return false;
   }
 
-  /// 🧹 전체 세션 데이터 초기화 (캐스케이드 정리)
+  /// 전체 세션 데이터 초기화
   Future<void> _clearAllSessionData() async {
-    final results = <String, bool>{};
-
-    if (kDebugMode) {
-      debugPrint('🧹 전체 세션 데이터 초기화 시작...');
-    }
-
-    // 1️⃣ Hive 로컬 캐시 초기화
     try {
       await _clearHiveData();
-      results['Hive'] = true;
-      if (kDebugMode) {
-        debugPrint('✅ [1/4] Hive 캐시 초기화 완료');
-      }
-    } catch (e) {
-      results['Hive'] = false;
-      if (kDebugMode) {
-        debugPrint('❌ [1/4] Hive 초기화 실패: $e');
-      }
-    }
-
-    // 2️⃣ SharedPreferences 임시 데이터 초기화
-    try {
       await _clearSharedPreferencesCache();
-      results['SharedPreferences'] = true;
-      if (kDebugMode) {
-        debugPrint('✅ [2/4] SharedPreferences 캐시 초기화 완료');
-      }
-    } catch (e) {
-      results['SharedPreferences'] = false;
-      if (kDebugMode) {
-        debugPrint('❌ [2/4] SharedPreferences 초기화 실패: $e');
-      }
-    }
-
-    // 3️⃣ 메모리 캐시 초기화 (Provider 상태는 notifyListeners로 자동 갱신됨)
-    try {
       await _clearMemoryCache();
-      results['MemoryCache'] = true;
-      if (kDebugMode) {
-        debugPrint('✅ [3/4] 메모리 캐시 초기화 완료');
-      }
-    } catch (e) {
-      results['MemoryCache'] = false;
-      if (kDebugMode) {
-        debugPrint('❌ [3/4] 메모리 캐시 초기화 실패: $e');
-      }
-    }
-
-    // 4️⃣ 네트워크 연결 정리 (WebSocket 등)
-    try {
       await _clearNetworkConnections();
-      results['Network'] = true;
-      if (kDebugMode) {
-        debugPrint('✅ [4/4] 네트워크 연결 정리 완료');
-      }
     } catch (e) {
-      results['Network'] = false;
       if (kDebugMode) {
-        debugPrint('❌ [4/4] 네트워크 정리 실패: $e');
+        debugPrint('❌ 세션 초기화 오류: $e');
       }
-    }
-
-    // 📊 결과 요약
-    final successCount = results.values.where((v) => v).length;
-    final totalCount = results.length;
-    
-    if (kDebugMode) {
-      debugPrint('📊 세션 초기화 결과: $successCount/$totalCount 성공');
-      results.forEach((key, success) {
-        debugPrint('   ${success ? "✅" : "❌"} $key');
-      });
     }
   }
 

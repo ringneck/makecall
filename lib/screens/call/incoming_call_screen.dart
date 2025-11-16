@@ -1231,37 +1231,24 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     return Center(
       child: GestureDetector(
         onTap: () async {
-          if (kDebugMode) {
-            debugPrint('✅ [INCOMING-CALL] 확인 버튼 클릭 - 리소스 정리 시작');
-          }
-          
-          // 🔥 CRITICAL: Firestore 리스너 즉시 취소 (로그아웃 시 에러 방지)
+          // Firestore 리스너 즉시 취소
           if (_callHistoryListener != null) {
             await _callHistoryListener!.cancel();
             _callHistoryListener = null;
-            if (kDebugMode) {
-              debugPrint('✅ [INCOMING-CALL] Firestore 리스너 취소 완료');
-            }
           }
           
           // 벨소리/진동 중지
           await _stopRingtoneAndVibration();
           
-          // 🛑 다른 기기의 알림 취소 (하이브리드 방식)
+          // 다른 기기의 알림 취소
           _cancelOtherDevicesNotification('answered');
           
           // 통화 기록 저장
           await _saveCallHistory();
           
-          // 🔒 CRITICAL FIX: moveToTab 반환하지 않음 (로그아웃 후 MainScreen push 방지)
-          // 이유: 로그아웃 시 이 result가 Future로 대기 중이면, 로그아웃 후에도 MainScreen을 push함
-          // 해결: 그냥 pop만 하고, 사용자는 이미 MaterialApp.home (MainScreen)에 있음
+          // 화면 닫기
           if (mounted) {
-            Navigator.of(context).pop(); // moveToTab 제거
-            
-            if (kDebugMode) {
-              debugPrint('✅ [INCOMING-CALL] 화면 닫기 완료 (moveToTab 없이 pop만 수행)');
-            }
+            Navigator.of(context).pop();
           }
         },
         child: Column(
