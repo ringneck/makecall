@@ -692,14 +692,14 @@ exports.cancelIncomingCallNotification = functions.region(region).https.onCall(
 
 /**
  * 카카오 로그인용 Firebase Custom Token 생성
- * 
+ *
  * @param {object} data - 요청 데이터
  * @param {string} data.kakaoUid - 카카오 사용자 ID
  * @param {string} data.email - 카카오 계정 이메일
  * @param {string} data.displayName - 카카오 닉네임
  * @param {string} data.photoUrl - 카카오 프로필 이미지
  * @param {string} data.accessToken - 카카오 Access Token (검증용, 선택)
- * 
+ *
  * @returns {object} { customToken: string }
  */
 exports.createCustomTokenForKakao = functions
@@ -760,14 +760,14 @@ exports.createCustomTokenForKakao = functions
 
 /**
  * 네이버 로그인용 Firebase Custom Token 생성
- * 
+ *
  * @param {object} data - 요청 데이터
  * @param {string} data.naverId - 네이버 사용자 ID
  * @param {string} data.email - 네이버 계정 이메일
  * @param {string} data.nickname - 네이버 닉네임
  * @param {string} data.profileImage - 네이버 프로필 이미지
  * @param {string} data.accessToken - 네이버 Access Token (검증용, 선택)
- * 
+ *
  * @returns {object} { customToken: string }
  */
 exports.createCustomTokenForNaver = functions
