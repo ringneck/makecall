@@ -2,6 +2,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:vibration/vibration.dart';
 import 'dart:io' show Platform;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'fcm_notification_service.dart';
 
 /// FCM 알림 사운드 재생 서비스
 /// 
@@ -22,7 +24,32 @@ class FCMNotificationSoundService {
       return;
     }
 
+    // 🔔 사용자 알림 설정 확인
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [FCM-SOUND] 로그아웃 상태 - 사운드 재생 건너뜀');
+      }
+      return;
+    }
+
     try {
+      final settings = await FCMNotificationService().getUserNotificationSettings(currentUser.uid);
+      final soundEnabled = settings?['soundEnabled'] ?? true;
+
+      if (kDebugMode) {
+        debugPrint('🔔 [FCM-SOUND] 사용자 알림 설정:');
+        debugPrint('   - soundEnabled: $soundEnabled');
+      }
+
+      // 소리가 꺼져있으면 재생하지 않음
+      if (!soundEnabled) {
+        if (kDebugMode) {
+          debugPrint('⏭️ [FCM-SOUND] 알림음이 비활성화되어 재생 건너뜀');
+        }
+        return;
+      }
+
       _isPlaying = true;
 
       if (kDebugMode) {
@@ -112,7 +139,32 @@ class FCMNotificationSoundService {
 
   /// 📳 진동 재생 (1회)
   static Future<void> playVibration() async {
+    // 🔔 사용자 알림 설정 확인
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [FCM-VIBRATION] 로그아웃 상태 - 진동 재생 건너뜀');
+      }
+      return;
+    }
+
     try {
+      final settings = await FCMNotificationService().getUserNotificationSettings(currentUser.uid);
+      final vibrationEnabled = settings?['vibrationEnabled'] ?? true;
+
+      if (kDebugMode) {
+        debugPrint('📳 [FCM-VIBRATION] 사용자 알림 설정:');
+        debugPrint('   - vibrationEnabled: $vibrationEnabled');
+      }
+
+      // 진동이 꺼져있으면 재생하지 않음
+      if (!vibrationEnabled) {
+        if (kDebugMode) {
+          debugPrint('⏭️ [FCM-VIBRATION] 진동이 비활성화되어 재생 건너뜀');
+        }
+        return;
+      }
+
       final hasVibrator = await Vibration.hasVibrator();
 
       if (hasVibrator == true) {
@@ -120,16 +172,16 @@ class FCMNotificationSoundService {
         await Vibration.vibrate(duration: 500);
 
         if (kDebugMode) {
-          debugPrint('📳 [FCM-SOUND] 진동 재생 (500ms)');
+          debugPrint('📳 [FCM-VIBRATION] 진동 재생 (500ms)');
         }
       } else {
         if (kDebugMode) {
-          debugPrint('⚠️ [FCM-SOUND] 기기가 진동을 지원하지 않음');
+          debugPrint('⚠️ [FCM-VIBRATION] 기기가 진동을 지원하지 않음');
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ [FCM-SOUND] 진동 오류: $e');
+        debugPrint('❌ [FCM-VIBRATION] 진동 오류: $e');
       }
     }
   }

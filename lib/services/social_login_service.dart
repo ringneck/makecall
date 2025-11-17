@@ -293,31 +293,41 @@ class SocialLoginService {
         debugPrint('🟢 [Naver] 로그인 시작 (iOS/Android 지원)');
       }
 
-      // 🔧 네이버 로그인 플러그인 초기화 시도
-      try {
-        // 로그아웃 상태로 초기화 (플러그인 활성화 확인)
-        await FlutterNaverLogin.logOut();
-        if (kDebugMode) {
-          debugPrint('✅ [Naver] 플러그인 초기화 완료');
-        }
-      } catch (initError) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [Naver] 플러그인 초기화 시도 실패: $initError');
-        }
-        // MissingPluginException인 경우 명확한 에러 메시지
-        if (initError.toString().contains('MissingPluginException')) {
-          return SocialLoginResult(
-            success: false,
-            errorMessage: '네이버 로그인 플러그인이 초기화되지 않았습니다.\n\n'
-                '앱을 완전히 종료한 후 다시 시작해주세요.\n'
-                '(Hot Reload가 아닌 앱 재시작 필요)',
-            provider: SocialLoginProvider.naver,
-          );
-        }
+      if (kDebugMode) {
+        debugPrint('🔧 [Naver] 네이버 로그인 시작');
       }
 
       // 네이버 로그인 (계정 정보가 result.account에 포함됨)
-      final result = await FlutterNaverLogin.logIn();
+      NaverLoginResult result;
+      
+      try {
+        result = await FlutterNaverLogin.logIn();
+      } catch (loginError) {
+        if (kDebugMode) {
+          debugPrint('❌ [Naver] 로그인 호출 실패: $loginError');
+        }
+        
+        // MissingPluginException 감지
+        if (loginError.toString().contains('MissingPluginException')) {
+          return SocialLoginResult(
+            success: false,
+            errorMessage: '네이버 로그인 플러그인 오류\n\n'
+                '해결 방법:\n'
+                '1. 앱을 완전히 종료하세요 (백그라운드에서도 제거)\n'
+                '2. 기기를 재부팅하세요\n'
+                '3. 앱을 다시 시작하세요\n\n'
+                '문제가 계속되면 앱을 재설치해주세요.',
+            provider: SocialLoginProvider.naver,
+          );
+        }
+        
+        // 기타 에러
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '네이버 로그인 오류: ${loginError.toString()}',
+          provider: SocialLoginProvider.naver,
+        );
+      }
 
       if (result.status == NaverLoginStatus.loggedIn && result.account != null) {
         final account = result.account!;
