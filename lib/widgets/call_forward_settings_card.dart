@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../services/dcmiws_service.dart';
 import '../services/database_service.dart';
 import '../services/auth_service.dart';
+import '../services/fcm/fcm_call_forward_service.dart';
 import '../models/my_extension_model.dart';
 import '../models/call_forward_info_model.dart';
 import '../utils/phone_formatter.dart';
@@ -42,6 +43,7 @@ class CallForwardSettingsCard extends StatefulWidget {
 class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
   final DCMIWSService _wsService = DCMIWSService();
   final DatabaseService _dbService = DatabaseService();
+  final FCMCallForwardService _fcmCallForwardService = FCMCallForwardService();
   
   bool _isLoading = false;
   bool _isEnabled = false;
@@ -342,6 +344,28 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
         // DB에 저장
         await _saveToDatabase();
 
+        // 푸시 알림 전송 (다른 기기에)
+        try {
+          final userId = authService.currentUser?.uid;
+          if (userId != null) {
+            if (value) {
+              await _fcmCallForwardService.sendCallForwardEnabledNotification(
+                userId: userId,
+                extensionNumber: widget.extension.extension,
+              );
+            } else {
+              await _fcmCallForwardService.sendCallForwardDisabledNotification(
+                userId: userId,
+                extensionNumber: widget.extension.extension,
+              );
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ 착신전환 푸시 알림 전송 실패 (무시): $e');
+          }
+        }
+
         if (mounted) {
           await DialogUtils.showSuccess(
             context,
@@ -531,6 +555,22 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
 
         // DB에 저장
         await _saveToDatabase();
+
+        // 푸시 알림 전송 (다른 기기에)
+        try {
+          final userId = authService.currentUser?.uid;
+          if (userId != null) {
+            await _fcmCallForwardService.sendCallForwardNumberChangedNotification(
+              userId: userId,
+              extensionNumber: widget.extension.extension,
+              newNumber: PhoneFormatter.format(newDestination),
+            );
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ 착신전환 번호 변경 푸시 알림 전송 실패 (무시): $e');
+          }
+        }
 
         if (mounted) {
           await DialogUtils.showSuccess(

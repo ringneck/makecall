@@ -825,3 +825,115 @@ exports.createCustomTokenForNaver = functions
         );
       }
     });
+
+// ==============================================================
+// 📱 착신전환 설정 변경 알림 Functions
+// ==============================================================
+
+/**
+ * 착신전환 설정 변경 푸시 알림 전송 Cloud Function
+ *
+ * Firestore 'fcm_notifications' 컬렉션에 새 문서가 생성되면
+ * 자동으로 FCM 푸시 알림을 전송합니다.
+ *
+ * 이 함수는 착신전환 설정/해제/번호변경 시 다른 기기에 알림을 보냅니다.
+ */
+exports.sendCallForwardNotification = functions.region(region).firestore
+    .document("fcm_notifications/{notificationId}")
+    .onCreate(async (snap, context) => {
+      try {
+        const notificationId = context.params.notificationId;
+        const data = snap.data();
+
+        const targetToken = data.fcmToken;
+        const notification = data.notification;
+        const notificationData = notification.data;
+
+        console.log(`🔔 [FCM-CallForward] 착신전환 알림 요청 수신: ${notificationId}`);
+        console.log(`   Target Token: ${targetToken.substring(0, 20)}...`);
+        console.log(`   Type: ${notificationData.type}`);
+        console.log(`   Device: ${data.deviceName} (${data.platform})`);
+
+        // FCM 푸시 알림 전송
+        const fcmMessage = {
+          token: targetToken,
+          notification: {
+            title: notification.notification.title,
+            body: notification.notification.body,
+          },
+          data: {
+            type: notificationData.type,
+            extensionNumber: notificationData.extensionNumber || "",
+            newNumber: notificationData.newNumber || "",
+            timestamp: notificationData.timestamp || new Date().toISOString(),
+          },
+          android: {
+            priority: "high",
+            notification: {
+              channelId: "call_forward_channel",
+              priority: "high",
+              sound: "default",
+            },
+          },
+          apns: {
+            payload: {
+              aps: {
+                sound: "default",
+                contentAvailable: true,
+              },
+            },
+          },
+        };
+
+        await admin.messaging().send(fcmMessage);
+
+        console.log(`✅ [FCM-CallForward] FCM 알림 전송 완료: ${targetToken.substring(0, 20)}...`);
+
+        // 처리 완료 표시
+        await snap.ref.update({
+          status: "sent",
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (error) {
+        console.error("❌ [FCM-CallForward] FCM 알림 전송 오류:", error);
+
+        // 토큰 정리: registration-token-not-registered 오류 처리
+        if (error.code === "messaging/registration-token-not-registered") {
+          const data = snap.data();
+          const targetToken = data.fcmToken;
+
+          console.log("🧹 [TOKEN-CLEANUP] 무효 토큰 감지 - 자동 삭제 시작");
+          console.log(`   무효 토큰: ${targetToken.substring(0, 20)}...`);
+
+          try {
+            // fcm_tokens 컬렉션에서 무효 토큰 찾기 및 삭제
+            const tokenQuery = await admin.firestore()
+                .collection("fcm_tokens")
+                .where("fcmToken", "==", targetToken)
+                .get();
+
+            if (!tokenQuery.empty) {
+              const deletePromises = tokenQuery.docs.map((doc) => {
+                console.log(`   삭제 중: ${doc.id}`);
+                return doc.ref.delete();
+              });
+
+              await Promise.all(deletePromises);
+              console.log(`✅ [TOKEN-CLEANUP] 무효 토큰 ${tokenQuery.size}개 삭제 완료`);
+            } else {
+              console.log("⚠️ [TOKEN-CLEANUP] fcm_tokens에서 토큰을 찾을 수 없음");
+            }
+          } catch (cleanupError) {
+            console.error("❌ [TOKEN-CLEANUP] 토큰 정리 실패:", cleanupError);
+          }
+        }
+
+        // 오류 정보 저장
+        await snap.ref.update({
+          status: "failed",
+          error: error.message,
+          errorCode: error.code || "unknown",
+          errorAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    });
