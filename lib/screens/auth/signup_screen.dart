@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io' show Platform;
 import '../../services/auth_service.dart';
+import '../../services/social_login_service.dart';
 import '../../utils/dialog_utils.dart';
+import '../../widgets/social_login_buttons.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -22,6 +24,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreedToTerms = false;
+  bool _isSocialLoginLoading = false;
+  
+  final _socialLoginService = SocialLoginService();
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -102,6 +107,217 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // 소셜 로그인 성공 처리
+  Future<void> _handleSocialLoginSuccess(SocialLoginResult result) async {
+    try {
+      if (mounted) {
+        Navigator.pop(context);
+        await DialogUtils.showSuccess(
+          context,
+          '${result.provider.name.toUpperCase()} 계정으로 가입되었습니다',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 소셜 로그인 성공 처리 오류: $e');
+      }
+    }
+  }
+
+  // Google 회원가입
+  Future<void> _handleGoogleSignUp() async {
+    if (_isSocialLoginLoading) return;
+    
+    setState(() => _isSocialLoginLoading = true);
+    
+    try {
+      final result = await _socialLoginService.signInWithGoogle();
+      
+      if (result.success) {
+        await _handleSocialLoginSuccess(result);
+      } else {
+        if (mounted) {
+          if (result.errorMessage?.contains('취소') ?? false) {
+            await DialogUtils.showInfo(
+              context,
+              'Google 회원가입이 취소되었습니다.',
+              title: 'Google 회원가입',
+            );
+          } else {
+            await DialogUtils.showError(
+              context,
+              result.errorMessage ?? 'Google 회원가입에 실패했습니다.',
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          'Google 회원가입 중 오류가 발생했습니다: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialLoginLoading = false);
+      }
+    }
+  }
+
+  // Kakao 회원가입
+  Future<void> _handleKakaoSignUp() async {
+    if (_isSocialLoginLoading) return;
+    
+    // 웹 플랫폼 체크
+    if (kIsWeb) {
+      await DialogUtils.showInfo(
+        context,
+        'Kakao 회원가입은 모바일 앱에서만 사용할 수 있습니다.\n\n웹에서는 Google 회원가입을 사용해 주세요.',
+        title: 'Kakao 회원가입 안내',
+      );
+      return;
+    }
+    
+    setState(() => _isSocialLoginLoading = true);
+    
+    try {
+      final result = await _socialLoginService.signInWithKakao();
+      
+      if (result.success) {
+        await _handleSocialLoginSuccess(result);
+      } else {
+        if (mounted) {
+          if (result.errorMessage?.contains('취소') ?? false) {
+            await DialogUtils.showInfo(
+              context,
+              'Kakao 회원가입이 취소되었습니다.',
+              title: 'Kakao 회원가입',
+            );
+          } else {
+            await DialogUtils.showError(
+              context,
+              result.errorMessage ?? 'Kakao 회원가입에 실패했습니다.',
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          'Kakao 회원가입 중 오류가 발생했습니다: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialLoginLoading = false);
+      }
+    }
+  }
+
+  // Naver 회원가입
+  Future<void> _handleNaverSignUp() async {
+    if (_isSocialLoginLoading) return;
+    
+    // 웹 플랫폼 체크
+    if (kIsWeb) {
+      await DialogUtils.showInfo(
+        context,
+        'Naver 회원가입은 모바일 앱에서만 사용할 수 있습니다.\n\n웹에서는 Google, Kakao 회원가입을 사용해 주세요.',
+        title: 'Naver 회원가입 안내',
+      );
+      return;
+    }
+    
+    setState(() => _isSocialLoginLoading = true);
+    
+    try {
+      final result = await _socialLoginService.signInWithNaver();
+      
+      if (result.success) {
+        await _handleSocialLoginSuccess(result);
+      } else {
+        if (mounted) {
+          if (result.errorMessage?.contains('취소') ?? false) {
+            await DialogUtils.showInfo(
+              context,
+              'Naver 회원가입이 취소되었습니다.',
+              title: 'Naver 회원가입',
+            );
+          } else {
+            await DialogUtils.showError(
+              context,
+              result.errorMessage ?? 'Naver 회원가입에 실패했습니다.',
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          'Naver 회원가입 중 오류가 발생했습니다: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialLoginLoading = false);
+      }
+    }
+  }
+
+  // Apple 회원가입
+  Future<void> _handleAppleSignUp() async {
+    if (_isSocialLoginLoading) return;
+    
+    // iOS 플랫폼 체크
+    if (!kIsWeb && !Platform.isIOS) {
+      await DialogUtils.showInfo(
+        context,
+        'Apple 회원가입은 iOS 기기에서만 사용할 수 있습니다.\n\n현재 기기: ${Platform.operatingSystem}',
+        title: 'Apple 회원가입 안내',
+      );
+      return;
+    }
+    
+    setState(() => _isSocialLoginLoading = true);
+    
+    try {
+      final result = await _socialLoginService.signInWithApple();
+      
+      if (result.success) {
+        await _handleSocialLoginSuccess(result);
+      } else {
+        if (mounted) {
+          if (result.errorMessage?.contains('취소') ?? false) {
+            await DialogUtils.showInfo(
+              context,
+              'Apple 회원가입이 취소되었습니다.',
+              title: 'Apple 회원가입',
+            );
+          } else {
+            await DialogUtils.showError(
+              context,
+              result.errorMessage ?? 'Apple 회원가입에 실패했습니다.',
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          'Apple 회원가입 중 오류가 발생했습니다: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialLoginLoading = false);
       }
     }
   }
@@ -528,7 +744,49 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
+                        
+                        // Divider with "또는"
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Divider(
+                                color: isDark ? Colors.grey[700] : Colors.grey[300],
+                                thickness: 1,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                '또는',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: isDark ? Colors.grey[700] : Colors.grey[300],
+                                thickness: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 32),
+                        
+                        // Social Login Buttons
+                        SocialLoginButtons(
+                          onGooglePressed: _handleGoogleSignUp,
+                          onKakaoPressed: _handleKakaoSignUp,
+                          onNaverPressed: _handleNaverSignUp,
+                          onApplePressed: _handleAppleSignUp,
+                          isLoading: _isSocialLoginLoading,
+                        ),
+                        
+                        const SizedBox(height: 32),
                         
                         // Already have account
                         Row(
