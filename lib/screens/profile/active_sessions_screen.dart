@@ -178,8 +178,8 @@ class _ActiveSessionsScreenState extends State<ActiveSessionsScreen> {
         throw Exception('로그인 정보가 없습니다');
       }
 
-      // Cloud Functions 호출
-      final callable = FirebaseFunctions.instance.httpsCallable('remoteLogout');
+      // Cloud Functions 호출 (서울 리전)
+      final callable = FirebaseFunctions.instanceFor(region: 'asia-northeast3').httpsCallable('remoteLogout');
       final result = await callable.call({
         'targetDeviceId': session.deviceId,
         'targetUserId': userId,

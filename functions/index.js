@@ -5,6 +5,9 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 
+// 🌏 Firebase Functions 리전 설정 (서울)
+const region = "asia-northeast3";
+
 // ✅ 마이그레이션: functions.config() → process.env (dotenv)
 const gmailEmail = process.env.GMAIL_EMAIL;
 const gmailPassword = process.env.GMAIL_PASSWORD;
@@ -33,7 +36,7 @@ const transporter = nodemailer.createTransport({
  * Firestore 'email_verification_requests' 컬렉션에 새 문서가 생성되면
  * 자동으로 이메일을 전송합니다.
  */
-exports.sendVerificationEmail = functions.firestore
+exports.sendVerificationEmail = functions.region(region).firestore
     .document("email_verification_requests/{requestId}")
     .onCreate(async (snap, context) => {
       try {
@@ -181,7 +184,7 @@ MAKECALL 새 기기 로그인 인증 코드
  * Firestore 'fcm_approval_notification_queue' 컬렉션에 새 문서가 생성되면
  * 자동으로 FCM 푸시 알림을 전송합니다.
  */
-exports.sendApprovalNotification = functions.firestore
+exports.sendApprovalNotification = functions.region(region).firestore
     .document("fcm_approval_notification_queue/{queueId}")
     .onCreate(async (snap, context) => {
       try {
@@ -290,7 +293,7 @@ exports.sendApprovalNotification = functions.firestore
  *
  * 매시간 실행되어 5분 이상 경과한 미처리 인증 요청을 삭제합니다.
  */
-exports.cleanupExpiredRequests = functions.pubsub
+exports.cleanupExpiredRequests = functions.region(region).pubsub
     .schedule("every 1 hours")
     .onRun(async (context) => {
       try {
@@ -349,7 +352,7 @@ exports.cleanupExpiredRequests = functions.pubsub
  *   "callType": "external"
  * }
  */
-exports.sendIncomingCallNotification = functions.https.onRequest(
+exports.sendIncomingCallNotification = functions.region(region).https.onRequest(
     async (req, res) => {
       // CORS 헤더 설정 (Flutter 앱에서 호출 가능하도록)
       res.set("Access-Control-Allow-Origin", "*");
@@ -567,7 +570,7 @@ exports.sendIncomingCallNotification = functions.https.onRequest(
  * @param {string} userId - 사용자 ID
  * @param {string} action - 취소 사유 (answered, rejected, timeout)
  */
-exports.cancelIncomingCallNotification = functions.https.onCall(
+exports.cancelIncomingCallNotification = functions.region(region).https.onCall(
     async (data, context) => {
       try {
         const {linkedid, userId, action} = data;

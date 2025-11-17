@@ -2055,9 +2055,8 @@ class DCMIWSService {
         debugPrint('  통화타입: $callType');
       }
       
-      // Firebase Functions URL
-      // TODO: 배포 후 실제 URL로 변경 필요
-      const functionsUrl = 'https://YOUR_REGION-YOUR_PROJECT.cloudfunctions.net/sendIncomingCallNotification';
+      // Firebase Functions URL (서울 리전: asia-northeast3)
+      const functionsUrl = 'https://asia-northeast3-makecallio.cloudfunctions.net/sendIncomingCallNotification';
       
       final response = await http.post(
         Uri.parse(functionsUrl),

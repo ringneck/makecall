@@ -520,7 +520,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           debugPrint('   action: $action');
         }
         
-        final functions = FirebaseFunctions.instance;
+        final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
         final result = await functions.httpsCallable('cancelIncomingCallNotification').call({
           'linkedid': widget.linkedid,
           'userId': userId,
