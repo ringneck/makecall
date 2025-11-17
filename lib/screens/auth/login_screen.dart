@@ -285,6 +285,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _handleKakaoLogin() async {
     if (_isSocialLoginLoading) return;
     
+    // 웹 플랫폼 체크 - 카카오 로그인은 Android/iOS만 지원
+    if (kIsWeb) {
+      await DialogUtils.showInfo(
+        context,
+        'Kakao 로그인은 모바일 앱에서만 사용할 수 있습니다.\n\n웹에서는 Google 로그인을 사용해 주세요.',
+        title: 'Kakao 로그인 안내',
+      );
+      return;
+    }
+    
     setState(() => _isSocialLoginLoading = true);
     
     try {
@@ -326,6 +336,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   // 네이버 로그인
   Future<void> _handleNaverLogin() async {
     if (_isSocialLoginLoading) return;
+    
+    // 웹 플랫폼 체크 - 네이버 로그인은 Android/iOS만 지원
+    if (kIsWeb) {
+      await DialogUtils.showInfo(
+        context,
+        'Naver 로그인은 모바일 앱에서만 사용할 수 있습니다.\n\n웹에서는 Google, Kakao 로그인을 사용해 주세요.',
+        title: 'Naver 로그인 안내',
+      );
+      return;
+    }
     
     setState(() => _isSocialLoginLoading = true);
     
