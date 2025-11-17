@@ -188,22 +188,17 @@ class SocialLoginService {
         debugPrint('🟢 [Naver] 로그인 시작');
       }
 
-      // 네이버 로그인
-      final NaverLoginResult result = await FlutterNaverLogin.logIn();
+      // 네이버 로그인 (계정 정보가 result.account에 포함됨)
+      final result = await FlutterNaverLogin.logIn();
 
-      if (result.status == NaverLoginStatus.loggedIn) {
+      if (result.status == NaverLoginStatus.loggedIn && result.account != null) {
+        final account = result.account!;
+        
         if (kDebugMode) {
           debugPrint('✅ [Naver] 로그인 성공');
-        }
-
-        // 네이버 계정 정보 가져오기
-        final NaverAccountResult accountResult = await FlutterNaverLogin.currentAccount();
-
-        if (kDebugMode) {
-          debugPrint('✅ [Naver] 사용자 정보 조회 성공');
-          debugPrint('   - ID: ${accountResult.id}');
-          debugPrint('   - Email: ${accountResult.email}');
-          debugPrint('   - Name: ${accountResult.name}');
+          debugPrint('   - ID: ${account.id}');
+          debugPrint('   - Email: ${account.email}');
+          debugPrint('   - Name: ${account.name}');
         }
 
         // Firebase Custom Token 방식으로 로그인
@@ -211,10 +206,10 @@ class SocialLoginService {
         
         return SocialLoginResult(
           success: true,
-          userId: accountResult.id,
-          email: accountResult.email,
-          displayName: accountResult.name,
-          photoUrl: accountResult.profileImage,
+          userId: account.id,
+          email: account.email,
+          displayName: account.name,
+          photoUrl: account.profileImage,
           provider: SocialLoginProvider.naver,
         );
       } else {
@@ -223,7 +218,7 @@ class SocialLoginService {
         }
         return SocialLoginResult(
           success: false,
-          errorMessage: result.errorMessage ?? '로그인이 취소되었습니다',
+          errorMessage: '로그인이 취소되었거나 실패했습니다',
           provider: SocialLoginProvider.naver,
         );
       }
