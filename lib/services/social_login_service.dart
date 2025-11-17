@@ -222,20 +222,8 @@ class SocialLoginService {
   /// ===== 3. 네이버 로그인 =====
   Future<SocialLoginResult> signInWithNaver() async {
     try {
-      // iOS는 Naver 로그인 미지원
-      if (!kIsWeb && Platform.isIOS) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [Naver] iOS는 지원하지 않음');
-        }
-        return SocialLoginResult(
-          success: false,
-          errorMessage: 'Naver 로그인은 Android에서만 지원됩니다',
-          provider: SocialLoginProvider.naver,
-        );
-      }
-      
       if (kDebugMode) {
-        debugPrint('🟢 [Naver] 로그인 시작');
+        debugPrint('🟢 [Naver] 로그인 시작 (iOS/Android 지원)');
       }
 
       // 네이버 로그인 (계정 정보가 result.account에 포함됨)

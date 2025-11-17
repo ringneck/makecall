@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 /// 소셜 로그인 버튼 위젯
@@ -7,7 +5,7 @@ import 'package:flutter/material.dart';
 /// 4가지 소셜 로그인 버튼을 제공:
 /// - Google (모든 플랫폼)
 /// - Kakao (Android, iOS, Web)
-/// - Naver (Android, Web만 지원 - iOS 미지원)
+/// - Naver (모든 플랫폼 - flutter_naver_login 2.1.0+)
 /// - Apple (모든 플랫폼 - iOS에서만 실제 작동)
 class SocialLoginButtons extends StatelessWidget {
   final Function()? onGooglePressed;
@@ -33,71 +31,6 @@ class SocialLoginButtons extends StatelessWidget {
     // 반응형 버튼 크기
     final buttonSize = screenWidth > 600 ? 70.0 : 64.0;
     final iconSize = screenWidth > 600 ? 32.0 : 28.0;
-    
-    // iOS 플랫폼 체크 - Naver 버튼 표시 여부 결정
-    final isIOS = !kIsWeb && Platform.isIOS;
-    final showNaverButton = !isIOS;  // iOS에서는 Naver 버튼 숨기기
-    
-    // 버튼 리스트 생성
-    final List<Widget> buttons = [];
-    
-    // Naver 로그인 (Android, Web만 - iOS 제외)
-    if (showNaverButton) {
-      buttons.add(
-        _buildIconButton(
-          context: context,
-          onPressed: isLoading ? null : onNaverPressed,
-          backgroundColor: const Color(0xFF03C75A),
-          icon: _buildNaverIcon(iconSize),
-          size: buttonSize,
-          isDark: isDark,
-        ),
-      );
-      buttons.add(SizedBox(width: screenWidth > 600 ? 20 : 16));
-    }
-    
-    // 카카오 로그인
-    buttons.add(
-      _buildIconButton(
-        context: context,
-        onPressed: isLoading ? null : onKakaoPressed,
-        backgroundColor: const Color(0xFFFEE500),
-        icon: _buildKakaoIcon(iconSize),
-        size: buttonSize,
-        isDark: isDark,
-      ),
-    );
-    buttons.add(SizedBox(width: screenWidth > 600 ? 20 : 16));
-    
-    // 구글 로그인
-    buttons.add(
-      _buildIconButton(
-        context: context,
-        onPressed: isLoading ? null : onGooglePressed,
-        backgroundColor: isDark ? Colors.grey[850]! : Colors.white,
-        icon: _buildGoogleIcon(iconSize),
-        size: buttonSize,
-        isDark: isDark,
-        hasBorder: true,
-      ),
-    );
-    buttons.add(SizedBox(width: screenWidth > 600 ? 20 : 16));
-    
-    // 애플 로그인 (항상 표시)
-    buttons.add(
-      _buildIconButton(
-        context: context,
-        onPressed: isLoading ? null : onApplePressed,
-        backgroundColor: isDark ? Colors.white : Colors.black,
-        icon: Icon(
-          Icons.apple,
-          color: isDark ? Colors.black : Colors.white,
-          size: iconSize,
-        ),
-        size: buttonSize,
-        isDark: isDark,
-      ),
-    );
     
     return Column(
       children: [
@@ -126,10 +59,61 @@ class SocialLoginButtons extends StatelessWidget {
         
         const SizedBox(height: 24),
         
-        // 소셜 로그인 버튼들 (동적 개수 - iOS는 3개, 나머지는 4개)
+        // 소셜 로그인 버튼들 (1줄에 4개 - 아이콘만)
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: buttons,
+          children: [
+            // 네이버 로그인 (왼쪽부터)
+            _buildIconButton(
+              context: context,
+              onPressed: isLoading ? null : onNaverPressed,
+              backgroundColor: const Color(0xFF03C75A),
+              icon: _buildNaverIcon(iconSize),
+              size: buttonSize,
+              isDark: isDark,
+            ),
+            
+            SizedBox(width: screenWidth > 600 ? 20 : 16),
+            
+            // 카카오 로그인
+            _buildIconButton(
+              context: context,
+              onPressed: isLoading ? null : onKakaoPressed,
+              backgroundColor: const Color(0xFFFEE500),
+              icon: _buildKakaoIcon(iconSize),
+              size: buttonSize,
+              isDark: isDark,
+            ),
+            
+            SizedBox(width: screenWidth > 600 ? 20 : 16),
+            
+            // 구글 로그인
+            _buildIconButton(
+              context: context,
+              onPressed: isLoading ? null : onGooglePressed,
+              backgroundColor: isDark ? Colors.grey[850]! : Colors.white,
+              icon: _buildGoogleIcon(iconSize),
+              size: buttonSize,
+              isDark: isDark,
+              hasBorder: true,
+            ),
+            
+            SizedBox(width: screenWidth > 600 ? 20 : 16),
+            
+            // 애플 로그인 (항상 표시)
+            _buildIconButton(
+              context: context,
+              onPressed: isLoading ? null : onApplePressed,
+              backgroundColor: isDark ? Colors.white : Colors.black,
+              icon: Icon(
+                Icons.apple,
+                color: isDark ? Colors.black : Colors.white,
+                size: iconSize,
+              ),
+              size: buttonSize,
+              isDark: isDark,
+            ),
+          ],
         ),
       ],
     );

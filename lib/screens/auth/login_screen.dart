@@ -337,21 +337,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _handleNaverLogin() async {
     if (_isSocialLoginLoading) return;
     
-    // 플랫폼 체크 - 네이버 로그인은 Android만 지원
+    // 웹 플랫폼 체크 - 네이버 로그인은 모바일만 지원
     if (kIsWeb) {
       await DialogUtils.showInfo(
         context,
         'Naver 로그인은 모바일 앱에서만 사용할 수 있습니다.\n\n웹에서는 Google 로그인을 사용해 주세요.',
-        title: 'Naver 로그인 안내',
-      );
-      return;
-    }
-    
-    // iOS 플랫폼 체크
-    if (!kIsWeb && Platform.isIOS) {
-      await DialogUtils.showInfo(
-        context,
-        'Naver 로그인은 Android에서만 사용할 수 있습니다.\n\niOS에서는 Google 또는 Apple 로그인을 사용해 주세요.',
         title: 'Naver 로그인 안내',
       );
       return;

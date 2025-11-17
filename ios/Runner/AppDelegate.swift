@@ -2,6 +2,7 @@ import UIKit
 import Flutter
 import FirebaseCore
 import FirebaseMessaging
+import NaverThirdPartyLogin
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -21,6 +22,30 @@ import FirebaseMessaging
     
     // Firebase Messaging 델리게이트 설정
     Messaging.messaging().delegate = self
+    
+    // Naver Login SDK 초기화 (flutter_naver_login 2.1.0+)
+    let instance = NaverThirdPartyLoginConnection.getSharedInstance()
+    
+    // Info.plist에서 설정 읽기
+    if let clientId = Bundle.main.object(forInfoDictionaryKey: "NidClientId") as? String,
+       let clientSecret = Bundle.main.object(forInfoDictionaryKey: "NidClientSecret") as? String,
+       let clientName = Bundle.main.object(forInfoDictionaryKey: "NidClientName") as? String,
+       let urlScheme = Bundle.main.object(forInfoDictionaryKey: "NidUrlScheme") as? String {
+      instance?.isNaverAppOauthEnable = true  // Naver 앱 로그인 사용
+      instance?.isInAppOauthEnable = true     // 인앱 웹뷰 로그인 사용
+      
+      instance?.serviceUrlScheme = urlScheme
+      instance?.consumerKey = clientId
+      instance?.consumerSecret = clientSecret
+      instance?.appName = clientName
+      
+      print("✅ Naver Login SDK 초기화 완료")
+      print("   - Client ID: \(clientId)")
+      print("   - App Name: \(clientName)")
+      print("   - URL Scheme: \(urlScheme)")
+    } else {
+      print("⚠️ Naver Login 설정이 Info.plist에 없습니다")
+    }
     
     // Flutter 플러그인 등록
     GeneratedPluginRegistrant.register(with: self)

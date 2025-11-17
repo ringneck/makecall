@@ -120,6 +120,16 @@
 	<key>GIDClientID</key>
 	<string>793164633643-urj0qb989v8l2bggj6h025plnbbshfg5.apps.googleusercontent.com</string>
 	
+	<!-- 🟢 Naver Login Configuration (flutter_naver_login 2.1.0+) -->
+	<key>NidClientId</key>
+	<string>Wl4fP6XbiTRQQMpbC5a9</string>
+	<key>NidClientSecret</key>
+	<string>FtDpKUbzIj</string>
+	<key>NidClientName</key>
+	<string>MAKECALL</string>
+	<key>NidUrlScheme</key>
+	<string>naverWl4fP6XbiTRQQMpbC5a9</string>
+	
 	<!-- 🔐 소셜 로그인 URL Schemes -->
 	<key>CFBundleURLTypes</key>
 	<array>
