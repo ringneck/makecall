@@ -676,7 +676,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     '이메일 저장',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey[700],
+                                      color: isDark ? Colors.grey[400] : Colors.grey[700],
                                     ),
                                   ),
                                 ],
@@ -695,7 +695,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 '비밀번호 찾기',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey[700],
+                                  color: isDark ? Colors.grey[400] : Colors.grey[700],
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -772,66 +772,34 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             },
                             style: OutlinedButton.styleFrom(
                               side: BorderSide(
-                                color: Colors.grey[300]!,
+                                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
                                 width: 1.5,
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
+                              backgroundColor: isDark ? Colors.grey[850] : Colors.transparent,
                             ),
                             child: Text(
                               '회원가입',
                               style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey[800],
+                                color: isDark ? Colors.grey[300] : Colors.grey[800],
                                 letterSpacing: 0.5,
                               ),
                             ),
                           ),
                         ),
                         
-                        const SizedBox(height: 32),
+                        SizedBox(height: _isMobile ? 40 : 48),
                         
-                        // 구분선
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Divider(
-                                color: isDark ? Colors.grey[700] : Colors.grey[300],
-                                thickness: 1,
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text(
-                                '또는',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: isDark ? Colors.grey[500] : Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Divider(
-                                color: isDark ? Colors.grey[700] : Colors.grey[300],
-                                thickness: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 24),
-                        
-                        // 소셜 로그인 버튼들 (2x2 그리드)
+                        // 소셜 로그인 버튼들 (1줄에 4개 아이콘)
                         SocialLoginButtons(
                           onGooglePressed: _isSocialLoginLoading ? null : _handleGoogleLogin,
                           onKakaoPressed: _isSocialLoginLoading ? null : _handleKakaoLogin,
                           onNaverPressed: _isSocialLoginLoading ? null : _handleNaverLogin,
-                          onApplePressed: (!kIsWeb && Platform.isIOS && !_isSocialLoginLoading) 
-                              ? _handleAppleLogin 
-                              : null,
+                          onApplePressed: _isSocialLoginLoading ? null : _handleAppleLogin,
                           isLoading: _isSocialLoginLoading,
                         ),
                         
