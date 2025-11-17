@@ -167,18 +167,26 @@ class SocialLoginButtons extends StatelessWidget {
 
   Widget _buildGoogleIcon(double size) {
     return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: NetworkImage(
-            'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+      width: size * 0.85,
+      height: size * 0.85,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(size * 0.15),
+      ),
+      child: Center(
+        child: Text(
+          'G',
+          style: TextStyle(
+            fontSize: size * 0.65,
+            fontWeight: FontWeight.w900,
+            color: const Color(0xFF4285F4), // Google Blue
+            height: 1.0,
           ),
-          fit: BoxFit.contain,
         ),
       ),
     );
   }
+}
 
   Widget _buildKakaoIcon(double size) {
     return Container(
