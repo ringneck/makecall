@@ -166,7 +166,73 @@ class AuthService extends ChangeNotifier {
         
         notifyListeners();
       } else {
-        // 🚫 Firestore에 사용자 문서가 없는 경우 - 로그인 거부
+        // 🚫 Firestore에 사용자 문서가 없는 경우
+        final currentUser = _auth.currentUser;
+        
+        if (currentUser != null) {
+          // 소셜 로그인 사용자인지 확인 (providerData 체크)
+          final providerIds = currentUser.providerData.map((p) => p.providerId).toList();
+          final isSocialLogin = providerIds.any((id) => 
+            id == 'google.com' || 
+            id == 'apple.com' || 
+            id.startsWith('kakao') || 
+            id.startsWith('naver')
+          );
+          
+          if (isSocialLogin) {
+            // ✅ 소셜 로그인 사용자 - 자동으로 Firestore 문서 생성
+            if (kDebugMode) {
+              debugPrint('');
+              debugPrint('🆕 ========================================');
+              debugPrint('🆕 소셜 로그인 신규 사용자 - 자동 등록');
+              debugPrint('🆕 ========================================');
+              debugPrint('   - UID: $uid');
+              debugPrint('   - Email: ${currentUser.email}');
+              debugPrint('   - Display Name: ${currentUser.displayName}');
+              debugPrint('   - Providers: ${providerIds.join(", ")}');
+              debugPrint('');
+              debugPrint('📝 Firestore에 사용자 문서 생성 중...');
+            }
+            
+            // 기본 사용자 문서 생성
+            final userData = {
+              'uid': uid,
+              'email': currentUser.email ?? '',
+              'displayName': currentUser.displayName ?? 'User',
+              'photoURL': currentUser.photoURL,
+              'providers': providerIds,
+              'createdAt': FieldValue.serverTimestamp(),
+              'lastLoginAt': FieldValue.serverTimestamp(),
+              'maxExtensions': 1, // 기본값: 단말 1개
+              'myExtensions': [], // 빈 배열
+              // API 서버 정보는 나중에 Profile에서 설정
+              'apiBaseUrl': null,
+              'apiHttpPort': null,
+              'apiHttpsPort': null,
+              'websocketServerUrl': null,
+              'websocketServerPort': null,
+              'websocketUseSSL': null,
+              'amiServerId': null,
+              'companyId': null,
+              'companyName': null,
+              'appKey': null,
+            };
+            
+            await _firestore.collection('users').doc(uid).set(userData);
+            
+            if (kDebugMode) {
+              debugPrint('✅ Firestore 사용자 문서 생성 완료');
+              debugPrint('');
+              debugPrint('🔄 사용자 데이터 다시 로드 중...');
+            }
+            
+            // 재귀 호출로 생성된 문서 로드
+            await _loadUserModel(uid, password: password);
+            return;
+          }
+        }
+        
+        // 🚫 일반 로그인 사용자인데 문서 없음 - 로그인 거부
         if (kDebugMode) {
           debugPrint('');
           debugPrint('❌ ========================================');
@@ -176,7 +242,7 @@ class AuthService extends ChangeNotifier {
           debugPrint('   - Email: ${_auth.currentUser?.email}');
           debugPrint('');
           debugPrint('🔒 보안 정책:');
-          debugPrint('   - 관리자가 먼저 사용자 계정을 생성해야 합니다');
+          debugPrint('   - 일반 로그인: 관리자가 먼저 사용자 계정을 생성해야 합니다');
           debugPrint('   - Firebase Authentication만으로는 로그인 불가');
           debugPrint('   - Firestore users 컬렉션에 문서 존재 필수');
           debugPrint('');
