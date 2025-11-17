@@ -683,7 +683,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'REST API 기능은 기본 플랜에서도 사용 가능합니다.',
+                    '담당자에게 문의하세요.',
                     style: TextStyle(
                       fontSize: 11,
                       color: isDark ? Colors.grey[500] : Colors.grey[600],
