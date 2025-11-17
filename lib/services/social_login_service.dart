@@ -211,6 +211,17 @@ class SocialLoginService {
         if (kDebugMode) {
           debugPrint('❌ [Kakao] Firebase Custom Token 생성 실패: $e');
         }
+        
+        // INTERNAL 에러 감지
+        final errorString = e.toString().toLowerCase();
+        if (errorString.contains('internal')) {
+          return SocialLoginResult(
+            success: false,
+            errorMessage: 'Firebase Functions가 배포되지 않았습니다.\n\n개발자에게 문의해주세요.',
+            provider: SocialLoginProvider.kakao,
+          );
+        }
+        
         return SocialLoginResult(
           success: false,
           errorMessage: 'Firebase 인증 실패: ${e.toString()}',
@@ -304,6 +315,17 @@ class SocialLoginService {
           if (kDebugMode) {
             debugPrint('❌ [Naver] Firebase Custom Token 생성 실패: $e');
           }
+          
+          // INTERNAL 에러 감지
+          final errorString = e.toString().toLowerCase();
+          if (errorString.contains('internal')) {
+            return SocialLoginResult(
+              success: false,
+              errorMessage: 'Firebase Functions가 배포되지 않았습니다.\n\n개발자에게 문의해주세요.',
+              provider: SocialLoginProvider.naver,
+            );
+          }
+          
           return SocialLoginResult(
             success: false,
             errorMessage: 'Firebase 인증 실패: ${e.toString()}',
