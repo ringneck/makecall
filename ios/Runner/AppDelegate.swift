@@ -117,10 +117,11 @@ import FirebaseMessaging
       print("   - extensionNumber: \(userInfo["extensionNumber"] ?? "없음")")
     }
     
-    // ✅ 수신 전화는 Flutter로만 전달 (네이티브 알림 차단)
-    // ✅ 기기 승인, 착신전환은 네이티브 알림으로 표시 (사용자 ringtone 재생)
-    if isIncomingCall {
-      // 수신 전화: Flutter로 전달, 네이티브 알림 차단
+    // ✅ 수신 전화, 기기 승인, 착신전환은 모두 Flutter로 전달 (네이티브 알림 차단)
+    // ✅ Flutter에서 AudioPlayer로 사운드 재생
+    if isIncomingCall || isDeviceApproval || isCallForward {
+      // 수신 전화, 기기 승인, 착신전환: Flutter로 전달, 네이티브 알림 차단
+      // Flutter에서 AudioPlayer로 사운드 재생
       DispatchQueue.main.async { [weak self] in
         guard let self = self, let channel = self.fcmChannel else {
           print("❌ [iOS-FCM] Method Channel이 없음")
@@ -135,7 +136,9 @@ import FirebaseMessaging
           }
         }
         
-        print("🔄 [iOS-FCM] Flutter로 전송할 데이터 keys: \(flutterData.keys.sorted())")
+        let messageType = isIncomingCall ? "수신 전화" : (isDeviceApproval ? "기기 승인" : "착신전환")
+        print("🔄 [iOS-FCM] \(messageType) - Flutter로 전송")
+        print("   데이터 keys: \(flutterData.keys.sorted())")
         
         channel.invokeMethod("onForegroundMessage", arguments: flutterData) { result in
           if let error = result as? FlutterError {
@@ -146,145 +149,9 @@ import FirebaseMessaging
         }
       }
       
-      // 네이티브 알림 차단
+      // 네이티브 알림 차단 (Flutter에서 사운드 재생)
       completionHandler([])
-      print("✅ [iOS-FCM] Flutter 전달 완료, 네이티브 알림 차단됨")
-      return
-    } else if isDeviceApproval {
-      // 기기 승인: Flutter로 전달 + 사용자 지정 ringtone으로 로컬 알림 생성
-      DispatchQueue.main.async { [weak self] in
-        guard let self = self, let channel = self.fcmChannel else {
-          print("❌ [iOS-FCM] Method Channel이 없음")
-          return
-        }
-        
-        // userInfo를 String으로 변환
-        var flutterData: [String: Any] = [:]
-        for (key, value) in userInfo {
-          if let keyString = key.base as? String {
-            flutterData[keyString] = value
-          }
-        }
-        
-        print("🔄 [iOS-FCM] 기기 승인 - Flutter로 전송")
-        
-        channel.invokeMethod("onForegroundMessage", arguments: flutterData) { result in
-          if let error = result as? FlutterError {
-            print("❌ [iOS-FCM] Flutter 호출 실패: \(error.message ?? "알 수 없는 오류")")
-          } else {
-            print("✅ [iOS-FCM] Flutter 호출 성공")
-          }
-        }
-      }
-      
-      // 🎵 사용자 ringtone 정보 가져오기
-      let ringtone = userInfo["ringtone"] as? String
-      print("🎵 [iOS-FCM] 기기 승인 - ringtone: \(ringtone ?? "없음 (기본 사운드)")")
-      
-      // 🔔 로컬 알림 생성 (사용자 지정 ringtone 재생)
-      let content = UNMutableNotificationContent()
-      content.title = notification.request.content.title
-      content.body = notification.request.content.body
-      content.badge = 1
-      
-      // 사용자 ringtone 설정
-      if let ringtone = ringtone, !ringtone.isEmpty {
-        // assets/audio/ 경로에 있는 사운드 파일 사용
-        let soundFileName = "\(ringtone).caf" // iOS는 .caf 형식 권장
-        content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: soundFileName))
-        print("🎵 [iOS-FCM] 기기 승인 - 커스텀 ringtone 설정: \(soundFileName)")
-      } else {
-        // ringtone.mp3를 기본값으로 사용
-        content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: "ringtone.caf"))
-        print("🎵 [iOS-FCM] 기기 승인 - 기본 ringtone 사용: ringtone.caf")
-      }
-      
-      // 로컬 알림 요청 생성
-      let request = UNNotificationRequest(
-        identifier: UUID().uuidString,
-        content: content,
-        trigger: nil // 즉시 표시
-      )
-      
-      // 로컬 알림 표시
-      UNUserNotificationCenter.current().add(request) { error in
-        if let error = error {
-          print("❌ [iOS-FCM] 로컬 알림 표시 실패: \(error.localizedDescription)")
-        } else {
-          print("✅ [iOS-FCM] 기기 승인 - 로컬 알림 표시 완료 (사용자 ringtone 포함)")
-        }
-      }
-      
-      // FCM 알림은 차단 (로컬 알림으로 대체)
-      completionHandler([])
-      return
-    } else if isCallForward {
-      // 착신전환: Flutter로 전달 + 사용자 지정 ringtone으로 로컬 알림 생성
-      DispatchQueue.main.async { [weak self] in
-        guard let self = self, let channel = self.fcmChannel else {
-          print("❌ [iOS-FCM] Method Channel이 없음")
-          return
-        }
-        
-        // userInfo를 String으로 변환
-        var flutterData: [String: Any] = [:]
-        for (key, value) in userInfo {
-          if let keyString = key.base as? String {
-            flutterData[keyString] = value
-          }
-        }
-        
-        print("🔄 [iOS-FCM] 착신전환 - Flutter로 전송")
-        
-        channel.invokeMethod("onForegroundMessage", arguments: flutterData) { result in
-          if let error = result as? FlutterError {
-            print("❌ [iOS-FCM] Flutter 호출 실패: \(error.message ?? "알 수 없는 오류")")
-          } else {
-            print("✅ [iOS-FCM] Flutter 호출 성공")
-          }
-        }
-      }
-      
-      // 🎵 사용자 ringtone 정보 가져오기
-      let ringtone = userInfo["ringtone"] as? String
-      print("🎵 [iOS-FCM] 착신전환 - ringtone: \(ringtone ?? "없음 (기본 사운드)")")
-      
-      // 🔔 로컬 알림 생성 (사용자 지정 ringtone 재생)
-      let content = UNMutableNotificationContent()
-      content.title = notification.request.content.title
-      content.body = notification.request.content.body
-      content.badge = 1
-      
-      // 사용자 ringtone 설정
-      if let ringtone = ringtone, !ringtone.isEmpty {
-        // assets/audio/ 경로에 있는 사운드 파일 사용
-        let soundFileName = "\(ringtone).caf" // iOS는 .caf 형식 권장
-        content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: soundFileName))
-        print("🎵 [iOS-FCM] 착신전환 - 커스텀 ringtone 설정: \(soundFileName)")
-      } else {
-        // ringtone.mp3를 기본값으로 사용
-        content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: "ringtone.caf"))
-        print("🎵 [iOS-FCM] 착신전환 - 기본 ringtone 사용: ringtone.caf")
-      }
-      
-      // 로컬 알림 요청 생성
-      let request = UNNotificationRequest(
-        identifier: UUID().uuidString,
-        content: content,
-        trigger: nil // 즉시 표시
-      )
-      
-      // 로컬 알림 표시
-      UNUserNotificationCenter.current().add(request) { error in
-        if let error = error {
-          print("❌ [iOS-FCM] 로컬 알림 표시 실패: \(error.localizedDescription)")
-        } else {
-          print("✅ [iOS-FCM] 착신전환 - 로컬 알림 표시 완료 (사용자 ringtone 포함)")
-        }
-      }
-      
-      // FCM 알림은 차단 (로컬 알림으로 대체)
-      completionHandler([])
+      print("✅ [iOS-FCM] Flutter 전달 완료, 네이티브 알림 차단됨 (Flutter에서 사운드 재생)")
       return
     }
     

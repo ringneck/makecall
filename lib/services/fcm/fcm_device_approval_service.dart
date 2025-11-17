@@ -7,6 +7,7 @@ import '../../utils/dialog_utils.dart';
 import '../database_service.dart';
 import '../auth_service.dart';
 import '../../main.dart' show navigatorKey;
+import 'fcm_notification_sound_service.dart';
 
 /// FCM 기기 승인 서비스
 /// 
@@ -394,6 +395,9 @@ class FCMDeviceApprovalService {
       print('⚠️ [FCM-APPROVAL] 이미 표시 중인 다이얼로그');
       return;
     }
+    
+    // 🎵 알림 사운드 및 진동 재생
+    FCMNotificationSoundService.playNotificationWithVibration(duration: 3);
     
     final context = _context ?? navigatorKey.currentContext;
     if (context == null) {

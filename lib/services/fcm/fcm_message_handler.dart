@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
+import 'fcm_notification_sound_service.dart';
 
 /// FCM 메시지 핸들러
 /// 
@@ -127,12 +128,38 @@ class FCMMessageHandler {
       return;
     }
     
+    // 📲 착신전환 알림 (사운드 재생)
+    if (_isCallForwardMessage(message)) {
+      // ignore: avoid_print
+      print('📲 [FCM-HANDLER] 착신전환 알림 메시지');
+      _handleCallForwardNotification(message);
+      return;
+    }
+    
     // 📥 일반 알림 (포그라운드만)
     if (isForeground) {
       // ignore: avoid_print
       print('📥 [FCM-HANDLER] 일반 알림 메시지');
       onGeneralNotification?.call(message);
     }
+  }
+  
+  /// 착신전환 메시지 판별
+  bool _isCallForwardMessage(RemoteMessage message) {
+    final messageType = message.data['type'] as String?;
+    return messageType != null && messageType.startsWith('call_forward');
+  }
+  
+  /// 착신전환 알림 처리 (사운드 재생)
+  void _handleCallForwardNotification(RemoteMessage message) {
+    // 🎵 알림 사운드 및 진동 재생
+    // ignore: avoid_print
+    print('🔔 [FCM-HANDLER] 착신전환 알림 사운드 재생');
+    
+    FCMNotificationSoundService.playNotificationWithVibration(duration: 3);
+    
+    // 일반 알림으로도 전달
+    onGeneralNotification?.call(message);
   }
 
   /// 수신 전화 메시지 판별
