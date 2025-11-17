@@ -67,6 +67,7 @@ class DefaultFirebaseOptions {
     projectId: 'makecallio',
     storageBucket: 'makecallio.firebasestorage.app',
     iosBundleId: 'com.olssoo.makecall',
+    iosClientId: '793164633643-urj0qb989v8l2bggj6h025plnbbshfg5.apps.googleusercontent.com',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -76,5 +77,6 @@ class DefaultFirebaseOptions {
     projectId: 'makecallio',
     storageBucket: 'makecallio.firebasestorage.app',
     iosBundleId: 'com.olssoo.makecall',
+    iosClientId: '793164633643-urj0qb989v8l2bggj6h025plnbbshfg5.apps.googleusercontent.com',
   );
 }
