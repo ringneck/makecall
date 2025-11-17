@@ -40,19 +40,17 @@
     // 🚀 Service Worker 등록 (PWA 지원 + FCM)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
-        // Flutter Service Worker 등록
-        navigator.serviceWorker.register('flutter_service_worker.js')
-          .then((registration) => {
-            console.log('✅ Flutter Service Worker 등록 완료:', registration.scope);
-          })
-          .catch((error) => {
-            console.error('❌ Flutter Service Worker 등록 실패:', error);
-          });
-        
-        // Firebase Messaging Service Worker 등록
-        navigator.serviceWorker.register('firebase-messaging-sw.js')
+        // Firebase Messaging Service Worker 등록 (별도 scope)
+        navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+          scope: '/firebase-cloud-messaging-push-scope'
+        })
           .then((registration) => {
             console.log('✅ Firebase Messaging Service Worker 등록 완료:', registration.scope);
+            console.log('   업데이트 확인 중...');
+            return registration.update();
+          })
+          .then(() => {
+            console.log('✅ Firebase Messaging SW 업데이트 완료');
           })
           .catch((error) => {
             console.error('❌ Firebase Messaging Service Worker 등록 실패:', error);
@@ -98,6 +96,48 @@
         spinner.style.display = 'none';
       }
     });
+    
+    // 🔍 웹 푸시 진단 도구 (개발 모드)
+    if (window.location.hostname === 'localhost' || window.location.hostname.includes('sandbox')) {
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          console.log('🔍 ===== 웹 푸시 진단 시작 =====');
+          
+          // 1. Service Worker 상태
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              console.log('📋 Service Worker:', registrations.length + '개 등록됨');
+              registrations.forEach(function(reg, i) {
+                console.log('  ' + (i+1) + '. ' + (reg.active ? reg.active.scriptURL : 'pending'));
+                console.log('     scope: ' + reg.scope);
+                console.log('     state: ' + (reg.active ? reg.active.state : 'N/A'));
+              });
+            });
+          } else {
+            console.error('❌ Service Worker 미지원 브라우저');
+          }
+          
+          // 2. 알림 권한
+          if ('Notification' in window) {
+            console.log('🔔 알림 권한:', Notification.permission);
+            if (Notification.permission === 'denied') {
+              console.warn('⚠️ 알림 권한이 거부됨 - 브라우저 설정에서 허용 필요');
+            } else if (Notification.permission === 'default') {
+              console.log('ℹ️ 알림 권한 미요청 - 앱에서 권한 요청 예정');
+            }
+          }
+          
+          // 3. HTTPS 확인
+          if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            console.error('❌ HTTPS 필요 - 웹 푸시는 HTTPS 환경에서만 동작');
+          } else {
+            console.log('✅ HTTPS 환경 확인');
+          }
+          
+          console.log('🔍 ===== 웹 푸시 진단 완료 =====');
+        }, 3000); // 3초 후 진단
+      });
+    }
   </script>
 </body>
 </html>
