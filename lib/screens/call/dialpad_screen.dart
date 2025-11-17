@@ -295,6 +295,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: SafeArea(
+        bottom: true, // 하단 SafeArea 명시적 적용
         child: OrientationBuilder(
           builder: (context, orientation) {
             if (orientation == Orientation.landscape) {
@@ -317,15 +318,15 @@ class _DialpadScreenState extends State<DialpadScreen> {
     
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 사용 가능한 높이 계산
+        // 사용 가능한 높이 계산 (SafeArea bottom padding 고려)
         final availableHeight = constraints.maxHeight;
         final screenWidth = constraints.maxWidth;
         
-        // 반응형 크기 계산
-        final phoneNumberHeight = isIOS ? 120.0 : 100.0;
-        final callButtonHeight = 140.0;
-        final keypadPadding = screenWidth > 400 ? 32.0 : 24.0;
-        final keySpacing = screenWidth > 400 ? 20.0 : 16.0;
+        // 반응형 크기 계산 (소형 화면 최적화)
+        final phoneNumberHeight = isIOS ? 100.0 : 90.0; // iOS 높이 축소
+        final callButtonHeight = 120.0; // 통화 버튼 높이 축소
+        final keypadPadding = screenWidth > 400 ? 32.0 : 20.0; // 패딩 축소
+        final keySpacing = screenWidth > 400 ? 20.0 : 12.0; // 키 간격 축소
         
         return Container(
           decoration: BoxDecoration(
@@ -343,12 +344,12 @@ class _DialpadScreenState extends State<DialpadScreen> {
           ),
           child: Column(
             children: [
-              // 전화번호 표시 영역 (다크모드 최적화)
+              // 전화번호 표시 영역 (다크모드 최적화, 오버플로우 방지)
               Container(
                 height: phoneNumberHeight,
                 padding: EdgeInsets.symmetric(
                   horizontal: keypadPadding,
-                  vertical: 16,
+                  vertical: 12, // 수직 패딩 축소
                 ),
                 decoration: BoxDecoration(
                   color: isDark 
@@ -410,43 +411,45 @@ class _DialpadScreenState extends State<DialpadScreen> {
                 ),
               ),
 
-              // 키패드 영역 (반응형 최적화)
+              // 키패드 영역 (반응형 최적화, 오버플로우 방지)
               Expanded(
                 child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: screenWidth > 500 ? 450 : screenWidth * 0.9,
-                      maxHeight: availableHeight - phoneNumberHeight - callButtonHeight,
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: keypadPadding,
-                        vertical: 20,
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: screenWidth > 500 ? 450 : screenWidth * 0.9,
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildKeypadRow(['1', '2', '3'], ['', 'ABC', 'DEF']),
-                          SizedBox(height: keySpacing),
-                          _buildKeypadRow(['4', '5', '6'], ['GHI', 'JKL', 'MNO']),
-                          SizedBox(height: keySpacing),
-                          _buildKeypadRow(['7', '8', '9'], ['PQRS', 'TUV', 'WXYZ']),
-                          SizedBox(height: keySpacing),
-                          _buildKeypadRow(['*', '0', '#'], ['', '+', '']),
-                        ],
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: keypadPadding,
+                          vertical: 12, // 수직 패딩 축소
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildKeypadRow(['1', '2', '3'], ['', 'ABC', 'DEF']),
+                            SizedBox(height: keySpacing),
+                            _buildKeypadRow(['4', '5', '6'], ['GHI', 'JKL', 'MNO']),
+                            SizedBox(height: keySpacing),
+                            _buildKeypadRow(['7', '8', '9'], ['PQRS', 'TUV', 'WXYZ']),
+                            SizedBox(height: keySpacing),
+                            _buildKeypadRow(['*', '0', '#'], ['', '+', '']),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
 
-              // 통화 버튼 영역 (다크모드 최적화)
+              // 통화 버튼 영역 (다크모드 최적화, 오버플로우 방지)
               Container(
                 height: callButtonHeight,
                 padding: EdgeInsets.symmetric(
                   horizontal: keypadPadding,
-                  vertical: 24,
+                  vertical: 16, // 수직 패딩 축소
                 ),
                 decoration: BoxDecoration(
                   color: isDark 
