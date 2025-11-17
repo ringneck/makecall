@@ -116,6 +116,10 @@
 	<key>FirebaseMessagingAutoInitEnabled</key>
 	<true/>
 	
+	<!-- 🔵 Google Sign-In Client ID -->
+	<key>GIDClientID</key>
+	<string>793164633643-urj0qb989v8l2bggj6h025plnbbshfg5.apps.googleusercontent.com</string>
+	
 	<!-- 🔐 소셜 로그인 URL Schemes -->
 	<key>CFBundleURLTypes</key>
 	<array>
