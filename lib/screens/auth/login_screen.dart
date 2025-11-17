@@ -252,17 +252,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         await _handleSocialLoginSuccess(result);
       } else {
         if (mounted) {
-          await DialogUtils.showError(
-            context,
-            result.errorMessage ?? '구글 로그인에 실패했습니다.',
-          );
+          // 사용자 취소는 안내 메시지로 표시
+          if (result.errorMessage?.contains('취소') ?? false) {
+            await DialogUtils.showInfo(
+              context,
+              'Google 로그인이 취소되었습니다.',
+              title: 'Google 로그인',
+            );
+          } else {
+            await DialogUtils.showError(
+              context,
+              result.errorMessage ?? 'Google 로그인에 실패했습니다.',
+            );
+          }
         }
       }
     } catch (e) {
       if (mounted) {
         await DialogUtils.showError(
           context,
-          '구글 로그인 중 오류가 발생했습니다: ${e.toString()}',
+          'Google 로그인 중 오류가 발생했습니다: ${e.toString()}',
         );
       }
     } finally {
@@ -285,17 +294,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         await _handleSocialLoginSuccess(result);
       } else {
         if (mounted) {
-          await DialogUtils.showError(
-            context,
-            result.errorMessage ?? '카카오 로그인에 실패했습니다.',
-          );
+          // 사용자 취소는 안내 메시지로 표시
+          if (result.errorMessage?.contains('취소') ?? false) {
+            await DialogUtils.showInfo(
+              context,
+              'Kakao 로그인이 취소되었습니다.',
+              title: 'Kakao 로그인',
+            );
+          } else {
+            await DialogUtils.showError(
+              context,
+              result.errorMessage ?? 'Kakao 로그인에 실패했습니다.',
+            );
+          }
         }
       }
     } catch (e) {
       if (mounted) {
         await DialogUtils.showError(
           context,
-          '카카오 로그인 중 오류가 발생했습니다: ${e.toString()}',
+          'Kakao 로그인 중 오류가 발생했습니다: ${e.toString()}',
         );
       }
     } finally {
@@ -318,17 +336,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         await _handleSocialLoginSuccess(result);
       } else {
         if (mounted) {
-          await DialogUtils.showError(
-            context,
-            result.errorMessage ?? '네이버 로그인에 실패했습니다.',
-          );
+          // 사용자 취소는 안내 메시지로 표시
+          if (result.errorMessage?.contains('취소') ?? false) {
+            await DialogUtils.showInfo(
+              context,
+              'Naver 로그인이 취소되었습니다.',
+              title: 'Naver 로그인',
+            );
+          } else {
+            await DialogUtils.showError(
+              context,
+              result.errorMessage ?? 'Naver 로그인에 실패했습니다.',
+            );
+          }
         }
       }
     } catch (e) {
       if (mounted) {
         await DialogUtils.showError(
           context,
-          '네이버 로그인 중 오류가 발생했습니다: ${e.toString()}',
+          'Naver 로그인 중 오류가 발생했습니다: ${e.toString()}',
         );
       }
     } finally {
@@ -344,9 +371,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     
     // iOS 플랫폼 체크
     if (!kIsWeb && !Platform.isIOS) {
-      await DialogUtils.showError(
+      await DialogUtils.showInfo(
         context,
-        '애플 로그인은 iOS 기기에서만 사용할 수 있습니다.',
+        'Apple 로그인은 iOS 기기에서만 사용할 수 있습니다.\n\n현재 기기: ${Platform.operatingSystem}',
+        title: 'Apple 로그인 안내',
       );
       return;
     }
@@ -360,17 +388,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         await _handleSocialLoginSuccess(result);
       } else {
         if (mounted) {
-          await DialogUtils.showError(
-            context,
-            result.errorMessage ?? '애플 로그인에 실패했습니다.',
-          );
+          // 사용자 취소는 안내 메시지로 표시
+          if (result.errorMessage?.contains('취소') ?? false) {
+            await DialogUtils.showInfo(
+              context,
+              'Apple 로그인이 취소되었습니다.',
+              title: 'Apple 로그인',
+            );
+          } else {
+            await DialogUtils.showError(
+              context,
+              result.errorMessage ?? 'Apple 로그인에 실패했습니다.',
+            );
+          }
         }
       }
     } catch (e) {
       if (mounted) {
         await DialogUtils.showError(
           context,
-          '애플 로그인 중 오류가 발생했습니다: ${e.toString()}',
+          'Apple 로그인 중 오류가 발생했습니다: ${e.toString()}',
         );
       }
     } finally {
