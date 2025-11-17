@@ -25,7 +25,7 @@
 
 **단계 2**: Android 앱 추가/확인
 - **Project Overview** → **프로젝트 설정** → **Android 앱**
-- 패키지 이름: `com.makecall.app` (확인 필수)
+- 패키지 이름: `com.olssoo.makecall_app` (확인 필수)
 - SHA-1 인증서 지문 등록 (필수):
 
 ```bash
@@ -50,7 +50,7 @@ cd android
 - **API 및 서비스** → **사용자 인증 정보**
 - **OAuth 2.0 클라이언트 ID** 확인:
   - Android 클라이언트 ID가 있어야 함
-  - 패키지 이름: `com.makecall.app`
+  - 패키지 이름: `com.olssoo.makecall_app`
   - SHA-1 지문이 등록되어 있어야 함
 
 ### 1.2 Android 프로젝트 설정
@@ -89,7 +89,7 @@ final result = await _socialLoginService.signInWithGoogle();
 **단계 2**: 플랫폼 등록
 - **내 애플리케이션** → 앱 선택 → **플랫폼**
 - **Android 플랫폼 등록** 클릭
-- 패키지 이름: `com.makecall.app`
+- 패키지 이름: `com.olssoo.makecall_app`
 - 키 해시 등록:
 
 ```bash
@@ -242,7 +242,7 @@ await FirebaseAuth.instance.signInWithCustomToken(customToken);
 
 **단계 3**: 환경 추가 - Android
 - **서비스 환경** → **Android 앱 추가**
-- **패키지 이름**: `com.makecall.app`
+- **패키지 이름**: `com.olssoo.makecall_app`
 - **Download URL**: 앱 스토어 URL (배포 후 설정)
 
 **단계 4**: Client ID / Client Secret 확인
