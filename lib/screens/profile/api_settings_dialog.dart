@@ -650,7 +650,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'HTTP 인증 정보 (필수)',
+                          'HTTP 인증 정보 (WebSocket 사용 시 필수)',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
@@ -710,8 +710,12 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         ),
                       ),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'HTTP Auth ID를 입력해주세요';
+                        // WebSocket 서버 주소가 입력되었을 때만 필수
+                        final wsServerUrl = _websocketServerUrlController.text.trim();
+                        if (wsServerUrl.isNotEmpty) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'HTTP Auth ID를 입력해주세요';
+                          }
                         }
                         return null;
                       },
@@ -757,8 +761,12 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'HTTP Auth Password를 입력해주세요';
+                  // WebSocket 서버 주소가 입력되었을 때만 필수
+                  final wsServerUrl = _websocketServerUrlController.text.trim();
+                  if (wsServerUrl.isNotEmpty) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'HTTP Auth Password를 입력해주세요';
+                    }
                   }
                   return null;
                 },

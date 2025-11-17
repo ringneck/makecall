@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../utils/account_management_utils.dart';
+import '../cached_network_image_widget.dart';
+import '../safe_circle_avatar.dart';
 
 /// 👤 프로필 헤더 섹션
 /// 
@@ -62,12 +64,10 @@ class ProfileHeaderSection extends StatelessWidget {
                   ),
                 ],
               ),
-              child: CircleAvatar(
+              child: SafeCircleAvatar(
                 radius: 28,
                 backgroundColor: Colors.white,
-                backgroundImage: userModel?.profileImageUrl != null
-                    ? NetworkImage(userModel!.profileImageUrl!)
-                    : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
+                imageUrl: userModel?.profileImageUrl,
               ),
             ),
           ),

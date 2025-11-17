@@ -13,6 +13,8 @@ import '../../models/my_extension_model.dart';
 import 'api_settings_dialog.dart';
 import 'active_sessions_screen.dart';
 import '../../widgets/theme_settings_dialog.dart';
+import '../../widgets/cached_network_image_widget.dart';
+import '../../widgets/safe_circle_avatar.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -99,21 +101,17 @@ class _ProfileTabState extends State<ProfileTab> {
             children: [
               GestureDetector(
                 onTap: () => _showProfileImageOptions(context, authService),
-                child: CircleAvatar(
+                child: SafeCircleAvatar(
                   radius: 50,
                   backgroundColor: isDark 
                       ? const Color(0xFF2196F3).withAlpha(100)
                       : const Color(0xFF2196F3).withAlpha(51),
-                  backgroundImage: userModel?.profileImageUrl != null
-                      ? NetworkImage(userModel!.profileImageUrl!)
-                      : null,
-                  child: userModel?.profileImageUrl == null
-                      ? Icon(
-                          Icons.person, 
-                          size: 50, 
-                          color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
-                        )
-                      : null,
+                  imageUrl: userModel?.profileImageUrl,
+                  child: Icon(
+                    Icons.person, 
+                    size: 50, 
+                    color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                  ),
                 ),
               ),
               Positioned(

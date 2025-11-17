@@ -7,6 +7,8 @@ import '../services/account_manager_service.dart';
 import '../models/saved_account_model.dart';
 import '../utils/dialog_utils.dart';
 import '../utils/profile_image_utils.dart';
+import '../widgets/cached_network_image_widget.dart';
+import '../widgets/safe_circle_avatar.dart';
 import '../main.dart' show navigatorKey;
 
 /// 🔐 계정 관리 유틸리티 클래스
@@ -73,12 +75,10 @@ class AccountManagementUtils {
                         Navigator.pop(context);
                         ProfileImageUtils.showImageOptions(context, authService);
                       },
-                      child: CircleAvatar(
+                      child: SafeCircleAvatar(
                         radius: 50,
                         backgroundColor: Colors.transparent,
-                        backgroundImage: userModel?.profileImageUrl != null
-                            ? NetworkImage(userModel!.profileImageUrl!)
-                            : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
+                        imageUrl: userModel?.profileImageUrl,
                       ),
                     ),
                     Positioned(

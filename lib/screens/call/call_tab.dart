@@ -20,7 +20,8 @@ import '../../widgets/add_contact_dialog.dart';
 import '../../widgets/call_detail_dialog.dart';
 import '../../widgets/profile_drawer.dart';
 import '../../widgets/extension_drawer.dart';
-import '../../theme/call_theme_extension.dart';
+import '../../widgets/cached_network_image_widget.dart';
+import '../../widgets/safe_circle_avatar.dart';
 import '../../theme/call_theme_extension.dart';
 
 class CallTab extends StatefulWidget {
@@ -726,12 +727,10 @@ class _CallTabState extends State<CallTab> {
                     ),
                   ],
                 ),
-                child: CircleAvatar(
+                child: SafeCircleAvatar(
                   radius: 20,
                   backgroundColor: isDark ? Colors.grey[850] : Colors.white,
-                  backgroundImage: authService.currentUserModel?.profileImageUrl != null
-                      ? NetworkImage(authService.currentUserModel!.profileImageUrl!)
-                      : const AssetImage('assets/icons/app_icon.png') as ImageProvider,
+                  imageUrl: authService.currentUserModel?.profileImageUrl,
                 ),
               ),
             ),

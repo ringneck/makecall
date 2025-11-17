@@ -8,6 +8,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
+import '../../widgets/cached_network_image_widget.dart';
 
 /// 수신 전화 풀스크린 (미래지향적 디자인 + 고급 애니메이션)
 class IncomingCallScreen extends StatefulWidget {
@@ -1185,8 +1186,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     
     // 2순위: callerAvatar (URL)
     if (widget.callerAvatar != null && widget.callerAvatar!.isNotEmpty) {
-      return Image.network(
-        widget.callerAvatar!,
+      return CachedNetworkImageWidget(
+        imageUrl: widget.callerAvatar!,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => _buildAppLogo(),
       );

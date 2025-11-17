@@ -644,7 +644,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
       );
     }
 
-    // 에러 발생
+    // 에러 발생 (WebSocket 연결 실패 시 유료 플랜 안내)
     if (_errorMessage != null) {
       return Container(
         width: double.infinity,
@@ -664,23 +664,78 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
               size: 32,
               color: Colors.red,
             ),
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage!,
-              style: const TextStyle(
+            const SizedBox(height: 12),
+            const Text(
+              'WebSocket 연결 실패',
+              style: TextStyle(
                 fontSize: 14,
                 color: Colors.red,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 12),
-            TextButton.icon(
-              onPressed: _initializeAndFetch,
-              icon: const Icon(Icons.refresh),
-              label: const Text('다시 시도'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
+            const SizedBox(height: 8),
+            Icon(
+              Icons.refresh,
+              size: 20,
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '다시 시도',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.star, size: 18, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text(
+                        '유료 플랜 안내',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '착신전환 기능을 사용하려면\n유료 플랜으로 업그레이드가 필요합니다.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[300] : Colors.grey[700],
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'REST API 기능은 기본 플랜에서도 사용 가능합니다.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
           ],
