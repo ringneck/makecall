@@ -116,9 +116,10 @@
 	<key>FirebaseMessagingAutoInitEnabled</key>
 	<true/>
 	
-	<!-- 🔐 Google Sign-In URL Scheme -->
+	<!-- 🔐 소셜 로그인 URL Schemes -->
 	<key>CFBundleURLTypes</key>
 	<array>
+		<!-- 🔵 Google Sign-In -->
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
@@ -128,6 +129,44 @@
 				<string>com.googleusercontent.apps.793164633643-urj0qb989v8l2bggj6h025plnbbshfg5</string>
 			</array>
 		</dict>
+		
+		<!-- 🟡 Kakao Login -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Kakao Native App Key: kakao + 737f26c4d0d81077b35b8f0313ec3536 -->
+				<string>kakao737f26c4d0d81077b35b8f0313ec3536</string>
+			</array>
+		</dict>
+		
+		<!-- 🟢 Naver Login -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Naver URL Scheme: 앱 등록 시 받은 값으로 교체 필요 -->
+				<string>naverWl4fP6XbiTRQQMpbC5a9</string>
+			</array>
+		</dict>
+	</array>
+	
+	<!-- 🔗 소셜 로그인 앱 전환을 위한 Schemes (iOS 9+) -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<!-- Kakao Talk -->
+		<string>kakaokompassauth</string>
+		<string>kakaolink</string>
+		<string>kakao737f26c4d0d81077b35b8f0313ec3536</string>
+		
+		<!-- Naver App -->
+		<string>naversearchapp</string>
+		<string>naversearchthirdlogin</string>
+		
+		<!-- Naver Cafe -->
+		<string>navercafe</string>
 	</array>
 </dict>
 </plist>
