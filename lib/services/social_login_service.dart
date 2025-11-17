@@ -250,8 +250,15 @@ class SocialLoginService {
         if (errorString.contains('internal')) {
           return SocialLoginResult(
             success: false,
-            errorMessage: 'Firebase 서버 오류가 발생했습니다.\n\n'
-                '잠시 후 다시 시도해주세요.',
+            errorMessage: 'Firebase 서버 설정 오류\n\n'
+                '가능한 원인:\n'
+                '1. Firebase Functions가 배포되지 않음\n'
+                '2. IAM 권한이 설정되지 않음\n'
+                '3. Functions Region 불일치\n\n'
+                'Firebase Console에서 확인 필요:\n'
+                '- Functions > createCustomTokenForKakao 배포 확인\n'
+                '- Functions 로그에서 에러 메시지 확인\n'
+                '- IAM 권한 (Service Account Token Creator) 설정 확인',
             provider: SocialLoginProvider.kakao,
           );
         }
@@ -402,8 +409,15 @@ class SocialLoginService {
           if (errorString.contains('internal')) {
             return SocialLoginResult(
               success: false,
-              errorMessage: 'Firebase 서버 오류가 발생했습니다.\n\n'
-                  '잠시 후 다시 시도해주세요.',
+              errorMessage: 'Firebase 서버 설정 오류\n\n'
+                  '가능한 원인:\n'
+                  '1. Firebase Functions가 배포되지 않음\n'
+                  '2. IAM 권한이 설정되지 않음\n'
+                  '3. Functions Region 불일치\n\n'
+                  'Firebase Console에서 확인 필요:\n'
+                  '- Functions > createCustomTokenForNaver 배포 확인\n'
+                  '- Functions 로그에서 에러 메시지 확인\n'
+                  '- IAM 권한 (Service Account Token Creator) 설정 확인',
               provider: SocialLoginProvider.naver,
             );
           }
