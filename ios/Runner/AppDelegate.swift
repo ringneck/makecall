@@ -138,7 +138,7 @@ import NaverThirdPartyLogin
       print("   - extensionNumber: \(userInfo["extensionNumber"] ?? "없음")")
     }
     
-    // ✅ 기기 승인, 수신 전화, 착신전환일 때 Flutter로 전달
+    // ✅ 기기 승인, 수신 전화, 착신전환일 때 Flutter로 전달하고 네이티브 처리 차단
     if isDeviceApproval || isIncomingCall || isCallForward {
       DispatchQueue.main.async { [weak self] in
         guard let self = self, let channel = self.fcmChannel else {
@@ -164,14 +164,16 @@ import NaverThirdPartyLogin
           }
         }
       }
-    } else {
-      print("ℹ️ [iOS-FCM] 일반 메시지 (기기 승인/수신 전화/착신전환 아님) - Flutter 전달 안 함")
+      
+      // 🔒 네이티브 알림 표시 차단 후 즉시 return (Firebase SDK 처리 방지)
+      completionHandler([])
+      print("✅ [iOS-FCM] Flutter 전달 완료, 네이티브 알림 차단됨")
+      return  // ⚠️ CRITICAL: 조기 return으로 Firebase SDK 중복 처리 방지
     }
     
-    // 네이티브 알림 표시하지 않음
-    completionHandler([])
-    
-    print("✅ [iOS-FCM] 처리 완료 (네이티브 알림 표시 안 함)")
+    // 일반 메시지는 Firebase SDK에 처리 위임
+    print("ℹ️ [iOS-FCM] 일반 메시지 - Firebase SDK 기본 동작 사용")
+    completionHandler([.banner, .sound, .badge])
   }
   
   // 알림 탭했을 때 - Flutter Method Channel로 명시적 전달
