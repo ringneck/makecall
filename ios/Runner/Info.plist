@@ -117,7 +117,6 @@
 	<true/>
 	
 	<!-- 🔐 Google Sign-In URL Scheme -->
-	<!-- TODO: Firebase Console에서 최신 GoogleService-Info.plist 다운로드 후 REVERSED_CLIENT_ID 업데이트 -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -125,9 +124,8 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- GoogleService-Info.plist의 REVERSED_CLIENT_ID 값으로 교체 필요 -->
-				<!-- 현재 프로젝트 ID: makecallio, iOS Bundle: com.olssoo.makecall -->
-				<string>com.googleusercontent.apps.793164633643-PLACEHOLDER</string>
+				<!-- GoogleService-Info.plist의 REVERSED_CLIENT_ID -->
+				<string>com.googleusercontent.apps.793164633643-urj0qb989v8l2bggj6h025plnbbshfg5</string>
 			</array>
 		</dict>
 	</array>
