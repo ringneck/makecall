@@ -130,16 +130,27 @@ class SocialLoginService {
       bool isKakaoTalkInstalled = await kakao.isKakaoTalkInstalled();
       
       kakao.OAuthToken token;
+      
+      // 🔧 임시 수정: 카카오톡 앱 로그인 시도 중 에러 발생 시 웹뷰로 fallback
       if (isKakaoTalkInstalled) {
-        // 카카오톡으로 로그인
-        if (kDebugMode) {
-          debugPrint('📱 [Kakao] 카카오톡 앱으로 로그인');
+        try {
+          // 카카오톡으로 로그인 시도
+          if (kDebugMode) {
+            debugPrint('📱 [Kakao] 카카오톡 앱으로 로그인 시도');
+          }
+          token = await kakao.UserApi.instance.loginWithKakaoTalk();
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [Kakao] 카카오톡 앱 로그인 실패, 웹뷰로 전환');
+            debugPrint('   - 에러: $e');
+          }
+          // 웹뷰로 fallback
+          token = await kakao.UserApi.instance.loginWithKakaoAccount();
         }
-        token = await kakao.UserApi.instance.loginWithKakaoTalk();
       } else {
         // 카카오 계정으로 로그인 (웹뷰)
         if (kDebugMode) {
-          debugPrint('🌐 [Kakao] 카카오 계정으로 로그인');
+          debugPrint('🌐 [Kakao] 카카오톡 미설치, 카카오 계정으로 로그인');
         }
         token = await kakao.UserApi.instance.loginWithKakaoAccount();
       }
