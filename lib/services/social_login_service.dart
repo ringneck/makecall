@@ -127,7 +127,25 @@ class SocialLoginService {
       }
 
       // 카카오톡 설치 여부 확인
-      bool isKakaoTalkInstalled = await kakao.isKakaoTalkInstalled();
+      bool isKakaoTalkInstalled = false;
+      
+      try {
+        isKakaoTalkInstalled = await kakao.isKakaoTalkInstalled();
+      } catch (checkError) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [Kakao] 카카오톡 설치 확인 실패: $checkError');
+        }
+        // MissingPluginException인 경우 명확한 에러 메시지
+        if (checkError.toString().contains('MissingPluginException')) {
+          return SocialLoginResult(
+            success: false,
+            errorMessage: '카카오 로그인 플러그인이 초기화되지 않았습니다.\n\n'
+                '앱을 완전히 종료한 후 다시 시작해주세요.\n'
+                '(Hot Reload가 아닌 앱 재시작 필요)',
+            provider: SocialLoginProvider.kakao,
+          );
+        }
+      }
       
       kakao.OAuthToken token;
       
@@ -273,6 +291,29 @@ class SocialLoginService {
     try {
       if (kDebugMode) {
         debugPrint('🟢 [Naver] 로그인 시작 (iOS/Android 지원)');
+      }
+
+      // 🔧 네이버 로그인 플러그인 초기화 시도
+      try {
+        // 로그아웃 상태로 초기화 (플러그인 활성화 확인)
+        await FlutterNaverLogin.logOut();
+        if (kDebugMode) {
+          debugPrint('✅ [Naver] 플러그인 초기화 완료');
+        }
+      } catch (initError) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [Naver] 플러그인 초기화 시도 실패: $initError');
+        }
+        // MissingPluginException인 경우 명확한 에러 메시지
+        if (initError.toString().contains('MissingPluginException')) {
+          return SocialLoginResult(
+            success: false,
+            errorMessage: '네이버 로그인 플러그인이 초기화되지 않았습니다.\n\n'
+                '앱을 완전히 종료한 후 다시 시작해주세요.\n'
+                '(Hot Reload가 아닌 앱 재시작 필요)',
+            provider: SocialLoginProvider.naver,
+          );
+        }
       }
 
       // 네이버 로그인 (계정 정보가 result.account에 포함됨)
