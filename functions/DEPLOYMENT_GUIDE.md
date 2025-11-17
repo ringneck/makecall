@@ -1,323 +1,284 @@
-# Firebase Functions 배포 가이드
+# 🚀 Firebase Functions 배포 가이드
 
-## ✅ 코드 검증 완료
-
-### 검증 항목
-- ✅ **Firebase Functions v2 적용 완료**: 모든 11개 함수가 v2 API 사용
-- ✅ **Logger 수정 완료**: `require("firebase-functions/v2")` 사용
-- ✅ **ESLint 검사 통과**: 코드 스타일 및 문법 오류 없음
-- ✅ **JavaScript 문법 검사 통과**: Node.js 문법 오류 없음
-- ✅ **Dependencies 설치 완료**: firebase-functions v5.0.0, firebase-admin v12.0.0
-
-### 배포된 함수 목록 (11개)
-
-#### 1. Firestore Triggers (3개)
-- `sendForceLogoutNotification` - 중복 로그인 시 강제 로그아웃 알림
-- `sendIncomingCallNotification` - 착신 전화 실시간 알림
-- `sendCallStatusNotification` - 통화 상태 변경 알림
-
-#### 2. Callable Functions (7개)
-- `remoteLogout` - 원격 기기 로그아웃
-- `cleanupExpiredTokens` - 만료된 FCM 토큰 정리
-- `manualCleanupTokens` - 수동 토큰 정리 (cleanupExpiredTokens 별칭)
-- `sendGroupMessage` - 그룹 메시지 브로드캐스트
-- `processScheduledNotifications` - 예약 알림 처리
-- `sendCustomNotification` - 사용자 지정 알림
-- `subscribeWebPush` - 웹푸시 구독 관리
-- `validateAllTokens` - 전체 FCM 토큰 유효성 검사
-
-#### 3. HTTP Functions (1개)
-- `getNotificationStats` - 알림 통계 조회 API
+## 📋 목차
+1. [환경 변수 설정](#1-환경-변수-설정)
+2. [Functions 배포](#2-functions-배포)
+3. [배포 후 확인](#3-배포-후-확인)
+4. [문제 해결](#4-문제-해결)
 
 ---
 
-## 🚀 배포 방법
+## 1. 환경 변수 설정
 
-### 방법 1: Firebase Console에서 직접 배포
+### ⚠️ 중요: `functions.config()` 지원 종료 (2026년 3월)
 
-Firebase Console의 웹 UI를 사용하여 배포할 수 있습니다.
+Firebase는 `functions.config()` API 지원을 2026년 3월에 종료합니다.  
+이 프로젝트는 이미 **dotenv 방식**으로 마이그레이션되어 있습니다. ✅
 
-**단계:**
-1. [Firebase Console](https://console.firebase.google.com/) 접속
-2. `makecallio` 프로젝트 선택
-3. 좌측 메뉴에서 **Functions** 클릭
-4. **소스 코드** 탭 선택
-5. 전체 `functions` 디렉토리를 ZIP으로 압축
-6. **업로드** 버튼 클릭하여 ZIP 파일 업로드
-7. 배포 진행 상황 확인
+### 📝 `.env` 파일 생성
 
-### 방법 2: Firebase CLI 배포 (권장)
-
-Firebase CLI를 사용하여 명령줄에서 배포합니다.
-
-**사전 준비:**
+**Step 1**: functions 디렉토리로 이동
 ```bash
-# Firebase CLI 설치 (이미 설치됨)
-npm install -g firebase-tools
-
-# Firebase 로그인
-firebase login
+cd functions
 ```
 
-**배포 명령:**
+**Step 2**: `.env.example`을 복사하여 `.env` 파일 생성
 ```bash
-cd /home/user/flutter_app
+cp .env.example .env
+```
+
+**Step 3**: `.env` 파일 편집
+```bash
+# 텍스트 에디터로 .env 파일 열기
+nano .env  # 또는 vim, code, 등
+```
+
+**Step 4**: Gmail 정보 입력
+```env
+# Gmail 이메일 주소
+GMAIL_EMAIL=your-email@gmail.com
+
+# Gmail 앱 비밀번호 (16자리)
+GMAIL_PASSWORD=abcd efgh ijkl mnop
+```
+
+### 🔐 Gmail 앱 비밀번호 생성 방법
+
+1. **Google 계정** 접속: https://myaccount.google.com/
+2. **보안** → **2단계 인증** 활성화 (필수!)
+3. **보안** → **앱 비밀번호** 생성
+4. 앱 선택: **메일**, 기기 선택: **기타 (사용자 지정 이름)**
+5. **16자리 비밀번호** 복사 (공백 포함)
+6. `.env` 파일에 붙여넣기
+
+### ⚠️ 보안 주의사항
+
+- ❌ `.env` 파일은 **절대 Git에 커밋하지 마세요**!
+- ✅ `.env`는 이미 `.gitignore`에 포함되어 있습니다
+- ✅ `.env.example`만 Git에 커밋됩니다
+
+---
+
+## 2. Functions 배포
+
+### 📍 현재 리전: **asia-northeast3** (서울)
+
+이 프로젝트의 모든 Functions는 서울 리전에 배포됩니다:
+- `sendVerificationEmail`
+- `sendApprovalNotification`
+- `cleanupExpiredRequests`
+- `sendIncomingCallNotification`
+- `cancelIncomingCallNotification`
+
+### 🚀 배포 명령어
+
+**방법 1: 전체 배포 (권장)**
+```bash
+# 프로젝트 루트에서 실행
 firebase deploy --only functions
 ```
 
-**특정 함수만 배포:**
+**방법 2: 특정 Function만 배포**
 ```bash
-# 단일 함수 배포
+firebase deploy --only functions:sendVerificationEmail
 firebase deploy --only functions:sendIncomingCallNotification
-
-# 여러 함수 배포
-firebase deploy --only functions:sendIncomingCallNotification,functions:remoteLogout
 ```
 
-### 방법 3: GitHub Actions 자동 배포 (CI/CD)
-
-GitHub Actions를 사용하여 코드 푸시 시 자동 배포할 수 있습니다.
-
-**`.github/workflows/firebase-functions.yml` 파일 생성:**
-```yaml
-name: Deploy Firebase Functions
-
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'functions/**'
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-      
-      - name: Install Dependencies
-        run: |
-          cd functions
-          npm ci
-      
-      - name: Deploy to Firebase
-        run: |
-          npm install -g firebase-tools
-          firebase deploy --only functions --token ${{ secrets.FIREBASE_TOKEN }}
-```
-
-**Firebase Token 생성:**
+**방법 3: 특정 리전의 Functions만 배포**
 ```bash
-firebase login:ci
-```
-생성된 토큰을 GitHub Repository의 Secrets에 `FIREBASE_TOKEN`으로 등록하세요.
-
----
-
-## 🧪 로컬 테스트
-
-### Firebase Emulator Suite 사용
-
-배포 전 로컬에서 함수를 테스트할 수 있습니다.
-
-**Emulator 시작:**
-```bash
-cd /home/user/flutter_app
-firebase emulators:start --only functions
+firebase deploy --only functions --region asia-northeast3
 ```
 
-**Emulator UI 접속:**
-```
-http://localhost:4000
-```
+### 📊 배포 진행 상황
 
-**함수 호출 테스트:**
-```bash
-# Callable Function 호출
-curl -X POST http://localhost:5001/makecallio/asia-east1/remoteLogout \
-  -H "Content-Type: application/json" \
-  -d '{"data": {"targetUserId": "user123", "targetDeviceId": "device456"}}'
+배포 시 다음과 같은 메시지가 표시됩니다:
 
-# HTTP Function 호출
-curl http://localhost:5001/makecallio/asia-east1/getNotificationStats
+```
+✔  functions[asia-northeast3-sendVerificationEmail]: Successful create operation.
+✔  functions[asia-northeast3-sendApprovalNotification]: Successful create operation.
+✔  functions[asia-northeast3-cleanupExpiredRequests]: Successful create operation.
+✔  functions[asia-northeast3-sendIncomingCallNotification]: Successful create operation.
+✔  functions[asia-northeast3-cancelIncomingCallNotification]: Successful create operation.
+
+✔  Deploy complete!
 ```
 
 ---
 
-## 📊 배포 후 확인
+## 3. 배포 후 확인
 
-### 1. Firebase Console에서 확인
+### ✅ Firebase Console 확인
 
-**Functions 대시보드:**
-1. [Firebase Console](https://console.firebase.google.com/) 접속
-2. `makecallio` 프로젝트 선택
-3. **Functions** 메뉴 클릭
-4. 배포된 함수 목록 확인
+1. **Firebase Console** 접속: https://console.firebase.google.com/
+2. **Functions** 메뉴 선택
+3. 다음 항목 확인:
+   - 모든 Functions가 `asia-northeast3` 리전에 배포되었는지
+   - 각 Function의 상태가 **Active**인지
+   - Cloud Scheduler가 정상 등록되었는지 (cleanupExpiredRequests)
 
-**배포 상태 확인:**
-- ✅ 초록색: 정상 배포 및 실행 중
-- ⚠️  노란색: 경고 (실행은 되지만 문제 있음)
-- ❌ 빨간색: 오류 (실행 실패)
+### 🧪 기능 테스트
 
-### 2. 함수 로그 확인
-
-**실시간 로그 보기:**
+#### 1. 이메일 인증 테스트
 ```bash
-firebase functions:log
+# Flutter 앱에서 새 기기 로그인 시도
+# → 이메일로 6자리 인증 코드 수신 확인
 ```
 
-**특정 함수 로그:**
+#### 2. FCM 푸시 알림 테스트
 ```bash
-firebase functions:log --only sendIncomingCallNotification
+# 기기 승인 요청 → FCM 푸시 수신 확인
+# 수신전화 → FCM 알림 수신 확인
 ```
 
-**Cloud Logging Console:**
-https://console.cloud.google.com/logs/query?project=makecallio
-
-### 3. 함수 테스트
-
-**Callable Function 테스트 (Flutter 앱에서):**
-```dart
-final callable = FirebaseFunctions.instance.httpsCallable('remoteLogout');
-final result = await callable.call({
-  'targetUserId': 'user123',
-  'targetDeviceId': 'device456',
-});
-print('Result: ${result.data}');
+#### 3. Cloud Scheduler 확인
+```bash
+# Firebase Console → Cloud Scheduler
+# cleanupExpiredRequests가 매시간 실행되는지 확인
 ```
 
-**HTTP Function 테스트:**
+### 📋 로그 확인
+
 ```bash
-curl https://asia-east1-makecallio.cloudfunctions.net/getNotificationStats
+# 전체 Functions 로그 확인
+firebase functions:log --region asia-northeast3
+
+# 특정 Function 로그 확인
+firebase functions:log --only sendVerificationEmail --region asia-northeast3
+
+# 실시간 로그 스트리밍
+firebase functions:log --region asia-northeast3 --follow
 ```
 
 ---
 
-## 🔧 트러블슈팅
+## 4. 문제 해결
 
-### TypeError: Cannot read properties of undefined (reading 'info')
+### ❌ 문제: `.env` 파일이 없다는 오류
 
-**원인:** `logger` import 오류
-
-**해결 완료:** ✅ `require("firebase-functions/v2")` 사용하도록 수정됨
-
-### 403 Permission Denied
-
-**원인:** Firebase CLI 권한 부족
-
-**해결 방법:**
-```bash
-# Firebase 로그인 다시 시도
-firebase logout
-firebase login
-
-# 프로젝트 설정 확인
-firebase use makecallio
+**증상**:
+```
+Error: Gmail 환경 변수가 설정되지 않았습니다.
 ```
 
-### 함수 배포는 성공했지만 실행 시 오류
+**해결 방법**:
+1. `functions/.env` 파일이 존재하는지 확인
+2. `.env` 파일에 `GMAIL_EMAIL`과 `GMAIL_PASSWORD`가 올바르게 설정되었는지 확인
+3. Gmail 앱 비밀번호가 올바른지 확인 (16자리)
 
-**확인 사항:**
-1. **Firestore 규칙 확인**: Functions가 Firestore에 접근할 수 있는지 확인
-2. **IAM 권한 확인**: Cloud Functions 서비스 계정 권한 확인
-3. **환경 변수 확인**: 필요한 환경 변수가 설정되어 있는지 확인
+### ❌ 문제: 배포 시 리전 관련 오류
 
-**로그 확인:**
-```bash
-firebase functions:log --limit 100
+**증상**:
+```
+Error: Functions must be deployed to a single region
 ```
 
-### 배포 시간이 너무 오래 걸림
+**해결 방법**:
+모든 Functions가 `functions.region(region)`으로 감싸져 있는지 확인:
+```javascript
+exports.myFunction = functions.region(region).firestore...
+```
 
-**원인:** 11개 함수를 한 번에 배포
+### ❌ 문제: 기존 us-central1 Functions와 충돌
 
-**해결 방법:**
+**증상**:
+```
+Error: Multiple functions with same name in different regions
+```
+
+**해결 방법**:
+기존 us-central1 Functions를 삭제:
 ```bash
-# 변경된 함수만 배포
-firebase deploy --only functions:sendIncomingCallNotification
+firebase functions:delete sendVerificationEmail --region us-central1
+firebase functions:delete sendApprovalNotification --region us-central1
+firebase functions:delete cleanupExpiredRequests --region us-central1
+firebase functions:delete sendIncomingCallNotification --region us-central1
+firebase functions:delete cancelIncomingCallNotification --region us-central1
+```
 
-# 또는 병렬 배포 옵션 사용
-firebase deploy --only functions --force
+### ❌ 문제: Gmail SMTP 인증 실패
+
+**증상**:
+```
+Error: Invalid login: 534-5.7.9 Application-specific password required
+```
+
+**해결 방법**:
+1. Gmail 계정에서 **2단계 인증** 활성화
+2. **앱 비밀번호** 재생성
+3. `.env` 파일 업데이트 후 재배포
+
+### ❌ 문제: Node.js 버전 오류
+
+**증상**:
+```
+Error: Unsupported Node.js version
+```
+
+**해결 방법**:
+`functions/package.json`에서 Node.js 버전 확인:
+```json
+"engines": {
+  "node": "22"
+}
+```
+
+로컬 Node.js 버전과 일치하는지 확인:
+```bash
+node --version
 ```
 
 ---
 
-## 📝 배포 체크리스트
+## 📚 추가 리소스
 
-### 배포 전
-- [ ] ESLint 검사 통과 (`npm run lint`)
-- [ ] JavaScript 문법 검사 통과
-- [ ] 로컬 에뮬레이터로 테스트 완료
-- [ ] Firebase 로그인 완료 (`firebase login`)
-- [ ] 프로젝트 선택 확인 (`firebase use makecallio`)
-
-### 배포 중
-- [ ] 배포 명령 실행 (`firebase deploy --only functions`)
-- [ ] 배포 로그 확인 (오류 없음)
-- [ ] 배포 완료 메시지 확인
-
-### 배포 후
-- [ ] Firebase Console에서 함수 상태 확인
-- [ ] 함수 로그 확인 (`firebase functions:log`)
-- [ ] 테스트 메시지 전송하여 동작 확인
-- [ ] 에러 없이 정상 실행 확인
+- [Firebase Functions 공식 문서](https://firebase.google.com/docs/functions)
+- [환경 변수 마이그레이션 가이드](https://firebase.google.com/docs/functions/config-env#migrate-to-dotenv)
+- [Firebase CLI 레퍼런스](https://firebase.google.com/docs/cli)
+- [Cloud Scheduler 문서](https://cloud.google.com/scheduler/docs)
 
 ---
 
-## 🎯 추가 정보
+## 🎯 체크리스트
 
-### Region 설정
-모든 함수는 `asia-east1` (대만) 리전에 배포됩니다.
-- 한국과 가장 가까운 리전
-- 낮은 지연 시간
-- 비용 효율적
+배포 전 최종 확인:
 
-### 비용 관리
-- **Free Tier**: 월 200만 호출 무료
-- **Invocations**: 함수 호출 횟수
-- **Compute Time**: 실행 시간 (GB-seconds)
-- **Networking**: 네트워크 트래픽
-
-**비용 확인:**
-https://console.firebase.google.com/project/makecallio/usage
-
-### 성능 모니터링
-- **Firebase Performance Monitoring** 활성화
-- **Cloud Monitoring** 대시보드 확인
-- **Error Reporting** 자동 수집
+- [ ] `functions/.env` 파일 생성 완료
+- [ ] Gmail 앱 비밀번호 설정 완료
+- [ ] `.env` 파일이 `.gitignore`에 포함되어 있음
+- [ ] `firebase deploy --only functions` 실행
+- [ ] Firebase Console에서 Functions 확인
+- [ ] 이메일 인증 테스트 완료
+- [ ] FCM 푸시 알림 테스트 완료
+- [ ] Cloud Scheduler 정상 작동 확인
+- [ ] 기존 us-central1 Functions 삭제 (선택사항)
 
 ---
 
-## 📚 참고 자료
+## 💡 팁
 
-- [Firebase Functions v2 문서](https://firebase.google.com/docs/functions/2nd-gen)
-- [Firebase Cloud Messaging 가이드](https://firebase.google.com/docs/cloud-messaging)
-- [Firebase CLI 참조](https://firebase.google.com/docs/cli)
-- [Google Cloud Functions 문서](https://cloud.google.com/functions/docs)
+### 배포 시간 단축
+```bash
+# 변경된 Functions만 배포
+firebase deploy --only functions:functionName
+```
+
+### 개발 환경에서 테스트
+```bash
+# 로컬 에뮬레이터 실행
+npm run serve
+
+# Functions Shell 실행
+npm run shell
+```
+
+### 프로덕션 로그 모니터링
+```bash
+# 실시간 로그 스트리밍
+firebase functions:log --region asia-northeast3 --follow
+```
 
 ---
 
-## ✅ 현재 상태 요약
-
-**코드 상태:**
-- ✅ Firebase Functions v2 완전 적용
-- ✅ Logger 오류 수정 완료
-- ✅ ESLint 검사 통과
-- ✅ 문법 검사 통과
-- ✅ 배포 준비 완료
-
-**다음 단계:**
-1. Firebase CLI로 로그인: `firebase login`
-2. 함수 배포: `firebase deploy --only functions`
-3. 배포 상태 확인
-4. 테스트 메시지로 동작 확인
-
-**배포 위치:**
-- 프로젝트: `makecallio`
-- 리전: `asia-east1`
-- 함수 수: 11개
+**마지막 업데이트**: 2024-11-14  
+**리전**: asia-northeast3 (서울)  
+**Node.js 버전**: 22
