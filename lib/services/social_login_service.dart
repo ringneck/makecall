@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart' as kakao;
 import 'package:flutter_naver_login/flutter_naver_login.dart';
@@ -157,18 +158,54 @@ class SocialLoginService {
         debugPrint('   - Nickname: ${user.kakaoAccount?.profile?.nickname}');
       }
 
-      // Firebase Custom Token 방식으로 로그인
-      // 🔧 TODO: 백엔드에서 카카오 ID를 받아 Firebase Custom Token 생성 필요
-      // 현재는 카카오 로그인 성공 정보만 반환
-      
-      return SocialLoginResult(
-        success: true,
-        userId: user.id.toString(),
-        email: user.kakaoAccount?.email,
-        displayName: user.kakaoAccount?.profile?.nickname,
-        photoUrl: user.kakaoAccount?.profile?.profileImageUrl,
-        provider: SocialLoginProvider.kakao,
-      );
+      // Firebase Custom Token 생성 및 로그인
+      try {
+        if (kDebugMode) {
+          debugPrint('🔐 [Kakao] Firebase Custom Token 생성 요청');
+        }
+        
+        final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
+        final callable = functions.httpsCallable('createCustomTokenForKakao');
+        
+        final response = await callable.call<Map<String, dynamic>>({
+          'kakaoUid': user.id.toString(),
+          'email': user.kakaoAccount?.email,
+          'displayName': user.kakaoAccount?.profile?.nickname,
+          'photoUrl': user.kakaoAccount?.profile?.profileImageUrl,
+        });
+        
+        final customToken = response.data['customToken'] as String;
+        
+        if (kDebugMode) {
+          debugPrint('✅ [Kakao] Custom Token 생성 완료');
+        }
+        
+        // Firebase Authentication 로그인
+        final userCredential = await FirebaseAuth.instance.signInWithCustomToken(customToken);
+        
+        if (kDebugMode) {
+          debugPrint('✅ [Kakao] Firebase Authentication 로그인 완료');
+          debugPrint('   - Firebase UID: ${userCredential.user?.uid}');
+        }
+        
+        return SocialLoginResult(
+          success: true,
+          userId: userCredential.user?.uid,
+          email: user.kakaoAccount?.email,
+          displayName: user.kakaoAccount?.profile?.nickname,
+          photoUrl: user.kakaoAccount?.profile?.profileImageUrl,
+          provider: SocialLoginProvider.kakao,
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [Kakao] Firebase Custom Token 생성 실패: $e');
+        }
+        return SocialLoginResult(
+          success: false,
+          errorMessage: 'Firebase 인증 실패: ${e.toString()}',
+          provider: SocialLoginProvider.kakao,
+        );
+      }
 
     } catch (e) {
       if (kDebugMode) {
@@ -202,17 +239,54 @@ class SocialLoginService {
           debugPrint('   - Name: ${account.name}');
         }
 
-        // Firebase Custom Token 방식으로 로그인
-        // 🔧 TODO: 백엔드에서 네이버 ID를 받아 Firebase Custom Token 생성 필요
-        
-        return SocialLoginResult(
-          success: true,
-          userId: account.id,
-          email: account.email,
-          displayName: account.name,
-          photoUrl: account.profileImage,
-          provider: SocialLoginProvider.naver,
-        );
+        // Firebase Custom Token 생성 및 로그인
+        try {
+          if (kDebugMode) {
+            debugPrint('🔐 [Naver] Firebase Custom Token 생성 요청');
+          }
+          
+          final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
+          final callable = functions.httpsCallable('createCustomTokenForNaver');
+          
+          final response = await callable.call<Map<String, dynamic>>({
+            'naverId': account.id,
+            'email': account.email,
+            'nickname': account.name,
+            'profileImage': account.profileImage,
+          });
+          
+          final customToken = response.data['customToken'] as String;
+          
+          if (kDebugMode) {
+            debugPrint('✅ [Naver] Custom Token 생성 완료');
+          }
+          
+          // Firebase Authentication 로그인
+          final userCredential = await FirebaseAuth.instance.signInWithCustomToken(customToken);
+          
+          if (kDebugMode) {
+            debugPrint('✅ [Naver] Firebase Authentication 로그인 완료');
+            debugPrint('   - Firebase UID: ${userCredential.user?.uid}');
+          }
+          
+          return SocialLoginResult(
+            success: true,
+            userId: userCredential.user?.uid,
+            email: account.email,
+            displayName: account.name,
+            photoUrl: account.profileImage,
+            provider: SocialLoginProvider.naver,
+          );
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('❌ [Naver] Firebase Custom Token 생성 실패: $e');
+          }
+          return SocialLoginResult(
+            success: false,
+            errorMessage: 'Firebase 인증 실패: ${e.toString()}',
+            provider: SocialLoginProvider.naver,
+          );
+        }
       } else {
         if (kDebugMode) {
           debugPrint('⚠️ [Naver] 로그인 취소 또는 실패: ${result.status}');
