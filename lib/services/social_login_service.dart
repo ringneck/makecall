@@ -212,12 +212,27 @@ class SocialLoginService {
           debugPrint('❌ [Kakao] Firebase Custom Token 생성 실패: $e');
         }
         
-        // INTERNAL 에러 감지
+        // 에러 메시지 분석
         final errorString = e.toString().toLowerCase();
+        
+        // IAM 권한 에러 감지
+        if (errorString.contains('permission') || 
+            errorString.contains('iam.serviceaccounts.signblob')) {
+          return SocialLoginResult(
+            success: false,
+            errorMessage: 'Firebase 설정이 완료되지 않았습니다.\n\n'
+                '관리자가 IAM 권한을 설정 중입니다.\n'
+                '잠시 후 다시 시도해주세요.',
+            provider: SocialLoginProvider.kakao,
+          );
+        }
+        
+        // 일반 INTERNAL 에러
         if (errorString.contains('internal')) {
           return SocialLoginResult(
             success: false,
-            errorMessage: 'Firebase Functions가 배포되지 않았습니다.\n\n개발자에게 문의해주세요.',
+            errorMessage: 'Firebase 서버 오류가 발생했습니다.\n\n'
+                '잠시 후 다시 시도해주세요.',
             provider: SocialLoginProvider.kakao,
           );
         }
@@ -316,12 +331,27 @@ class SocialLoginService {
             debugPrint('❌ [Naver] Firebase Custom Token 생성 실패: $e');
           }
           
-          // INTERNAL 에러 감지
+          // 에러 메시지 분석
           final errorString = e.toString().toLowerCase();
+          
+          // IAM 권한 에러 감지
+          if (errorString.contains('permission') || 
+              errorString.contains('iam.serviceaccounts.signblob')) {
+            return SocialLoginResult(
+              success: false,
+              errorMessage: 'Firebase 설정이 완료되지 않았습니다.\n\n'
+                  '관리자가 IAM 권한을 설정 중입니다.\n'
+                  '잠시 후 다시 시도해주세요.',
+              provider: SocialLoginProvider.naver,
+            );
+          }
+          
+          // 일반 INTERNAL 에러
           if (errorString.contains('internal')) {
             return SocialLoginResult(
               success: false,
-              errorMessage: 'Firebase Functions가 배포되지 않았습니다.\n\n개발자에게 문의해주세요.',
+              errorMessage: 'Firebase 서버 오류가 발생했습니다.\n\n'
+                  '잠시 후 다시 시도해주세요.',
               provider: SocialLoginProvider.naver,
             );
           }
