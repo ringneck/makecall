@@ -610,92 +610,43 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
     // 다크모드 감지
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // 설정이 없으면 표시하지 않음
+    // 웹소켓 설정이 없으면 유료 플랜 안내 표시
     if (!_hasValidConfig()) {
-      return const SizedBox.shrink();
-    }
-
-    // 로딩 중
-    if (_isLoading) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.1),
+          color: Colors.orange.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Colors.grey.withValues(alpha: 0.3),
-            width: 2,
-          ),
-        ),
-        child: Column(
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 12),
-            Text(
-              '착신번호 조회 중...',
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.grey[400] : Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // 에러 발생 (WebSocket 연결 실패 시 유료 플랜 안내)
-    if (_errorMessage != null) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.red.withValues(alpha: 0.3),
+            color: Colors.orange.withValues(alpha: 0.3),
             width: 2,
           ),
         ),
         child: Column(
           children: [
             const Icon(
-              Icons.error_outline,
+              Icons.lock_outline,
               size: 32,
-              color: Colors.red,
+              color: Colors.orange,
             ),
             const SizedBox(height: 12),
-            const Text(
-              'WebSocket 연결 실패',
+            Text(
+              '착신전환 설정',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.red,
                 fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Icon(
-              Icons.refresh,
-              size: 20,
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '다시 시도',
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                color: isDark ? Colors.orange[300] : Colors.orange[700],
               ),
             ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: isDark ? Colors.orange[900]!.withValues(alpha: 0.3) : Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: Colors.orange.withValues(alpha: 0.3),
+                  color: isDark ? Colors.orange[700]! : Colors.orange.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -736,6 +687,79 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                     textAlign: TextAlign.center,
                   ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 로딩 중
+    if (_isLoading) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.3),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 12),
+            Text(
+              '착신번호 조회 중...',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 에러 발생 (WebSocket 연결 실패 시 간단한 에러 메시지)
+    if (_errorMessage != null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.red.withValues(alpha: 0.3),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 32,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'WebSocket 연결 실패',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: _initializeAndFetch,
+              icon: const Icon(Icons.refresh, size: 20),
+              label: const Text('다시 시도'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
               ),
             ),
           ],
