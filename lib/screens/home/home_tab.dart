@@ -530,23 +530,18 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                         const SizedBox(height: 16),
                         
-                        // 착신전환 설정 카드 (사용자 전역 WebSocket 설정이 있는 경우 표시)
-                        if (userWsServerUrl != null && 
-                            userWsServerUrl.isNotEmpty &&
-                            userCompanyId != null &&
-                            userCompanyId.isNotEmpty) ...[
-                          CallForwardSettingsCard(
-                            extension: extension,
-                            tenantId: userCompanyId,
-                            wsServerAddress: userWsServerUrl,
-                            wsServerPort: userWsPort,
-                            useSSL: userUseSSL,
-                            amiServerId: userAmiServerId,
-                            httpAuthId: userHttpAuthId,
-                            httpAuthPassword: userHttpAuthPassword,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
+                        // 착신전환 설정 카드 (항상 표시)
+                        CallForwardSettingsCard(
+                          extension: extension,
+                          tenantId: userCompanyId,
+                          wsServerAddress: userWsServerUrl,
+                          wsServerPort: userWsPort,
+                          useSSL: userUseSSL,
+                          amiServerId: userAmiServerId,
+                          httpAuthId: userHttpAuthId,
+                          httpAuthPassword: userHttpAuthPassword,
+                        ),
+                        const SizedBox(height: 16),
                   ],
                 ),
               ),
