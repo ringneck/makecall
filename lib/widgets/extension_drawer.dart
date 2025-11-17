@@ -721,7 +721,7 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                         ),
                         const SizedBox(height: 12),
                         
-                        // 착신전환 설정 카드 (항상 표시 - WebSocket 설정 여부에 따라 내부에서 UI 변경)
+                        // 착신전환 설정 카드
                         CallForwardSettingsCard(
                           key: ValueKey('call_forward_${extension.id}_${extension.extension}'), // 🔑 단말번호 변경 시 재생성
                           extension: extension,

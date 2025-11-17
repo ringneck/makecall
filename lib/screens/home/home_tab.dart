@@ -530,7 +530,7 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                         const SizedBox(height: 16),
                         
-                        // 착신전환 설정 카드 (항상 표시)
+                        // 착신전환 설정 카드
                         CallForwardSettingsCard(
                           extension: extension,
                           tenantId: userCompanyId,
