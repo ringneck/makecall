@@ -8,5 +8,10 @@
 	<array>
 		<string>applinks:makecall.io</string>
 	</array>
+	<!-- Keychain Sharing (Google Sign-In 필수) -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)com.makecall.app</string>
+	</array>
 </dict>
 </plist>
