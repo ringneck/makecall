@@ -253,6 +253,31 @@ class FCMService {
         
         if (androidPlugin != null) {
           // 1️⃣ 소리 O + 진동 O (기본)
+          // 🔔 수신전화 전용 채널 (최고 우선순위)
+          const incomingCallChannel = AndroidNotificationChannel(
+            'incoming_call_channel',
+            '수신전화 알림',
+            description: '수신전화 풀스크린 알림',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+            showBadge: true,
+          );
+          await androidPlugin.createNotificationChannel(incomingCallChannel);
+          
+          // 📞 착신전환 전용 채널 (높은 우선순위)
+          const callForwardChannel = AndroidNotificationChannel(
+            'call_forward_channel',
+            '착신전환 알림',
+            description: '착신전환 설정 변경 알림',
+            importance: Importance.high,
+            playSound: true,
+            enableVibration: true,
+            showBadge: true,
+          );
+          await androidPlugin.createNotificationChannel(callForwardChannel);
+          
+          // 1️⃣ 소리 O + 진동 O (일반 알림)
           const channel1 = AndroidNotificationChannel(
             'notification_sound_on_vibration_on',
             'Notifications with Sound and Vibration',
@@ -297,7 +322,7 @@ class FCMService {
           await androidPlugin.createNotificationChannel(channel4);
           
           // ignore: avoid_print
-          print('✅ [FCM] Android: 4가지 알림 채널 생성 완료');
+          print('✅ [FCM] Android: 6가지 알림 채널 생성 완료 (수신전화, 착신전환 포함)');
         }
       }
       
