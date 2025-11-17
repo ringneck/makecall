@@ -11,7 +11,7 @@
 	<!-- Keychain Sharing (Google Sign-In 필수) -->
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)com.makecall.app</string>
+		<string>$(AppIdentifierPrefix)com.olssoo.makecall</string>
 	</array>
 </dict>
 </plist>
