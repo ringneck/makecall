@@ -384,13 +384,52 @@ class SocialLoginService {
         provider: SocialLoginProvider.apple,
       );
 
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // Apple Sign-In 특정 에러 처리
+      if (kDebugMode) {
+        debugPrint('❌ [Apple] 인증 예외: ${e.code} - ${e.message}');
+      }
+      
+      // Error code 1001은 사용자 취소
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '사용자가 Apple 로그인을 취소했습니다',
+          provider: SocialLoginProvider.apple,
+        );
+      }
+      
+      // 기타 Apple Sign-In 에러
+      String errorMessage = 'Apple 로그인 중 오류가 발생했습니다';
+      if (e.message != null && e.message!.isNotEmpty) {
+        errorMessage = e.message!;
+      }
+      
+      return SocialLoginResult(
+        success: false,
+        errorMessage: errorMessage,
+        provider: SocialLoginProvider.apple,
+      );
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ [Apple] 로그인 오류: $e');
       }
+      
+      // 일반 에러 메시지에서 취소 키워드 확인
+      String errorString = e.toString();
+      if (errorString.contains('canceled') || 
+          errorString.contains('1001') ||
+          errorString.contains('취소')) {
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '사용자가 Apple 로그인을 취소했습니다',
+          provider: SocialLoginProvider.apple,
+        );
+      }
+      
       return SocialLoginResult(
         success: false,
-        errorMessage: e.toString(),
+        errorMessage: 'Apple 로그인 중 오류가 발생했습니다',
         provider: SocialLoginProvider.apple,
       );
     }

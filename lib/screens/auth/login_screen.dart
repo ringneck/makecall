@@ -408,17 +408,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         await _handleSocialLoginSuccess(result);
       } else {
         if (mounted) {
-          // 사용자 취소는 안내 메시지로 표시
-          if (result.errorMessage?.contains('취소') ?? false) {
+          // 사용자 취소는 안내 메시지로 표시 (info), 나머지는 에러로 표시
+          final isCanceled = result.errorMessage?.contains('취소') ?? false;
+          
+          if (isCanceled) {
             await DialogUtils.showInfo(
               context,
-              'Apple 로그인이 취소되었습니다.',
+              result.errorMessage ?? 'Apple 로그인이 취소되었습니다.',
               title: 'Apple 로그인',
             );
           } else {
             await DialogUtils.showError(
               context,
-              result.errorMessage ?? 'Apple 로그인에 실패했습니다.',
+              result.errorMessage ?? 'Apple 로그인에 실패했습니다.\n\niOS 설정 > Apple ID > 암호 및 보안에서\nApple로 로그인 설정을 확인해주세요.',
             );
           }
         }
@@ -427,7 +429,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (mounted) {
         await DialogUtils.showError(
           context,
-          'Apple 로그인 중 오류가 발생했습니다: ${e.toString()}',
+          'Apple 로그인 중 오류가 발생했습니다.\n\n${e.toString()}',
         );
       }
     } finally {
