@@ -128,11 +128,11 @@ void main() async {
   }
   
   // 카카오 SDK 초기화 (Native App Key 사용)
-  // TODO: 실제 카카오 Native App Key를 환경변수로 관리
-  // 현재는 플레이스홀더, 추후 Android/iOS 설정에서 실제 키 설정
+  // Android: strings.xml에서 kakao_app_key 설정
+  // iOS: Info.plist에서 KAKAO_APP_KEY 설정
   KakaoSdk.init(
-    nativeAppKey: 'YOUR_KAKAO_NATIVE_APP_KEY', // Android: AndroidManifest.xml에서 설정
-    javaScriptAppKey: 'YOUR_KAKAO_JAVASCRIPT_KEY', // Web용 (선택사항)
+    nativeAppKey: '737f26c4d0d81077b35b8f0313ec3536', // 카카오 Native App Key
+    javaScriptAppKey: 'YOUR_KAKAO_JAVASCRIPT_KEY', // Web용 (선택사항, 추후 설정)
   );
   print('✅ 카카오 SDK 초기화 완료');
   

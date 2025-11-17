@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MAKECALL</string>
+    
+    <!-- 소셜 로그인 설정 -->
+    <!-- 카카오 Native App Key -->
+    <string name="kakao_app_key">737f26c4d0d81077b35b8f0313ec3536</string>
+    
+    <!-- 네이버 로그인 (TODO: 실제 값으로 교체) -->
+    <string name="naver_client_id">YOUR_NAVER_CLIENT_ID</string>
+    <string name="naver_client_secret">YOUR_NAVER_CLIENT_SECRET</string>
+    <string name="naver_client_name">MAKECALL</string>
 </resources>
