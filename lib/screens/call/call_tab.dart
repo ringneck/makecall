@@ -379,12 +379,10 @@ class _CallTabState extends State<CallTab> {
     
     final userId = _authService?.currentUser?.uid ?? '';
     
-    // 🔒 필수 설정 확인
+    // 🔒 필수 설정 확인 (REST API만 체크)
     final hasApiSettings = (userModel.apiBaseUrl?.isNotEmpty ?? false) &&
                           (userModel.companyId?.isNotEmpty ?? false) &&
                           (userModel.appKey?.isNotEmpty ?? false);
-    
-    final hasWebSocketSettings = userModel.websocketServerUrl?.isNotEmpty ?? false;
     
     // 🔒 등록된 단말번호 확인
     final extensions = await _databaseService.getMyExtensions(userId).first;
@@ -392,20 +390,19 @@ class _CallTabState extends State<CallTab> {
     
     if (kDebugMode) {
       debugPrint('🔍 설정 체크:');
-      debugPrint('   - API 설정: $hasApiSettings');
-      debugPrint('   - WebSocket: $hasWebSocketSettings');
+      debugPrint('   - REST API 설정: $hasApiSettings');
       debugPrint('   - 단말번호: $hasExtensions (${extensions.length}개)');
     }
     
-    // 🔒 모든 설정 완료 시 체크 종료
-    if (hasApiSettings && hasWebSocketSettings && hasExtensions) {
+    // 🔒 REST API 설정 완료 시 체크 종료
+    if (hasApiSettings && hasExtensions) {
       _hasCheckedSettings = true;
-      if (kDebugMode) debugPrint('✅ 모든 설정 완료');
+      if (kDebugMode) debugPrint('✅ REST API 설정 완료');
       return;
     }
     
-    // 🔒 설정 미완료 시 안내 다이얼로그
-    if (!hasApiSettings || !hasWebSocketSettings) {
+    // 🔒 REST API 설정 미완료 시 안내 다이얼로그
+    if (!hasApiSettings) {
       _hasCheckedSettings = true; // 1회만 표시
       
       if (mounted) {
@@ -463,11 +460,19 @@ class _CallTabState extends State<CallTab> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '통화 기능을 사용하기 위해서는\nAPI 서버 및 WebSocket 설정이 필요합니다.',
+                    '통화 기능을 사용하기 위해서는\nREST API 서버 설정이 필요합니다.',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                       color: isDark ? Colors.grey[200] : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '※ WebSocket 설정은 선택사항입니다',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[500] : Colors.grey[600],
                     ),
                   ),
                   const SizedBox(height: 16),
