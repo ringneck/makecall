@@ -56,6 +56,19 @@ class UserModel {
   });
   
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
+    // Firestore Timestamp 또는 String을 DateTime으로 변환하는 헬퍼 함수
+    DateTime? parseTimestamp(dynamic value) {
+      if (value == null) return null;
+      if (value is String) {
+        return DateTime.parse(value);
+      }
+      // Firestore Timestamp 처리
+      if (value.runtimeType.toString().contains('Timestamp')) {
+        return (value as dynamic).toDate() as DateTime;
+      }
+      return null;
+    }
+
     return UserModel(
       uid: uid,
       email: map['email'] as String? ?? '',
@@ -76,13 +89,9 @@ class UserModel {
       websocketHttpAuthPassword: map['websocketHttpAuthPassword'] as String?,
       amiServerId: map['amiServerId'] as int? ?? 1,
       dcmiwsEnabled: map['dcmiwsEnabled'] as bool? ?? false,
-      createdAt: DateTime.parse(map['createdAt'] as String? ?? DateTime.now().toIso8601String()),
-      lastLoginAt: map['lastLoginAt'] != null 
-          ? DateTime.parse(map['lastLoginAt'] as String)
-          : null,
-      lastMaxExtensionsUpdate: map['lastMaxExtensionsUpdate'] != null
-          ? DateTime.parse(map['lastMaxExtensionsUpdate'] as String)
-          : null,
+      createdAt: parseTimestamp(map['createdAt']) ?? DateTime.now(),
+      lastLoginAt: parseTimestamp(map['lastLoginAt']),
+      lastMaxExtensionsUpdate: parseTimestamp(map['lastMaxExtensionsUpdate']),
       isActive: map['isActive'] as bool? ?? true,
       isPremium: map['isPremium'] as bool? ?? false,
       maxExtensions: map['maxExtensions'] as int? ?? 1, // 기본값 1개
