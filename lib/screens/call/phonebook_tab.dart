@@ -207,8 +207,23 @@ class _PhonebookTabState extends State<PhonebookTab> {
       final userModel = authService.currentUserModel;
       final userId = authService.currentUser?.uid ?? '';
 
-      if (userModel?.apiBaseUrl == null) {
-        throw Exception('API 서버 설정이 필요합니다.\nProfile 탭에서 API 서버를 설정해주세요.');
+      if (userModel?.apiBaseUrl == null || 
+          userModel?.companyId == null || 
+          userModel?.appKey == null) {
+        // API 설정이 없으면 에러가 아닌 안내 메시지 표시
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _error = null; // 에러가 아님
+          });
+          
+          await DialogUtils.showInfo(
+            context,
+            '통화 기능을 사용하기 위해서는\nREST API 서버 설정이 필요합니다.\n\n왼쪽 상단 프로필 아이콘을 눌러\n설정 정보를 입력해주세요.',
+            title: '초기 등록 필요',
+          );
+        }
+        return; // Exception을 던지지 않고 return
       }
 
       // 0. my_extensions 등록된 단말번호 확인
