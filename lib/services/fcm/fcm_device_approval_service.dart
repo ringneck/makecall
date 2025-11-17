@@ -227,6 +227,21 @@ class FCMDeviceApprovalService {
       // ignore: avoid_print
       print('✅ [FCM-APPROVAL] 승인 요청 문서 생성: $approvalRequestId');
       
+      // 🎵 사용자 ringtone 정보 가져오기
+      String? ringtone;
+      try {
+        final userDoc = await _firestore.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          final userData = userDoc.data();
+          ringtone = userData?['ringtone'] as String?;
+          // ignore: avoid_print
+          print('🎵 [FCM-APPROVAL] 사용자 ringtone: ${ringtone ?? "없음 (기본 벨소리 사용)"}');
+        }
+      } catch (e) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-APPROVAL] ringtone 조회 실패: $e');
+      }
+      
       // 모든 기존 기기에 FCM 알림 큐 등록
       for (var tokenDoc in otherDeviceTokens) {
         final tokenData = tokenDoc.data();
@@ -254,6 +269,7 @@ class FCMDeviceApprovalService {
             'title': '🔐 새 기기 로그인 감지',
             'body': '$newDeviceName ($newPlatform)에서 로그인 시도',
             'approvalRequestId': approvalRequestId,
+            if (ringtone != null) 'ringtone': ringtone, // 🎵 ringtone 추가
           },
           'createdAt': FieldValue.serverTimestamp(),
           'processed': false,
@@ -635,6 +651,21 @@ class FCMDeviceApprovalService {
         return;
       }
       
+      // 🎵 사용자 ringtone 정보 가져오기
+      String? ringtone;
+      try {
+        final userDoc = await _firestore.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          final userData = userDoc.data();
+          ringtone = userData?['ringtone'] as String?;
+          // ignore: avoid_print
+          print('🎵 [FCM-RESEND] 사용자 ringtone: ${ringtone ?? "없음"}');
+        }
+      } catch (e) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-RESEND] ringtone 조회 실패: $e');
+      }
+      
       // ignore: avoid_print
       print('📤 [FCM-RESEND] ${activeTokens.length}개 기기에 알림 재전송');
       
@@ -651,6 +682,7 @@ class FCMDeviceApprovalService {
             'title': '🔐 새 기기 로그인 감지',
             'body': '$newDeviceName ($newPlatform)에서 로그인 시도',
             'approvalRequestId': approvalRequestId,
+            if (ringtone != null) 'ringtone': ringtone, // 🎵 ringtone 추가
           },
           'createdAt': FieldValue.serverTimestamp(),
           'processed': false,
