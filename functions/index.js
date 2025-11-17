@@ -879,7 +879,7 @@ exports.sendCallForwardNotification = functions.region(region).firestore
             payload: {
               aps: {
                 sound: "default",
-                contentAvailable: true,
+                badge: 1,
               },
             },
           },
