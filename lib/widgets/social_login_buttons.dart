@@ -186,7 +186,6 @@ class SocialLoginButtons extends StatelessWidget {
       ),
     );
   }
-}
 
   Widget _buildKakaoIcon(double size) {
     return Container(
