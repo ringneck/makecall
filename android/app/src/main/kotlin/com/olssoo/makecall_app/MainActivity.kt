@@ -21,12 +21,18 @@ class MainActivity : FlutterActivity() {
                 packageName,
                 PackageManager.GET_SIGNATURES
             )
-            for (signature in info.signatures) {
-                val md = MessageDigest.getInstance("SHA")
-                md.update(signature.toByteArray())
-                val keyHash = Base64.encodeToString(md.digest(), Base64.NO_WRAP)
-                Log.d("KAKAO_KEY_HASH", "Key Hash: $keyHash")
-                println("🔑 [KAKAO] Key Hash: $keyHash")
+            
+            // ✅ Null-safe 처리
+            info.signatures?.let { signatures ->
+                for (signature in signatures) {
+                    val md = MessageDigest.getInstance("SHA")
+                    md.update(signature.toByteArray())
+                    val keyHash = Base64.encodeToString(md.digest(), Base64.NO_WRAP)
+                    Log.d("KAKAO_KEY_HASH", "Key Hash: $keyHash")
+                    println("🔑 [KAKAO] Key Hash: $keyHash")
+                }
+            } ?: run {
+                Log.w("KAKAO_KEY_HASH", "No signatures found")
             }
         } catch (e: Exception) {
             Log.e("KAKAO_KEY_HASH", "Error getting key hash", e)
