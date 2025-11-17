@@ -210,7 +210,19 @@ class SocialLoginService {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ [Kakao] 로그인 오류: $e');
+        debugPrint('❌ [Kakao] 오류 타입: ${e.runtimeType}');
       }
+      
+      // 사용자 취소 감지
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('cancel') || errorString.contains('취소')) {
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '카카오 로그인이 취소되었습니다',
+          provider: SocialLoginProvider.kakao,
+        );
+      }
+      
       return SocialLoginResult(
         success: false,
         errorMessage: e.toString(),
