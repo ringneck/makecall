@@ -2835,21 +2835,27 @@ class FCMService {
   /// 새 기기에서 로그인 시도가 감지되었을 때 사용자에게 알리기 위한 진동
   Future<void> _triggerDeviceApprovalVibration() async {
     try {
-      // 사용자 알림 설정 확인
+      // 사용자 알림 설정 확인 (수신전화와 동일한 방식)
       final currentUser = AuthService().currentUser;
       if (currentUser == null) {
         debugPrint('⚠️ [VIBRATION-APPROVAL] 사용자 정보 없음 - 진동 스킵');
         return;
       }
 
-      // Firestore에서 사용자 알림 설정 조회 (별도 컬렉션)
-      final settingsDoc = await _firestore
-          .collection('user_notification_settings')
-          .doc(currentUser.uid)
-          .get();
-
-      final settings = settingsDoc.data();
+      // 수신전화와 동일한 설정 확인 방법 사용
+      final settings = await getUserNotificationSettings(currentUser.uid);
+      final pushEnabled = settings?['pushEnabled'] ?? true;
       final vibrationEnabled = settings?['vibrationEnabled'] ?? true;
+
+      debugPrint('📦 [VIBRATION-APPROVAL] 알림 설정:');
+      debugPrint('   - pushEnabled: $pushEnabled');
+      debugPrint('   - vibrationEnabled: $vibrationEnabled');
+
+      // 푸시 알림이 꺼져있으면 진동도 스킵
+      if (!pushEnabled) {
+        debugPrint('⏭️ [VIBRATION-APPROVAL] 푸시 알림이 비활성화됨 - 진동 스킵');
+        return;
+      }
 
       if (!vibrationEnabled) {
         debugPrint('⏭️ [VIBRATION-APPROVAL] 사용자가 진동을 비활성화함 - 진동 스킵');
@@ -2891,21 +2897,27 @@ class FCMService {
     AudioPlayer? audioPlayer;
     
     try {
-      // 사용자 알림 설정 확인
+      // 사용자 알림 설정 확인 (수신전화와 동일한 방식)
       final currentUser = AuthService().currentUser;
       if (currentUser == null) {
         debugPrint('⚠️ [SOUND-APPROVAL] 사용자 정보 없음 - 사운드 스킵');
         return;
       }
 
-      // Firestore에서 사용자 알림 설정 조회 (별도 컬렉션)
-      final settingsDoc = await _firestore
-          .collection('user_notification_settings')
-          .doc(currentUser.uid)
-          .get();
-
-      final settings = settingsDoc.data();
+      // 수신전화와 동일한 설정 확인 방법 사용
+      final settings = await getUserNotificationSettings(currentUser.uid);
+      final pushEnabled = settings?['pushEnabled'] ?? true;
       final soundEnabled = settings?['soundEnabled'] ?? true;
+
+      debugPrint('📦 [SOUND-APPROVAL] 알림 설정:');
+      debugPrint('   - pushEnabled: $pushEnabled');
+      debugPrint('   - soundEnabled: $soundEnabled');
+
+      // 푸시 알림이 꺼져있으면 사운드도 스킵
+      if (!pushEnabled) {
+        debugPrint('⏭️ [SOUND-APPROVAL] 푸시 알림이 비활성화됨 - 사운드 스킵');
+        return;
+      }
 
       if (!soundEnabled) {
         debugPrint('⏭️ [SOUND-APPROVAL] 사용자가 사운드를 비활성화함 - 사운드 스킵');
