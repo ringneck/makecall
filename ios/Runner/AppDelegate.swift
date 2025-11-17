@@ -117,8 +117,10 @@ import FirebaseMessaging
       print("   - extensionNumber: \(userInfo["extensionNumber"] ?? "없음")")
     }
     
-    // ✅ 기기 승인, 수신 전화, 착신전환일 때 Flutter로 전달하고 네이티브 처리 차단
-    if isDeviceApproval || isIncomingCall || isCallForward {
+    // ✅ 기기 승인, 수신 전화는 Flutter로만 전달 (네이티브 알림 차단)
+    // ✅ 착신전환은 네이티브 알림으로 표시 (사운드 포함)
+    if isDeviceApproval || isIncomingCall {
+      // 기기 승인 + 수신 전화: Flutter로 전달, 네이티브 알림 차단
       DispatchQueue.main.async { [weak self] in
         guard let self = self, let channel = self.fcmChannel else {
           print("❌ [iOS-FCM] Method Channel이 없음")
@@ -144,10 +146,41 @@ import FirebaseMessaging
         }
       }
       
-      // 🔒 네이티브 알림 표시 차단 후 즉시 return (Firebase SDK 처리 방지)
+      // 네이티브 알림 차단
       completionHandler([])
       print("✅ [iOS-FCM] Flutter 전달 완료, 네이티브 알림 차단됨")
-      return  // ⚠️ CRITICAL: 조기 return으로 Firebase SDK 중복 처리 방지
+      return
+    } else if isCallForward {
+      // 착신전환: Flutter로 전달 + 네이티브 알림 표시 (사운드 포함)
+      DispatchQueue.main.async { [weak self] in
+        guard let self = self, let channel = self.fcmChannel else {
+          print("❌ [iOS-FCM] Method Channel이 없음")
+          return
+        }
+        
+        // userInfo를 String으로 변환
+        var flutterData: [String: Any] = [:]
+        for (key, value) in userInfo {
+          if let keyString = key.base as? String {
+            flutterData[keyString] = value
+          }
+        }
+        
+        print("🔄 [iOS-FCM] 착신전환 - Flutter로 전송")
+        
+        channel.invokeMethod("onForegroundMessage", arguments: flutterData) { result in
+          if let error = result as? FlutterError {
+            print("❌ [iOS-FCM] Flutter 호출 실패: \(error.message ?? "알 수 없는 오류")")
+          } else {
+            print("✅ [iOS-FCM] Flutter 호출 성공")
+          }
+        }
+      }
+      
+      // 🔔 네이티브 알림 표시 (사운드 + 배너)
+      completionHandler([.banner, .sound, .badge])
+      print("✅ [iOS-FCM] 착신전환 - 네이티브 알림 표시 (사운드 포함)")
+      return
     }
     
     // 일반 메시지는 Firebase SDK에 처리 위임
