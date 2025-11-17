@@ -66,8 +66,8 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
 
   /// WebSocket 초기화 및 착신번호 조회
   Future<void> _initializeAndFetch() async {
-    // 필수 설정 확인
-    if (!_hasValidConfig()) {
+    // 전체 설정 확인 (tenantId 포함)
+    if (!_hasFullConfig()) {
       if (kDebugMode) {
         debugPrint('⚠️ CallForwardSettings: Invalid WebSocket configuration');
       }
@@ -572,14 +572,19 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
     }
   }
 
-  /// 설정 유효성 확인
+  /// WebSocket 설정 유효성 확인
   bool _hasValidConfig() {
-    return widget.tenantId != null &&
-           widget.tenantId!.isNotEmpty &&
-           widget.wsServerAddress != null &&
+    return widget.wsServerAddress != null &&
            widget.wsServerAddress!.isNotEmpty &&
            widget.wsServerPort != null &&
            widget.wsServerPort! > 0;
+  }
+  
+  /// WebSocket 연결에 필요한 모든 설정 확인 (tenantId 포함)
+  bool _hasFullConfig() {
+    return _hasValidConfig() &&
+           widget.tenantId != null &&
+           widget.tenantId!.isNotEmpty;
   }
 
   /// 마지막 업데이트 시간 포맷팅
