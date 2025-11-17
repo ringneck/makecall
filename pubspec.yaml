@@ -44,6 +44,12 @@ dependencies:
   firebase_analytics: 11.3.3  # Analytics for event logging
   flutter_local_notifications: ^17.2.3  # Android notification channels
   
+  # Social Login (소셜 로그인)
+  google_sign_in: ^6.2.1  # 구글 로그인
+  kakao_flutter_sdk: ^1.9.5  # 카카오 로그인
+  flutter_naver_login: ^1.8.0  # 네이버 로그인
+  sign_in_with_apple: ^6.1.2  # 애플 로그인 (iOS 전용)
+  
   # State Management
   provider: 6.1.5+1
   

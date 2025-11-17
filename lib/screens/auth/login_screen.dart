@@ -6,7 +6,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
 import '../../services/account_manager_service.dart';
+import '../../services/social_login_service.dart';
 import '../../utils/dialog_utils.dart';
+import '../../widgets/social_login_buttons.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -28,6 +30,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   bool _rememberEmail = false;
   bool _autoLogin = false;
   bool _isAutoLoginAttempting = false; // 자동 로그인 시도 중 플래그
+  bool _isSocialLoginLoading = false; // 소셜 로그인 진행 중 플래그
+  
+  final _socialLoginService = SocialLoginService();
   
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -205,6 +210,174 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         builder: (context) => const ForgotPasswordScreen(),
       ),
     );
+  }
+  
+  // 소셜 로그인 성공 처리
+  Future<void> _handleSocialLoginSuccess(SocialLoginResult result) async {
+    try {
+      final authService = context.read<AuthService>();
+      
+      if (kDebugMode) {
+        debugPrint('✅ [SOCIAL LOGIN] ${result.provider.name} 로그인 성공');
+        debugPrint('   - User ID: ${result.userId}');
+        debugPrint('   - Email: ${result.email}');
+        debugPrint('   - Name: ${result.displayName}');
+      }
+      
+      // Firebase Authentication이 이미 완료되었으므로
+      // 추가 승인 프로세스가 필요하면 여기서 처리
+      
+      // AuthService의 user stream이 자동으로 업데이트되어 홈 화면으로 이동
+      
+    } catch (e) {
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          '소셜 로그인 후 처리 중 오류가 발생했습니다: ${e.toString()}',
+        );
+      }
+    }
+  }
+  
+  // 구글 로그인
+  Future<void> _handleGoogleLogin() async {
+    if (_isSocialLoginLoading) return;
+    
+    setState(() => _isSocialLoginLoading = true);
+    
+    try {
+      final result = await _socialLoginService.signInWithGoogle();
+      
+      if (result.success) {
+        await _handleSocialLoginSuccess(result);
+      } else {
+        if (mounted) {
+          await DialogUtils.showError(
+            context,
+            result.errorMessage ?? '구글 로그인에 실패했습니다.',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          '구글 로그인 중 오류가 발생했습니다: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialLoginLoading = false);
+      }
+    }
+  }
+  
+  // 카카오 로그인
+  Future<void> _handleKakaoLogin() async {
+    if (_isSocialLoginLoading) return;
+    
+    setState(() => _isSocialLoginLoading = true);
+    
+    try {
+      final result = await _socialLoginService.signInWithKakao();
+      
+      if (result.success) {
+        await _handleSocialLoginSuccess(result);
+      } else {
+        if (mounted) {
+          await DialogUtils.showError(
+            context,
+            result.errorMessage ?? '카카오 로그인에 실패했습니다.',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          '카카오 로그인 중 오류가 발생했습니다: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialLoginLoading = false);
+      }
+    }
+  }
+  
+  // 네이버 로그인
+  Future<void> _handleNaverLogin() async {
+    if (_isSocialLoginLoading) return;
+    
+    setState(() => _isSocialLoginLoading = true);
+    
+    try {
+      final result = await _socialLoginService.signInWithNaver();
+      
+      if (result.success) {
+        await _handleSocialLoginSuccess(result);
+      } else {
+        if (mounted) {
+          await DialogUtils.showError(
+            context,
+            result.errorMessage ?? '네이버 로그인에 실패했습니다.',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          '네이버 로그인 중 오류가 발생했습니다: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialLoginLoading = false);
+      }
+    }
+  }
+  
+  // 애플 로그인 (iOS 전용)
+  Future<void> _handleAppleLogin() async {
+    if (_isSocialLoginLoading) return;
+    
+    // iOS 플랫폼 체크
+    if (!kIsWeb && !Platform.isIOS) {
+      await DialogUtils.showError(
+        context,
+        '애플 로그인은 iOS 기기에서만 사용할 수 있습니다.',
+      );
+      return;
+    }
+    
+    setState(() => _isSocialLoginLoading = true);
+    
+    try {
+      final result = await _socialLoginService.signInWithApple();
+      
+      if (result.success) {
+        await _handleSocialLoginSuccess(result);
+      } else {
+        if (mounted) {
+          await DialogUtils.showError(
+            context,
+            result.errorMessage ?? '애플 로그인에 실패했습니다.',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          '애플 로그인 중 오류가 발생했습니다: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialLoginLoading = false);
+      }
+    }
   }
 
   @override
@@ -616,6 +789,50 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               ),
                             ),
                           ),
+                        ),
+                        
+                        const SizedBox(height: 32),
+                        
+                        // 구분선
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Divider(
+                                color: isDark ? Colors.grey[700] : Colors.grey[300],
+                                thickness: 1,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                '또는',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: isDark ? Colors.grey[700] : Colors.grey[300],
+                                thickness: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // 소셜 로그인 버튼들 (2x2 그리드)
+                        SocialLoginButtons(
+                          onGooglePressed: _isSocialLoginLoading ? null : _handleGoogleLogin,
+                          onKakaoPressed: _isSocialLoginLoading ? null : _handleKakaoLogin,
+                          onNaverPressed: _isSocialLoginLoading ? null : _handleNaverLogin,
+                          onApplePressed: (!kIsWeb && Platform.isIOS && !_isSocialLoginLoading) 
+                              ? _handleAppleLogin 
+                              : null,
+                          isLoading: _isSocialLoginLoading,
                         ),
                         
                         SizedBox(height: _isMobile ? 24 : 32),
