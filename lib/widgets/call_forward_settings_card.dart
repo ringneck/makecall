@@ -615,6 +615,16 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
     // 다크모드 감지
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    // 🔍 디버그 로깅: 전달된 값 확인
+    if (kDebugMode) {
+      debugPrint('🔍 CallForwardSettingsCard Debug:');
+      debugPrint('  - wsServerAddress: "${widget.wsServerAddress}"');
+      debugPrint('  - wsServerPort: ${widget.wsServerPort}');
+      debugPrint('  - tenantId: "${widget.tenantId}"');
+      debugPrint('  - _hasValidConfig(): ${_hasValidConfig()}');
+      debugPrint('  - _hasFullConfig(): ${_hasFullConfig()}');
+    }
+    
     // 웹소켓 설정이 없으면 유료 플랜 안내 표시
     if (!_hasValidConfig()) {
       return Container(

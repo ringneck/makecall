@@ -721,24 +721,19 @@ class _ExtensionDrawerState extends State<ExtensionDrawer> {
                         ),
                         const SizedBox(height: 12),
                         
-                        // 착신전환 설정 카드 (사용자 전역 WebSocket 설정이 있는 경우 표시)
-                        if (userWsServerUrl != null && 
-                            userWsServerUrl.isNotEmpty &&
-                            userCompanyId != null &&
-                            userCompanyId.isNotEmpty) ...[
-                          CallForwardSettingsCard(
-                            key: ValueKey('call_forward_${extension.id}_${extension.extension}'), // 🔑 단말번호 변경 시 재생성
-                            extension: extension,
-                            tenantId: userCompanyId,
-                            wsServerAddress: userWsServerUrl,
-                            wsServerPort: userWsPort,
-                            useSSL: userUseSSL,
-                            amiServerId: userAmiServerId,
-                            httpAuthId: userHttpAuthId,
-                            httpAuthPassword: userHttpAuthPassword,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
+                        // 착신전환 설정 카드 (항상 표시 - WebSocket 설정 여부에 따라 내부에서 UI 변경)
+                        CallForwardSettingsCard(
+                          key: ValueKey('call_forward_${extension.id}_${extension.extension}'), // 🔑 단말번호 변경 시 재생성
+                          extension: extension,
+                          tenantId: userCompanyId,
+                          wsServerAddress: userWsServerUrl,
+                          wsServerPort: userWsPort,
+                          useSSL: userUseSSL,
+                          amiServerId: userAmiServerId,
+                          httpAuthId: userHttpAuthId,
+                          httpAuthPassword: userHttpAuthPassword,
+                        ),
+                        const SizedBox(height: 16),
                   ],
                 ),
               ),
