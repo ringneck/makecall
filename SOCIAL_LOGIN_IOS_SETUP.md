@@ -2,6 +2,29 @@
 
 이 문서는 MAKECALL 앱에서 4가지 소셜 로그인 (구글, 카카오, 네이버, 애플)을 iOS 플랫폼에서 설정하는 방법을 안내합니다.
 
+**🎯 구현 상태**: `ios/Runner/Info.plist`에 URL Schemes 및 LSApplicationQueriesSchemes 설정 완료  
+**📦 Bundle ID**: `com.olssoo.makecall` (⚠️ 문서의 `com.makecall.app`과 다름 - 실제 Bundle ID 기준으로 설정됨)
+
+---
+
+## 🚀 빠른 확인 (Quick Check)
+
+`ios/Runner/Info.plist` 파일에 다음 설정이 완료되어 있습니다:
+
+**✅ CFBundleURLTypes (URL Schemes)**:
+- 🔵 **Google Sign-In**: `com.googleusercontent.apps.793164633643-urj0qb989v8l2bggj6h025plnbbshfg5`
+- 🟡 **Kakao Login**: `kakao737f26c4d0d81077b35b8f0313ec3536`
+- 🟢 **Naver Login**: `naverWl4fP6XbiTRQQMpbC5a9`
+
+**✅ LSApplicationQueriesSchemes (앱 전환)**:
+- 카카오톡: `kakaokompassauth`, `kakaolink`, `kakao737f26c4d0d81077b35b8f0313ec3536`
+- 네이버: `naversearchapp`, `naversearchthirdlogin`, `navercafe`
+
+**다음 단계**:
+1. ✅ Info.plist URL Schemes 설정 완료
+2. 🔄 각 소셜 로그인 플랫폼에서 iOS 앱 등록 필요 (아래 섹션 참조)
+3. 🔄 실제 기기/시뮬레이터에서 소셜 로그인 테스트
+
 ---
 
 ## 📋 목차
@@ -24,7 +47,7 @@
 
 **단계 2**: iOS 앱 추가/확인
 - **Project Overview** → **프로젝트 설정** → **iOS 앱**
-- Bundle ID: `com.makecall.app` (확인 필수)
+- Bundle ID: `com.olssoo.makecall` (⚠️ 실제 프로젝트 Bundle ID)
 - App Store ID: (선택사항, 배포 후 입력)
 
 **단계 3**: `GoogleService-Info.plist` 다운로드
@@ -40,8 +63,8 @@
 - **Google Cloud Console** → https://console.cloud.google.com/
 - **API 및 서비스** → **사용자 인증 정보**
 - **iOS OAuth 클라이언트 ID** 확인:
-  - Bundle ID: `com.makecall.app`
-  - iOS URL Scheme 자동 생성됨
+  - Bundle ID: `com.olssoo.makecall` (⚠️ 실제 Bundle ID)
+  - iOS URL Scheme 자동 생성됨: `com.googleusercontent.apps.793164633643-urj0qb989v8l2bggj6h025plnbbshfg5`
 
 ### 1.2 Xcode 프로젝트 설정
 
@@ -104,7 +127,7 @@ pod install
 **단계 2**: 플랫폼 등록
 - **내 애플리케이션** → 앱 선택 → **플랫폼**
 - **iOS 플랫폼 등록** 클릭
-- Bundle ID: `com.makecall.app`
+- Bundle ID: `com.olssoo.makecall` (⚠️ 실제 Bundle ID)
 - 팀 ID: Apple Developer 계정의 Team ID (10자리 영문/숫자)
 
 **단계 3**: 카카오 로그인 활성화
@@ -114,7 +137,7 @@ pod install
 
 **단계 4**: 앱 키 확인
 - **앱 설정** → **앱 키**
-- **네이티브 앱 키** 복사 (예: `1234567890abcdef1234567890abcdef`)
+- **네이티브 앱 키** 복사: `737f26c4d0d81077b35b8f0313ec3536` (✅ 실제 적용된 키)
 
 ### 2.2 Xcode 프로젝트 설정
 
@@ -124,39 +147,35 @@ pod install
 <dict>
     <!-- 기존 설정 ... -->
     
-    <!-- 카카오 Native App Key -->
-    <key>KAKAO_APP_KEY</key>
-    <string>1234567890abcdef1234567890abcdef</string>
-    
-    <!-- 카카오 URL Scheme -->
+    <!-- ✅ 카카오 URL Scheme (Info.plist에 이미 설정됨) -->
     <key>CFBundleURLTypes</key>
     <array>
         <!-- 구글 로그인 URL Scheme -->
         <dict>...</dict>
         
-        <!-- 카카오 로그인 URL Scheme -->
+        <!-- 🟡 카카오 로그인 URL Scheme -->
         <dict>
             <key>CFBundleTypeRole</key>
             <string>Editor</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <!-- kakao${KAKAO_NATIVE_APP_KEY} -->
-                <string>kakao1234567890abcdef1234567890abcdef</string>
+                <!-- ✅ 실제 적용된 값: kakao + 737f26c4d0d81077b35b8f0313ec3536 -->
+                <string>kakao737f26c4d0d81077b35b8f0313ec3536</string>
             </array>
         </dict>
     </array>
     
-    <!-- 카카오톡 앱 연동 (LSApplicationQueriesSchemes) -->
+    <!-- ✅ 카카오톡 앱 연동 (Info.plist에 이미 설정됨) -->
     <key>LSApplicationQueriesSchemes</key>
     <array>
         <string>kakaokompassauth</string>
         <string>kakaolink</string>
-        <string>kakaoplus</string>
+        <string>kakao737f26c4d0d81077b35b8f0313ec3536</string>
     </array>
 </dict>
 ```
 
-**⚠️ CRITICAL**: URL Scheme에서 `kakao` 뒤에 **실제 네이티브 앱 키**를 붙여야 합니다!
+**✅ 설정 완료**: 위 설정은 이미 `ios/Runner/Info.plist`에 적용되어 있습니다.
 
 ### 2.3 AppDelegate 설정 (선택사항)
 
@@ -207,12 +226,12 @@ exports.createCustomTokenForKakao = functions.https.onCall(async (data, context)
 
 **단계 3**: 환경 추가 - iOS
 - **서비스 환경** → **iOS 앱 추가**
-- **URL Scheme**: `naverlogin` (기본값 사용 권장)
-- **Bundle ID**: `com.makecall.app`
+- **URL Scheme**: `naverWl4fP6XbiTRQQMpbC5a9` (✅ Client ID 기반으로 설정됨)
+- **Bundle ID**: `com.olssoo.makecall` (⚠️ 실제 Bundle ID)
 
 **단계 4**: Client ID / Client Secret 확인
-- **애플리케이션 정보** → **Client ID** 복사
-- **애플리케이션 정보** → **Client Secret** 복사
+- **애플리케이션 정보** → **Client ID**: `Wl4fP6XbiTRQQMpbC5a9` (✅ 실제 적용된 값)
+- **애플리케이션 정보** → **Client Secret**: `gr2MvANyr8` (✅ 실제 적용된 값)
 
 ### 3.2 Xcode 프로젝트 설정
 
@@ -222,44 +241,40 @@ exports.createCustomTokenForKakao = functions.https.onCall(async (data, context)
 <dict>
     <!-- 기존 설정 ... -->
     
-    <!-- 네이버 로그인 -->
-    <key>NaverConsumerKey</key>
-    <string>YOUR_NAVER_CLIENT_ID</string>
+    <!-- ⚠️ 네이버 SDK Info.plist 설정 (필요 시 추가) -->
+    <!-- flutter_naver_login 2.1.1은 Info.plist 키 불필요, main.dart에서 초기화 -->
     
-    <key>NaverConsumerSecret</key>
-    <string>YOUR_NAVER_CLIENT_SECRET</string>
-    
-    <key>NaverServiceAppName</key>
-    <string>MAKECALL</string>
-    
-    <key>NaverServiceAppUrlScheme</key>
-    <string>naverlogin</string>
-    
-    <!-- 네이버 URL Scheme -->
+    <!-- ✅ 네이버 URL Scheme (Info.plist에 이미 설정됨) -->
     <key>CFBundleURLTypes</key>
     <array>
         <!-- 구글, 카카오 등 기존 URL Schemes ... -->
         
-        <!-- 네이버 로그인 URL Scheme -->
+        <!-- 🟢 네이버 로그인 URL Scheme -->
         <dict>
             <key>CFBundleTypeRole</key>
             <string>Editor</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>naverlogin</string>
+                <!-- ✅ 실제 적용된 값: naver + Client ID -->
+                <string>naverWl4fP6XbiTRQQMpbC5a9</string>
             </array>
         </dict>
     </array>
     
-    <!-- 네이버 앱 연동 (LSApplicationQueriesSchemes) -->
+    <!-- ✅ 네이버 앱 연동 (Info.plist에 이미 설정됨) -->
     <key>LSApplicationQueriesSchemes</key>
     <array>
         <!-- 카카오 schemes ... -->
         <string>naversearchapp</string>
         <string>naversearchthirdlogin</string>
+        <string>navercafe</string>
     </array>
 </dict>
 ```
+
+**✅ 설정 완료**: 위 설정은 이미 `ios/Runner/Info.plist`에 적용되어 있습니다.
+
+**📝 참고**: `flutter_naver_login` 2.1.1 버전은 `NaverConsumerKey`, `NaverConsumerSecret` 등의 Info.plist 키를 사용하지 않습니다. 대신 `lib/main.dart`에서 직접 초기화합니다.
 
 ### 3.3 백엔드 Custom Token 생성 (필수)
 
