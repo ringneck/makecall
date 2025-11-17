@@ -29,6 +29,9 @@ class FCMCallForwardService {
         debugPrint('   📋 알림 타입: 착신전환 활성화');
       }
 
+      // 🎵 사용자 ringtone 정보 가져오기
+      String? ringtone = await _getUserRingtone(userId);
+
       await _sendNotificationToOtherDevices(
         userId: userId,
         title: '착신전환 설정',
@@ -36,6 +39,7 @@ class FCMCallForwardService {
         data: {
           'type': 'call_forward_enabled',
           'extensionNumber': extensionNumber,
+          if (ringtone != null) 'ringtone': ringtone, // 🎵 ringtone 추가
         },
       );
 
@@ -65,6 +69,9 @@ class FCMCallForwardService {
         debugPrint('   📋 알림 타입: 착신전환 해제');
       }
 
+      // 🎵 사용자 ringtone 정보 가져오기
+      String? ringtone = await _getUserRingtone(userId);
+
       await _sendNotificationToOtherDevices(
         userId: userId,
         title: '착신전환 해제',
@@ -72,6 +79,7 @@ class FCMCallForwardService {
         data: {
           'type': 'call_forward_disabled',
           'extensionNumber': extensionNumber,
+          if (ringtone != null) 'ringtone': ringtone, // 🎵 ringtone 추가
         },
       );
 
@@ -103,6 +111,9 @@ class FCMCallForwardService {
         debugPrint('   📋 알림 타입: 착신전환 번호 변경');
       }
 
+      // 🎵 사용자 ringtone 정보 가져오기
+      String? ringtone = await _getUserRingtone(userId);
+
       await _sendNotificationToOtherDevices(
         userId: userId,
         title: '착신전환 번호 변경',
@@ -111,6 +122,7 @@ class FCMCallForwardService {
           'type': 'call_forward_number_changed',
           'extensionNumber': extensionNumber,
           'newNumber': newNumber,
+          if (ringtone != null) 'ringtone': ringtone, // 🎵 ringtone 추가
         },
       );
 
@@ -222,6 +234,37 @@ class FCMCallForwardService {
         debugPrint('❌ [FCM-CallForward] 활성 기기 조회 실패: $e');
       }
       return [];
+    }
+  }
+
+  /// 🎵 사용자 DB에서 ringtone 정보 가져오기
+  Future<String?> _getUserRingtone(String userId) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      
+      if (!userDoc.exists) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [FCM-CallForward] 사용자 문서 없음');
+        }
+        return null;
+      }
+
+      final data = userDoc.data();
+      if (data == null) return null;
+
+      // ringtone 필드 가져오기 (없으면 null)
+      final ringtone = data['ringtone'] as String?;
+      
+      if (kDebugMode) {
+        debugPrint('🎵 [FCM-CallForward] 사용자 ringtone: ${ringtone ?? "없음 (기본 벨소리 사용)"}');
+      }
+
+      return ringtone;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [FCM-CallForward] ringtone 조회 실패: $e');
+      }
+      return null;
     }
   }
 }
