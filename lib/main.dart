@@ -127,7 +127,8 @@ void main() async {
   }
   
   // ✅ iOS Method Channel 설정 (포그라운드 FCM 메시지 수신용)
-  if (Platform.isIOS) {
+  // 🔧 CRITICAL FIX: Web 플랫폼에서는 Platform.isIOS 체크 불가
+  if (!kIsWeb && Platform.isIOS) {
     _fcmChannel = const MethodChannel('com.makecall.app/fcm');
     _fcmChannel!.setMethodCallHandler(_handleIOSForegroundMessage);
     print('✅ iOS FCM Method Channel 등록 완료');
