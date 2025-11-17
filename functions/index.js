@@ -685,3 +685,143 @@ exports.cancelIncomingCallNotification = functions.region(region).https.onCall(
       }
     },
 );
+
+// ==============================================================
+// 🔐 소셜 로그인 Custom Token 생성 Functions
+// ==============================================================
+
+/**
+ * 카카오 로그인용 Firebase Custom Token 생성
+ * 
+ * @param {object} data - 요청 데이터
+ * @param {string} data.kakaoUid - 카카오 사용자 ID
+ * @param {string} data.email - 카카오 계정 이메일
+ * @param {string} data.displayName - 카카오 닉네임
+ * @param {string} data.photoUrl - 카카오 프로필 이미지
+ * @param {string} data.accessToken - 카카오 Access Token (검증용, 선택)
+ * 
+ * @returns {object} { customToken: string }
+ */
+exports.createCustomTokenForKakao = functions
+    .region(region)
+    .https.onCall(async (data, context) => {
+      try {
+        // 입력 검증
+        const {kakaoUid, email, displayName, photoUrl} = data;
+
+        if (!kakaoUid) {
+          throw new functions.https.HttpsError(
+              "invalid-argument",
+              "kakaoUid is required",
+          );
+        }
+
+        // Firebase UID 생성 (prefix로 구분)
+        const firebaseUid = `kakao_${kakaoUid}`;
+
+        console.log(`🔐 [KAKAO] Creating custom token for user: ${firebaseUid}`);
+
+        // Custom Token 생성
+        const customToken = await admin.auth().createCustomToken(firebaseUid, {
+          provider: "kakao",
+          email: email || null,
+          name: displayName || "Kakao User",
+          picture: photoUrl || null,
+        });
+
+        // Firestore에 사용자 정보 저장
+        await admin.firestore().collection("users").doc(firebaseUid).set({
+          uid: firebaseUid,
+          provider: "kakao",
+          kakaoUid: kakaoUid,
+          email: email || null,
+          displayName: displayName || "Kakao User",
+          photoURL: photoUrl || null,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+
+        console.log(`✅ [KAKAO] Custom token created successfully`);
+
+        return {customToken};
+      } catch (error) {
+        console.error("❌ [KAKAO] Error creating custom token:", error);
+
+        if (error instanceof functions.https.HttpsError) {
+          throw error;
+        }
+
+        throw new functions.https.HttpsError(
+            "internal",
+            `Failed to create custom token: ${error.message}`,
+        );
+      }
+    });
+
+/**
+ * 네이버 로그인용 Firebase Custom Token 생성
+ * 
+ * @param {object} data - 요청 데이터
+ * @param {string} data.naverId - 네이버 사용자 ID
+ * @param {string} data.email - 네이버 계정 이메일
+ * @param {string} data.nickname - 네이버 닉네임
+ * @param {string} data.profileImage - 네이버 프로필 이미지
+ * @param {string} data.accessToken - 네이버 Access Token (검증용, 선택)
+ * 
+ * @returns {object} { customToken: string }
+ */
+exports.createCustomTokenForNaver = functions
+    .region(region)
+    .https.onCall(async (data, context) => {
+      try {
+        // 입력 검증
+        const {naverId, email, nickname, profileImage} = data;
+
+        if (!naverId) {
+          throw new functions.https.HttpsError(
+              "invalid-argument",
+              "naverId is required",
+          );
+        }
+
+        // Firebase UID 생성 (prefix로 구분)
+        const firebaseUid = `naver_${naverId}`;
+
+        console.log(`🔐 [NAVER] Creating custom token for user: ${firebaseUid}`);
+
+        // Custom Token 생성
+        const customToken = await admin.auth().createCustomToken(firebaseUid, {
+          provider: "naver",
+          email: email || null,
+          name: nickname || "Naver User",
+          picture: profileImage || null,
+        });
+
+        // Firestore에 사용자 정보 저장
+        await admin.firestore().collection("users").doc(firebaseUid).set({
+          uid: firebaseUid,
+          provider: "naver",
+          naverId: naverId,
+          email: email || null,
+          displayName: nickname || "Naver User",
+          photoURL: profileImage || null,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+
+        console.log(`✅ [NAVER] Custom token created successfully`);
+
+        return {customToken};
+      } catch (error) {
+        console.error("❌ [NAVER] Error creating custom token:", error);
+
+        if (error instanceof functions.https.HttpsError) {
+          throw error;
+        }
+
+        throw new functions.https.HttpsError(
+            "internal",
+            `Failed to create custom token: ${error.message}`,
+        );
+      }
+    });

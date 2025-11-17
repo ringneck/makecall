@@ -2,6 +2,30 @@
 
 이 문서는 카카오와 네이버 로그인을 위한 Firebase Custom Token 생성 백엔드를 설정하는 방법을 안내합니다.
 
+**🎯 구현 상태**: Custom Token 생성 함수가 `functions/index.js`에 추가되었습니다.  
+**📦 배포 필요**: Firebase Functions에 배포하려면 [6.2 프로덕션 배포](#62-프로덕션-배포) 섹션을 참조하세요.
+
+---
+
+## 🚀 빠른 시작 (Quick Start)
+
+이미 functions/index.js에 Custom Token 생성 함수가 추가되어 있습니다. 배포만 하면 됩니다:
+
+```bash
+# 1. Firebase 프로젝트 디렉토리로 이동
+cd /home/user/flutter_app
+
+# 2. Firebase Functions 배포
+firebase deploy --only functions
+
+# 3. 배포 완료! Flutter 앱에서 바로 사용 가능합니다.
+```
+
+**다음 단계**:
+1. ✅ 백엔드 함수 구현 완료 (createCustomTokenForKakao, createCustomTokenForNaver)
+2. 🔄 Firebase Functions 배포 필요
+3. 🔄 Flutter 클라이언트 통합 (lib/services/social_login_service.dart의 TODO 제거)
+
 ---
 
 ## 📋 목차
@@ -107,99 +131,69 @@ firebase functions:config:get
 
 ## 3. 카카오 Custom Token 엔드포인트
 
-### 3.1 함수 구현
+### 3.1 함수 구현 (실제 배포된 코드)
 
 **파일**: `functions/index.js`
 
+**⚠️ 중요**: 아래 코드는 이미 `functions/index.js` 파일 끝에 추가되어 있습니다. Firebase Functions에 배포하려면 [6.2 프로덕션 배포](#62-프로덕션-배포) 섹션을 참조하세요.
+
 ```javascript
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-
-// Firebase Admin SDK 초기화 (한 번만 실행)
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-
 /**
  * 카카오 로그인용 Firebase Custom Token 생성
- * 
- * @param {object} data - 요청 데이터
- * @param {string} data.kakaoUid - 카카오 사용자 ID
- * @param {string} data.email - 카카오 계정 이메일
- * @param {string} data.displayName - 카카오 닉네임
- * @param {string} data.photoUrl - 카카오 프로필 이미지
- * @param {string} data.accessToken - 카카오 Access Token (검증용, 선택)
- * 
- * @returns {object} { customToken: string }
  */
 exports.createCustomTokenForKakao = functions
-  .region('asia-northeast3') // 서울 리전
-  .https.onCall(async (data, context) => {
-    try {
-      // 입력 검증
-      const { kakaoUid, email, displayName, photoUrl, accessToken } = data;
-      
-      if (!kakaoUid) {
+    .region(region)
+    .https.onCall(async (data, context) => {
+      try {
+        const {kakaoUid, email, displayName, photoUrl} = data;
+
+        if (!kakaoUid) {
+          throw new functions.https.HttpsError(
+              "invalid-argument",
+              "kakaoUid is required",
+          );
+        }
+
+        const firebaseUid = `kakao_${kakaoUid}`;
+        console.log(`🔐 [KAKAO] Creating custom token for user: ${firebaseUid}`);
+
+        const customToken = await admin.auth().createCustomToken(firebaseUid, {
+          provider: "kakao",
+          email: email || null,
+          name: displayName || "Kakao User",
+          picture: photoUrl || null,
+        });
+
+        // Firestore에 사용자 정보 저장
+        await admin.firestore().collection("users").doc(firebaseUid).set({
+          uid: firebaseUid,
+          provider: "kakao",
+          kakaoUid: kakaoUid,
+          email: email || null,
+          displayName: displayName || "Kakao User",
+          photoURL: photoUrl || null,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+
+        console.log(`✅ [KAKAO] Custom token created successfully`);
+        return {customToken};
+      } catch (error) {
+        console.error("❌ [KAKAO] Error creating custom token:", error);
         throw new functions.https.HttpsError(
-          'invalid-argument',
-          'kakaoUid is required'
+            "internal",
+            `Failed to create custom token: ${error.message}`,
         );
       }
-      
-      // (선택) 카카오 Access Token 검증
-      // 프로덕션에서는 카카오 API를 호출하여 토큰 유효성 검증 권장
-      // if (accessToken) {
-      //   const axios = require('axios');
-      //   const response = await axios.get('https://kapi.kakao.com/v2/user/me', {
-      //     headers: { Authorization: `Bearer ${accessToken}` }
-      //   });
-      //   
-      //   if (response.data.id !== parseInt(kakaoUid)) {
-      //     throw new functions.https.HttpsError('permission-denied', 'Invalid token');
-      //   }
-      // }
-      
-      // Firebase UID 생성 (prefix로 구분)
-      const firebaseUid = `kakao_${kakaoUid}`;
-      
-      console.log(`Creating custom token for Kakao user: ${firebaseUid}`);
-      
-      // Custom Token 생성
-      const customToken = await admin.auth().createCustomToken(firebaseUid, {
-        provider: 'kakao',
-        email: email || null,
-        name: displayName || 'Kakao User',
-        picture: photoUrl || null,
-      });
-      
-      // (선택) Firestore에 사용자 정보 저장
-      await admin.firestore().collection('users').doc(firebaseUid).set({
-        uid: firebaseUid,
-        provider: 'kakao',
-        kakaoUid: kakaoUid,
-        email: email || null,
-        displayName: displayName || 'Kakao User',
-        photoURL: photoUrl || null,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-      
-      return { customToken };
-      
-    } catch (error) {
-      console.error('Error creating custom token for Kakao:', error);
-      
-      if (error instanceof functions.https.HttpsError) {
-        throw error;
-      }
-      
-      throw new functions.https.HttpsError(
-        'internal',
-        `Failed to create custom token: ${error.message}`
-      );
-    }
-  });
+    });
 ```
+
+**주요 특징**:
+- ✅ **서울 리전 사용**: `region` 변수 사용 (asia-northeast3)
+- ✅ **Firebase UID 생성**: `kakao_${kakaoUid}` 형식으로 고유 ID 생성
+- ✅ **Firestore 자동 저장**: 사용자 정보를 `users` 컬렉션에 자동 저장
+- ✅ **에러 처리**: 명확한 에러 메시지와 로깅
+- ✅ **병합 저장**: `merge: true` 옵션으로 기존 데이터 보존
 
 ### 3.2 Flutter 클라이언트 호출
 
@@ -251,91 +245,68 @@ Future<SocialLoginResult> signInWithKakao() async {
 
 ## 4. 네이버 Custom Token 엔드포인트
 
-### 4.1 함수 구현
+### 4.1 함수 구현 (실제 배포된 코드)
 
 **파일**: `functions/index.js`
+
+**⚠️ 중요**: 아래 코드는 이미 `functions/index.js` 파일 끝에 추가되어 있습니다. Firebase Functions에 배포하려면 [6.2 프로덕션 배포](#62-프로덕션-배포) 섹션을 참조하세요.
 
 ```javascript
 /**
  * 네이버 로그인용 Firebase Custom Token 생성
- * 
- * @param {object} data - 요청 데이터
- * @param {string} data.naverId - 네이버 사용자 ID
- * @param {string} data.email - 네이버 계정 이메일
- * @param {string} data.nickname - 네이버 닉네임
- * @param {string} data.profileImage - 네이버 프로필 이미지
- * @param {string} data.accessToken - 네이버 Access Token (검증용, 선택)
- * 
- * @returns {object} { customToken: string }
  */
 exports.createCustomTokenForNaver = functions
-  .region('asia-northeast3') // 서울 리전
-  .https.onCall(async (data, context) => {
-    try {
-      // 입력 검증
-      const { naverId, email, nickname, profileImage, accessToken } = data;
-      
-      if (!naverId) {
+    .region(region)
+    .https.onCall(async (data, context) => {
+      try {
+        const {naverId, email, nickname, profileImage} = data;
+
+        if (!naverId) {
+          throw new functions.https.HttpsError(
+              "invalid-argument",
+              "naverId is required",
+          );
+        }
+
+        const firebaseUid = `naver_${naverId}`;
+        console.log(`🔐 [NAVER] Creating custom token for user: ${firebaseUid}`);
+
+        const customToken = await admin.auth().createCustomToken(firebaseUid, {
+          provider: "naver",
+          email: email || null,
+          name: nickname || "Naver User",
+          picture: profileImage || null,
+        });
+
+        await admin.firestore().collection("users").doc(firebaseUid).set({
+          uid: firebaseUid,
+          provider: "naver",
+          naverId: naverId,
+          email: email || null,
+          displayName: nickname || "Naver User",
+          photoURL: profileImage || null,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+
+        console.log(`✅ [NAVER] Custom token created successfully`);
+        return {customToken};
+      } catch (error) {
+        console.error("❌ [NAVER] Error creating custom token:", error);
         throw new functions.https.HttpsError(
-          'invalid-argument',
-          'naverId is required'
+            "internal",
+            `Failed to create custom token: ${error.message}`,
         );
       }
-      
-      // (선택) 네이버 Access Token 검증
-      // 프로덕션에서는 네이버 API를 호출하여 토큰 유효성 검증 권장
-      // if (accessToken) {
-      //   const axios = require('axios');
-      //   const response = await axios.get('https://openapi.naver.com/v1/nid/me', {
-      //     headers: { Authorization: `Bearer ${accessToken}` }
-      //   });
-      //   
-      //   if (response.data.response.id !== naverId) {
-      //     throw new functions.https.HttpsError('permission-denied', 'Invalid token');
-      //   }
-      // }
-      
-      // Firebase UID 생성 (prefix로 구분)
-      const firebaseUid = `naver_${naverId}`;
-      
-      console.log(`Creating custom token for Naver user: ${firebaseUid}`);
-      
-      // Custom Token 생성
-      const customToken = await admin.auth().createCustomToken(firebaseUid, {
-        provider: 'naver',
-        email: email || null,
-        name: nickname || 'Naver User',
-        picture: profileImage || null,
-      });
-      
-      // (선택) Firestore에 사용자 정보 저장
-      await admin.firestore().collection('users').doc(firebaseUid).set({
-        uid: firebaseUid,
-        provider: 'naver',
-        naverId: naverId,
-        email: email || null,
-        displayName: nickname || 'Naver User',
-        photoURL: profileImage || null,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-      
-      return { customToken };
-      
-    } catch (error) {
-      console.error('Error creating custom token for Naver:', error);
-      
-      if (error instanceof functions.https.HttpsError) {
-        throw error;
-      }
-      
-      throw new functions.https.HttpsError(
-        'internal',
-        `Failed to create custom token: ${error.message}`
-      );
-    }
-  });
+    });
 ```
+
+**주요 특징**:
+- ✅ **서울 리전 사용**: `region` 변수 사용 (asia-northeast3)
+- ✅ **Firebase UID 생성**: `naver_${naverId}` 형식으로 고유 ID 생성
+- ✅ **Firestore 자동 저장**: 사용자 정보를 `users` 컬렉션에 자동 저장
+- ✅ **에러 처리**: 명확한 에러 메시지와 로깅
+- ✅ **병합 저장**: `merge: true` 옵션으로 기존 데이터 보존
 
 ### 4.2 Flutter 클라이언트 호출
 
@@ -531,16 +502,53 @@ void main() async {
 
 ### 6.2 프로덕션 배포
 
+**⚠️ CRITICAL**: Firebase Functions를 배포하기 전에 functions/index.js 파일에 Custom Token 생성 함수가 추가되어 있는지 확인하세요.
+
 ```bash
-# Functions 배포
+# 1. Firebase 프로젝트 디렉토리로 이동
+cd /home/user/flutter_app
+
+# 2. Functions 디렉토리 확인
+ls -la functions/
+
+# 3. 모든 Functions 배포 (권장)
 firebase deploy --only functions
 
-# 특정 함수만 배포
+# 4. 또는 특정 함수만 선택적으로 배포
 firebase deploy --only functions:createCustomTokenForKakao
 firebase deploy --only functions:createCustomTokenForNaver
 
-# 배포 완료 후 URL 확인:
+# 5. 배포 완료 후 URL 확인:
 # https://asia-northeast3-[PROJECT_ID].cloudfunctions.net/createCustomTokenForKakao
+# https://asia-northeast3-[PROJECT_ID].cloudfunctions.net/createCustomTokenForNaver
+```
+
+**배포 확인**:
+
+```bash
+# 배포된 함수 목록 확인
+firebase functions:list
+
+# 예상 출력:
+# ┌──────────────────────────────────┬───────────────────┐
+# │ Function Name                     │ Region            │
+# ├──────────────────────────────────┼───────────────────┤
+# │ createCustomTokenForKakao         │ asia-northeast3   │
+# │ createCustomTokenForNaver         │ asia-northeast3   │
+# │ sendVerificationEmail             │ asia-northeast3   │
+# │ sendFCMNotification               │ asia-northeast3   │
+# └──────────────────────────────────┴───────────────────┘
+```
+
+**배포 후 Flutter 앱 설정**:
+
+Flutter 앱의 `lib/services/social_login_service.dart`에서 다음과 같이 호출하면 자동으로 배포된 함수가 사용됩니다:
+
+```dart
+final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
+final callable = functions.httpsCallable('createCustomTokenForKakao');
+// 또는
+final callable = functions.httpsCallable('createCustomTokenForNaver');
 ```
 
 ### 6.3 Postman/curl 테스트
@@ -581,18 +589,20 @@ curl -X POST \
 - [ ] 리전 설정 (`asia-northeast3`)
 
 ### 카카오 Custom Token
-- [ ] `createCustomTokenForKakao` 함수 구현
-- [ ] 입력 검증 로직 추가
+- [x] `createCustomTokenForKakao` 함수 구현 ✅ (functions/index.js에 추가됨)
+- [x] 입력 검증 로직 추가 ✅
 - [ ] (선택) Access Token 검증 구현
-- [ ] Firestore에 사용자 정보 저장
-- [ ] Flutter 클라이언트 통합
+- [x] Firestore에 사용자 정보 저장 ✅
+- [ ] Firebase Functions 배포 (firebase deploy --only functions)
+- [ ] Flutter 클라이언트 통합 (lib/services/social_login_service.dart의 TODO 제거)
 
 ### 네이버 Custom Token
-- [ ] `createCustomTokenForNaver` 함수 구현
-- [ ] 입력 검증 로직 추가
+- [x] `createCustomTokenForNaver` 함수 구현 ✅ (functions/index.js에 추가됨)
+- [x] 입력 검증 로직 추가 ✅
 - [ ] (선택) Access Token 검증 구현
-- [ ] Firestore에 사용자 정보 저장
-- [ ] Flutter 클라이언트 통합
+- [x] Firestore에 사용자 정보 저장 ✅
+- [ ] Firebase Functions 배포 (firebase deploy --only functions)
+- [ ] Flutter 클라이언트 통합 (lib/services/social_login_service.dart의 TODO 제거)
 
 ### 보안
 - [ ] Rate Limiting 적용
@@ -608,6 +618,115 @@ curl -X POST \
 
 ---
 
-**문서 버전**: 1.0  
+## 7. 배포 후 확인 절차
+
+### 7.1 Firebase Console 확인
+
+1. **Firebase Console 접속**: https://console.firebase.google.com/
+2. **프로젝트 선택**: MAKECALL 프로젝트
+3. **Functions 메뉴 확인**: 
+   - 좌측 메뉴에서 "Functions" 클릭
+   - 배포된 함수 목록에서 다음 함수 확인:
+     - `createCustomTokenForKakao` (asia-northeast3)
+     - `createCustomTokenForNaver` (asia-northeast3)
+
+### 7.2 Flutter 앱 로그 확인
+
+Firebase Functions 호출 시 다음과 같은 로그가 출력되어야 합니다:
+
+**성공적인 카카오 로그인 로그**:
+```
+🔐 [KAKAO] Creating custom token for user: kakao_1234567890
+✅ [KAKAO] Custom token created successfully
+```
+
+**성공적인 네이버 로그인 로그**:
+```
+🔐 [NAVER] Creating custom token for user: naver_abcd1234
+✅ [NAVER] Custom token created successfully
+```
+
+### 7.3 Firestore 데이터 확인
+
+로그인 성공 후 Firestore의 `users` 컬렉션에 다음과 같은 문서가 생성됩니다:
+
+**카카오 사용자 문서 예시**:
+```json
+{
+  "uid": "kakao_1234567890",
+  "provider": "kakao",
+  "kakaoUid": "1234567890",
+  "email": "user@example.com",
+  "displayName": "홍길동",
+  "photoURL": "https://k.kakaocdn.net/...",
+  "createdAt": "2025-01-29T12:00:00.000Z",
+  "lastLoginAt": "2025-01-29T12:00:00.000Z"
+}
+```
+
+**네이버 사용자 문서 예시**:
+```json
+{
+  "uid": "naver_abcd1234",
+  "provider": "naver",
+  "naverId": "abcd1234",
+  "email": "user@naver.com",
+  "displayName": "홍길동",
+  "photoURL": "https://ssl.pstatic.net/...",
+  "createdAt": "2025-01-29T12:00:00.000Z",
+  "lastLoginAt": "2025-01-29T12:00:00.000Z"
+}
+```
+
+### 7.4 Firebase Authentication 확인
+
+1. **Firebase Console** → **Authentication** → **Users**
+2. 로그인 성공 후 사용자 목록에 다음과 같은 UID가 표시됩니다:
+   - `kakao_1234567890` (카카오)
+   - `naver_abcd1234` (네이버)
+
+---
+
+## 8. 문제 해결 (Troubleshooting)
+
+### 8.1 배포 실패
+
+**오류**: `Error: HTTP Error: 403, Permission denied`
+
+**해결**:
+```bash
+# Firebase 로그인 다시 시도
+firebase logout
+firebase login
+
+# 프로젝트 확인
+firebase projects:list
+firebase use [PROJECT_ID]
+```
+
+### 8.2 함수 호출 실패
+
+**오류**: `[firebase_functions/not-found] Function not found`
+
+**해결**:
+1. Firebase Console에서 함수가 배포되었는지 확인
+2. Flutter 앱의 리전 설정 확인 (`asia-northeast3`)
+3. 함수 이름 철자 확인
+
+### 8.3 Custom Token 생성 실패
+
+**오류**: `Error creating custom token`
+
+**해결**:
+1. Firebase Console → Functions → Logs 확인
+2. Firebase Admin SDK 초기화 확인
+3. Firestore 권한 확인
+
+---
+
+**문서 버전**: 1.1  
 **최종 업데이트**: 2025-01-29  
-**작성자**: MAKECALL Development Team
+**작성자**: MAKECALL Development Team  
+**변경 이력**: 
+- v1.1 (2025-01-29): Custom Token 생성 함수 실제 구현 코드로 업데이트, 배포 가이드 추가
+- v1.0 (2025-01-29): 초기 문서 작성
