@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'dart:io' show Platform;
 
 /// 소셜 로그인 버튼 위젯
 /// 
@@ -179,7 +177,7 @@ class SocialLoginButtons extends StatelessWidget {
           style: TextStyle(
             fontSize: size * 0.65,
             fontWeight: FontWeight.w900,
-            color: const Color(0xFF4285F4), // Google Blue
+            color: const Color(0xFF4285F4),
             height: 1.0,
           ),
         ),
