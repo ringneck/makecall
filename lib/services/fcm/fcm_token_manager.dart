@@ -256,7 +256,18 @@ class FCMTokenManager {
       
       // 🔧 FIX: currentToken이 null이어도 deviceId로 토큰 비활성화 시도
       final deviceId = await _platformUtils.getDeviceId();
-      final platform = _platformUtils.getPlatformName();
+      final platformLower = _platformUtils.getPlatformName();
+      
+      // 🔑 CRITICAL: 플랫폼 이름을 대문자로 변환 (Firestore 문서 ID 형식과 일치)
+      String platform;
+      if (platformLower == 'android') {
+        platform = 'Android';
+      } else if (platformLower == 'ios') {
+        platform = 'iOS';
+      } else {
+        platform = platformLower; // web, unknown 등
+      }
+      
       // ignore: avoid_print
       print('   deviceId: $deviceId');
       // ignore: avoid_print
