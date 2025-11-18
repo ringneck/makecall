@@ -654,7 +654,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // WebSocket 설정이 없으면 유료 플랜 안내 표시
+    // WebSocket 설정이 없으면 추가 연동 안내 표시
     if (!_hasValidConfig()) {
       return Container(
         width: double.infinity,
@@ -702,7 +702,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                       Icon(Icons.star, size: 18, color: Colors.orange),
                       SizedBox(width: 8),
                       Text(
-                        '유료 플랜 안내',
+                        '추가 연동 안내',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -713,7 +713,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '착신전환 기능을 사용하려면\n유료 플랜으로 업그레이드가 필요합니다.',
+                    '착신전환 기능을 사용하려면\nDCMIWS 추가 연동이 필요합니다.',
                     style: TextStyle(
                       fontSize: 12,
                       color: isDark ? Colors.grey[300] : Colors.grey[700],
