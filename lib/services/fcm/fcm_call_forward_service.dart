@@ -117,7 +117,7 @@ class FCMCallForwardService {
       await _sendNotificationToOtherDevices(
         userId: userId,
         title: '착신전환 번호 변경',
-        body: '착신전환 번호가 변경되었습니다. ($extensionNumber) → $newNumber',
+        body: '착신전환 번호가 변경되었습니다. ($extensionNumber → $newNumber)',
         data: {
           'type': 'call_forward_number_changed',
           'extensionNumber': extensionNumber,
