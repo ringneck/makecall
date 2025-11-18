@@ -516,10 +516,10 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               Row(
                 children: [
                   Expanded(
-                    flex: 3,
+                    flex: 2,
                     child: TextFormField(
                       controller: _websocketServerUrlController,
-                      style: const TextStyle(fontSize: 13),
+                      style: const TextStyle(fontSize: 12),
                       enableInteractiveSelection: true,
                       enableSuggestions: false,
                       autocorrect: false,
@@ -562,20 +562,20 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     flex: 1,
                     child: TextFormField(
                       controller: _websocketServerPortController,
-                      style: const TextStyle(fontSize: 13),
+                      style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
                         labelText: '포트',
-                        hintText: '6600',
+                        hintText: '8800',
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        labelStyle: TextStyle(fontSize: 12),
-                        hintStyle: TextStyle(fontSize: 12),
-                        errorStyle: TextStyle(fontSize: 10),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                        labelStyle: TextStyle(fontSize: 11),
+                        hintStyle: TextStyle(fontSize: 11),
+                        errorStyle: TextStyle(fontSize: 9),
                       ),
                       keyboardType: TextInputType.number,
                       inputFormatters: [
@@ -585,7 +585,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                         if (value != null && value.trim().isNotEmpty) {
                           final port = int.tryParse(value.trim());
                           if (port == null || port < 1 || port > 65535) {
-                            return '포트 범위: 1-65535';
+                            return '1-65535';
                           }
                         }
                         return null;
