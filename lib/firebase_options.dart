@@ -45,7 +45,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM',
-    appId: '1:793164633643:android:c2f267d67b908274ccfc6e',
+    appId: '1:793164633643:web:76f1f17cff465a5fccfc6e',
     messagingSenderId: '793164633643',
     projectId: 'makecallio',
     authDomain: 'makecallio.firebaseapp.com',
