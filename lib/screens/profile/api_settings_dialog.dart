@@ -182,8 +182,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     final dialogWidth = screenWidth > 600 ? 500.0 : screenWidth * 0.9;
     
     return AlertDialog(
-      title: const Text('기본 API 설정', style: TextStyle(fontSize: 16)),
-      contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+      title: const Text('기본 API 설정', style: TextStyle(fontSize: 15)),
+      contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       content: SizedBox(
         width: dialogWidth,
         child: SingleChildScrollView(
@@ -196,18 +196,18 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               // REST API 설정 헤더 (WebSocket과 동일한 스타일)
               Row(
                 children: [
-                  Icon(Icons.api, size: 18, color: isDark ? Colors.blue[300] : Colors.blue),
-                  const SizedBox(width: 8),
+                  Icon(Icons.api, size: 16, color: isDark ? Colors.blue[300] : Colors.blue),
+                  const SizedBox(width: 6),
                   Text(
                     'REST API 설정',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.blue[300] : Colors.blue),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.blue[300] : Colors.blue),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               Text(
                 'REST API 서버 설정',
-                style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey),
+                style: TextStyle(fontSize: 10, color: isDark ? Colors.grey[400] : Colors.grey),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -365,10 +365,10 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               const SizedBox(height: 16),
               // API 인증 정보 (WebSocket과 동일한 스타일)
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: isDark ? Colors.blue[900]!.withValues(alpha: 0.3) : Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: isDark ? Colors.blue[700]! : Colors.blue.shade200,
                   ),
@@ -380,25 +380,25 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                       children: [
                         Icon(
                           Icons.security, 
-                          size: 16, 
+                          size: 14, 
                           color: isDark ? Colors.blue[300] : Colors.blue.shade700,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Text(
                           'REST API 인증 정보 (필수)',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                            fontSize: 11,
                             color: isDark ? Colors.blue[300] : Colors.blue.shade900,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       'REST API 연결 시 Company ID와 App-Key 사용',
                       style: TextStyle(
-                        fontSize: 10, 
+                        fontSize: 9, 
                         color: isDark ? Colors.blue[400] : Colors.blue.shade700,
                       ),
                     ),
@@ -499,18 +499,18 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               // WebSocket 설정 헤더
               Row(
                 children: [
-                  Icon(Icons.settings_input_antenna, size: 18, color: isDark ? Colors.teal[300] : Colors.teal),
-                  const SizedBox(width: 8),
+                  Icon(Icons.settings_input_antenna, size: 16, color: isDark ? Colors.teal[300] : Colors.teal),
+                  const SizedBox(width: 6),
                   Text(
                     'WebSocket 설정',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.teal[300] : Colors.teal),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.teal[300] : Colors.teal),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               Text(
                 'DCMIWS WebSocket 서버 설정',
-                style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey),
+                style: TextStyle(fontSize: 10, color: isDark ? Colors.grey[400] : Colors.grey),
               ),
               const SizedBox(height: 12),
               Row(
@@ -630,10 +630,10 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               const SizedBox(height: 16),
               // HTTP 인증 정보 (필수)
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: isDark ? Colors.teal[900]!.withValues(alpha: 0.3) : Colors.teal.shade50,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: isDark ? Colors.teal[700]! : Colors.teal.shade200,
                   ),
@@ -645,25 +645,25 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                       children: [
                         Icon(
                           Icons.security, 
-                          size: 16, 
+                          size: 14, 
                           color: isDark ? Colors.teal[300] : Colors.teal.shade700,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Text(
                           'HTTP 인증 정보 (WebSocket 사용 시 필수)',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                            fontSize: 11,
                             color: isDark ? Colors.teal[300] : Colors.teal.shade900,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       'WebSocket 서버 연결 시 HTTP Basic Authentication 사용',
                       style: TextStyle(
-                        fontSize: 10, 
+                        fontSize: 9, 
                         color: isDark ? Colors.teal[400] : Colors.teal.shade700,
                       ),
                     ),
