@@ -534,7 +534,7 @@ class SocialLoginService {
                   // 개발: localhost, 프로덕션: 실제 도메인
                   kDebugMode
                       ? 'http://localhost:5060/auth/callback'
-                      : 'https://yourdomain.com/auth/callback',
+                      : 'https://app.makecall.io/auth/callback',
                 ),
               )
             : null,
