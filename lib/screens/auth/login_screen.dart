@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
 import '../../services/account_manager_service.dart';
 import '../../services/social_login_service.dart';
@@ -475,19 +476,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
   
-  // 애플 로그인 (iOS 전용)
+  // 애플 로그인 (모든 플랫폼)
   Future<void> _handleAppleLogin() async {
     if (_isSocialLoginLoading) return;
-    
-    // iOS/Web 플랫폼 체크
-    if (!kIsWeb && !_isIOS) {
-      await DialogUtils.showInfo(
-        context,
-        'Apple 로그인은 iOS 기기와 웹에서만 사용할 수 있습니다.',
-        title: 'Apple 로그인 안내',
-      );
-      return;
-    }
     
     setState(() => _isSocialLoginLoading = true);
     
@@ -953,6 +944,61 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                         
                         SizedBox(height: _isMobile ? 24 : 32),
+                        
+                        // 웹 플랫폼: 개인정보 보호정책 및 서비스 이용 약관 링크
+                        if (_isWeb) ...[
+                          Center(
+                            child: Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: [
+                                InkWell(
+                                  onTap: () async {
+                                    final uri = Uri.parse('https://app.makecall.io/privacy_policy.html');
+                                    if (await canLaunchUrl(uri)) {
+                                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  child: Text(
+                                    '개인정보 보호정책',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                                      decoration: TextDecoration.underline,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '|',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark ? Colors.grey[600] : Colors.grey[400],
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () async {
+                                    final uri = Uri.parse('https://app.makecall.io/terms_of_service.html');
+                                    if (await canLaunchUrl(uri)) {
+                                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  child: Text(
+                                    '서비스 이용 약관',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                                      decoration: TextDecoration.underline,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         
                         // 하단 정보
                         Center(

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
 import '../../services/social_login_service.dart';
 import '../../utils/dialog_utils.dart';
@@ -359,19 +360,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     }
   }
 
-  // Apple 회원가입
+  // Apple 회원가입 (모든 플랫폼)
   Future<void> _handleAppleSignUp() async {
     if (_isSocialLoginLoading) return;
-    
-    // iOS/Web 플랫폼 체크
-    if (!kIsWeb && !_isIOS) {
-      await DialogUtils.showInfo(
-        context,
-        'Apple 회원가입은 iOS 기기와 웹에서만 사용할 수 있습니다.',
-        title: 'Apple 회원가입 안내',
-      );
-      return;
-    }
     
     setState(() => _isSocialLoginLoading = true);
     
@@ -906,6 +897,61 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                           ],
                         ),
                         const SizedBox(height: 16),
+                        
+                        // 웹 플랫폼: 개인정보 보호정책 및 서비스 이용 약관 링크
+                        if (_isWeb) ...[
+                          Center(
+                            child: Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: [
+                                InkWell(
+                                  onTap: () async {
+                                    final uri = Uri.parse('https://app.makecall.io/privacy_policy.html');
+                                    if (await canLaunchUrl(uri)) {
+                                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  child: Text(
+                                    '개인정보 보호정책',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                                      decoration: TextDecoration.underline,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '|',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark ? Colors.grey[600] : Colors.grey[400],
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () async {
+                                    final uri = Uri.parse('https://app.makecall.io/terms_of_service.html');
+                                    if (await canLaunchUrl(uri)) {
+                                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  child: Text(
+                                    '서비스 이용 약관',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                                      decoration: TextDecoration.underline,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         
                         // Copyright
                         Text(

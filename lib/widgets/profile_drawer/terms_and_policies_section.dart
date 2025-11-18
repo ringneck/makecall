@@ -75,7 +75,7 @@ class TermsAndPoliciesSection extends StatelessWidget {
                 color: isDark ? Colors.grey[500] : Colors.grey,
               ),
               onTap: () {
-                _openExternalUrl('https://makecall.io/mcuc/terms_of_service.html');
+                _openExternalUrl('https://app.makecall.io/terms_of_service.html');
               },
             ),
             
@@ -100,7 +100,7 @@ class TermsAndPoliciesSection extends StatelessWidget {
                 color: isDark ? Colors.grey[500] : Colors.grey,
               ),
               onTap: () {
-                _openExternalUrl('https://makecall.io/mcuc/privacy_policy.html');
+                _openExternalUrl('https://app.makecall.io/privacy_policy.html');
               },
             ),
             
