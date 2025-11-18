@@ -127,5 +127,6 @@
         
         <!-- 네이버 SDK 쿼리 설정 (Android 11+) -->
         <package android:name="com.nhn.android.search" />
+        <package android:name="com.naver.android" />
     </queries>
 </manifest>
