@@ -66,8 +66,6 @@ class FirebaseAuthTokenHelper {
           debugPrint('✅ [AUTH-TOKEN] 새 토큰 발급 완료');
           debugPrint('   - Token: ${idToken.substring(0, 20)}...');
           debugPrint('   - 만료 시간: $_tokenExpiryTime');
-          // 🔍 디버깅용: 전체 토큰 출력 (배포 시 삭제 권장)
-          debugPrint('   - Full Token: $idToken');
         }
       }
 
