@@ -1,8 +1,8 @@
 // Firebase Cloud Messaging 서비스 워커
 // 백그라운드 알림 수신을 위한 서비스 워커
 
-importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
 
 // Firebase 설정 (firebase_options.dart의 web 설정과 동일)
 const firebaseConfig = {

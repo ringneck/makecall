@@ -40,10 +40,8 @@
     // 🚀 Service Worker 등록 (PWA 지원 + FCM)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
-        // Firebase Messaging Service Worker 등록 (별도 scope)
-        navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-          scope: '/firebase-cloud-messaging-push-scope'
-        })
+        // Firebase Messaging Service Worker 등록 (기본 scope 사용)
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
           .then((registration) => {
             console.log('✅ Firebase Messaging Service Worker 등록 완료:', registration.scope);
             console.log('   업데이트 확인 중...');
