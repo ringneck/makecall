@@ -106,7 +106,7 @@ class SocialLoginButtons extends StatelessWidget {
         _buildIconButton(
           context: context,
           onPressed: isLoading ? null : onKakaoPressed,
-          backgroundColor: const Color(0xFFEE500),
+          backgroundColor: const Color(0xFFFEE500),  // 카카오 공식 노란색
           icon: _buildKakaoIcon(iconSize),
           size: buttonSize,
           isDark: isDark,
@@ -276,7 +276,7 @@ class SocialLoginButtons extends StatelessWidget {
       ),
       child: Icon(
         Icons.chat_bubble,
-        color: const Color(0xFEE500),
+        color: const Color(0xFFFFE500),  // 카카오 노란색 (밝은 노란색)
         size: size * 0.6,
       ),
     );
