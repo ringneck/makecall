@@ -128,5 +128,13 @@
         <!-- 네이버 SDK 쿼리 설정 (Android 11+) -->
         <package android:name="com.nhn.android.search" />
         <package android:name="com.naver.android" />
+        <package android:name="com.nhn.android.nid.naver" />
+        
+        <!-- 네이버 인텐트 필터 (로그인 감지) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+            <data android:scheme="https" />
+        </intent>
     </queries>
 </manifest>
