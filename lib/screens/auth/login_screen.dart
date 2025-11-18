@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
 import '../../services/account_manager_service.dart';
@@ -75,9 +76,25 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     super.dispose();
   }
   
-  // 플랫폼 감지
-  bool get _isMobile => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+  // 플랫폼 감지 (웹 플랫폼 안전 처리)
+  bool get _isMobile {
+    if (kIsWeb) return false;
+    try {
+      return Platform.isIOS || Platform.isAndroid;
+    } catch (e) {
+      return false;
+    }
+  }
   bool get _isWeb => kIsWeb;
+  
+  bool get _isIOS {
+    if (kIsWeb) return false;
+    try {
+      return Platform.isIOS;
+    } catch (e) {
+      return false;
+    }
+  }
   
   // 자동 로그인 체크 및 시도 (LoginScreen 표시 전)
   Future<void> _checkAndAutoLogin() async {
@@ -222,20 +239,93 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         debugPrint('   - User ID: ${result.userId}');
         debugPrint('   - Email: ${result.email}');
         debugPrint('   - Name: ${result.displayName}');
+        debugPrint('   - Photo URL: ${result.photoUrl}');
+      }
+      
+      // 카카오 로그인 성공 시 Firestore 사용자 정보 업데이트
+      if (result.success && result.userId != null) {
+        await _updateFirestoreUserProfile(
+          userId: result.userId!,
+          displayName: result.displayName,
+          photoUrl: result.photoUrl,
+          provider: result.provider,
+        );
       }
       
       // Firebase Authentication이 이미 완료되었으므로
-      // 추가 승인 프로세스가 필요하면 여기서 처리
-      
       // AuthService의 user stream이 자동으로 업데이트되어 홈 화면으로 이동
       
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [SOCIAL LOGIN] 후처리 오류: $e');
+      }
       if (mounted) {
         await DialogUtils.showError(
           context,
           '소셜 로그인 후 처리 중 오류가 발생했습니다: ${e.toString()}',
         );
       }
+    }
+  }
+  
+  // Firestore 사용자 프로필 업데이트 (카카오 닉네임 → 조직명, 프로필사진 → 썸네일)
+  Future<void> _updateFirestoreUserProfile({
+    required String userId,
+    String? displayName,
+    String? photoUrl,
+    required SocialLoginProvider provider,
+  }) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔄 [PROFILE UPDATE] Firestore 사용자 정보 업데이트 시작');
+        debugPrint('   - Provider: ${provider.name}');
+        debugPrint('   - DisplayName: ${displayName ?? "null"}');
+        debugPrint('   - PhotoUrl: ${photoUrl ?? "null"}');
+      }
+      
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+      final docSnapshot = await userDoc.get();
+      
+      // 업데이트할 필드 준비
+      final Map<String, dynamic> updateData = {};
+      
+      // 카카오 닉네임 → organizationName (조직명이 비어있을 때만)
+      if (displayName != null && displayName.isNotEmpty) {
+        if (!docSnapshot.exists || docSnapshot.data()?['organizationName'] == null) {
+          updateData['organizationName'] = displayName;
+          if (kDebugMode) {
+            debugPrint('   ✅ organizationName 설정: $displayName');
+          }
+        }
+      }
+      
+      // 카카오 프로필사진 → profileImageUrl (썸네일, 비어있을 때만)
+      if (photoUrl != null && photoUrl.isNotEmpty) {
+        if (!docSnapshot.exists || docSnapshot.data()?['profileImageUrl'] == null) {
+          updateData['profileImageUrl'] = photoUrl;
+          if (kDebugMode) {
+            debugPrint('   ✅ profileImageUrl 설정: $photoUrl');
+          }
+        }
+      }
+      
+      // 업데이트 실행
+      if (updateData.isNotEmpty) {
+        await userDoc.set(updateData, SetOptions(merge: true));
+        if (kDebugMode) {
+          debugPrint('✅ [PROFILE UPDATE] Firestore 업데이트 완료');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('ℹ️ [PROFILE UPDATE] 업데이트할 필드 없음 (이미 설정됨)');
+        }
+      }
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [PROFILE UPDATE] Firestore 업데이트 실패: $e');
+      }
+      // 프로필 업데이트 실패는 치명적이지 않으므로 에러를 throw하지 않음
     }
   }
   
@@ -389,11 +479,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _handleAppleLogin() async {
     if (_isSocialLoginLoading) return;
     
-    // iOS 플랫폼 체크
-    if (!kIsWeb && !Platform.isIOS) {
+    // iOS/Web 플랫폼 체크
+    if (!kIsWeb && !_isIOS) {
       await DialogUtils.showInfo(
         context,
-        'Apple 로그인은 iOS 기기에서만 사용할 수 있습니다.\n\n현재 기기: ${Platform.operatingSystem}',
+        'Apple 로그인은 iOS 기기와 웹에서만 사용할 수 있습니다.',
         title: 'Apple 로그인 안내',
       );
       return;

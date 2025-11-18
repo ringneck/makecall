@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 
 /// 소셜 로그인 버튼 위젯
 /// 
@@ -33,8 +33,18 @@ class SocialLoginButtons extends StatelessWidget {
   ) {
     final spacing = SizedBox(width: screenWidth > 600 ? 20 : 16);
     
+    // 🔍 디버그: 플랫폼 확인
+    if (kDebugMode) {
+      debugPrint('🔍 [SOCIAL BUTTONS] Platform check:');
+      debugPrint('   - kIsWeb: $kIsWeb');
+      debugPrint('   - Building ${kIsWeb ? "WEB" : "MOBILE"} buttons');
+    }
+    
     if (kIsWeb) {
       // 🌐 웹 플랫폼: 구글 + 애플만 표시
+      if (kDebugMode) {
+        debugPrint('   - Buttons: Google, Apple (2 buttons)');
+      }
       return [
         // 구글 로그인
         _buildIconButton(
@@ -65,6 +75,11 @@ class SocialLoginButtons extends StatelessWidget {
       ];
     } else {
       // 📱 모바일 플랫폼: 네이버 + 카카오 + 구글 + 애플 모두 표시
+      if (kDebugMode) {
+        debugPrint('   - Buttons: Naver, Kakao, Google, Apple (4 buttons)');
+        debugPrint('   - Kakao callback: ${onKakaoPressed != null ? "SET" : "NULL"}');
+      }
+      
       return [
         // 네이버 로그인 (왼쪽부터)
         _buildIconButton(
@@ -82,7 +97,7 @@ class SocialLoginButtons extends StatelessWidget {
         _buildIconButton(
           context: context,
           onPressed: isLoading ? null : onKakaoPressed,
-          backgroundColor: const Color(0xFEE500),
+          backgroundColor: const Color(0xFFEE500),
           icon: _buildKakaoIcon(iconSize),
           size: buttonSize,
           isDark: isDark,

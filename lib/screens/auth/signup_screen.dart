@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 import '../../services/auth_service.dart';
 import '../../services/social_login_service.dart';
@@ -32,9 +33,25 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  // Platform detection
-  bool get _isMobile => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+  // Platform detection (웹 플랫폼 안전 처리)
+  bool get _isMobile {
+    if (kIsWeb) return false;
+    try {
+      return Platform.isIOS || Platform.isAndroid;
+    } catch (e) {
+      return false;
+    }
+  }
   bool get _isWeb => kIsWeb;
+  
+  bool get _isIOS {
+    if (kIsWeb) return false;
+    try {
+      return Platform.isIOS;
+    } catch (e) {
+      return false;
+    }
+  }
 
   @override
   void initState() {
@@ -114,6 +131,16 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   // 소셜 로그인 성공 처리
   Future<void> _handleSocialLoginSuccess(SocialLoginResult result) async {
     try {
+      // 카카오 로그인 성공 시 Firestore 사용자 정보 업데이트
+      if (result.success && result.userId != null) {
+        await _updateFirestoreUserProfile(
+          userId: result.userId!,
+          displayName: result.displayName,
+          photoUrl: result.photoUrl,
+          provider: result.provider,
+        );
+      }
+      
       if (mounted) {
         Navigator.pop(context);
         await DialogUtils.showSuccess(
@@ -125,6 +152,67 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       if (kDebugMode) {
         debugPrint('❌ 소셜 로그인 성공 처리 오류: $e');
       }
+    }
+  }
+  
+  // Firestore 사용자 프로필 업데이트 (카카오 닉네임 → 조직명, 프로필사진 → 썸네일)
+  Future<void> _updateFirestoreUserProfile({
+    required String userId,
+    String? displayName,
+    String? photoUrl,
+    required SocialLoginProvider provider,
+  }) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔄 [PROFILE UPDATE] Firestore 사용자 정보 업데이트 시작');
+        debugPrint('   - Provider: ${provider.name}');
+        debugPrint('   - DisplayName: ${displayName ?? "null"}');
+        debugPrint('   - PhotoUrl: ${photoUrl ?? "null"}');
+      }
+      
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+      final docSnapshot = await userDoc.get();
+      
+      // 업데이트할 필드 준비
+      final Map<String, dynamic> updateData = {};
+      
+      // 카카오 닉네임 → organizationName (조직명이 비어있을 때만)
+      if (displayName != null && displayName.isNotEmpty) {
+        if (!docSnapshot.exists || docSnapshot.data()?['organizationName'] == null) {
+          updateData['organizationName'] = displayName;
+          if (kDebugMode) {
+            debugPrint('   ✅ organizationName 설정: $displayName');
+          }
+        }
+      }
+      
+      // 카카오 프로필사진 → profileImageUrl (썸네일, 비어있을 때만)
+      if (photoUrl != null && photoUrl.isNotEmpty) {
+        if (!docSnapshot.exists || docSnapshot.data()?['profileImageUrl'] == null) {
+          updateData['profileImageUrl'] = photoUrl;
+          if (kDebugMode) {
+            debugPrint('   ✅ profileImageUrl 설정: $photoUrl');
+          }
+        }
+      }
+      
+      // 업데이트 실행
+      if (updateData.isNotEmpty) {
+        await userDoc.set(updateData, SetOptions(merge: true));
+        if (kDebugMode) {
+          debugPrint('✅ [PROFILE UPDATE] Firestore 업데이트 완료');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('ℹ️ [PROFILE UPDATE] 업데이트할 필드 없음 (이미 설정됨)');
+        }
+      }
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [PROFILE UPDATE] Firestore 업데이트 실패: $e');
+      }
+      // 프로필 업데이트 실패는 치명적이지 않으므로 에러를 throw하지 않음
     }
   }
 
@@ -275,11 +363,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   Future<void> _handleAppleSignUp() async {
     if (_isSocialLoginLoading) return;
     
-    // iOS 플랫폼 체크
-    if (!kIsWeb && !Platform.isIOS) {
+    // iOS/Web 플랫폼 체크
+    if (!kIsWeb && !_isIOS) {
       await DialogUtils.showInfo(
         context,
-        'Apple 회원가입은 iOS 기기에서만 사용할 수 있습니다.\n\n현재 기기: ${Platform.operatingSystem}',
+        'Apple 회원가입은 iOS 기기와 웹에서만 사용할 수 있습니다.',
         title: 'Apple 회원가입 안내',
       );
       return;

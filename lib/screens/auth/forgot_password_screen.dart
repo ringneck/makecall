@@ -22,8 +22,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  // Platform detection
-  bool get _isMobile => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+  // Platform detection (웹 플랫폼 안전 처리)
+  bool get _isMobile {
+    if (kIsWeb) return false;
+    try {
+      return Platform.isIOS || Platform.isAndroid;
+    } catch (e) {
+      return false;
+    }
+  }
   bool get _isWeb => kIsWeb;
 
   @override

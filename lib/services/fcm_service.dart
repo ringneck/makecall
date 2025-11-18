@@ -28,6 +28,11 @@ import 'fcm/fcm_message_handler.dart';
 import 'fcm/fcm_notification_service.dart';
 import 'fcm/fcm_incoming_call_handler.dart';
 
+/// 플랫폼 체크 헬퍼 (웹 플랫폼 안전 처리)
+bool get _isIOS => !kIsWeb && _isIOS;
+bool get _isAndroid => !kIsWeb && _isAndroid;
+bool get _isMobile => _isIOS || _isAndroid;
+
 /// FCM(Firebase Cloud Messaging) 서비스
 /// 
 /// 다중 기기 로그인 지원 기능 포함:
@@ -144,9 +149,9 @@ class FCMService {
       // 🔧 Phase 3: 일반 알림 표시를 FCMNotificationService로 위임
       if (kIsWeb) {
         _notificationService.showWebNotification(message);
-      } else if (Platform.isAndroid) {
+      } else if (_isAndroid) {
         _notificationService.showAndroidNotification(message);
-      } else if (Platform.isIOS) {
+      } else if (_isIOS) {
         _notificationService.showIOSNotification(message);
       }
     };
@@ -218,7 +223,7 @@ class FCMService {
       print('🎯 [FCM] 모든 메시지 리스너 등록 완료! 이제 토큰 생성 시작');
       
       // Android 로컬 알림 플러그인 초기화 및 알림 채널 생성
-      if (Platform.isAndroid) {
+      if (_isAndroid) {
         // ignore: avoid_print
         print('🤖 [FCM] Android: flutter_local_notifications 초기화 중...');
         
@@ -359,7 +364,7 @@ class FCMService {
           print('📱 [FCM] 모바일 플랫폼: 일반 토큰 요청');
           
           // iOS 전용: APNs 토큰 확인 (재시도 로직 포함)
-          if (Platform.isIOS) {
+          if (_isIOS) {
             // ignore: avoid_print
             print('🍎 [FCM] iOS: APNs 토큰 확인 중...');
             
@@ -458,7 +463,7 @@ class FCMService {
           print('   1. 네트워크 연결 오류');
           // ignore: avoid_print
           print('   2. Firebase 설정 오류 (GoogleService-Info.plist)');
-          if (Platform.isIOS) {
+          if (_isIOS) {
             // ignore: avoid_print
             print('   3. APNs 토큰 없음 (iOS 시뮬레이터는 지원 안 됨)');
             // ignore: avoid_print
@@ -913,12 +918,12 @@ class FCMService {
     }
     
     // 안드로이드 플랫폼: 로컬 알림 표시
-    if (Platform.isAndroid) {
+    if (_isAndroid) {
       _showAndroidNotification(message);
     }
     
     // iOS 플랫폼: DialogUtils로 알림 표시 (네이티브 알림은 AppDelegate에서 비활성화됨)
-    if (Platform.isIOS) {
+    if (_isIOS) {
       _showIOSNotification(message);
     }
   }
@@ -1006,7 +1011,7 @@ class FCMService {
     // ignore: avoid_print
     print('📞 [FCM-INCOMING] 수신 전화 FCM 메시지 처리 시작');
     // ignore: avoid_print
-    print('   - Platform: ${Platform.isAndroid ? 'Android' : (Platform.isIOS ? 'iOS' : 'Other')}');
+    print('   - Platform: ${_isAndroid ? 'Android' : (_isIOS ? 'iOS' : 'Other')}');
     // ignore: avoid_print
     print('   - Message data: ${message.data}');
     
@@ -1800,7 +1805,7 @@ class FCMService {
 
   /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
   Future<void> _showAndroidNotificationOriginal(RemoteMessage message) async {
-    if (!Platform.isAndroid) return;
+    if (!_isAndroid) return;
     
     try {
       final title = message.notification?.title ?? message.data['title'] ?? 'MAKECALL 알림';
@@ -1976,7 +1981,7 @@ class FCMService {
 
   /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
   Future<void> _showIOSNotificationOriginal(RemoteMessage message) async {
-    if (!Platform.isIOS) return;
+    if (!_isIOS) return;
     
     try {
       final title = message.notification?.title ?? message.data['title'] ?? 'MAKECALL 알림';
@@ -2498,7 +2503,7 @@ class FCMService {
   
   /// iOS APNs 토큰 상태 확인 (디버깅용)
   Future<Map<String, dynamic>> checkIOSAPNsStatus() async {
-    if (!Platform.isIOS) {
+    if (!_isIOS) {
       return {'platform': 'not_ios', 'status': 'N/A'};
     }
     
