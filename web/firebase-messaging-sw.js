@@ -7,7 +7,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-comp
 // Firebase 설정 (firebase_options.dart의 web 설정과 동일)
 const firebaseConfig = {
   apiKey: 'AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM',
-  appId: '1:793164633643:android:c2f267d67b908274ccfc6e',
+  appId: '1:793164633643:web:76f1f17cff465a5fccfc6e',
   messagingSenderId: '793164633643',
   projectId: 'makecallio',
   authDomain: 'makecallio.firebaseapp.com',
