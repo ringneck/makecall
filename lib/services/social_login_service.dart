@@ -317,8 +317,11 @@ class SocialLoginService {
         if (kDebugMode) {
           debugPrint('✅ [Naver] FlutterNaverLogin.logIn() 응답 받음');
           debugPrint('   - status: ${result.status}');
-          debugPrint('   - isLoggedIn: ${result.isLoggedIn}');
           debugPrint('   - account != null: ${result.account != null}');
+          if (result.account != null) {
+            debugPrint('   - account.id: ${result.account!.id}');
+            debugPrint('   - account.email: ${result.account!.email}');
+          }
         }
       } catch (loginError) {
         if (kDebugMode) {
@@ -444,29 +447,25 @@ class SocialLoginService {
         if (kDebugMode) {
           debugPrint('⚠️ [Naver] 로그인 취소 또는 실패');
           debugPrint('   - status: ${result.status}');
-          debugPrint('   - isLoggedIn: ${result.isLoggedIn}');
           debugPrint('   - account: ${result.account}');
-          debugPrint('   - errorCode: ${result.errorCode}');
-          debugPrint('   - errorDescription: ${result.errorDescription}');
           debugPrint('='*60);
           debugPrint('');
         }
         
-        // 에러 코드별 상세 메시지
+        // 상태별 상세 메시지
         String errorMessage = '로그인이 취소되었거나 실패했습니다';
         
-        if (result.errorCode != null && result.errorCode!.isNotEmpty) {
-          errorMessage = '네이버 로그인 실패\n\n'
-              '에러 코드: ${result.errorCode}\n'
-              '에러 설명: ${result.errorDescription ?? "알 수 없음"}\n\n'
+        if (result.status == NaverLoginStatus.error) {
+          errorMessage = '네이버 로그인 오류\n\n'
+              '네이버 앱 또는 네트워크 문제일 수 있습니다.\n\n'
               '해결 방법:\n'
               '1. 네이버 앱이 설치되어 있다면 업데이트하세요\n'
               '2. 앱 권한을 확인하세요\n'
-              '3. 네이버 개발자 센터 설정을 확인하세요';
-        } else if (result.status == NaverLoginStatus.error) {
-          errorMessage = '네이버 로그인 오류\n\n'
-              '네이버 앱 또는 네트워크 문제일 수 있습니다.\n'
-              '다시 시도하거나 네이버 앱을 재설치해보세요.';
+              '3. 네이버 개발자 센터 설정을 확인하세요\n'
+              '4. 인터넷 연결을 확인하세요';
+        } else if (result.status == NaverLoginStatus.loggedOut) {
+          errorMessage = '네이버 로그인이 취소되었습니다\n\n'
+              '다시 시도해주세요.';
         }
         
         return SocialLoginResult(
