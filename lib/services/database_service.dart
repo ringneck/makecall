@@ -1329,6 +1329,15 @@ class DatabaseService {
     try {
       // 🔑 CRITICAL: Platform 포함으로 iOS/Android 기기 구분
       final docId = '${userId}_${deviceId}_$platform';
+      
+      if (kDebugMode) {
+        debugPrint('🔍 [DB] 승인 상태 조회 시작');
+        debugPrint('   - userId: $userId');
+        debugPrint('   - deviceId: $deviceId');
+        debugPrint('   - platform: $platform');
+        debugPrint('   - 문서 ID: $docId');
+      }
+      
       final tokenDoc = await _firestore
           .collection('fcm_tokens')
           .doc(docId)
@@ -1338,6 +1347,27 @@ class DatabaseService {
         // 토큰 없음 - 미승인으로 처리
         if (kDebugMode) {
           debugPrint('⚠️ [DB] fcm_tokens 문서 없음 - 미승인으로 처리');
+          debugPrint('   📝 찾으려고 한 문서 ID: $docId');
+          
+          // 🔍 디버깅: 해당 userId의 모든 토큰 조회
+          debugPrint('🔍 [DB] 디버깅: 해당 사용자의 모든 fcm_tokens 조회 중...');
+          final allTokens = await _firestore
+              .collection('fcm_tokens')
+              .where('userId', isEqualTo: userId)
+              .get();
+          
+          if (allTokens.docs.isEmpty) {
+            debugPrint('   ❌ 해당 사용자의 fcm_tokens 문서가 하나도 없음!');
+          } else {
+            debugPrint('   📋 발견된 문서 ${allTokens.docs.length}개:');
+            for (var doc in allTokens.docs) {
+              debugPrint('      - 문서 ID: ${doc.id}');
+              final data = doc.data();
+              debugPrint('        deviceId: ${data['deviceId']}');
+              debugPrint('        platform: ${data['platform']}');
+              debugPrint('        isApproved: ${data['isApproved']}');
+            }
+          }
         }
         return false;
       }

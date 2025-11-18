@@ -253,6 +253,9 @@ class FCMMessageHandler {
       
       // 기기 정보 가져오기 (캐시 사용)
       if (_cachedDeviceId == null || _cachedPlatform == null) {
+        if (kDebugMode) {
+          debugPrint('🔄 [FCM-HANDLER] 기기 정보 로드 중...');
+        }
         await _loadDeviceInfo();
       }
       
@@ -260,8 +263,17 @@ class FCMMessageHandler {
         // 기기 정보 없음 - 안전하게 미승인으로 처리
         if (kDebugMode) {
           debugPrint('⚠️ [FCM-HANDLER] 기기 정보 없음 - 미승인으로 처리');
+          debugPrint('   - _cachedDeviceId: $_cachedDeviceId');
+          debugPrint('   - _cachedPlatform: $_cachedPlatform');
         }
         return false;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('📱 [FCM-HANDLER] 기기 정보 확인 완료');
+        debugPrint('   - userId: $userId');
+        debugPrint('   - deviceId: $_cachedDeviceId');
+        debugPrint('   - platform: $_cachedPlatform');
       }
       
       // DatabaseService를 통해 승인 상태 조회
