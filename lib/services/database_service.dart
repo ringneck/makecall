@@ -176,7 +176,7 @@ class DatabaseService {
       _firestore
           .collection('call_history')
           .where('userId', isEqualTo: userId)
-          .snapshots()
+          .snapshots(includeMetadataChanges: true)
           .handleError((error) {
             // Permission denied 에러 시 빈 리스트 반환
             if (kDebugMode) {

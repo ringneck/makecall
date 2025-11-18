@@ -48,9 +48,24 @@ class CallHistoryModel {
     final phoneNumber = map['callerNumber'] as String? ?? map['phoneNumber'] as String? ?? '';
     final contactName = map['callerName'] as String? ?? map['contactName'] as String?;
     
-    // timestamp 처리: Firestore의 serverTimestamp 또는 ISO8601 문자열
+    // 🔧 FIX: createdAt 우선 사용 (정확한 클라이언트 시간)
+    // timestamp는 serverTimestamp()로 인한 추정값 문제가 있음
     DateTime callTime;
-    if (map['timestamp'] != null) {
+    if (map['createdAt'] != null) {
+      // 우선순위 1: createdAt (DateTime.now()로 저장된 정확한 시간)
+      final createdAt = map['createdAt'];
+      if (createdAt is String) {
+        callTime = DateTime.parse(createdAt);
+      } else {
+        // Firestore Timestamp 객체인 경우
+        try {
+          callTime = (createdAt as dynamic).toDate() as DateTime;
+        } catch (e) {
+          callTime = DateTime.now();
+        }
+      }
+    } else if (map['timestamp'] != null) {
+      // 우선순위 2: timestamp (서버 타임스탬프, fallback)
       final timestamp = map['timestamp'];
       if (timestamp is String) {
         callTime = DateTime.parse(timestamp);
@@ -63,8 +78,10 @@ class CallHistoryModel {
         }
       }
     } else if (map['callTime'] != null) {
+      // 우선순위 3: callTime (레거시 지원)
       callTime = DateTime.parse(map['callTime'] as String);
     } else {
+      // 마지막 fallback
       callTime = DateTime.now();
     }
     
