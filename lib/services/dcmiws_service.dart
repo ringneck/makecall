@@ -8,7 +8,6 @@ import '../screens/call/incoming_call_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/contact_helper.dart';
-import '../utils/firebase_auth_token_helper.dart';
 import 'database_service.dart';
 import 'package:http/http.dart' as http;
 
@@ -2031,13 +2030,12 @@ class DCMIWSService {
     }
   }
 
-  /// Firebase Functions에 수신전화 FCM 전송 요청 (🔐 인증 추가)
+  /// Firebase Functions에 수신전화 FCM 전송 요청
   /// 
   /// DCMIWS Newchannel 이벤트 발생 시 호출하여 FCM 푸시를 전송합니다.
   /// WebSocket이 활성이더라도 FCM 백업 전송 (다른 기기 알림용)
   /// 
-  /// 🔐 보안: Firebase ID Token 기반 인증
-  /// - 401 에러 시 자동으로 토큰 갱신 후 재시도 (1회)
+  /// 💡 참고: Firebase Functions는 Service Account로 보호됨
   Future<void> _sendIncomingCallFCM({
     required String callerNumber,
     required String callerName,
@@ -2059,85 +2057,28 @@ class DCMIWSService {
         debugPrint('  통화타입: $callType');
       }
       
-      // 🔐 ID Token 가져오기 (캐싱 최적화)
-      final tokenHelper = FirebaseAuthTokenHelper();
-      final idToken = await tokenHelper.getIdToken();
-      
-      if (idToken == null) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [DCMIWS-FCM] ID Token 없음 - FCM 전송 건너뜀');
-        }
-        return;
-      }
-      
-      if (kDebugMode) {
-        debugPrint('🔐 [DCMIWS-FCM] ID Token 준비 완료');
-        final cacheInfo = tokenHelper.getCacheInfo();
-        debugPrint('   - 캐시 사용: ${cacheInfo['hasCachedToken']}');
-        debugPrint('   - 남은 시간: ${cacheInfo['remainingMinutes']}분');
-      }
-      
       // Firebase Functions URL (서울 리전: asia-northeast3)
       const functionsUrl = 'https://asia-northeast3-makecallio.cloudfunctions.net/sendIncomingCallNotification';
       
-      // 첫 번째 시도
-      final response = await _makeAuthenticatedRequest(
-        functionsUrl: functionsUrl,
-        idToken: idToken,
-        body: {
+      final response = await http.post(
+        Uri.parse(functionsUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
           'callerNumber': callerNumber,
           'callerName': callerName,
           'receiverNumber': receiverNumber,
           'linkedid': linkedid,
           'channel': channel,
           'callType': callType,
+        }),
+      ).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw TimeoutException('FCM 전송 요청 타임아웃 (5초)');
         },
       );
       
-      // 401 Unauthorized: 토큰 만료 - 갱신 후 재시도
-      if (response.statusCode == 401) {
-        if (kDebugMode) {
-          debugPrint('🔄 [DCMIWS-FCM] 401 Unauthorized - 토큰 갱신 후 재시도');
-        }
-        
-        // 토큰 갱신
-        final newToken = await tokenHelper.refreshToken();
-        
-        if (newToken == null) {
-          if (kDebugMode) {
-            debugPrint('❌ [DCMIWS-FCM] 토큰 갱신 실패 - FCM 전송 중단');
-          }
-          return;
-        }
-        
-        // 재시도
-        final retryResponse = await _makeAuthenticatedRequest(
-          functionsUrl: functionsUrl,
-          idToken: newToken,
-          body: {
-            'callerNumber': callerNumber,
-            'callerName': callerName,
-            'receiverNumber': receiverNumber,
-            'linkedid': linkedid,
-            'channel': channel,
-            'callType': callType,
-          },
-        );
-        
-        if (retryResponse.statusCode == 200) {
-          final responseData = json.decode(retryResponse.body) as Map<String, dynamic>;
-          if (kDebugMode) {
-            debugPrint('✅ [DCMIWS-FCM] FCM 전송 요청 성공 (재시도)');
-            debugPrint('   전송 성공: ${responseData['sentCount']}/${responseData['totalTokens']}');
-            debugPrint('   통화기록 생성: ${responseData['callHistoryCreated']}');
-          }
-        } else {
-          if (kDebugMode) {
-            debugPrint('❌ [DCMIWS-FCM] FCM 전송 재시도 실패: ${retryResponse.statusCode}');
-            debugPrint('   응답: ${retryResponse.body}');
-          }
-        }
-      } else if (response.statusCode == 200) {
+      if (response.statusCode == 200) {
         final responseData = json.decode(response.body) as Map<String, dynamic>;
         if (kDebugMode) {
           debugPrint('✅ [DCMIWS-FCM] FCM 전송 요청 성공');
@@ -2161,29 +2102,6 @@ class DCMIWSService {
         debugPrint('⚠️ [DCMIWS-FCM] FCM 전송 오류 (무시): $e');
       }
     }
-  }
-
-  /// 🔐 인증된 HTTP POST 요청 수행
-  /// 
-  /// Firebase Functions에 ID Token을 포함하여 POST 요청을 보냅니다.
-  Future<http.Response> _makeAuthenticatedRequest({
-    required String functionsUrl,
-    required String idToken,
-    required Map<String, dynamic> body,
-  }) async {
-    return await http.post(
-      Uri.parse(functionsUrl),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',  // 🔐 ID Token 추가
-      },
-      body: json.encode(body),
-    ).timeout(
-      const Duration(seconds: 5),
-      onTimeout: () {
-        throw TimeoutException('FCM 전송 요청 타임아웃 (5초)');
-      },
-    );
   }
   
   /// 서비스 정리

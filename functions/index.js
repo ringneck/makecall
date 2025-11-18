@@ -337,20 +337,14 @@ exports.cleanupExpiredRequests = functions.region(region).pubsub
     });
 
 /**
- * FCM 수신전화 푸시 알림 전송 Cloud Function (🔐 인증 추가)
+ * FCM 수신전화 푸시 알림 전송 Cloud Function
  *
  * HTTP POST 요청으로 호출됩니다.
- * DCMIWS에서 Newchannel 이벤트 발생 시 호출하여 FCM 푸시를 전송합니다.
+ * 콜서버(DCMIWS 등)에서 Newchannel 이벤트 발생 시 호출하여 FCM 푸시를 전송합니다.
  *
- * 🔐 보안: Firebase Authentication ID Token 검증 필수
- * - Authorization: Bearer <ID_TOKEN> 헤더 필요
- * - 유효한 Firebase 사용자만 호출 가능
- *
- * Request Headers:
- * {
- *   "Content-Type": "application/json",
- *   "Authorization": "Bearer <ID_TOKEN>"
- * }
+ * 🔐 보안: 콜서버에서 Service Account Key 사용
+ * - 콜서버는 Firebase Admin SDK로 직접 호출 (토큰 불필요)
+ * - 또는 이 Function을 통해 간접 호출 가능
  *
  * Request Body:
  * {
@@ -361,13 +355,16 @@ exports.cleanupExpiredRequests = functions.region(region).pubsub
  *   "channel": "PJSIP/DKCT-00000460",
  *   "callType": "external"
  * }
+ *
+ * 💡 권장: 콜서버에서 Firebase Admin SDK를 사용하여 직접 Firestore/FCM 접근
+ *    이 Function은 레거시 호환성을 위해 유지됩니다.
  */
 exports.sendIncomingCallNotification = functions.region(region).https.onRequest(
     async (req, res) => {
       // CORS 헤더 설정 (Flutter 앱에서 호출 가능하도록)
       res.set("Access-Control-Allow-Origin", "*");
       res.set("Access-Control-Allow-Methods", "POST");
-      res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      res.set("Access-Control-Allow-Headers", "Content-Type");
 
       // OPTIONS 요청 처리 (CORS preflight)
       if (req.method === "OPTIONS") {
@@ -382,49 +379,6 @@ exports.sendIncomingCallNotification = functions.region(region).https.onRequest(
       }
 
       try {
-        // 🔐 Firebase ID Token 검증
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
-          console.error("❌ [FCM-INCOMING] Authorization 헤더 없음");
-          res.status(401).json({
-            error: "Unauthorized",
-            message: "Missing or invalid Authorization header",
-            required: "Authorization: Bearer <ID_TOKEN>",
-          });
-          return;
-        }
-
-        const idToken = authHeader.split("Bearer ")[1];
-
-        let decodedToken;
-        try {
-          // Firebase Admin SDK로 ID Token 검증
-          decodedToken = await admin.auth().verifyIdToken(idToken);
-          const uid = decodedToken.uid;
-          console.log(`✅ [FCM-INCOMING] 인증 성공 - UID: ${uid}`);
-        } catch (error) {
-          console.error("❌ [FCM-INCOMING] ID Token 검증 실패:", error.code);
-
-          // 토큰 오류 타입별 응답
-          if (error.code === "auth/id-token-expired") {
-            res.status(401).json({
-              error: "Token expired",
-              message: "ID Token has expired. Please refresh and retry.",
-            });
-          } else if (error.code === "auth/argument-error") {
-            res.status(401).json({
-              error: "Invalid token",
-              message: "ID Token format is invalid.",
-            });
-          } else {
-            res.status(403).json({
-              error: "Forbidden",
-              message: "ID Token verification failed.",
-            });
-          }
-          return;
-        }
-
         const {
           callerNumber,
           callerName,
