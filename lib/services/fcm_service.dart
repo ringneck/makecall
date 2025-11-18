@@ -29,8 +29,8 @@ import 'fcm/fcm_notification_service.dart';
 import 'fcm/fcm_incoming_call_handler.dart';
 
 /// 플랫폼 체크 헬퍼 (웹 플랫폼 안전 처리)
-bool get _isIOS => !kIsWeb && _isIOS;
-bool get _isAndroid => !kIsWeb && _isAndroid;
+bool get _isIOS => !kIsWeb && Platform.isIOS;
+bool get _isAndroid => !kIsWeb && Platform.isAndroid;
 bool get _isMobile => _isIOS || _isAndroid;
 
 /// FCM(Firebase Cloud Messaging) 서비스
