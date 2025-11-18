@@ -357,7 +357,7 @@ class FCMService {
         if (kIsWeb) {
           // ignore: avoid_print
           print('🌐 [FCM] 웹 플랫폼: VAPID 키 사용');
-          const vapidKey = 'BPBnDuxLIkOm5y5C8qFB5SnCZ4FrKElhGD8Eyk1dfZZYNIed2iEyW0raL3QNKlwapYSOhLNJqPWniYYSDlj8yNo';
+          const vapidKey = 'BM2qgTRRwT-mG4shgKLDr7CnVf5-xVs3DqNNcqY7zzHZXd5P5xWqvCLn8BxGnqJ3YKj0zcY6Kp0YwQ_Zr8vK2jM';
           _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
         } else {
           // ignore: avoid_print
