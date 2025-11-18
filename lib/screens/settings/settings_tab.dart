@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../utils/dialog_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../services/auth_service.dart';
+import '../debug/token_debug_screen.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
@@ -105,6 +107,24 @@ class SettingsTab extends StatelessWidget {
               );
             },
           ),
+          // 🔍 디버그 메뉴 (개발 모드에서만 표시)
+          if (kDebugMode) ...[
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.bug_report, color: Colors.purple),
+              title: const Text('🔍 ID Token 디버깅'),
+              subtitle: const Text('개발자 전용 - 토큰 정보 확인'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TokenDebugScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
           const Divider(),
           // 계정 관리
           ListTile(
