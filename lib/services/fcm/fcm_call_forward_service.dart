@@ -148,7 +148,18 @@ class FCMCallForwardService {
     try {
       // 1. 현재 기기 정보 가져오기
       final currentDeviceId = await _platformUtils.getDeviceId();
-      final currentPlatform = _platformUtils.getPlatformName();
+      final currentPlatformLower = _platformUtils.getPlatformName();
+      
+      // 🔑 CRITICAL: 플랫폼 이름을 대문자로 변환 (Firestore 형식과 일치)
+      String currentPlatform;
+      if (currentPlatformLower == 'android') {
+        currentPlatform = 'Android';
+      } else if (currentPlatformLower == 'ios') {
+        currentPlatform = 'iOS';
+      } else {
+        currentPlatform = currentPlatformLower; // web, unknown 등
+      }
+      
       final currentDeviceKey = '${currentDeviceId}_$currentPlatform';
 
       if (kDebugMode) {
