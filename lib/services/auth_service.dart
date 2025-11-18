@@ -633,23 +633,11 @@ class AuthService extends ChangeNotifier {
               }
             }
             
-            // 🔥 CRITICAL: MaterialApp.home의 root route도 교체 필요
-            // notifyListeners()를 먼저 호출하여 isAuthenticated = false로 변경
-            // 이후 MaterialApp.home Consumer가 LoginScreen 반환하도록 유도
-            if (kDebugMode) {
-              debugPrint('🔔 [6/6] Consumer 강제 리빌드를 위해 notifyListeners() 호출');
-            }
-            notifyListeners();
-            
-            // 🔧 추가 안전 장치: 현재 root route가 MainScreen이면 강제로 제거 시도
+            // 🔧 짧은 지연으로 Navigator 정리 대기
             await Future.delayed(const Duration(milliseconds: 100));
             
-            // MaterialApp.home의 Consumer가 LoginScreen을 반환했는지 확인하기 위해
-            // 추가 delay (Consumer rebuild 대기)
-            await Future.delayed(const Duration(milliseconds: 200));
-            
             if (kDebugMode) {
-              debugPrint('✅ [6/6] Consumer rebuild 완료 - LoginScreen 표시됨');
+              debugPrint('✅ [6/6] Navigator 정리 완료');
             }
             
           } catch (e) {
@@ -657,15 +645,11 @@ class AuthService extends ChangeNotifier {
               debugPrint('⚠️  [6/6] Navigator 정리 오류: $e');
               debugPrint('   → Consumer가 자동으로 LoginScreen 표시합니다');
             }
-            // Fallback: notifyListeners() 최소한 호출
-            notifyListeners();
           }
         } else {
           if (kDebugMode) {
             debugPrint('⚠️  [6/6] context 무효화됨 - Consumer가 처리합니다');
           }
-          // Context가 없어도 notifyListeners() 호출
-          notifyListeners();
         }
       } else {
         if (kDebugMode) {
@@ -679,17 +663,17 @@ class AuthService extends ChangeNotifier {
       }
     }
     
-    // 🔥 CRITICAL FIX: 로그아웃 플래그 해제 (LoginScreen 렌더링 허용)
+    // 🔥 CRITICAL FIX: 로그아웃 플래그 해제 및 최종 상태 업데이트
     _isLoggingOut = false;
-    _isSigningOut = false; // authStateChanges 리스너 재활성화
-    notifyListeners(); // 최종 상태 업데이트 알림
+    _isSigningOut = false;
     
     if (kDebugMode) {
-      debugPrint('✅ [LOGOUT] 로그아웃 완료');
-      debugPrint('🔓 _isLoggingOut = false로 리셋');
-      debugPrint('🔓 _isSigningOut = false로 리셋');
+      debugPrint('✅ [LOGOUT] 로그아웃 완료 - LoginScreen으로 전환');
       debugPrint('');
     }
+    
+    // 단 한 번만 notifyListeners() 호출하여 UI 업데이트
+    notifyListeners();
   }
   
   // 비밀번호 재설정
