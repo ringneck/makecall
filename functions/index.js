@@ -342,9 +342,16 @@ exports.cleanupExpiredRequests = functions.region(region).pubsub
  * HTTP POST 요청으로 호출됩니다.
  * 콜서버(DCMIWS 등)에서 Newchannel 이벤트 발생 시 호출하여 FCM 푸시를 전송합니다.
  *
- * 🔐 보안: 콜서버에서 Service Account Key 사용
- * - 콜서버는 Firebase Admin SDK로 직접 호출 (토큰 불필요)
- * - 또는 이 Function을 통해 간접 호출 가능
+ * 🔐 보안: Firebase Web API Key 인증
+ * - 요청 헤더에 X-Firebase-API-Key 필수
+ * - API Key: AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM
+ * - 영구적으로 사용 가능 (만료 없음)
+ *
+ * Request Headers:
+ * {
+ *   "Content-Type": "application/json",
+ *   "X-Firebase-API-Key": "AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM"
+ * }
  *
  * Request Body:
  * {
@@ -364,7 +371,7 @@ exports.sendIncomingCallNotification = functions.region(region).https.onRequest(
       // CORS 헤더 설정 (Flutter 앱에서 호출 가능하도록)
       res.set("Access-Control-Allow-Origin", "*");
       res.set("Access-Control-Allow-Methods", "POST");
-      res.set("Access-Control-Allow-Headers", "Content-Type");
+      res.set("Access-Control-Allow-Headers", "Content-Type, X-Firebase-API-Key");
 
       // OPTIONS 요청 처리 (CORS preflight)
       if (req.method === "OPTIONS") {
@@ -377,6 +384,21 @@ exports.sendIncomingCallNotification = functions.region(region).https.onRequest(
         res.status(405).json({error: "Method Not Allowed"});
         return;
       }
+
+      // 🔐 Firebase Web API Key 검증
+      const apiKey = req.headers["x-firebase-api-key"];
+      const validApiKey = "AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM";
+
+      if (!apiKey || apiKey !== validApiKey) {
+        console.error("❌ [FCM-INCOMING] 유효하지 않은 API Key");
+        res.status(401).json({
+          error: "Unauthorized",
+          message: "Invalid or missing X-Firebase-API-Key header",
+        });
+        return;
+      }
+
+      console.log("✅ [FCM-INCOMING] API Key 검증 성공");
 
       try {
         const {

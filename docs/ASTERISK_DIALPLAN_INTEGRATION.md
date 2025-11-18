@@ -1,6 +1,6 @@
 # 📞 Asterisk 다이얼플랜 Firebase 통합 가이드
 
-Asterisk 20+ 다이얼플랜에서 Firebase Admin SDK를 사용하여 FCM 푸시 알림을 전송하는 방법입니다.
+Asterisk 20+ 다이얼플랜에서 Firebase FCM 푸시 알림을 전송하는 방법입니다.
 
 ## 🎯 구현 방식
 
@@ -9,17 +9,43 @@ Asterisk 20+ 다이얼플랜에서 Firebase Admin SDK를 사용하여 FCM 푸시
 - **변수**: LOCAL 변수로 격리
 - **에러 처리**: HTTP 코드 검증 및 자동 재시도
 - **로깅**: 이벤트 추적 서브루틴
+- **보안**: Firebase Web API Key 인증
 
 ---
 
-## 📋 아키텍처
+## 🔐 구현 방법 선택
 
+### 방법 1: HTTP + API Key (권장 - 간단함)
+
+**장점**:
+- ✅ 매우 간단한 구현 (curl 명령어만으로 가능)
+- ✅ 추가 라이브러리 설치 불필요
+- ✅ API Key만 환경 변수로 관리
+- ✅ Firebase Functions가 모든 로직 처리
+
+**아키텍처**:
 ```
 Asterisk Dialplan
   ↓
-GoSub: SendFirebaseFCM
+CURL/SHELL Command
   ↓
-External Script (Node.js/Python)
+Firebase Functions (HTTP)
+  ↓
+Firestore + FCM
+```
+
+### 방법 2: Node.js + Admin SDK (고급)
+
+**장점**:
+- ✅ Firebase Functions 우회 (성능 향상)
+- ✅ 직접 Firestore/FCM 제어
+- ✅ 커스터마이징 가능
+
+**아키텍처**:
+```
+Asterisk Dialplan
+  ↓
+Node.js Script
   ↓
 Firebase Admin SDK
   ↓
@@ -28,7 +54,220 @@ Firestore + FCM
 
 ---
 
-## 🔧 구현 단계
+## 📋 방법 1: HTTP + API Key (권장)
+
+### Step 1: curl 스크립트 작성
+
+**파일 위치**: `/usr/local/bin/send_fcm_http.sh`
+
+```bash
+#!/bin/bash
+
+# Firebase Web API Key (영구 사용 가능)
+FIREBASE_API_KEY="AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM"
+FIREBASE_FUNCTIONS_URL="https://asia-northeast3-makecallio.cloudfunctions.net/sendIncomingCallNotification"
+
+# 명령줄 인자
+CALLER_NUMBER="$1"
+CALLER_NAME="$2"
+RECEIVER_NUMBER="$3"
+LINKEDID="$4"
+CHANNEL="$5"
+CALL_TYPE="$6"
+
+# 필수 파라미터 검증
+if [ -z "$CALLER_NUMBER" ] || [ -z "$RECEIVER_NUMBER" ] || [ -z "$LINKEDID" ]; then
+  echo "ERROR:400:Missing required parameters"
+  exit 1
+fi
+
+# HTTP POST 요청
+RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$FIREBASE_FUNCTIONS_URL" \
+  -H "Content-Type: application/json" \
+  -H "X-Firebase-API-Key: $FIREBASE_API_KEY" \
+  -d "{
+    \"callerNumber\": \"$CALLER_NUMBER\",
+    \"callerName\": \"$CALLER_NAME\",
+    \"receiverNumber\": \"$RECEIVER_NUMBER\",
+    \"linkedid\": \"$LINKEDID\",
+    \"channel\": \"$CHANNEL\",
+    \"callType\": \"$CALL_TYPE\"
+  }")
+
+# HTTP 응답 코드 추출
+HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+BODY=$(echo "$RESPONSE" | head -n -1)
+
+# 응답 처리
+if [ "$HTTP_CODE" -eq 200 ]; then
+  # 성공: JSON 파싱
+  USER_ID=$(echo "$BODY" | grep -o '"userId":"[^"]*"' | cut -d'"' -f4)
+  SENT_COUNT=$(echo "$BODY" | grep -o '"sentCount":[0-9]*' | cut -d':' -f2)
+  TOTAL_TOKENS=$(echo "$BODY" | grep -o '"totalTokens":[0-9]*' | cut -d':' -f2)
+  
+  echo "SUCCESS:$USER_ID:$SENT_COUNT:$TOTAL_TOKENS"
+  exit 0
+else
+  # 실패: 에러 메시지 추출
+  ERROR_MSG=$(echo "$BODY" | grep -o '"error":"[^"]*"' | cut -d'"' -f4)
+  echo "ERROR:$HTTP_CODE:$ERROR_MSG"
+  exit 1
+fi
+```
+
+**권한 설정**:
+```bash
+chmod +x /usr/local/bin/send_fcm_http.sh
+chown asterisk:asterisk /usr/local/bin/send_fcm_http.sh
+```
+
+### Step 2: Asterisk 다이얼플랜 구현 (HTTP 방식)
+
+**파일 위치**: `/etc/asterisk/extensions_custom.conf`
+
+```ini
+; ============================================================
+; Firebase FCM 푸시 알림 전송 서브루틴 (HTTP + API Key 방식)
+; ============================================================
+
+[sub-send-firebase-fcm-http]
+; 용도: 수신전화 시 Firebase FCM 푸시 알림 전송 (HTTP)
+; 
+; 필수 변수:
+;   ARG1: callerNumber (발신번호)
+;   ARG2: callerName (발신자 이름)
+;   ARG3: receiverNumber (수신번호 - accountCode 또는 extension)
+;   ARG4: linkedid (통화 고유 ID)
+;   ARG5: channel (채널 정보)
+;   ARG6: callType (통화 타입: external/internal)
+;
+; 반환 변수:
+;   FCM_RESULT: SUCCESS 또는 ERROR
+;   FCM_USER_ID: 사용자 ID (성공 시)
+;   FCM_SENT_COUNT: 전송 성공 개수 (성공 시)
+;   FCM_TOTAL_TOKENS: 전체 토큰 개수 (성공 시)
+;   FCM_ERROR_CODE: 에러 코드 (실패 시)
+;   FCM_ERROR_MSG: 에러 메시지 (실패 시)
+
+exten => s,1,NoOp(=== Firebase FCM Push Start (HTTP) ===)
+    ; LOCAL 변수 설정 (서브루틴 내부 격리)
+    same => n,Set(LOCAL(callerNumber)=${ARG1})
+    same => n,Set(LOCAL(callerName)=${ARG2})
+    same => n,Set(LOCAL(receiverNumber)=${ARG3})
+    same => n,Set(LOCAL(linkedid)=${ARG4})
+    same => n,Set(LOCAL(channel)=${ARG5})
+    same => n,Set(LOCAL(callType)=${ARG6})
+    same => n,Set(LOCAL(retryCount)=0)
+    same => n,Set(LOCAL(maxRetries)=3)
+    
+    ; 파라미터 로깅
+    same => n,GoSub(sub-log-fcm-event,s,1(INFO,FCM_START,Caller:${LOCAL(callerNumber)} Receiver:${LOCAL(receiverNumber)} Linkedid:${LOCAL(linkedid)}))
+    
+    ; 필수 파라미터 검증
+    same => n,GotoIf($["${LOCAL(callerNumber)}" = ""]?missing_params)
+    same => n,GotoIf($["${LOCAL(receiverNumber)}" = ""]?missing_params)
+    same => n,GotoIf($["${LOCAL(linkedid)}" = ""]?missing_params)
+    same => n,Goto(execute_fcm)
+
+exten => s,n(missing_params),NoOp(Missing required parameters)
+    same => n,Set(FCM_RESULT=ERROR)
+    same => n,Set(FCM_ERROR_CODE=400)
+    same => n,Set(FCM_ERROR_MSG=Missing required parameters)
+    same => n,GoSub(sub-log-fcm-event,s,1(ERROR,FCM_FAILED,Missing parameters))
+    same => n,Return()
+
+exten => s,n(execute_fcm),NoOp(Executing Firebase FCM HTTP request)
+    ; HTTP 스크립트 실행
+    same => n,Set(LOCAL(scriptOutput)=${SHELL(/usr/local/bin/send_fcm_http.sh "${LOCAL(callerNumber)}" "${LOCAL(callerName)}" "${LOCAL(receiverNumber)}" "${LOCAL(linkedid)}" "${LOCAL(channel)}" "${LOCAL(callType)}")})
+    
+    ; 스크립트 실행 결과 로깅
+    same => n,NoOp(Script output: ${LOCAL(scriptOutput)})
+    
+    ; 결과 파싱 (구분자: :)
+    same => n,Set(LOCAL(resultStatus)=${CUT(LOCAL(scriptOutput),:,1)})
+    
+    ; 결과 분기
+    same => n,GotoIf($["${LOCAL(resultStatus)}" = "SUCCESS"]?parse_success:parse_error)
+
+exten => s,n(parse_success),NoOp(FCM push sent successfully)
+    ; 성공 결과 파싱: SUCCESS:<userId>:<sentCount>:<totalTokens>
+    same => n,Set(FCM_RESULT=SUCCESS)
+    same => n,Set(FCM_USER_ID=${CUT(LOCAL(scriptOutput),:,2)})
+    same => n,Set(FCM_SENT_COUNT=${CUT(LOCAL(scriptOutput),:,3)})
+    same => n,Set(FCM_TOTAL_TOKENS=${CUT(LOCAL(scriptOutput),:,4)})
+    
+    ; 성공 로깅
+    same => n,GoSub(sub-log-fcm-event,s,1(INFO,FCM_SUCCESS,UserId:${FCM_USER_ID} Sent:${FCM_SENT_COUNT}/${FCM_TOTAL_TOKENS}))
+    same => n,Return()
+
+exten => s,n(parse_error),NoOp(FCM push failed)
+    ; 에러 결과 파싱: ERROR:<errorCode>:<errorMessage>
+    same => n,Set(LOCAL(errorCode)=${CUT(LOCAL(scriptOutput),:,2)})
+    same => n,Set(LOCAL(errorMsg)=${CUT(LOCAL(scriptOutput),:,3)})
+    
+    ; 재시도 로직
+    same => n,Set(LOCAL(retryCount)=$[${LOCAL(retryCount)} + 1])
+    same => n,GoSub(sub-log-fcm-event,s,1(WARN,FCM_RETRY,Attempt ${LOCAL(retryCount)}/${LOCAL(maxRetries)} - Error:${LOCAL(errorCode)} ${LOCAL(errorMsg)}))
+    
+    ; 최대 재시도 횟수 확인
+    same => n,GotoIf($[${LOCAL(retryCount)} < ${LOCAL(maxRetries)}]?retry_delay:final_error)
+
+exten => s,n(retry_delay),NoOp(Retry delay)
+    ; 재시도 전 대기 (1초)
+    same => n,Wait(1)
+    same => n,Goto(execute_fcm)
+
+exten => s,n(final_error),NoOp(Max retries reached)
+    ; 최종 실패
+    same => n,Set(FCM_RESULT=ERROR)
+    same => n,Set(FCM_ERROR_CODE=${LOCAL(errorCode)})
+    same => n,Set(FCM_ERROR_MSG=${LOCAL(errorMsg)})
+    
+    ; 실패 로깅
+    same => n,GoSub(sub-log-fcm-event,s,1(ERROR,FCM_FAILED,Code:${FCM_ERROR_CODE} Msg:${FCM_ERROR_MSG}))
+    same => n,Return()
+
+
+; ============================================================
+; FCM 이벤트 로깅 서브루틴
+; ============================================================
+
+[sub-log-fcm-event]
+; (이전과 동일 - 생략)
+
+
+; ============================================================
+; 수신전화 FCM 알림 통합 예시 (HTTP 방식)
+; ============================================================
+
+[from-trunk-external]
+; 외부 수신전화 처리
+exten => _X.,1,NoOp(=== Incoming Call from ${CALLERID(num)} ===)
+    ; 변수 설정
+    same => n,Set(CALLER_NUMBER=${CALLERID(num)})
+    same => n,Set(CALLER_NAME=${CALLERID(name)})
+    same => n,Set(RECEIVER_NUMBER=${EXTEN})
+    same => n,Set(CALL_LINKEDID=${LINKEDID})
+    same => n,Set(CALL_CHANNEL=${CHANNEL})
+    
+    ; Firebase FCM 푸시 전송 (HTTP 방식)
+    same => n,GoSub(sub-send-firebase-fcm-http,s,1(${CALLER_NUMBER},${CALLER_NAME},${RECEIVER_NUMBER},${CALL_LINKEDID},${CALL_CHANNEL},external))
+    
+    ; FCM 결과 확인 (선택사항 - 로깅용)
+    same => n,NoOp(FCM Result: ${FCM_RESULT})
+    same => n,ExecIf($["${FCM_RESULT}" = "SUCCESS"]?NoOp(FCM sent to ${FCM_SENT_COUNT} devices))
+    same => n,ExecIf($["${FCM_RESULT}" = "ERROR"]?NoOp(FCM failed: ${FCM_ERROR_MSG}))
+    
+    ; 일반 통화 처리 계속
+    same => n,Dial(PJSIP/${EXTEN},30,tT)
+    same => n,Hangup()
+```
+
+---
+
+## 📋 방법 2: Node.js + Admin SDK (고급)
+
+### 🔧 구현 단계
 
 ### Step 1: Node.js FCM 스크립트 작성
 

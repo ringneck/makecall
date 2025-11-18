@@ -1,17 +1,226 @@
 # 📞 콜서버 Firebase 통합 가이드
 
-Firebase Admin SDK를 사용하여 콜서버에서 직접 FCM 푸시 알림을 전송하는 방법입니다.
+Firebase를 사용하여 콜서버에서 FCM 푸시 알림을 전송하는 방법입니다.
 
 ## 🎯 목표
 
-- ✅ **토큰 만료 문제 해결**: Service Account Key는 영구 사용 가능
-- ✅ **직접 Firestore/FCM 접근**: Firebase Functions 우회
-- ✅ **성능 향상**: 중간 Function 없이 직접 통신
-- ✅ **보안 강화**: 서버 간 통신 최적화
+- ✅ **토큰 만료 문제 해결**: 영구 사용 가능한 인증 방식
+- ✅ **보안 강화**: API Key 기반 인증
+- ✅ **간단한 구현**: HTTP 요청으로 간편하게 통합
+- ✅ **유연한 선택**: Admin SDK 또는 HTTP 방식 중 선택 가능
 
 ---
 
-## 📋 사전 준비
+## 🔐 인증 방식 선택
+
+### 방법 1: Firebase Web API Key (권장 - 간단함)
+
+**장점**:
+- ✅ 구현이 매우 간단 (HTTP 요청만으로 가능)
+- ✅ 영구적으로 사용 가능 (만료 없음)
+- ✅ 추가 라이브러리 설치 불필요
+- ✅ curl, axios, requests 등 어떤 HTTP 클라이언트로도 사용 가능
+
+**사용 방법**:
+```bash
+# HTTP 요청 헤더에 API Key 추가
+X-Firebase-API-Key: AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM
+```
+
+### 방법 2: Service Account Key (고급 - 직접 SDK 사용)
+
+**장점**:
+- ✅ Firebase Functions 우회로 성능 향상
+- ✅ Firestore/FCM 직접 제어
+- ✅ 서버 간 통신 최적화
+
+**필요 사항**:
+- Firebase Admin SDK 설치 필요
+- Service Account Key 파일 관리 필요
+
+---
+
+## 📋 방법 1: Firebase Web API Key 사용 (권장)
+
+### 1. API Key 정보
+
+**Firebase Web API Key**: `AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM`
+
+- ✅ 영구 사용 가능 (만료 없음)
+- ✅ 별도 파일 관리 불필요
+- ✅ 환경 변수로 간단히 설정 가능
+
+### 2. HTTP 요청 예시
+
+#### curl 예시
+
+```bash
+curl -X POST \
+  https://asia-northeast3-makecallio.cloudfunctions.net/sendIncomingCallNotification \
+  -H "Content-Type: application/json" \
+  -H "X-Firebase-API-Key: AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM" \
+  -d '{
+    "callerNumber": "16682471",
+    "callerName": "얼쑤팩토리",
+    "receiverNumber": "07045144801",
+    "linkedid": "1762843210.1787",
+    "channel": "PJSIP/DKCT-00000460",
+    "callType": "external"
+  }'
+```
+
+#### Node.js (axios) 예시
+
+```javascript
+const axios = require('axios');
+
+async function sendFCMNotification(callData) {
+  try {
+    const response = await axios.post(
+      'https://asia-northeast3-makecallio.cloudfunctions.net/sendIncomingCallNotification',
+      {
+        callerNumber: callData.callerNumber,
+        callerName: callData.callerName,
+        receiverNumber: callData.receiverNumber,
+        linkedid: callData.linkedid,
+        channel: callData.channel,
+        callType: callData.callType
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Firebase-API-Key': 'AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM'
+        }
+      }
+    );
+    
+    console.log('✅ FCM 전송 성공:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ FCM 전송 실패:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// 사용 예시
+sendFCMNotification({
+  callerNumber: '16682471',
+  callerName: '얼쑤팩토리',
+  receiverNumber: '07045144801',
+  linkedid: '1762843210.1787',
+  channel: 'PJSIP/DKCT-00000460',
+  callType: 'external'
+});
+```
+
+#### Python (requests) 예시
+
+```python
+import requests
+
+def send_fcm_notification(call_data):
+    url = 'https://asia-northeast3-makecallio.cloudfunctions.net/sendIncomingCallNotification'
+    
+    headers = {
+        'Content-Type': 'application/json',
+        'X-Firebase-API-Key': 'AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM'
+    }
+    
+    payload = {
+        'callerNumber': call_data['caller_number'],
+        'callerName': call_data['caller_name'],
+        'receiverNumber': call_data['receiver_number'],
+        'linkedid': call_data['linkedid'],
+        'channel': call_data['channel'],
+        'callType': call_data['call_type']
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        
+        print(f"✅ FCM 전송 성공: {response.json()}")
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"❌ FCM 전송 실패: {e}")
+        raise
+
+# 사용 예시
+send_fcm_notification({
+    'caller_number': '16682471',
+    'caller_name': '얼쑤팩토리',
+    'receiver_number': '07045144801',
+    'linkedid': '1762843210.1787',
+    'channel': 'PJSIP/DKCT-00000460',
+    'call_type': 'external'
+})
+```
+
+### 3. 환경 변수 설정 (권장)
+
+API Key를 코드에 직접 하드코딩하지 말고 환경 변수로 관리하세요:
+
+```bash
+# .env 파일 또는 시스템 환경 변수
+FIREBASE_API_KEY=AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM
+FIREBASE_FUNCTIONS_URL=https://asia-northeast3-makecallio.cloudfunctions.net/sendIncomingCallNotification
+```
+
+**Node.js (.env 사용)**:
+```javascript
+require('dotenv').config();
+
+const apiKey = process.env.FIREBASE_API_KEY;
+const functionsUrl = process.env.FIREBASE_FUNCTIONS_URL;
+```
+
+**Python (.env 사용)**:
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+api_key = os.getenv('FIREBASE_API_KEY')
+functions_url = os.getenv('FIREBASE_FUNCTIONS_URL')
+```
+
+### 4. 응답 형식
+
+**성공 응답** (HTTP 200):
+```json
+{
+  "success": true,
+  "linkedid": "1762843210.1787",
+  "userId": "00UZFjXMjnSj0ThUnGlgkn8cgVy2",
+  "sentCount": 2,
+  "failureCount": 0,
+  "totalTokens": 2,
+  "callHistoryCreated": true
+}
+```
+
+**실패 응답** (HTTP 401):
+```json
+{
+  "error": "Unauthorized",
+  "message": "Invalid or missing X-Firebase-API-Key header"
+}
+```
+
+**실패 응답** (HTTP 404):
+```json
+{
+  "error": "Extension not found",
+  "receiverNumber": "07045144801"
+}
+```
+
+---
+
+## 📋 방법 2: Service Account Key 사용 (고급)
+
+### 1. 사전 준비
 
 ### 1. Service Account Key 파일 준비
 
