@@ -2035,7 +2035,9 @@ class DCMIWSService {
   /// DCMIWS Newchannel 이벤트 발생 시 호출하여 FCM 푸시를 전송합니다.
   /// WebSocket이 활성이더라도 FCM 백업 전송 (다른 기기 알림용)
   /// 
-  /// 💡 참고: Firebase Functions는 Service Account로 보호됨
+  /// 🔐 보안: Firebase Web API Key 인증
+  /// - X-Firebase-API-Key 헤더 필수
+  /// - 영구적으로 사용 가능 (만료 없음)
   Future<void> _sendIncomingCallFCM({
     required String callerNumber,
     required String callerName,
@@ -2060,9 +2062,15 @@ class DCMIWSService {
       // Firebase Functions URL (서울 리전: asia-northeast3)
       const functionsUrl = 'https://asia-northeast3-makecallio.cloudfunctions.net/sendIncomingCallNotification';
       
+      // 🔐 Firebase Web API Key (영구 사용 가능)
+      const firebaseApiKey = 'AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM';
+      
       final response = await http.post(
         Uri.parse(functionsUrl),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Firebase-API-Key': firebaseApiKey,
+        },
         body: json.encode({
           'callerNumber': callerNumber,
           'callerName': callerName,
