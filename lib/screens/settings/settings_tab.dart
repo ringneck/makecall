@@ -107,24 +107,22 @@ class SettingsTab extends StatelessWidget {
               );
             },
           ),
-          // 🔍 디버그 메뉴 (개발 모드에서만 표시)
-          if (kDebugMode) ...[
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.bug_report, color: Colors.purple),
-              title: const Text('🔍 ID Token 디버깅'),
-              subtitle: const Text('개발자 전용 - 토큰 정보 확인'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TokenDebugScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
+          // 🔍 디버그 메뉴 (항상 표시 - 개발 편의성)
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.bug_report, color: Colors.purple),
+            title: const Text('🔍 ID Token 디버깅'),
+            subtitle: const Text('개발자 전용 - 토큰 정보 확인'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TokenDebugScreen(),
+                ),
+              );
+            },
+          ),
           const Divider(),
           // 계정 관리
           ListTile(
