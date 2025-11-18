@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/user_model.dart';
 import '../main.dart' show navigatorKey;
+import '../utils/firebase_auth_token_helper.dart';
 import 'account_manager_service.dart';
 import 'fcm_service.dart';
 import 'dcmiws_connection_manager.dart';
@@ -540,6 +541,19 @@ class AuthService extends ChangeNotifier {
       debugPrint('✅ Firestore users 컬렉션 보존됨');
       debugPrint('✅ 재로그인 시 모든 데이터 로드 가능');
       debugPrint('');
+    }
+    
+    // 🔐 ID Token 캐시 초기화
+    try {
+      final tokenHelper = FirebaseAuthTokenHelper();
+      tokenHelper.clearCache();
+      if (kDebugMode) {
+        debugPrint('✅ [LOGOUT] ID Token 캐시 초기화 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [LOGOUT] ID Token 캐시 초기화 오류: $e');
+      }
     }
     
     notifyListeners();
