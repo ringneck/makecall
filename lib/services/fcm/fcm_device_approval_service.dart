@@ -576,14 +576,26 @@ class FCMDeviceApprovalService {
       final data = approvalDoc.data()!;
       final userId = data['userId'] as String?;
       final newDeviceId = data['newDeviceId'] as String?;
-      final newPlatform = data['newPlatform'] as String?;
+      final newPlatformRaw = data['newPlatform'] as String?;
       
-      if (userId == null || newDeviceId == null || newPlatform == null) {
-        debugPrint('❌ [FCM] 승인 요청 데이터 불완전: userId=$userId, deviceId=$newDeviceId, platform=$newPlatform');
+      if (userId == null || newDeviceId == null || newPlatformRaw == null) {
+        debugPrint('❌ [FCM] 승인 요청 데이터 불완전: userId=$userId, deviceId=$newDeviceId, platform=$newPlatformRaw');
         return;
       }
       
-      debugPrint('📋 [FCM] 승인할 기기 정보: userId=$userId, deviceId=$newDeviceId, platform=$newPlatform');
+      // 🔑 CRITICAL: 플랫폼 이름을 대문자로 변환 (fcm_tokens 문서 ID 형식에 맞춤)
+      // device_approval_requests: 'android', 'ios' (소문자)
+      // fcm_tokens: 'Android', 'iOS' (대문자)
+      String newPlatform;
+      if (newPlatformRaw.toLowerCase() == 'android') {
+        newPlatform = 'Android';
+      } else if (newPlatformRaw.toLowerCase() == 'ios') {
+        newPlatform = 'iOS';
+      } else {
+        newPlatform = newPlatformRaw; // web, unknown 등
+      }
+      
+      debugPrint('📋 [FCM] 승인할 기기 정보: userId=$userId, deviceId=$newDeviceId, platform=$newPlatform (원본: $newPlatformRaw)');
       
       // 🔧 Step 2: device_approval_requests 상태 업데이트 (기존 로직)
       int retryCount = 0;

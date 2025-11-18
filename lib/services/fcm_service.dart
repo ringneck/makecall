@@ -535,7 +535,17 @@ class FCMService {
       if (needsApproval && otherDevices.isNotEmpty) {
         final deviceId = await _platformUtils.getDeviceId();
         final deviceName = await _platformUtils.getDeviceName();
-        final platform = _platformUtils.getPlatformName();
+        final platformLower = _platformUtils.getPlatformName();
+        
+        // 🔑 CRITICAL: 플랫폼 이름을 대문자로 변환 (일관성 유지)
+        String platform;
+        if (platformLower == 'android') {
+          platform = 'Android';
+        } else if (platformLower == 'ios') {
+          platform = 'iOS';
+        } else {
+          platform = platformLower; // web, unknown 등
+        }
         
         // ignore: avoid_print
         print('🔔 [FCM-SAVE] 새 기기 로그인 감지!');
