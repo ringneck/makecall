@@ -357,8 +357,45 @@ class FCMService {
         if (kIsWeb) {
           // ignore: avoid_print
           print('🌐 [FCM] 웹 플랫폼: VAPID 키 사용');
-          const vapidKey = 'BM2qgTRRwT-mG4shgKLDr7CnVf5-xVs3DqNNcqY7zzHZXd5P5xWqvCLn8BxGnqJ3YKj0zcY6Kp0YwQ_Zr8vK2jM';
-          _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
+          try {
+            const vapidKey = 'BM2qgTRRwT-mG4shgKLDr7CnVf5-xVs3DqNNcqY7zzHZXd5P5xWqvCLn8BxGnqJ3YKj0zcY6Kp0YwQ_Zr8vK2jM';
+            _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
+          } catch (e) {
+            // ignore: avoid_print
+            print('⚠️ [FCM] 웹 토큰 생성 실패: $e');
+            // ignore: avoid_print
+            print('');
+            // ignore: avoid_print
+            print('📋 해결 방법:');
+            // ignore: avoid_print
+            print('1️⃣ Google Cloud Console에서 FCM API 활성화');
+            // ignore: avoid_print
+            print('   URL: https://console.cloud.google.com/apis/library/fcm.googleapis.com?project=makecallio');
+            // ignore: avoid_print
+            print('   → "사용 설정" 또는 "Enable" 클릭');
+            // ignore: avoid_print
+            print('');
+            // ignore: avoid_print
+            print('2️⃣ Firebase Console에서 Web App 확인');
+            // ignore: avoid_print
+            print('   URL: https://console.firebase.google.com/project/makecallio/settings/general');
+            // ignore: avoid_print
+            print('   → 웹 앱이 올바르게 등록되었는지 확인');
+            // ignore: avoid_print
+            print('');
+            // ignore: avoid_print
+            print('3️⃣ Service Worker 강제 새로고침');
+            // ignore: avoid_print
+            print('   → Chrome: Ctrl+Shift+R (Mac: Cmd+Shift+R)');
+            // ignore: avoid_print
+            print('   → 또는 개발자도구 > Application > Service Workers > Unregister');
+            // ignore: avoid_print
+            print('');
+            // ignore: avoid_print
+            print('⏭️  웹에서 FCM 없이 앱 계속 사용 가능 (모바일은 정상 동작)');
+            // 웹에서 FCM 실패해도 앱은 계속 동작
+            return;
+          }
         } else {
           // ignore: avoid_print
           print('📱 [FCM] 모바일 플랫폼: 일반 토큰 요청');
