@@ -1,8 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:io' show Platform;
-import 'package:device_info_plus/device_info_plus.dart';
 import 'fcm_notification_sound_service.dart';
+import 'fcm_platform_utils.dart';
 import '../database_service.dart';
 import '../auth_service.dart';
 
@@ -21,7 +20,7 @@ class FCMMessageHandler {
   // 서비스 인스턴스
   final DatabaseService _databaseService = DatabaseService();
   final AuthService _authService = AuthService();
-  final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
+  final FCMPlatformUtils _platformUtils = FCMPlatformUtils();
   
   // 기기 정보 캐시 (앱 실행 중 변경되지 않음)
   String? _cachedDeviceId;
@@ -287,16 +286,24 @@ class FCMMessageHandler {
   }
   
   /// 기기 정보 로드 및 캐싱
+  /// 
+  /// 🔧 FIX: FCMPlatformUtils 사용 (FCMTokenManager와 동일한 방식)
   Future<void> _loadDeviceInfo() async {
     try {
-      if (Platform.isAndroid) {
-        final androidInfo = await _deviceInfo.androidInfo;
-        _cachedDeviceId = androidInfo.id;
+      // FCMPlatformUtils로 기기 ID 가져오기 (iOS 캐싱 로직 포함)
+      _cachedDeviceId = await _platformUtils.getDeviceId();
+      
+      // 플랫폼 이름 가져오기 (소문자: 'android', 'ios', 'web')
+      final platformLower = _platformUtils.getPlatformName();
+      
+      // 🔑 CRITICAL: 대문자로 변환 (Firestore 문서 ID 형식에 맞춤)
+      // fcm_tokens 문서 ID: userId_deviceId_Android 또는 userId_deviceId_iOS
+      if (platformLower == 'android') {
         _cachedPlatform = 'Android';
-      } else if (Platform.isIOS) {
-        final iosInfo = await _deviceInfo.iosInfo;
-        _cachedDeviceId = iosInfo.identifierForVendor;
+      } else if (platformLower == 'ios') {
         _cachedPlatform = 'iOS';
+      } else {
+        _cachedPlatform = platformLower; // web, unknown 등
       }
       
       if (kDebugMode) {
