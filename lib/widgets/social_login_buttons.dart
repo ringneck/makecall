@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 
 /// 소셜 로그인 버튼 위젯
 /// 
 /// 플랫폼별 소셜 로그인 버튼 제공:
-/// - 웹 플랫폼: Google, Apple만 표시
-/// - 모바일 플랫폼: Google, Kakao, Naver, Apple 모두 표시
+/// - 웹 플랫폼: Google, Apple (2개)
+/// - iOS 플랫폼: Naver, Kakao, Google, Apple (4개)
+/// - Android 플랫폼: Naver, Kakao, Google (3개, Apple 제외)
 class SocialLoginButtons extends StatelessWidget {
   final Function()? onGooglePressed;
   final Function()? onKakaoPressed;
@@ -74,13 +76,20 @@ class SocialLoginButtons extends StatelessWidget {
         ),
       ];
     } else {
-      // 📱 모바일 플랫폼: 네이버 + 카카오 + 구글 + 애플 모두 표시
+      // 📱 모바일 플랫폼: 플랫폼별 버튼 표시
+      // iOS: 네이버 + 카카오 + 구글 + 애플 (4개)
+      // Android: 네이버 + 카카오 + 구글 (3개, Apple 로그인 제외)
+      
+      final bool isIOS = !kIsWeb && Platform.isIOS;
+      final bool isAndroid = !kIsWeb && Platform.isAndroid;
+      
       if (kDebugMode) {
-        debugPrint('   - Buttons: Naver, Kakao, Google, Apple (4 buttons)');
+        debugPrint('   - Platform: ${isIOS ? "iOS" : isAndroid ? "Android" : "Unknown"}');
+        debugPrint('   - Buttons: ${isIOS ? "Naver, Kakao, Google, Apple (4)" : "Naver, Kakao, Google (3)"}');
         debugPrint('   - Kakao callback: ${onKakaoPressed != null ? "SET" : "NULL"}');
       }
       
-      return [
+      final buttons = <Widget>[
         // 네이버 로그인 (왼쪽부터)
         _buildIconButton(
           context: context,
@@ -115,23 +124,28 @@ class SocialLoginButtons extends StatelessWidget {
           isDark: isDark,
           hasBorder: true,
         ),
-        
-        spacing,
-        
-        // 애플 로그인
-        _buildIconButton(
-          context: context,
-          onPressed: isLoading ? null : onApplePressed,
-          backgroundColor: isDark ? Colors.white : Colors.black,
-          icon: Icon(
-            Icons.apple,
-            color: isDark ? Colors.black : Colors.white,
-            size: iconSize,
-          ),
-          size: buttonSize,
-          isDark: isDark,
-        ),
       ];
+      
+      // iOS에서만 애플 로그인 버튼 추가
+      if (isIOS) {
+        buttons.add(spacing);
+        buttons.add(
+          _buildIconButton(
+            context: context,
+            onPressed: isLoading ? null : onApplePressed,
+            backgroundColor: isDark ? Colors.white : Colors.black,
+            icon: Icon(
+              Icons.apple,
+              color: isDark ? Colors.black : Colors.white,
+              size: iconSize,
+            ),
+            size: buttonSize,
+            isDark: isDark,
+          ),
+        );
+      }
+      
+      return buttons;
     }
   }
 
