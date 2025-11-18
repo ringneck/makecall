@@ -1,7 +1,10 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
+import 'package:device_info_plus/device_info_plus.dart';
 import 'fcm_notification_sound_service.dart';
+import '../database_service.dart';
+import '../auth_service.dart';
 
 /// FCM 메시지 핸들러
 /// 
@@ -10,9 +13,19 @@ import 'fcm_notification_sound_service.dart';
 /// - 백그라운드 메시지 처리 (알림 클릭)
 /// - 메시지 타입별 라우팅
 /// - 중복 메시지 방지
+/// - 기기 승인 상태 체크 (미승인 기기는 승인 관련 메시지만 수신)
 class FCMMessageHandler {
   // 🔒 중복 메시지 처리 방지
   static final Set<String> _processedMessageIds = {};
+  
+  // 서비스 인스턴스
+  final DatabaseService _databaseService = DatabaseService();
+  final AuthService _authService = AuthService();
+  final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
+  
+  // 기기 정보 캐시 (앱 실행 중 변경되지 않음)
+  String? _cachedDeviceId;
+  String? _cachedPlatform;
 
   // 메시지 타입별 핸들러 콜백
   Function(RemoteMessage)? onForceLogout;
@@ -66,7 +79,7 @@ class FCMMessageHandler {
   }
 
   /// 메시지 타입별 라우팅
-  void _routeMessage(RemoteMessage message, {required bool isForeground}) {
+  void _routeMessage(RemoteMessage message, {required bool isForeground}) async {
     final messageType = message.data['type'] as String?;
     
     // ignore: avoid_print
@@ -80,10 +93,10 @@ class FCMMessageHandler {
       return;
     }
     
-    // 🔔 기기 승인 요청
+    // 🔔 기기 승인 요청 - 항상 허용 (승인 체크 불필요)
     if (messageType == 'device_approval_request') {
       // ignore: avoid_print
-      print('🔔 [FCM-HANDLER] 기기 승인 요청 메시지');
+      print('🔔 [FCM-HANDLER] 기기 승인 요청 메시지 (승인 체크 SKIP)');
       if (onDeviceApprovalRequest == null) {
         // ignore: avoid_print
         print('❌ [FCM-HANDLER] onDeviceApprovalRequest 콜백이 null입니다!');
@@ -104,11 +117,19 @@ class FCMMessageHandler {
       return;
     }
     
-    // ✅ 기기 승인 응답
+    // ✅ 기기 승인 응답 - 항상 허용 (승인 체크 불필요)
     if (messageType == 'device_approval_response') {
       // ignore: avoid_print
-      print('✅ [FCM-HANDLER] 기기 승인 응답 메시지');
+      print('✅ [FCM-HANDLER] 기기 승인 응답 메시지 (승인 체크 SKIP)');
       onDeviceApprovalResponse?.call(message);
+      return;
+    }
+    
+    // 🔐 승인 상태 체크 (승인 관련 메시지 외 모든 메시지)
+    final isApproved = await _checkDeviceApprovalStatus();
+    if (!isApproved) {
+      // ignore: avoid_print
+      print('🔒 [FCM-HANDLER] 미승인 기기 - 메시지 차단: $messageType');
       return;
     }
     
@@ -212,6 +233,80 @@ class FCMMessageHandler {
     }
     
     return true;
+  }
+
+  /// 기기 승인 상태 체크
+  /// 
+  /// Returns: true (승인됨), false (미승인)
+  Future<bool> _checkDeviceApprovalStatus() async {
+    try {
+      // 현재 로그인된 사용자 확인
+      final currentUser = _authService.currentUser;
+      if (currentUser == null) {
+        // 로그아웃 상태 - 안전하게 미승인으로 처리
+        if (kDebugMode) {
+          debugPrint('⚠️ [FCM-HANDLER] 로그아웃 상태 - 미승인으로 처리');
+        }
+        return false;
+      }
+      
+      final userId = currentUser.uid;
+      
+      // 기기 정보 가져오기 (캐시 사용)
+      if (_cachedDeviceId == null || _cachedPlatform == null) {
+        await _loadDeviceInfo();
+      }
+      
+      if (_cachedDeviceId == null || _cachedPlatform == null) {
+        // 기기 정보 없음 - 안전하게 미승인으로 처리
+        if (kDebugMode) {
+          debugPrint('⚠️ [FCM-HANDLER] 기기 정보 없음 - 미승인으로 처리');
+        }
+        return false;
+      }
+      
+      // DatabaseService를 통해 승인 상태 조회
+      final isApproved = await _databaseService.isCurrentDeviceApproved(
+        userId,
+        _cachedDeviceId!,
+        _cachedPlatform!,
+      );
+      
+      if (kDebugMode) {
+        debugPrint('🔐 [FCM-HANDLER] 기기 승인 상태: $isApproved');
+      }
+      
+      return isApproved;
+    } catch (e) {
+      // 에러 발생 시 안전하게 미승인으로 처리
+      if (kDebugMode) {
+        debugPrint('❌ [FCM-HANDLER] 승인 상태 체크 실패 - 미승인으로 처리: $e');
+      }
+      return false;
+    }
+  }
+  
+  /// 기기 정보 로드 및 캐싱
+  Future<void> _loadDeviceInfo() async {
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await _deviceInfo.androidInfo;
+        _cachedDeviceId = androidInfo.id;
+        _cachedPlatform = 'Android';
+      } else if (Platform.isIOS) {
+        final iosInfo = await _deviceInfo.iosInfo;
+        _cachedDeviceId = iosInfo.identifierForVendor;
+        _cachedPlatform = 'iOS';
+      }
+      
+      if (kDebugMode) {
+        debugPrint('📱 [FCM-HANDLER] 기기 정보 로드: deviceId=$_cachedDeviceId, platform=$_cachedPlatform');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [FCM-HANDLER] 기기 정보 로드 실패: $e');
+      }
+    }
   }
 
   /// 디버그 정보 출력

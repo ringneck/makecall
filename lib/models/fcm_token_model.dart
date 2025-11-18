@@ -13,6 +13,7 @@ class FcmTokenModel {
   final DateTime createdAt;      // 토큰 생성 시간
   final DateTime lastActiveAt;   // 마지막 활동 시간
   final bool isActive;           // 활성 상태
+  final bool isApproved;         // 기기 승인 여부 (첫 기기는 자동 승인, 추가 기기는 승인 필요)
 
   FcmTokenModel({
     required this.userId,
@@ -23,6 +24,7 @@ class FcmTokenModel {
     required this.createdAt,
     required this.lastActiveAt,
     this.isActive = true,
+    this.isApproved = true, // 기본값: 승인됨 (하위 호환성)
   });
 
   /// Firestore에서 데이터를 가져와 모델로 변환
@@ -37,6 +39,7 @@ class FcmTokenModel {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastActiveAt: (data['lastActiveAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isActive: data['isActive'] as bool? ?? true,
+      isApproved: data['isApproved'] as bool? ?? true, // 기존 데이터는 승인된 것으로 간주
     );
   }
 
@@ -51,6 +54,7 @@ class FcmTokenModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'lastActiveAt': Timestamp.fromDate(lastActiveAt),
       'isActive': isActive,
+      'isApproved': isApproved,
     };
   }
 
@@ -64,6 +68,7 @@ class FcmTokenModel {
     DateTime? createdAt,
     DateTime? lastActiveAt,
     bool? isActive,
+    bool? isApproved,
   }) {
     return FcmTokenModel(
       userId: userId ?? this.userId,
@@ -74,11 +79,12 @@ class FcmTokenModel {
       createdAt: createdAt ?? this.createdAt,
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
       isActive: isActive ?? this.isActive,
+      isApproved: isApproved ?? this.isApproved,
     );
   }
 
   @override
   String toString() {
-    return 'FcmTokenModel(userId: $userId, deviceName: $deviceName, platform: $platform, isActive: $isActive)';
+    return 'FcmTokenModel(userId: $userId, deviceName: $deviceName, platform: $platform, isActive: $isActive, isApproved: $isApproved)';
   }
 }

@@ -151,6 +151,20 @@ class FCMTokenManager {
         print('   - Device Key: $currentDeviceKey');
       }
       
+      // 🔐 기기 승인 상태 결정
+      // - 첫 기기: 자동 승인 (isApproved: true)
+      // - 동일 기기 토큰 갱신: 자동 승인 (isApproved: true)
+      // - 추가 기기: 승인 대기 (isApproved: false, needsApproval: true)
+      final bool isApproved = !needsApproval;
+      
+      if (needsApproval) {
+        // ignore: avoid_print
+        print('🔒 [FCM-SAVE] 새 기기 승인 대기 상태로 저장 (isApproved: false)');
+      } else {
+        // ignore: avoid_print
+        print('✅ [FCM-SAVE] 기기 자동 승인 (isApproved: true)');
+      }
+      
       // 2. 새 토큰 모델 생성 및 저장
       final tokenModel = FcmTokenModel(
         userId: userId,
@@ -161,6 +175,7 @@ class FCMTokenManager {
         createdAt: DateTime.now(),
         lastActiveAt: DateTime.now(),
         isActive: true,
+        isApproved: isApproved,
       );
       
       // ignore: avoid_print

@@ -562,6 +562,30 @@ class FCMDeviceApprovalService {
     try {
       debugPrint('✅ [FCM] 기기 승인 처리: $approvalRequestId');
       
+      // 🔍 Step 1: 승인 요청 문서에서 기기 정보 추출
+      final approvalDoc = await _firestore
+          .collection('device_approval_requests')
+          .doc(approvalRequestId)
+          .get();
+      
+      if (!approvalDoc.exists) {
+        debugPrint('❌ [FCM] 승인 요청 문서가 존재하지 않음');
+        return;
+      }
+      
+      final data = approvalDoc.data()!;
+      final userId = data['userId'] as String?;
+      final newDeviceId = data['newDeviceId'] as String?;
+      final newPlatform = data['newPlatform'] as String?;
+      
+      if (userId == null || newDeviceId == null || newPlatform == null) {
+        debugPrint('❌ [FCM] 승인 요청 데이터 불완전: userId=$userId, deviceId=$newDeviceId, platform=$newPlatform');
+        return;
+      }
+      
+      debugPrint('📋 [FCM] 승인할 기기 정보: userId=$userId, deviceId=$newDeviceId, platform=$newPlatform');
+      
+      // 🔧 Step 2: device_approval_requests 상태 업데이트 (기존 로직)
       int retryCount = 0;
       const maxRetries = 2;
       bool success = false;
@@ -574,7 +598,7 @@ class FCMDeviceApprovalService {
           }).timeout(const Duration(seconds: 5));
           
           success = true;
-          debugPrint('✅ [FCM] Firestore 승인 완료');
+          debugPrint('✅ [FCM] device_approval_requests 승인 완료');
         } catch (e) {
           retryCount++;
           if (retryCount < maxRetries) {
@@ -584,6 +608,40 @@ class FCMDeviceApprovalService {
           }
         }
       }
+      
+      // 🔐 Step 3: fcm_tokens 컬렉션의 isApproved 필드 업데이트 (NEW!)
+      try {
+        debugPrint('🔐 [FCM] fcm_tokens 업데이트 시작...');
+        
+        final tokensQuery = await _firestore
+            .collection('fcm_tokens')
+            .where('userId', isEqualTo: userId)
+            .where('deviceId', isEqualTo: newDeviceId)
+            .where('platform', isEqualTo: newPlatform)
+            .get()
+            .timeout(const Duration(seconds: 5));
+        
+        if (tokensQuery.docs.isEmpty) {
+          debugPrint('⚠️ [FCM] fcm_tokens에서 일치하는 토큰 없음 (이미 삭제되었거나 아직 생성 안됨)');
+        } else {
+          debugPrint('📋 [FCM] ${tokensQuery.docs.length}개의 토큰 문서 발견, isApproved 업데이트 중...');
+          
+          for (var doc in tokensQuery.docs) {
+            await doc.reference.update({
+              'isApproved': true,
+              'approvedAt': FieldValue.serverTimestamp(),
+            }).timeout(const Duration(seconds: 5));
+            
+            debugPrint('✅ [FCM] fcm_tokens 문서 업데이트 완료: ${doc.id}');
+          }
+          
+          debugPrint('✅ [FCM] 모든 fcm_tokens 업데이트 완료');
+        }
+      } catch (e) {
+        debugPrint('⚠️ [FCM] fcm_tokens 업데이트 실패 (계속 진행): $e');
+        // fcm_tokens 업데이트 실패해도 승인 프로세스는 완료된 것으로 처리
+      }
+      
     } catch (e, stackTrace) {
       debugPrint('❌ [FCM] 기기 승인 오류: $e');
       debugPrint('Stack trace: $stackTrace');

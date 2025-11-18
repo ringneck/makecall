@@ -1319,6 +1319,51 @@ class DatabaseService {
     }
   }
 
+  /// 현재 기기의 승인 상태 조회
+  /// 
+  /// @param userId 사용자 ID
+  /// @param deviceId 기기 ID
+  /// @param platform 플랫폼 (iOS, Android)
+  /// @return 승인 여부 (true: 승인됨, false: 미승인 또는 토큰 없음)
+  Future<bool> isCurrentDeviceApproved(String userId, String deviceId, String platform) async {
+    try {
+      // 🔑 CRITICAL: Platform 포함으로 iOS/Android 기기 구분
+      final docId = '${userId}_${deviceId}_$platform';
+      final tokenDoc = await _firestore
+          .collection('fcm_tokens')
+          .doc(docId)
+          .get();
+      
+      if (!tokenDoc.exists) {
+        // 토큰 없음 - 미승인으로 처리
+        if (kDebugMode) {
+          debugPrint('⚠️ [DB] fcm_tokens 문서 없음 - 미승인으로 처리');
+        }
+        return false;
+      }
+      
+      final data = tokenDoc.data();
+      if (data == null) {
+        return false;
+      }
+      
+      // isApproved 필드 확인 (기본값: true for backward compatibility)
+      final isApproved = data['isApproved'] as bool? ?? true;
+      
+      if (kDebugMode) {
+        debugPrint('🔐 [DB] 기기 승인 상태 조회: $isApproved (deviceId: $deviceId, platform: $platform)');
+      }
+      
+      return isApproved;
+    } catch (e) {
+      // 에러 발생 시 안전하게 미승인으로 처리
+      if (kDebugMode) {
+        debugPrint('❌ [DB] 승인 상태 조회 실패 - 미승인으로 처리: $e');
+      }
+      return false;
+    }
+  }
+
   /// 사용자의 모든 FCM 토큰 조회 (관리 목적)
   /// 
   /// @param userId 사용자 ID
