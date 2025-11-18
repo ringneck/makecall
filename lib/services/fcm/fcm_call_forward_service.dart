@@ -35,7 +35,7 @@ class FCMCallForwardService {
       await _sendNotificationToOtherDevices(
         userId: userId,
         title: '착신전환 설정',
-        body: '착신전환 사용이 설정되었습니다.',
+        body: '착신전환 사용이 설정되었습니다. ($extensionNumber)',
         data: {
           'type': 'call_forward_enabled',
           'extensionNumber': extensionNumber,
@@ -75,7 +75,7 @@ class FCMCallForwardService {
       await _sendNotificationToOtherDevices(
         userId: userId,
         title: '착신전환 해제',
-        body: '착신전환 사용이 해제되었습니다.',
+        body: '착신전환 사용이 해제되었습니다. ($extensionNumber)',
         data: {
           'type': 'call_forward_disabled',
           'extensionNumber': extensionNumber,
@@ -117,7 +117,7 @@ class FCMCallForwardService {
       await _sendNotificationToOtherDevices(
         userId: userId,
         title: '착신전환 번호 변경',
-        body: '착신전환 번호가 변경되었습니다. $newNumber',
+        body: '착신전환 번호가 변경되었습니다. ($extensionNumber) → $newNumber',
         data: {
           'type': 'call_forward_number_changed',
           'extensionNumber': extensionNumber,
