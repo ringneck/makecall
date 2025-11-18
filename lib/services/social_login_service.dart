@@ -73,8 +73,14 @@ class SocialLoginService {
 
       // Google 인증 정보 가져오기
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      
+      if (kDebugMode) {
+        debugPrint('🔐 [Google] 인증 정보 확인');
+        debugPrint('   - accessToken: ${googleAuth.accessToken != null ? "존재" : "null"}');
+        debugPrint('   - idToken: ${googleAuth.idToken != null ? "존재" : "null"}');
+      }
 
-      // Firebase 자격증명 생성
+      // Firebase 자격증명 생성 (null 안전성 체크)
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -487,31 +493,43 @@ class SocialLoginService {
     }
   }
 
-  /// ===== 4. 애플 로그인 (iOS 전용) =====
+  /// ===== 4. 애플 로그인 (iOS + Web) =====
   Future<SocialLoginResult> signInWithApple() async {
     try {
-      // iOS 플랫폼 확인
+      // 플랫폼 확인 (iOS 또는 Web만)
       if (!Platform.isIOS && !kIsWeb) {
         if (kDebugMode) {
-          debugPrint('⚠️ [Apple] iOS 전용 기능');
+          debugPrint('⚠️ [Apple] iOS/Web 전용 기능');
         }
         return SocialLoginResult(
           success: false,
-          errorMessage: 'Apple 로그인은 iOS에서만 지원됩니다',
+          errorMessage: 'Apple 로그인은 iOS와 웹에서만 지원됩니다',
           provider: SocialLoginProvider.apple,
         );
       }
 
       if (kDebugMode) {
-        debugPrint('🍎 [Apple] 로그인 시작');
+        debugPrint('🍎 [Apple] 로그인 시작 (플랫폼: ${kIsWeb ? "Web" : "iOS"})');
       }
 
-      // Apple 로그인
+      // Apple 로그인 (웹 플랫폼 지원 추가)
       final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
+        // 🌐 웹 플랫폼 설정
+        webAuthenticationOptions: kIsWeb
+            ? WebAuthenticationOptions(
+                clientId: 'com.olssoo.makecall_app.web',  // Apple Service ID
+                redirectUri: Uri.parse(
+                  // 개발: localhost, 프로덕션: 실제 도메인
+                  kDebugMode
+                      ? 'http://localhost:5060/auth/callback'
+                      : 'https://yourdomain.com/auth/callback',
+                ),
+              )
+            : null,
       );
 
       if (kDebugMode) {
