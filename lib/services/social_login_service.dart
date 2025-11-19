@@ -501,33 +501,24 @@ class SocialLoginService {
     }
   }
 
-  /// ===== 4. 애플 로그인 (iOS + Web) =====
+  /// ===== 4. 애플 로그인 (iOS + Web + Android) =====
   Future<SocialLoginResult> signInWithApple() async {
     try {
-      // 플랫폼 확인 (iOS 또는 Web만)
-      if (!_isIOS && !kIsWeb) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [Apple] iOS/Web 전용 기능');
-        }
-        return SocialLoginResult(
-          success: false,
-          errorMessage: 'Apple 로그인은 iOS와 웹에서만 지원됩니다',
-          provider: SocialLoginProvider.apple,
-        );
-      }
-
+      // 플랫폼 로그
+      String platformName = kIsWeb ? "Web" : (_isIOS ? "iOS" : "Android");
       if (kDebugMode) {
-        debugPrint('🍎 [Apple] 로그인 시작 (플랫폼: ${kIsWeb ? "Web" : "iOS"})');
+        debugPrint('🍎 [Apple] 로그인 시작 (플랫폼: $platformName)');
       }
 
-      // Apple 로그인 (웹 플랫폼 지원 추가)
+      // Apple 로그인 (모든 플랫폼 지원)
+      // Android는 웹 플로우 사용, iOS는 네이티브, Web은 웹 플로우
       final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
-        // 🌐 웹 플랫폼 설정
-        webAuthenticationOptions: kIsWeb
+        // 🌐 웹 플로우 설정 (Android + Web)
+        webAuthenticationOptions: (!_isIOS)
             ? WebAuthenticationOptions(
                 clientId: 'com.olssoo.makecall_app.web',  // Apple Service ID
                 redirectUri: Uri.parse(
