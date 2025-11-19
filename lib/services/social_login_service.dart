@@ -520,7 +520,7 @@ class SocialLoginService {
         // 🌐 웹 플로우 설정 (Android + Web)
         webAuthenticationOptions: (!_isIOS)
             ? WebAuthenticationOptions(
-                clientId: 'com.olssoo.makecall_app.web',  // Apple Service ID
+                clientId: 'com.olssoo.makecall.signin',  // Apple Service ID (변경됨)
                 redirectUri: Uri.parse(
                   // 개발: localhost, 프로덕션: 실제 도메인
                   kDebugMode
