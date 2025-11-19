@@ -4,15 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 import 'dart:async'; // TimeoutException 사용을 위해 필요
-import 'dart:typed_data'; // Int64List for vibration pattern
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:vibration/vibration.dart'; // 진동 기능
 import 'package:audioplayers/audioplayers.dart'; // 사운드 재생
-import 'package:shared_preferences/shared_preferences.dart'; // iOS deviceId 캐싱용
-import '../screens/call/incoming_call_screen.dart';
-import '../screens/home/main_screen.dart'; // MainScreen import 추가
-import '../models/fcm_token_model.dart';
 import '../main.dart' show navigatorKey; // GlobalKey for Navigation
 import 'dcmiws_service.dart';
 import 'auth_service.dart';
@@ -32,7 +26,6 @@ import 'fcm/fcm_web_config.dart'; // 🔧 Phase 5: Web FCM 설정 분리
 /// 플랫폼 체크 헬퍼 (웹 플랫폼 안전 처리)
 bool get _isIOS => !kIsWeb && Platform.isIOS;
 bool get _isAndroid => !kIsWeb && Platform.isAndroid;
-bool get _isMobile => _isIOS || _isAndroid;
 
 /// FCM(Firebase Cloud Messaging) 서비스
 /// 
@@ -556,58 +549,6 @@ class FCMService {
     // Delegate to new modular service
     return await _approvalService.waitForDeviceApproval(approvalRequestId);
   }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService
-  Future<bool> _waitForDeviceApprovalOriginal(String approvalRequestId) async {
-    try {
-      
-      // Firestore 스냅샷 리스너 사용 (실시간 업데이트)
-      final stream = _firestore
-          .collection('device_approval_requests')
-          .doc(approvalRequestId)
-          .snapshots();
-      
-      // 최대 5분 대기 (Cloud Functions에서 설정한 만료 시간과 동일)
-      final timeout = DateTime.now().add(const Duration(minutes: 5));
-      
-      int snapshotCount = 0;
-      await for (var snapshot in stream) {
-        snapshotCount++;
-        
-        if (!snapshot.exists) {
-          return false;
-        }
-        
-        final data = snapshot.data();
-        if (data == null) {
-          continue;
-        }
-        
-        final status = data['status'] as String?;
-        
-        
-        if (status == 'approved') {
-          return true;
-        } else if (status == 'rejected') {
-          return false;
-        } else if (status == 'expired') {
-          return false;
-        }
-        
-        // 시간 초과 체크
-        final now = DateTime.now();
-        if (now.isAfter(timeout)) {
-          return false;
-        }
-        
-      }
-      
-      return false;
-      
-    } catch (e, stackTrace) {
-      return false;
-    }
-  }
   
   /// ⚠️ DEPRECATED: Use FCMMessageHandler.handleForegroundMessage() instead
   /// This method has been moved to FCMMessageHandler for better modularity.
@@ -616,85 +557,6 @@ class FCMService {
     // Delegate to new modular service
     _messageHandler.handleForegroundMessage(message);
   }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMMessageHandler
-  void _handleForegroundMessageOriginal(RemoteMessage message) {
-    message.data.forEach((key, value) {
-    });
-    
-    // 🔒 중복 메시지 처리 방지
-    final messageId = message.messageId;
-    if (messageId != null && _processedMessageIds.contains(messageId)) {
-      return;
-    }
-    if (messageId != null) {
-      _processedMessageIds.add(messageId);
-      
-      // 🧹 메모리 관리: 100개 이상 쌓이면 오래된 것 제거
-      if (_processedMessageIds.length > 100) {
-        final toRemove = _processedMessageIds.take(50).toList();
-        _processedMessageIds.removeAll(toRemove);
-      }
-    }
-    
-    // 🔐 강제 로그아웃 메시지 처리 (레거시)
-    if (message.data['type'] == 'force_logout') {
-      _handleForceLogout(message);
-      return;
-    }
-    
-    // 🔔 기기 승인 요청 메시지 처리
-    // ✅ FIX: 포그라운드에서도 즉시 다이얼로그 표시
-    if (message.data['type'] == 'device_approval_request') {
-      _handleDeviceApprovalRequest(message);
-      return; // 알림 표시하지 않고 즉시 다이얼로그만 표시
-    }
-    
-    // ✅ 기기 승인 응답 메시지 처리 (즉시 처리)
-    if (message.data['type'] == 'device_approval_response') {
-      _handleDeviceApprovalResponse(message);
-      return;
-    }
-    
-    // 🛑 수신전화 알림 취소 메시지 처리 (방법 1: FCM 푸시)
-    if (message.data['type'] == 'incoming_call_cancelled') {
-      _handleIncomingCallCancelled(message);
-      return;
-    }
-    
-    // 📞 수신 전화 메시지 처리 (Android와 iOS 모두 지원)
-    // Android: type == 'incoming_call'
-    // iOS: linkedid가 있으면 수신 전화로 간주
-    final hasIncomingCallType = message.data['type'] == 'incoming_call';
-    final hasLinkedId = message.data['linkedid'] != null && 
-                        (message.data['linkedid'] as String).isNotEmpty;
-    final hasCallType = message.data['call_type'] != null;
-    
-    
-    if (hasIncomingCallType || (hasLinkedId && hasCallType)) {
-      _handleIncomingCallFCM(message);
-      return;
-    } else {
-    }
-    
-    // 📥 사용자 알림 설정 확인 (알림 표시 전 체크) - 동기 함수에서 비동기 호출 불가능하므로 주석 처리
-    // 대신 _showAndroidNotification(), _showWebNotification(), _showIOSNotification() 내부에서 체크
-    
-    // 웹 플랫폼: 브라우저 알림 표시
-    if (kIsWeb) {
-      _showWebNotification(message);
-    }
-    
-    // 안드로이드 플랫폼: 로컬 알림 표시
-    if (_isAndroid) {
-      _showAndroidNotification(message);
-    }
-    
-    // iOS 플랫폼: DialogUtils로 알림 표시 (네이티브 알림은 AppDelegate에서 비활성화됨)
-    if (_isIOS) {
-      _showIOSNotification(message);
-    }
-  }
   
   /// ⚠️ DEPRECATED: Use FCMMessageHandler.handleMessageOpenedApp() instead
   /// This method has been moved to FCMMessageHandler for better modularity.
@@ -702,52 +564,6 @@ class FCMService {
   void _handleMessageOpenedApp(RemoteMessage message) {
     // Delegate to new modular service
     _messageHandler.handleMessageOpenedApp(message);
-  }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMMessageHandler
-  void _handleMessageOpenedAppOriginal(RemoteMessage message) {
-    
-    // 🔐 강제 로그아웃 메시지 처리 (레거시)
-    if (message.data['type'] == 'force_logout') {
-      _handleForceLogout(message);
-      return;
-    }
-    
-    // 🔔 기기 승인 요청 메시지 처리 (알림 클릭 시 다이얼로그 표시)
-    if (message.data['type'] == 'device_approval_request') {
-      // 🔧 FIX: iOS에서 context가 준비되지 않을 수 있으므로 대기
-      _waitForContextAndShowApprovalDialog(message);
-      return;
-    }
-    
-    // ✅ 기기 승인 응답 메시지 처리
-    if (message.data['type'] == 'device_approval_response') {
-      _handleDeviceApprovalResponse(message);
-      return;
-    }
-    
-    // 🛑 수신전화 알림 취소 메시지 처리 (방법 1: FCM 푸시)
-    if (message.data['type'] == 'incoming_call_cancelled') {
-      _handleIncomingCallCancelled(message);
-      return;
-    }
-    
-    // 📞 수신 전화 메시지 처리 (Android와 iOS 모두 지원)
-    // Android: type == 'incoming_call'
-    // iOS: linkedid가 있으면 수신 전화로 간주
-    final hasIncomingCallType = message.data['type'] == 'incoming_call';
-    final hasLinkedId = message.data['linkedid'] != null && 
-                        (message.data['linkedid'] as String).isNotEmpty;
-    final hasCallType = message.data['call_type'] != null;
-    
-    if (hasIncomingCallType || (hasLinkedId && hasCallType)) {
-      debugPrint('📞 [FCM] 백그라운드에서 수신 전화 화면 표시 시작...');
-      debugPrint('   - type: ${message.data['type']}');
-      debugPrint('   - linkedid: ${message.data['linkedid']}');
-      debugPrint('   - call_type: ${message.data['call_type']}');
-      _waitForContextAndShowIncomingCall(message);
-      return;
-    }
   }
   
   /// FCM 수신 전화 메시지 처리
@@ -759,62 +575,6 @@ class FCMService {
     // Delegate to new modular service
     await _incomingCallHandler.handleIncomingCallFCM(message);
   }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMIncomingCallHandler
-  Future<void> _handleIncomingCallFCMOriginal(RemoteMessage message) async {
-    
-    // 🔔 사용자 알림 설정 확인 (pushEnabled, soundEnabled, vibrationEnabled)
-    final authService = AuthService();
-    final userId = authService.currentUser?.uid;
-    
-    bool soundEnabled = true; // 기본값
-    bool vibrationEnabled = true; // 기본값
-    
-    if (userId != null) {
-      try {
-        final settings = await getUserNotificationSettings(userId);
-        final pushEnabled = settings?['pushEnabled'] ?? true;
-        soundEnabled = settings?['soundEnabled'] ?? true;
-        vibrationEnabled = settings?['vibrationEnabled'] ?? true;
-        
-        
-        if (!pushEnabled) {
-          return; // 알림 설정이 꺼져있으면 수신 전화 처리 중단
-        }
-      } catch (e) {
-        // 설정 확인 실패 시 기본 동작 (수신 전화 표시, 소리/진동 켜짐)
-      }
-    }
-    
-    // 1️⃣ 사용자 설정 확인 (dcmiwsEnabled)
-    final dcmiwsEnabled = authService.currentUserModel?.dcmiwsEnabled ?? false;
-    
-    
-    if (dcmiwsEnabled) {
-      // 2️⃣ WebSocket 모드: FCM 무시
-      
-      // WebSocket 연결 상태 확인 (경고용)
-      try {
-        final dcmiwsService = DCMIWSService();
-        final isConnected = dcmiwsService.isConnected;
-        
-        if (!isConnected) {
-        } else {
-        }
-      } catch (e) {
-      }
-      
-      return; // WebSocket 모드는 FCM 무시
-    }
-    
-    // 3️⃣ FCM 모드: FCM으로 수신 전화 처리
-    
-    try {
-      // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함) + 소리/진동 설정 전달
-      await _showIncomingCallScreen(message, soundEnabled: soundEnabled, vibrationEnabled: vibrationEnabled);
-    } catch (e, stackTrace) {
-    }
-  }
   
   /// ⚠️ DEPRECATED: Use FCMIncomingCallHandler.waitForContextAndShowIncomingCall() instead
   /// This method has been moved to FCMIncomingCallHandler for better modularity.
@@ -822,66 +582,6 @@ class FCMService {
   Future<void> _waitForContextAndShowIncomingCall(RemoteMessage message) async {
     // Delegate to new modular service
     await _incomingCallHandler.waitForContextAndShowIncomingCall(message);
-  }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMIncomingCallHandler
-  Future<void> _waitForContextAndShowIncomingCallOriginal(RemoteMessage message) async {
-    int retryCount = 0;
-    const maxRetries = 30; // 3초 (100ms * 30)
-    
-    while (retryCount < maxRetries) {
-      final context = _context ?? navigatorKey.currentContext;
-      
-      if (context != null) {
-        debugPrint('✅ [FCM-INCOMING] Context 준비 완료 (${retryCount * 100}ms 대기)');
-        
-        // 사용자 설정 확인 (dcmiwsEnabled)
-        final authService = AuthService();
-        final dcmiwsEnabled = authService.currentUserModel?.dcmiwsEnabled ?? false;
-        
-        if (dcmiwsEnabled) {
-          debugPrint('✅ [FCM-INCOMING] WebSocket 모드 설정됨 - FCM 무시');
-          return;
-        }
-        
-        // 사용자 알림 설정 확인 (pushEnabled, soundEnabled, vibrationEnabled)
-        final userId = authService.currentUser?.uid;
-        
-        bool soundEnabled = true; // 기본값
-        bool vibrationEnabled = true; // 기본값
-        
-        if (userId != null) {
-          try {
-            final settings = await getUserNotificationSettings(userId);
-            final pushEnabled = settings?['pushEnabled'] ?? true;
-            soundEnabled = settings?['soundEnabled'] ?? true;
-            vibrationEnabled = settings?['vibrationEnabled'] ?? true;
-            
-            debugPrint('📦 [FCM-INCOMING] 사용자 알림 설정:');
-            debugPrint('   - pushEnabled: $pushEnabled');
-            debugPrint('   - soundEnabled: $soundEnabled');
-            debugPrint('   - vibrationEnabled: $vibrationEnabled');
-            
-            if (!pushEnabled) {
-              debugPrint('⏭️ [FCM-INCOMING] 푸시 알림이 비활성화되어 수신 전화 표시 건너뜀');
-              return;
-            }
-          } catch (e) {
-            debugPrint('⚠️ [FCM-INCOMING] 알림 설정 확인 실패: $e');
-          }
-        }
-        
-        // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함) + 소리/진동 설정 전달
-        await _showIncomingCallScreen(message, soundEnabled: soundEnabled, vibrationEnabled: vibrationEnabled);
-        return;
-      }
-      
-      debugPrint('⏳ [FCM-INCOMING] Context 대기 중... (${retryCount + 1}/$maxRetries)');
-      await Future.delayed(const Duration(milliseconds: 100));
-      retryCount++;
-    }
-    
-    debugPrint('❌ [FCM-INCOMING] Context 타임아웃 (3초 대기 후에도 Context 없음)');
   }
   
   /// 🔧 NEW: Context 준비 대기 후 기기 승인 다이얼로그 표시
@@ -1016,181 +716,6 @@ class FCMService {
     // Delegate to new modular service
     _approvalService.handleDeviceApprovalRequest(message);
   }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService
-  void _handleDeviceApprovalRequestOriginal(RemoteMessage message) {
-    
-    final approvalRequestId = message.data['approvalRequestId'] as String?;
-    final newDeviceName = message.data['newDeviceName'] ?? '알 수 없는 기기';
-    final newPlatform = message.data['newPlatform'] ?? 'unknown';
-    
-    
-    if (approvalRequestId == null) {
-      print('');
-      return;
-    }
-    
-    // 🔒 이미 표시 중인 다이얼로그 확인
-    if (_currentDisplayedApprovalId == approvalRequestId) {
-      print('');
-      return;
-    }
-    
-    // 🔧 FIX: Context 즉시 확인
-    final context = _context ?? navigatorKey.currentContext;
-    
-    
-    if (context == null) {
-      _waitForContextAndShowApprovalDialog(message);
-      return;
-    }
-    
-    // 🔒 다이얼로그 표시 시작 - ID 기록
-    _currentDisplayedApprovalId = approvalRequestId;
-    
-    print('');
-    
-    // 📳 새 기기 로그인 감지 시 진동 (사용자 알림)
-    _triggerDeviceApprovalVibration();
-    
-    // 🔊 새 기기 로그인 감지 시 사운드 (사용자 알림)
-    _triggerDeviceApprovalSound();
-    
-    // 기기 승인 다이얼로그 표시
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.security, color: Colors.blue, size: 28),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                '🔐 새 기기 로그인 감지',
-                style: TextStyle(fontSize: 16),
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-            Text(
-              '새 기기에서 로그인을 시도하고 있습니다.',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.blue.withOpacity(0.3),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.devices, size: 16, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '기기: $newDeviceName',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.phone_android, size: 16, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      Text(
-                        '플랫폼: $newPlatform',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '본인이 맞다면 승인 버튼을 클릭하세요.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              
-              // 🔒 중복 처리 방지
-              if (_processingApprovalIds.contains(approvalRequestId)) {
-                return;
-              }
-              _processingApprovalIds.add(approvalRequestId);
-              
-              // 🔧 FIX: 다이얼로그를 먼저 닫고, 거부 처리는 백그라운드에서 실행
-              if (context.mounted) {
-                Navigator.of(context).pop();
-                
-                // 🔒 다이얼로그 닫힘 - ID 초기화
-                _currentDisplayedApprovalId = null;
-              }
-              
-              // 거부 처리는 비동기로 백그라운드 실행
-              _rejectDeviceApproval(approvalRequestId).then((_) {
-              }).catchError((e) {
-              }).whenComplete(() {
-                // 🔒 처리 완료 - 플래그 제거
-                _processingApprovalIds.remove(approvalRequestId);
-              });
-            },
-            child: const Text('거부', style: TextStyle(color: Colors.red)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              
-              // 🔒 중복 처리 방지
-              if (_processingApprovalIds.contains(approvalRequestId)) {
-                return;
-              }
-              _processingApprovalIds.add(approvalRequestId);
-              
-              // 🔧 FIX: 다이얼로그를 먼저 닫고, 승인 처리는 백그라운드에서 실행
-              if (context.mounted) {
-                Navigator.of(context).pop();
-                
-                // 🔒 다이얼로그 닫힘 - ID 초기화
-                _currentDisplayedApprovalId = null;
-              }
-              
-              // 승인 처리는 비동기로 백그라운드 실행
-              _approveDeviceApproval(approvalRequestId).then((_) {
-              }).catchError((e) {
-              }).whenComplete(() {
-                // 🔒 처리 완료 - 플래그 제거
-                _processingApprovalIds.remove(approvalRequestId);
-              });
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-            ),
-            child: const Text('승인', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
   
   /// 기기 승인 응답 메시지 처리
   /// 
@@ -1300,69 +825,6 @@ class FCMService {
     // Delegate to new modular service
     _incomingCallHandler.handleIncomingCallCancelled(message);
   }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMIncomingCallHandler
-  void _handleIncomingCallCancelledOriginal(RemoteMessage message) {
-    final linkedid = message.data['linkedid'] as String?;
-    final action = message.data['action'] as String? ?? 'unknown';
-    
-    if (kDebugMode) {
-      debugPrint('🛑 [FCM-CANCEL] 수신전화 취소 메시지 수신');
-      debugPrint('   linkedid: $linkedid');
-      debugPrint('   action: $action');
-    }
-    
-    if (linkedid == null || linkedid.isEmpty) {
-      if (kDebugMode) {
-        debugPrint('❌ [FCM-CANCEL] linkedid 없음');
-      }
-      return;
-    }
-    
-    // Navigator를 통해 현재 표시된 IncomingCallScreen 닫기
-    final context = _context ?? navigatorKey.currentContext;
-    if (context == null) {
-      if (kDebugMode) {
-        debugPrint('⚠️ [FCM-CANCEL] BuildContext 없음 - Navigator 사용 불가');
-        debugPrint('   → Firestore 리스너(방법 3)가 처리할 것입니다');
-      }
-      return;
-    }
-    
-    // 🔧 안전 장치: Context가 mounted 상태인지 확인 (이미 dispose된 경우 방지)
-    if (context is Element) {
-      if (!context.mounted) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [FCM-CANCEL] Context가 이미 deactivated - 화면이 이미 닫혔을 수 있음');
-        }
-        return;
-      }
-    }
-    
-    // 현재 라우트가 IncomingCallScreen인 경우에만 닫기
-    try {
-      final currentRoute = ModalRoute.of(context);
-      if (currentRoute != null && currentRoute.isCurrent) {
-        Navigator.of(context).popUntil((route) {
-          // IncomingCallScreen이 아닌 라우트를 찾을 때까지 pop
-          return route.settings.name != '/incoming_call' || route.isFirst;
-        });
-        
-        if (kDebugMode) {
-          debugPrint('✅ [FCM-CANCEL] IncomingCallScreen 닫기 완료 (FCM 푸시)');
-        }
-      } else {
-        if (kDebugMode) {
-          debugPrint('ℹ️ [FCM-CANCEL] 현재 IncomingCallScreen이 표시되지 않음');
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('⚠️ [FCM-CANCEL] Navigator 오류 (화면이 이미 닫혔을 수 있음): $e');
-        debugPrint('   → 이는 정상적인 동작입니다 (확인 버튼으로 이미 닫힘)');
-      }
-    }
-  }
   
   /// ⚠️ DEPRECATED: This method is now handled internally by FCMDeviceApprovalService
   /// Device approval is now processed automatically within FCMDeviceApprovalService.
@@ -1370,107 +832,12 @@ class FCMService {
   Future<void> _approveDeviceApproval(String approvalRequestId) async {
     debugPrint('⚠️ [FCM] _approveDeviceApproval is deprecated - handled internally by FCMDeviceApprovalService');
   }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService  
-  Future<void> _approveDeviceApprovalOriginal(String approvalRequestId) async {
-    try {
-      debugPrint('✅ [FCM] 기기 승인 처리 시작: $approvalRequestId');
-      
-      // 🚀 최적화: iOS 네트워크 대기 제거 (불필요한 2초 지연)
-      // Firestore는 자체적으로 재연결 메커니즘이 있으므로 즉시 시도
-      
-      // 🔄 재시도 로직 최적화 (최대 2번, 더 짧은 타임아웃)
-      int retryCount = 0;
-      const maxRetries = 2;  // 🚀 3번 → 2번으로 감소
-      bool success = false;
-      
-      while (retryCount < maxRetries && !success) {
-        try {
-          debugPrint('🔄 [FCM] Firestore 승인 업데이트 시도 ${retryCount + 1}/$maxRetries');
-          
-          // Firestore에서 승인 요청 문서 업데이트
-          await _firestore.collection('device_approval_requests').doc(approvalRequestId).update({
-            'status': 'approved',
-            'approvedAt': FieldValue.serverTimestamp(),
-          }).timeout(const Duration(seconds: 5));  // 🚀 10초 → 5초 타임아웃
-          
-          success = true;
-          debugPrint('✅ [FCM] Firestore 승인 완료');
-          
-        } catch (e) {
-          retryCount++;
-          debugPrint('⚠️  [FCM] Firestore 승인 실패 (시도 $retryCount/$maxRetries): $e');
-          
-          if (retryCount < maxRetries) {
-            // 🚀 고정 지연 (500ms)로 변경 - 지수 백오프보다 빠름
-            debugPrint('⏳ [FCM] 0.5초 후 재시도...');
-            await Future.delayed(const Duration(milliseconds: 500));
-          } else {
-            debugPrint('❌ [FCM] Firestore 승인 최종 실패');
-            rethrow;
-          }
-        }
-      }
-      
-      // 승인 응답 알림 전송 준비는 Cloud Functions에서 처리
-      
-    } catch (e, stackTrace) {
-      debugPrint('❌ [FCM] 기기 승인 처리 오류: $e');
-      debugPrint('Stack trace: $stackTrace');
-    }
-  }
   
   /// ⚠️ DEPRECATED: This method is now handled internally by FCMDeviceApprovalService
   /// Device rejection is now processed automatically within FCMDeviceApprovalService.
   @Deprecated('Handled internally by FCMDeviceApprovalService')
   Future<void> _rejectDeviceApproval(String approvalRequestId) async {
     debugPrint('⚠️ [FCM] _rejectDeviceApproval is deprecated - handled internally by FCMDeviceApprovalService');
-  }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService
-  Future<void> _rejectDeviceApprovalOriginal(String approvalRequestId) async {
-    try {
-      debugPrint('❌ [FCM] 기기 승인 거부 처리 시작: $approvalRequestId');
-      
-      // 🔄 재시도 로직 추가 (승인과 동일하게)
-      int retryCount = 0;
-      const maxRetries = 2;
-      bool success = false;
-      
-      while (retryCount < maxRetries && !success) {
-        try {
-          debugPrint('🔄 [FCM] Firestore 거부 업데이트 시도 ${retryCount + 1}/$maxRetries');
-          
-          // Firestore에서 승인 요청 문서 업데이트
-          await _firestore.collection('device_approval_requests').doc(approvalRequestId).update({
-            'status': 'rejected',
-            'rejectedAt': FieldValue.serverTimestamp(),
-          }).timeout(const Duration(seconds: 5));  // 🚀 5초 타임아웃
-          
-          success = true;
-          debugPrint('✅ [FCM] Firestore 거부 완료');
-          
-        } catch (e) {
-          retryCount++;
-          debugPrint('⚠️  [FCM] Firestore 거부 실패 (시도 $retryCount/$maxRetries): $e');
-          
-          if (retryCount < maxRetries) {
-            // 🚀 고정 지연 (500ms)
-            debugPrint('⏳ [FCM] 0.5초 후 재시도...');
-            await Future.delayed(const Duration(milliseconds: 500));
-          } else {
-            debugPrint('❌ [FCM] Firestore 거부 최종 실패');
-            rethrow;
-          }
-        }
-      }
-      
-      // 거부 응답 알림 전송 준비는 Cloud Functions에서 처리
-      
-    } catch (e, stackTrace) {
-      debugPrint('❌ [FCM] 기기 승인 거부 처리 오류: $e');
-      debugPrint('Stack trace: $stackTrace');
-    }
   }
   
   /// ⚠️ DEPRECATED: Use FCMNotificationService.showAndroidNotification() instead
@@ -1480,137 +847,6 @@ class FCMService {
     // Delegate to new modular service
     await _notificationService.showAndroidNotification(message);
   }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
-  Future<void> _showAndroidNotificationOriginal(RemoteMessage message) async {
-    if (!_isAndroid) return;
-    
-    try {
-      final title = message.notification?.title ?? message.data['title'] ?? 'MAKECALL 알림';
-      final body = message.notification?.body ?? message.data['body'] ?? '새로운 알림이 있습니다.';
-      
-      debugPrint('🔔 [FCM] 안드로이드 알림 표시 시작');
-      debugPrint('   제목: $title');
-      debugPrint('   내용: $body');
-      
-      // 📥 사용자 알림 설정 가져오기
-      String? userId;
-      
-      // _context가 있으면 AuthService에서 userId 가져오기
-      if (_context != null) {
-        try {
-          final authService = Provider.of<AuthService>(_context!, listen: false);
-          userId = authService.currentUser?.uid;
-        } catch (e) {
-          debugPrint('⚠️ [FCM-알림설정] AuthService 접근 실패: $e');
-        }
-      }
-      
-      Map<String, dynamic>? settings;
-      
-      if (userId != null) {
-        settings = await getUserNotificationSettings(userId);
-        debugPrint('📦 [FCM-알림설정] 사용자 설정: $settings');
-      } else {
-        debugPrint('⚠️ [FCM-알림설정] userId 없음 - 기본 설정 사용');
-      }
-      
-      // 알림 설정 적용 (기본값: 모두 켜짐)
-      final pushEnabled = settings?['pushEnabled'] ?? true;
-      final soundEnabled = settings?['soundEnabled'] ?? true;
-      final vibrationEnabled = settings?['vibrationEnabled'] ?? true;
-      
-      debugPrint('🔧 [FCM-알림설정] 적용:');
-      debugPrint('   - 푸시 알림: $pushEnabled');
-      debugPrint('   - 알림음: $soundEnabled');
-      debugPrint('   - 진동: $vibrationEnabled');
-      debugPrint('');
-      debugPrint('⚠️ [안드로이드 알림 체크리스트]');
-      debugPrint('1. 기기 무음/진동 모드 확인: 설정 → 소리');
-      debugPrint('2. 방해 금지 모드 확인: 설정 → 방해 금지');
-      debugPrint('3. 앱 알림 설정 확인: 설정 → 앱 → MAKECALL → 알림');
-      debugPrint('4. 채널별 설정 확인: 각 채널의 소리/진동 개별 확인');
-      debugPrint('');
-      
-      // 푸시 알림이 꺼져있으면 알림 표시 안함
-      if (!pushEnabled) {
-        debugPrint('⏭️ [FCM] 푸시 알림이 비활성화되어 알림 표시 건너뜀');
-        return;
-      }
-      
-      final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-          FlutterLocalNotificationsPlugin();
-      
-      // 사용자 설정에 따라 적절한 알림 채널 선택
-      String channelId;
-      String channelName;
-      String channelDescription;
-      
-      if (soundEnabled && vibrationEnabled) {
-        channelId = 'notification_sound_on_vibration_on';
-        channelName = 'Notifications with Sound and Vibration';
-        channelDescription = 'Notifications with both sound and vibration enabled';
-      } else if (!soundEnabled && vibrationEnabled) {
-        channelId = 'notification_sound_off_vibration_on';
-        channelName = 'Notifications with Vibration Only';
-        channelDescription = 'Notifications with vibration only (no sound)';
-      } else if (soundEnabled && !vibrationEnabled) {
-        channelId = 'notification_sound_on_vibration_off';
-        channelName = 'Notifications with Sound Only';
-        channelDescription = 'Notifications with sound only (no vibration)';
-      } else {
-        channelId = 'notification_sound_off_vibration_off';
-        channelName = 'Silent Notifications';
-        channelDescription = 'Notifications without sound and vibration';
-      }
-      
-      debugPrint('');
-      debugPrint('═══════════════════════════════════════════════');
-      debugPrint('📱 [FCM-알림] 채널 선택 정보:');
-      debugPrint('   - 채널 ID: $channelId');
-      debugPrint('   - 채널명: $channelName');
-      debugPrint('   - 알림음 요청: $soundEnabled');
-      debugPrint('   - 진동 요청: $vibrationEnabled');
-      debugPrint('');
-      debugPrint('🔍 [시스템 제한 가능성]:');
-      debugPrint('   - 기기 무음/진동 모드일 경우 알림음/진동 차단됨');
-      debugPrint('   - 방해 금지 모드일 경우 알림음/진동 차단됨');
-      debugPrint('   - 앱 설정에서 채널별 소리/진동 비활성화 가능');
-      debugPrint('═══════════════════════════════════════════════');
-      debugPrint('');
-      
-      // 알림 상세 설정 (사용자 설정에 맞는 채널 사용)
-      final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-        channelId, // 사용자 설정에 맞는 채널 ID
-        channelName,
-        channelDescription: channelDescription,
-        importance: Importance.high,
-        priority: Priority.high,
-        playSound: soundEnabled, // 🔊 사용자 설정 적용
-        enableVibration: vibrationEnabled, // 📳 사용자 설정 적용
-        vibrationPattern: vibrationEnabled ? Int64List.fromList([0, 500, 200, 500]) : null, // 진동 패턴 (0ms 대기, 500ms 진동, 200ms 정지, 500ms 진동)
-        icon: '@mipmap/ic_launcher', // 앱 아이콘 사용
-      );
-      
-      // ✅ const 제거: androidDetails가 런타임에 계산되므로 const 사용 불가
-      final NotificationDetails notificationDetails = NotificationDetails(
-        android: androidDetails,
-      );
-      
-      // 알림 표시
-      await flutterLocalNotificationsPlugin.show(
-        message.hashCode, // 고유 알림 ID (메시지마다 다름)
-        title,
-        body,
-        notificationDetails,
-      );
-      
-      debugPrint('✅ [FCM] 안드로이드 알림 표시 완료 (진동: $vibrationEnabled)');
-      
-    } catch (e) {
-      debugPrint('❌ [FCM] 안드로이드 알림 표시 오류: $e');
-    }
-  }
   
   /// ⚠️ DEPRECATED: Use FCMNotificationService.showWebNotification() instead
   /// This method has been moved to FCMNotificationService for better modularity.
@@ -1619,35 +855,6 @@ class FCMService {
     // Delegate to new modular service
     await _notificationService.showWebNotification(message);
   }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
-  Future<void> _showWebNotificationOriginal(RemoteMessage message) async {
-    if (!kIsWeb) return;
-    
-    try {
-      final title = message.notification?.title ?? message.data['title'] ?? 'MakeCall 알림';
-      final body = message.notification?.body ?? message.data['body'] ?? '새로운 알림';
-      
-      if (kDebugMode) {
-        debugPrint('🌐 웹 알림 표시: $title - $body');
-      }
-      
-      // 웹 알림은 서비스 워커에서 처리됨
-      // 여기서는 앱 내 다이얼로그로 표시
-      if (_context != null) {
-        await DialogUtils.showInfo(
-          _context!,
-          body,
-          title: title,
-          duration: const Duration(seconds: 5),
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ 웹 알림 표시 오류: $e');
-      }
-    }
-  }
   
   /// ⚠️ DEPRECATED: Use FCMNotificationService.showIOSNotification() instead
   /// This method has been moved to FCMNotificationService for better modularity.
@@ -1655,94 +862,6 @@ class FCMService {
   Future<void> _showIOSNotification(RemoteMessage message) async {
     // Delegate to new modular service
     await _notificationService.showIOSNotification(message);
-  }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
-  Future<void> _showIOSNotificationOriginal(RemoteMessage message) async {
-    if (!_isIOS) return;
-    
-    try {
-      final title = message.notification?.title ?? message.data['title'] ?? 'MAKECALL 알림';
-      final body = message.notification?.body ?? message.data['body'] ?? '새로운 알림이 있습니다.';
-      
-      debugPrint('🍎 [FCM] iOS 알림 표시 시작');
-      debugPrint('   제목: $title');
-      debugPrint('   내용: $body');
-      
-      // 📥 사용자 알림 설정 가져오기
-      String? userId;
-      
-      // _context가 있으면 AuthService에서 userId 가져오기
-      if (_context != null) {
-        try {
-          final authService = Provider.of<AuthService>(_context!, listen: false);
-          userId = authService.currentUser?.uid;
-        } catch (e) {
-          debugPrint('⚠️ [FCM-알림설정-iOS] AuthService 접근 실패: $e');
-        }
-      }
-      
-      Map<String, dynamic>? settings;
-      
-      if (userId != null) {
-        settings = await getUserNotificationSettings(userId);
-        debugPrint('📦 [FCM-알림설정-iOS] 사용자 설정: $settings');
-      } else {
-        debugPrint('⚠️ [FCM-알림설정-iOS] userId 없음 - 기본 설정 사용');
-      }
-      
-      // 알림 설정 적용 (기본값: 모두 켜짐)
-      final pushEnabled = settings?['pushEnabled'] ?? true;
-      final soundEnabled = settings?['soundEnabled'] ?? true;
-      final vibrationEnabled = settings?['vibrationEnabled'] ?? true;
-      
-      debugPrint('🔧 [FCM-알림설정-iOS] 적용:');
-      debugPrint('   - 푸시 알림: $pushEnabled');
-      debugPrint('   - 알림음: $soundEnabled');
-      debugPrint('   - 진동: $vibrationEnabled');
-      
-      // 푸시 알림이 꺼져있으면 알림 표시 안함
-      if (!pushEnabled) {
-        debugPrint('⏭️ [FCM-iOS] 푸시 알림이 비활성화되어 알림 표시 건너뜀');
-        return;
-      }
-      
-      // iOS 네이티브 알림 표시 (소리/진동 제어)
-      final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-          FlutterLocalNotificationsPlugin();
-      
-      // iOS 알림 상세 설정 (사용자 설정 적용)
-      final DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: soundEnabled, // 🔊 사용자 설정 적용
-        sound: soundEnabled ? 'ringtone.caf' : null, // 커스텀 사운드 또는 무음
-        badgeNumber: 0,
-        // iOS는 진동을 소리와 함께 제어 (sound가 있으면 진동도 함께 발생)
-        // 진동만 제어하려면 커스텀 사운드 파일 필요
-      );
-      
-      final NotificationDetails notificationDetails = NotificationDetails(
-        iOS: iosDetails,
-      );
-      
-      debugPrint('🔔 [FCM-iOS] 네이티브 알림 표시:');
-      debugPrint('   - presentSound: $soundEnabled');
-      debugPrint('   - 진동: ${soundEnabled ? "소리와 함께 발생" : "없음"}');
-      
-      // 알림 표시
-      await flutterLocalNotificationsPlugin.show(
-        message.hashCode, // 고유 알림 ID
-        title,
-        body,
-        notificationDetails,
-      );
-      
-      debugPrint('✅ [FCM-iOS] 네이티브 알림 표시 완료');
-      
-    } catch (e) {
-      debugPrint('❌ [FCM-iOS] 알림 표시 오류: $e');
-    }
   }
   
   /// WebSocket 연결 상태 확인 및 재연결
@@ -1837,153 +956,6 @@ class FCMService {
     // Delegate to new modular service
     await _incomingCallHandler.showIncomingCallScreen(message, soundEnabled: soundEnabled, vibrationEnabled: vibrationEnabled);
   }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMIncomingCallHandler
-  Future<void> _showIncomingCallScreenOriginal(RemoteMessage message, {bool soundEnabled = true, bool vibrationEnabled = true}) async {
-    
-    // 🔧 중복 표시 방지
-    if (_isShowingIncomingCall) {
-      return;
-    }
-    
-    
-    // 🔧 FIX: navigatorKey.currentContext를 우선 사용 (항상 최신 상태)
-    BuildContext? context = navigatorKey.currentContext;
-    
-    // navigatorKey가 없으면 _context 사용 (폴백)
-    if (context == null) {
-      context = _context;
-    } else {
-    }
-    
-    if (context == null) {
-      return;
-    }
-    
-    // 🔧 Context가 mounted 상태인지 확인
-    if (context is Element) {
-      if (!context.mounted) {
-        return;
-      }
-    }
-    
-    
-    // 📋 메시지 데이터에서 정보 추출
-    // iOS와 Android 모두 지원 (caller_num, caller_name 등)
-    final callerName = message.data['caller_name'] ?? 
-                       message.data['callerName'] ?? 
-                       message.notification?.title?.split(' ').first ?? 
-                       '알 수 없음';
-    
-    final callerNumber = message.data['caller_num'] ?? 
-                         message.data['caller_number'] ?? 
-                         message.data['callerNumber'] ?? 
-                         _extractPhoneNumber(message.notification?.title) ??
-                         _extractPhoneNumber(message.notification?.body) ??
-                         '번호 없음';
-    
-    final callerAvatar = message.data['caller_avatar'] ?? 
-                         message.data['callerAvatar'];
-    
-    // 통화 관련 메타데이터
-    final channel = message.data['channel'] ?? '';
-    
-    final linkedid = message.data['linkedid'] ?? 
-                     message.data['linkedId'] ?? 
-                     DateTime.now().millisecondsSinceEpoch.toString();
-    
-    final receiverNumber = message.data['receiver_number'] ?? 
-                           message.data['receiverNumber'] ?? 
-                           message.data['extension'] ??
-                           message.data['did'] ??
-                           '';
-    
-    final callType = message.data['call_type'] ?? 
-                     message.data['callType'] ?? 
-                     message.data['type'] ??
-                     'voice'; // iOS FCM에서는 voice로 전송됨
-    
-    
-    // 💾 통화 기록 생성 (call_history) - 네트워크 오류에도 불구하고 화면은 표시
-    await _createCallHistory(
-      callerNumber: callerNumber,
-      callerName: callerName,
-      receiverNumber: receiverNumber,
-      linkedid: linkedid,
-      channel: channel,
-      callType: callType,
-    );
-    
-    print('🎬 [FCM] 수신 전화 화면 표시');
-    
-    // 🔧 플래그 설정 (화면 표시 시작)
-    _isShowingIncomingCall = true;
-    
-    try {
-      // 🔥 CRITICAL FIX: 기존 IncomingCallScreen이 있으면 제거 후 새로 표시
-      // 이렇게 하면 두 번째 전화에서 화면이 겹치지 않음
-      final navigator = Navigator.of(context);
-      
-      // 현재 route가 IncomingCallScreen인지 확인
-      final currentRoute = ModalRoute.of(context);
-      if (currentRoute != null && 
-          (currentRoute.settings.name == '/incoming_call' || 
-           currentRoute.isCurrent == false)) {
-        
-        // 기존 화면 제거
-        navigator.popUntil((route) => route.isFirst || route.settings.name != '/incoming_call');
-        
-      }
-      
-      // 수신 전화 화면 표시 (fullscreenDialog로 전체 화면)
-      final result = await Navigator.of(context).push<Map<String, dynamic>>(
-        MaterialPageRoute(
-          fullscreenDialog: true,
-          settings: const RouteSettings(name: '/incoming_call'), // 🔧 Route 이름 설정
-          builder: (context) => IncomingCallScreen(
-          callerName: callerName,
-          callerNumber: callerNumber,
-          callerAvatar: callerAvatar,
-          channel: channel,
-          linkedid: linkedid,
-          receiverNumber: receiverNumber,
-          callType: callType,
-          shouldPlaySound: soundEnabled, // 🔊 사용자 알림 설정 적용
-          shouldVibrate: vibrationEnabled, // 📳 사용자 알림 설정 적용
-          onAccept: () async {
-            debugPrint('✅ [FCM] 전화 수락: $callerName');
-            Navigator.of(context).pop();
-            
-            // TODO: 전화 수락 로직 구현
-            await DialogUtils.showSuccess(
-              context,
-              '전화 수락: $callerName',
-              duration: const Duration(seconds: 2),
-            );
-          },
-          onReject: () async {
-            debugPrint('❌ [FCM] 전화 거절: $callerName');
-            Navigator.of(context).pop();
-            
-            // TODO: 전화 거절 로직 구현
-            await DialogUtils.showError(
-              context,
-              '전화 거절: $callerName',
-              duration: const Duration(seconds: 2),
-            );
-          },
-        ),
-        ),
-      );
-      
-      // DEPRECATED: moveToTab 로직 제거됨 (IncomingCallScreen은 이제 단순 pop만 수행)
-      
-      
-    } finally {
-      // 🔧 플래그 해제 (화면 종료)
-      _isShowingIncomingCall = false;
-    }
-  }
   
   /// ⚠️ DEPRECATED: Use FCMNotificationService.getUserNotificationSettings() instead
   /// This method has been moved to FCMNotificationService for better modularity.
@@ -1991,38 +963,6 @@ class FCMService {
   Future<Map<String, dynamic>?> getUserNotificationSettings(String userId) async {
     // Delegate to new modular service
     return await _notificationService.getUserNotificationSettings(userId);
-  }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
-  Future<Map<String, dynamic>?> getUserNotificationSettingsOriginal(String userId) async {
-    try {
-      final doc = await _firestore
-          .collection('user_notification_settings')
-          .doc(userId)
-          .get();
-      
-      if (doc.exists) {
-        return doc.data();
-      }
-      
-      // 기본 설정 반환
-      return {
-        'pushEnabled': true,
-        'soundEnabled': true,
-        'vibrationEnabled': true,
-        'incomingCallNotification': true,
-        'missedCallNotification': true,
-        'messageNotification': true,
-        'quietHoursEnabled': false,
-        'quietHoursStart': '22:00',
-        'quietHoursEnd': '08:00',
-      };
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ 알림 설정 조회 오류: $e');
-      }
-      return null;
-    }
   }
   
   /// ⚠️ DEPRECATED: Use FCMNotificationService.updateNotificationSettings() instead
@@ -2034,32 +974,6 @@ class FCMService {
   ) async {
     // Delegate to new modular service
     await _notificationService.updateNotificationSettings(userId, settings);
-  }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMNotificationService
-  Future<void> updateNotificationSettingsOriginal(
-    String userId,
-    Map<String, dynamic> settings,
-  ) async {
-    try {
-      await _firestore
-          .collection('user_notification_settings')
-          .doc(userId)
-          .set({
-        ...settings,
-        'userId': userId,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      
-      if (kDebugMode) {
-        debugPrint('✅ 알림 설정 업데이트 완료');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ 알림 설정 업데이트 오류: $e');
-      }
-      rethrow;
-    }
   }
   
   /// 특정 설정 항목만 업데이트
@@ -2303,63 +1217,6 @@ class FCMService {
   Future<void> resendApprovalRequest(String approvalRequestId, String userId) async {
     // Delegate to new modular service
     await _approvalService.resendApprovalRequest(approvalRequestId, userId);
-  }
-
-  /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService
-  Future<void> resendApprovalRequestOriginal(String approvalRequestId, String userId) async {
-    try {
-      
-      // Firestore에서 승인 요청 문서 가져오기
-      final approvalDoc = await _firestore
-          .collection('device_approval_requests')
-          .doc(approvalRequestId)
-          .get();
-      
-      if (!approvalDoc.exists) {
-        return;
-      }
-      
-      final data = approvalDoc.data()!;
-      final newDeviceName = data['newDeviceName'] as String?;
-      final newPlatform = data['newPlatform'] as String?;
-      
-      // 기존 기기 토큰 조회
-      final otherDeviceTokens = await _databaseService.getAllActiveFcmTokens(userId);
-      final activeTokens = otherDeviceTokens.where((token) => 
-        '${token.deviceId}_${token.platform}' != '${data['newDeviceId']}_${data['newPlatform']}'
-      ).toList();
-      
-      if (activeTokens.isEmpty) {
-        return;
-      }
-      
-      
-      // 알림 큐에 다시 등록
-      for (var token in activeTokens) {
-        
-        final docRef = await _firestore.collection('fcm_approval_notification_queue').add({
-          'targetToken': token.fcmToken,
-          'targetDeviceName': token.deviceName,
-          'approvalRequestId': approvalRequestId,
-          'newDeviceName': newDeviceName,
-          'newPlatform': newPlatform,
-          'userId': userId,
-          'message': {
-            'type': 'device_approval_request',
-            'title': '🔐 새 기기 로그인 감지',
-            'body': '$newDeviceName ($newPlatform)에서 로그인 시도',
-            'approvalRequestId': approvalRequestId,
-          },
-          'createdAt': FieldValue.serverTimestamp(),
-          'processed': false,
-        });
-        
-      }
-      
-      print('');
-      
-    } catch (e) {
-    }
   }
   
   /// 승인 대기 다이얼로그 닫기
