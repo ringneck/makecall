@@ -57,27 +57,54 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
   }
 
   /// 타이머 종료 시 로그인 페이지로 이동
-  void _handleTimeout() {
+  Future<void> _handleTimeout() async {
     if (!mounted) return;
 
     if (kDebugMode) {
       debugPrint('⏰ [APPROVAL-SCREEN] 승인 대기 시간 초과 (5분)');
     }
 
-    // 다이얼로그 표시 후 로그인 페이지로 이동
-    DialogUtils.showError(
-      context,
-      '승인 대기 시간이 초과되었습니다.\n다시 로그인해주세요.',
-      duration: const Duration(seconds: 3),
-    ).then((_) {
-      if (mounted) {
-        // 로그인 페이지로 이동 (모든 이전 화면 제거)
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/login',
-          (route) => false,
-        );
+    try {
+      // 다이얼로그 표시 (3초 대기)
+      await DialogUtils.showError(
+        context,
+        '승인 대기 시간이 초과되었습니다.\n다시 로그인해주세요.',
+        duration: const Duration(seconds: 3),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [APPROVAL-SCREEN] 다이얼로그 표시 중 오류: $e');
       }
-    });
+    }
+
+    // 다이얼로그가 닫힌 후 로그인 페이지로 이동
+    // mounted 체크를 한 번 더 수행 (다이얼로그 표시 중 화면이 dispose될 수 있음)
+    if (!mounted) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [APPROVAL-SCREEN] 화면이 이미 dispose됨, 네비게이션 취소');
+      }
+      return;
+    }
+
+    if (kDebugMode) {
+      debugPrint('🔄 [APPROVAL-SCREEN] 로그인 페이지로 이동 시작');
+    }
+
+    // 로그인 페이지로 이동 (모든 이전 화면 제거)
+    try {
+      await Navigator.of(context).pushNamedAndRemoveUntil(
+        '/login',
+        (route) => false,
+      );
+
+      if (kDebugMode) {
+        debugPrint('✅ [APPROVAL-SCREEN] 로그인 페이지 이동 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [APPROVAL-SCREEN] 로그인 페이지 이동 실패: $e');
+      }
+    }
   }
 
   String _formatTime(int seconds) {
