@@ -25,21 +25,86 @@ class DialpadScreen extends StatefulWidget {
 class _DialpadScreenState extends State<DialpadScreen> {
   String _phoneNumber = '';
   final DatabaseService _databaseService = DatabaseService();
+  
+  // 📝 TextField Controller (붙여넣기 지원)
+  final TextEditingController _phoneController = TextEditingController();
+  final FocusNode _phoneFocusNode = FocusNode();
 
   // 플랫폼 감지
   bool get _isAndroid => !kIsWeb && Platform.isAndroid;
   bool get _isIOS => !kIsWeb && Platform.isIOS;
+  
+  @override
+  void initState() {
+    super.initState();
+    // TextField 변경 감지
+    _phoneController.addListener(() {
+      if (_phoneController.text != _phoneNumber) {
+        setState(() {
+          _phoneNumber = _phoneController.text;
+        });
+      }
+    });
+  }
+  
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _phoneFocusNode.dispose();
+    super.dispose();
+  }
 
   void _onKeyPressed(String key) {
+    final currentText = _phoneController.text;
+    final selection = _phoneController.selection;
+    
+    // 커서 위치에 삽입
+    final newText = currentText.substring(0, selection.start) + 
+                    key + 
+                    currentText.substring(selection.end);
+    
+    _phoneController.text = newText;
+    // 커서를 삽입된 문자 뒤로 이동
+    _phoneController.selection = TextSelection.collapsed(
+      offset: selection.start + key.length,
+    );
+    
     setState(() {
-      _phoneNumber += key;
+      _phoneNumber = newText;
     });
   }
 
   void _onBackspace() {
-    if (_phoneNumber.isNotEmpty) {
+    final currentText = _phoneController.text;
+    if (currentText.isEmpty) return;
+    
+    final selection = _phoneController.selection;
+    
+    if (selection.start == selection.end && selection.start > 0) {
+      // 커서가 있는 위치의 이전 문자 삭제
+      final newText = currentText.substring(0, selection.start - 1) + 
+                      currentText.substring(selection.end);
+      
+      _phoneController.text = newText;
+      _phoneController.selection = TextSelection.collapsed(
+        offset: selection.start - 1,
+      );
+      
       setState(() {
-        _phoneNumber = _phoneNumber.substring(0, _phoneNumber.length - 1);
+        _phoneNumber = newText;
+      });
+    } else if (selection.start != selection.end) {
+      // 선택된 텍스트 삭제
+      final newText = currentText.substring(0, selection.start) + 
+                      currentText.substring(selection.end);
+      
+      _phoneController.text = newText;
+      _phoneController.selection = TextSelection.collapsed(
+        offset: selection.start,
+      );
+      
+      setState(() {
+        _phoneNumber = newText;
       });
     }
   }
@@ -87,6 +152,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
           if (mounted) {
             setState(() {
               _phoneNumber = '';
+              _phoneController.clear(); // TextField도 초기화
             });
           }
           // 부모에게 콜백 전달
@@ -266,6 +332,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
         // 발신 후 번호 초기화
         setState(() {
           _phoneNumber = '';
+          _phoneController.clear(); // TextField도 초기화
         });
         
         // 🔄 기능번호 발신 성공 시 콜백 호출 (최근통화 탭으로 전환)
@@ -368,21 +435,37 @@ class _DialpadScreenState extends State<DialpadScreen> {
                   children: [
                     Expanded(
                       child: Center(
-                        child: Text(
-                          _phoneNumber.isEmpty ? '전화번호 입력' : _phoneNumber,
-                          style: TextStyle(
-                            fontSize: _phoneNumber.isEmpty ? 18 : (isIOS ? 40 : 36),
-                            fontWeight: _phoneNumber.isEmpty 
-                                ? FontWeight.w400 
-                                : FontWeight.w300,
-                            letterSpacing: _phoneNumber.isEmpty ? 0 : 2,
-                            color: _phoneNumber.isEmpty
-                                ? (isDark ? Colors.grey[600] : Colors.grey[400])
-                                : (isDark ? Colors.white : Colors.black87),
-                          ),
+                        child: TextField(
+                          controller: _phoneController,
+                          focusNode: _phoneFocusNode,
                           textAlign: TextAlign.center,
+                          keyboardType: TextInputType.phone,
+                          style: TextStyle(
+                            fontSize: isIOS ? 40 : 36,
+                            fontWeight: FontWeight.w300,
+                            letterSpacing: 2,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: '전화번호 입력',
+                            hintStyle: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 0,
+                              color: isDark ? Colors.grey[600] : Colors.grey[400],
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
                           maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          enableInteractiveSelection: true, // ✅ 선택, 복사, 붙여넣기 활성화
+                          showCursor: true,
+                          cursorColor: isDark ? Colors.white : Colors.black87,
+                          onChanged: (value) {
+                            setState(() {
+                              _phoneNumber = value;
+                            });
+                          },
                         ),
                       ),
                     ),
@@ -520,21 +603,37 @@ class _DialpadScreenState extends State<DialpadScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       children: [
-                        Text(
-                          _phoneNumber.isEmpty ? '전화번호 입력' : _phoneNumber,
-                          style: TextStyle(
-                            fontSize: _phoneNumber.isEmpty ? 16 : 32,
-                            fontWeight: _phoneNumber.isEmpty 
-                                ? FontWeight.w400 
-                                : FontWeight.w300,
-                            letterSpacing: _phoneNumber.isEmpty ? 0 : 1.5,
-                            color: _phoneNumber.isEmpty
-                                ? (isDark ? Colors.grey[600] : Colors.grey[400])
-                                : (isDark ? Colors.white : Colors.black87),
-                          ),
+                        TextField(
+                          controller: _phoneController,
+                          focusNode: _phoneFocusNode,
                           textAlign: TextAlign.center,
+                          keyboardType: TextInputType.phone,
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w300,
+                            letterSpacing: 1.5,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: '전화번호 입력',
+                            hintStyle: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 0,
+                              color: isDark ? Colors.grey[600] : Colors.grey[400],
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
                           maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                          enableInteractiveSelection: true, // ✅ 선택, 복사, 붙여넣기 활성화
+                          showCursor: true,
+                          cursorColor: isDark ? Colors.white : Colors.black87,
+                          onChanged: (value) {
+                            setState(() {
+                              _phoneNumber = value;
+                            });
+                          },
                         ),
                         if (_phoneNumber.isNotEmpty) ...[
                           const SizedBox(height: 16),
