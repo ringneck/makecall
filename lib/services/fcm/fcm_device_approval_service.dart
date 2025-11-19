@@ -87,11 +87,13 @@ class FCMDeviceApprovalService {
       // ignore: avoid_print
       print('📤 [FCM-APPROVAL] 기기 승인 요청 생성 시작');
       
-      // 기존 활성 기기들의 토큰 조회 (새 기기 제외)
+      // 🔑 CRITICAL: 이미 승인된 활성 기기들의 토큰 조회 (새 기기 제외)
+      // isApproved: true 필터로 승인 완료된 기기에게만 승인 요청을 보냄
       final existingTokens = await _firestore
           .collection('fcm_tokens')
           .where('userId', isEqualTo: userId)
           .where('isActive', isEqualTo: true)
+          .where('isApproved', isEqualTo: true) // 🔑 승인된 기기만
           .get();
       
       // ignore: avoid_print
@@ -669,11 +671,13 @@ class FCMDeviceApprovalService {
         final currentDeviceId = await _platformUtils.getDeviceId();
         final currentPlatform = _platformUtils.getPlatformName();
         
-        // 모든 활성 fcm_tokens 조회
+        // 🔑 CRITICAL: 승인된 기기들만 조회 (isApproved: true)
+        // 승인 요청을 받았던 기존 기기들에게만 취소 알림을 보내야 함
         final allTokensQuery = await _firestore
             .collection('fcm_tokens')
             .where('userId', isEqualTo: userId)
             .where('isActive', isEqualTo: true)
+            .where('isApproved', isEqualTo: true) // 🔑 승인된 기기만 필터링
             .get()
             .timeout(const Duration(seconds: 5));
         
