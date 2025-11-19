@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 import '../../services/fcm/fcm_device_approval_service.dart';
 import '../../utils/dialog_utils.dart';
+import 'login_screen.dart';
 
 /// 기기 승인 대기 전용 화면
 /// 
@@ -76,6 +77,9 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
         debugPrint('⚠️ [APPROVAL-SCREEN] 다이얼로그 표시 중 오류: $e');
       }
     }
+    
+    // 다이얼로그가 완전히 닫힐 때까지 추가 대기 (애니메이션 완료)
+    await Future.delayed(const Duration(milliseconds: 500));
 
     // 다이얼로그가 닫힌 후 로그인 페이지로 이동
     // mounted 체크를 한 번 더 수행 (다이얼로그 표시 중 화면이 dispose될 수 있음)
@@ -92,8 +96,9 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
 
     // 로그인 페이지로 이동 (모든 이전 화면 제거)
     try {
-      await Navigator.of(context).pushNamedAndRemoveUntil(
-        '/login',
+      // ✅ MaterialPageRoute 직접 사용 (named route 문제 회피)
+      await Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
         (route) => false,
       );
 
