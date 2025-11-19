@@ -514,17 +514,21 @@ class _CallTabState extends State<CallTab> {
             actions: [
               TextButton(
                 onPressed: () {
-                  _hasCheckedSettings = true; // 나중에 버튼 누르면 더 이상 표시 안 함
-                  Navigator.pop(context);
+                  if (!mounted) return;
+                  _hasCheckedSettings = true;
+                  Navigator.pop(dialogContext);
                 },
                 child: const Text('나중에'),
               ),
               ElevatedButton.icon(
                 onPressed: () async {
-                  _hasCheckedSettings = true; // 설정하기 누르면 더 이상 표시 안 함
-                  Navigator.pop(context);
+                  if (!mounted) return;
+                  _hasCheckedSettings = true;
+                  Navigator.pop(dialogContext);
+                  
                   // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
                   await Future.delayed(const Duration(milliseconds: 300));
+                  
                   if (mounted && _scaffoldKey.currentState != null) {
                     _scaffoldKey.currentState!.openDrawer();
                   }
@@ -669,17 +673,21 @@ class _CallTabState extends State<CallTab> {
             actions: [
               TextButton(
                 onPressed: () {
-                  _hasCheckedSettings = true; // 나중에 버튼 누르면 더 이상 표시 안 함
-                  Navigator.pop(context);
+                  if (!mounted) return;
+                  _hasCheckedSettings = true;
+                  Navigator.pop(dialogContext);
                 },
                 child: const Text('나중에'),
               ),
               ElevatedButton.icon(
                 onPressed: () async {
-                  _hasCheckedSettings = true; // 설정하기 누르면 더 이상 표시 안 함
-                  Navigator.pop(context);
+                  if (!mounted) return;
+                  _hasCheckedSettings = true;
+                  Navigator.pop(dialogContext);
+                  
                   // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
                   await Future.delayed(const Duration(milliseconds: 300));
+                  
                   if (mounted && _scaffoldKey.currentState != null) {
                     _scaffoldKey.currentState!.openDrawer();
                   }
