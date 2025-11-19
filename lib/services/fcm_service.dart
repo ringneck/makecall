@@ -770,60 +770,109 @@ class FCMService {
   /// 
   /// 다른 기기가 승인했을 때 현재 기기의 승인 다이얼로그를 자동으로 닫습니다.
   void _handleDeviceApprovalCancelled(RemoteMessage message) {
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('🛑 [FCM-CANCEL] 기기 승인 취소 메시지 처리 시작');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    
     final approvalRequestId = message.data['approvalRequestId'] as String?;
     final action = message.data['action'] as String? ?? 'unknown';
     
-    if (kDebugMode) {
-      debugPrint('🛑 [FCM-CANCEL] 기기 승인 취소 메시지 수신');
-      debugPrint('   approvalRequestId: $approvalRequestId');
-      debugPrint('   action: $action');
-    }
+    // ignore: avoid_print
+    print('📋 [FCM-CANCEL] 메시지 데이터:');
+    // ignore: avoid_print
+    print('   - approvalRequestId: $approvalRequestId');
+    // ignore: avoid_print
+    print('   - action: $action');
+    // ignore: avoid_print
+    print('   - 현재 표시된 ID: $_currentDisplayedApprovalId');
     
     if (approvalRequestId == null || approvalRequestId.isEmpty) {
-      if (kDebugMode) {
-        debugPrint('❌ [FCM-CANCEL] approvalRequestId 없음');
-      }
+      // ignore: avoid_print
+      print('❌ [FCM-CANCEL] approvalRequestId 없음 - 처리 중단');
       return;
     }
     
     // 🔒 현재 표시된 다이얼로그와 일치하는지 확인
     if (_currentDisplayedApprovalId != approvalRequestId) {
-      if (kDebugMode) {
-        debugPrint('⚠️ [FCM-CANCEL] 다른 승인 요청 (현재: $_currentDisplayedApprovalId, 취소: $approvalRequestId)');
-      }
+      // ignore: avoid_print
+      print('⚠️ [FCM-CANCEL] ID 불일치 - 처리 중단');
+      // ignore: avoid_print
+      print('   - 현재 표시된 ID: $_currentDisplayedApprovalId');
+      // ignore: avoid_print
+      print('   - 취소 요청 ID: $approvalRequestId');
       return;
     }
+    
+    // ignore: avoid_print
+    print('✅ [FCM-CANCEL] ID 일치 확인 완료 - 다이얼로그 닫기 시작');
     
     // Navigator를 통해 현재 표시된 승인 다이얼로그 닫기
     final context = _context ?? navigatorKey.currentContext;
     if (context == null) {
-      if (kDebugMode) {
-        debugPrint('❌ [FCM-CANCEL] BuildContext 없음');
-      }
+      // ignore: avoid_print
+      print('❌ [FCM-CANCEL] BuildContext 없음 - 처리 중단');
       return;
     }
     
+    // ignore: avoid_print
+    print('✅ [FCM-CANCEL] Context 확보 완료');
+    // ignore: avoid_print
+    print('   - context.mounted: ${context.mounted}');
+    
     // ✅ 다이얼로그 자동 닫기
     if (context.mounted) {
-      Navigator.of(context).popUntil((route) {
-        // AlertDialog를 찾아서 닫기
-        return !route.willHandlePopInternally;
-      });
-      
-      // 다이얼로그 ID 초기화
-      _currentDisplayedApprovalId = null;
-      
-      if (kDebugMode) {
-        debugPrint('✅ [FCM-CANCEL] 승인 다이얼로그 자동 닫기 완료');
+      try {
+        // ignore: avoid_print
+        print('🔄 [FCM-CANCEL] Navigator.pop() 실행 중...');
+        
+        // 🔧 FIX: Navigator.pop()으로 현재 다이얼로그만 닫기
+        // popUntil()은 조건이 복잡하고, 단순히 최상단 다이얼로그만 닫으면 됨
+        Navigator.of(context, rootNavigator: true).pop();
+        
+        // 다이얼로그 ID 초기화
+        _currentDisplayedApprovalId = null;
+        
+        // ignore: avoid_print
+        print('✅ [FCM-CANCEL] 승인 다이얼로그 자동 닫기 완료');
+        // ignore: avoid_print
+        print('   - _currentDisplayedApprovalId 초기화: null');
+        
+        // 잠깐 대기 후 성공 메시지 표시 (다이얼로그가 완전히 닫힌 후)
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (context.mounted) {
+            // ignore: avoid_print
+            print('📢 [FCM-CANCEL] 성공 메시지 표시');
+            DialogUtils.showSuccess(
+              context,
+              '다른 기기에서 승인이 완료되었습니다',
+              duration: const Duration(seconds: 2),
+            );
+          }
+        });
+      } catch (e, stackTrace) {
+        // ignore: avoid_print
+        print('❌ [FCM-CANCEL] 다이얼로그 닫기 실패: $e');
+        // ignore: avoid_print
+        print('Stack trace: $stackTrace');
       }
-      
-      // 간단한 토스트 메시지 표시 (선택사항)
-      DialogUtils.showSuccess(
-        context,
-        '다른 기기에서 승인이 완료되었습니다',
-        duration: const Duration(seconds: 2),
-      );
+    } else {
+      // ignore: avoid_print
+      print('❌ [FCM-CANCEL] Context가 mounted 상태가 아님');
     }
+    
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('🛑 [FCM-CANCEL] 기기 승인 취소 메시지 처리 완료');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('');
   }
   
   /// ⚠️ DEPRECATED: Use FCMIncomingCallHandler.handleIncomingCallCancelled() instead
