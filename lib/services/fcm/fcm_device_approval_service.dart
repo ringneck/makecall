@@ -8,6 +8,7 @@ import '../database_service.dart';
 import '../auth_service.dart';
 import '../../main.dart' show navigatorKey;
 import 'fcm_notification_sound_service.dart';
+import 'fcm_platform_utils.dart';
 
 /// FCM 기기 승인 서비스
 /// 
@@ -19,6 +20,7 @@ import 'fcm_notification_sound_service.dart';
 class FCMDeviceApprovalService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final DatabaseService _databaseService = DatabaseService();
+  final FCMPlatformUtils _platformUtils = FCMPlatformUtils();
 
   // 🔒 중복 처리 방지
   static final Set<String> _processingApprovalIds = {};
@@ -664,8 +666,8 @@ class FCMDeviceApprovalService {
         final newPlatformForQueue = newPlatformRaw; // 원본 플랫폼 이름 사용 (소문자)
         
         // 현재 승인 처리 중인 기기의 deviceId와 platform 가져오기
-        final currentDeviceId = await _deviceService.getDeviceId();
-        final currentPlatform = await _deviceService.getPlatform();
+        final currentDeviceId = await _platformUtils.getDeviceId();
+        final currentPlatform = _platformUtils.getPlatformName();
         
         // 모든 활성 fcm_tokens 조회
         final allTokensQuery = await _firestore
