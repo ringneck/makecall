@@ -512,6 +512,16 @@ class SocialLoginService {
 
       // Apple 로그인 (모든 플랫폼 지원)
       // Android는 웹 플로우 사용, iOS는 네이티브, Web은 웹 플로우
+      if (kDebugMode) {
+        if (!_isIOS) {
+          debugPrint('🌐 [Apple] 웹 플로우 설정:');
+          debugPrint('   - Client ID: com.olssoo.makecall.signin');
+          debugPrint('   - Redirect URI: ${kDebugMode ? "http://localhost:5060/auth/callback" : "https://app.makecall.io/auth/callback"}');
+        } else {
+          debugPrint('📱 [Apple] iOS 네이티브 로그인');
+        }
+      }
+      
       final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
@@ -607,13 +617,19 @@ class SocialLoginService {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ [Apple] 로그인 오류: $e');
+        debugPrint('   - 오류 타입: ${e.runtimeType}');
+        debugPrint('   - 오류 메시지: ${e.toString()}');
       }
       
       // 일반 에러 메시지에서 취소 키워드 확인
       String errorString = e.toString();
       if (errorString.contains('canceled') || 
           errorString.contains('1001') ||
-          errorString.contains('취소')) {
+          errorString.contains('취소') ||
+          errorString.contains('CANCELED')) {
+        if (kDebugMode) {
+          debugPrint('ℹ️ [Apple] 사용자가 로그인을 취소했습니다');
+        }
         return SocialLoginResult(
           success: false,
           errorMessage: '사용자가 Apple 로그인을 취소했습니다',
@@ -621,9 +637,22 @@ class SocialLoginService {
         );
       }
       
+      // invalid_client 에러 감지
+      if (errorString.contains('invalid_client') || 
+          errorString.contains('INVALID_CLIENT')) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [Apple] invalid_client 오류 - Service ID 설정 확인 필요');
+        }
+        return SocialLoginResult(
+          success: false,
+          errorMessage: 'Apple 로그인 설정 오류\n\nApple Developer Console에서\nService ID 설정을 확인해주세요.',
+          provider: SocialLoginProvider.apple,
+        );
+      }
+      
       return SocialLoginResult(
         success: false,
-        errorMessage: 'Apple 로그인 중 오류가 발생했습니다',
+        errorMessage: 'Apple 로그인 중 오류가 발생했습니다\n\n$errorString',
         provider: SocialLoginProvider.apple,
       );
     }
