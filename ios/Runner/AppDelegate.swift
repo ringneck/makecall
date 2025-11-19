@@ -97,15 +97,18 @@ import FirebaseMessaging
     let hasLinkedId = userInfo["linkedid"] != nil
     let hasCallType = userInfo["call_type"] != nil
     
-    // 조건 1: 기기 승인 요청
-    let isDeviceApproval = messageType == "device_approval_request"
+    // 조건 1: 기기 승인 관련 메시지 (요청, 응답, 취소)
+    let isDeviceApproval = messageType == "device_approval_request" ||
+                          messageType == "device_approval_response" ||
+                          messageType == "device_approval_cancelled"
     // 조건 2: 수신 전화 (linkedid + call_type 존재)
     let isIncomingCall = hasLinkedId && hasCallType
     // 조건 3: 착신전환 알림
     let isCallForward = messageType?.starts(with: "call_forward") ?? false
     
     if isDeviceApproval {
-      print("🔔 [iOS-FCM] 기기 승인 요청 감지 - Flutter로 전달")
+      print("🔔 [iOS-FCM] 기기 승인 관련 메시지 감지 - Flutter로 전달")
+      print("   - type: \(messageType ?? "없음")")
     } else if isIncomingCall {
       print("📞 [iOS-FCM] 수신 전화 감지 - Flutter로 전달")
       print("   - linkedid: \(userInfo["linkedid"] ?? "없음")")
@@ -176,15 +179,18 @@ import FirebaseMessaging
     let hasLinkedId = userInfo["linkedid"] != nil
     let hasCallType = userInfo["call_type"] != nil
     
-    // 조건 1: 기기 승인 요청
-    let isDeviceApproval = messageType == "device_approval_request"
+    // 조건 1: 기기 승인 관련 메시지 (요청, 응답, 취소)
+    let isDeviceApproval = messageType == "device_approval_request" ||
+                          messageType == "device_approval_response" ||
+                          messageType == "device_approval_cancelled"
     // 조건 2: 수신 전화 (linkedid + call_type 존재)
     let isIncomingCall = hasLinkedId && hasCallType
     // 조건 3: 착신전환 알림
     let isCallForward = messageType?.starts(with: "call_forward") ?? false
     
     if isDeviceApproval {
-      print("🔔 [iOS-FCM-BG] 기기 승인 요청 알림 탭 - Flutter로 전달")
+      print("🔔 [iOS-FCM-BG] 기기 승인 관련 알림 탭 - Flutter로 전달")
+      print("   - type: \(messageType ?? "없음")")
     } else if isIncomingCall {
       print("📞 [iOS-FCM-BG] 수신 전화 알림 탭 - Flutter로 전달")
       print("   - linkedid: \(userInfo["linkedid"] ?? "없음")")
