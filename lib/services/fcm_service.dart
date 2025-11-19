@@ -96,6 +96,14 @@ class FCMService {
     _onForceLogout = callback;
   }
   
+  /// 현재 표시 중인 승인 다이얼로그 ID 설정
+  static void setCurrentDisplayedApprovalId(String? approvalRequestId) {
+    _currentDisplayedApprovalId = approvalRequestId;
+    if (kDebugMode) {
+      debugPrint('🔒 [FCM] _currentDisplayedApprovalId 설정: $approvalRequestId');
+    }
+  }
+  
   /// AuthService 설정 (승인 대기 상태 변경용)
   static void setAuthService(AuthService authService) {
     _authService = authService;

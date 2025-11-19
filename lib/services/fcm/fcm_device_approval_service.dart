@@ -6,6 +6,7 @@ import 'dart:async';
 import '../../utils/dialog_utils.dart';
 import '../database_service.dart';
 import '../auth_service.dart';
+import '../fcm_service.dart'; // FCMService.setCurrentDisplayedApprovalId 사용
 import '../../main.dart' show navigatorKey;
 import 'fcm_notification_sound_service.dart';
 import 'fcm_platform_utils.dart';
@@ -413,6 +414,9 @@ class FCMDeviceApprovalService {
     
     _currentDisplayedApprovalId = approvalRequestId;
     
+    // 🔒 FCMService에도 현재 표시 중인 승인 ID 설정 (취소 메시지 처리용)
+    FCMService.setCurrentDisplayedApprovalId(approvalRequestId);
+    
     // ignore: avoid_print
     print('✅ [FCM-APPROVAL] 다이얼로그 표시 시작');
     
@@ -492,6 +496,7 @@ class FCMDeviceApprovalService {
               if (context.mounted) {
                 Navigator.of(context).pop();
                 _currentDisplayedApprovalId = null;
+                FCMService.setCurrentDisplayedApprovalId(null); // FCMService에도 동기화
               }
               
               _rejectDeviceApproval(approvalRequestId).whenComplete(() {
@@ -515,6 +520,7 @@ class FCMDeviceApprovalService {
               if (context.mounted) {
                 Navigator.of(context).pop();
                 _currentDisplayedApprovalId = null;
+                FCMService.setCurrentDisplayedApprovalId(null); // FCMService에도 동기화
               }
               
               _approveDeviceApproval(approvalRequestId).whenComplete(() {
