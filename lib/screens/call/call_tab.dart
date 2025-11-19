@@ -23,6 +23,7 @@ import '../../widgets/extension_drawer.dart';
 import '../../widgets/cached_network_image_widget.dart';
 import '../../widgets/safe_circle_avatar.dart';
 import '../../theme/call_theme_extension.dart';
+import 'call_tab/widgets/extension_info_widget.dart';
 
 class CallTab extends StatefulWidget {
   final bool autoOpenProfileForNewUser; // 신규 사용자 자동 ProfileDrawer 열기
@@ -1393,7 +1394,7 @@ class _CallTabState extends State<CallTab> {
                       ),
                       // 단말번호 정보 (클릭투콜 발신 통화만)
                       if (call.callType == CallType.outgoing && call.extensionUsed != null)
-                        _buildExtensionInfo(call),
+                        ExtensionInfoWidget(call: call),
                       // 수신번호 → 단말번호 배지 (착신 통화만)
                       if (call.callType == CallType.incoming && call.statusText.isNotEmpty)
                         Padding(
@@ -1993,96 +1994,6 @@ class _CallTabState extends State<CallTab> {
         ],
       ),
       onTap: () => _showCallMethodDialog(contact.phoneNumber),
-    );
-  }
-
-  /// 🔥 단말번호 및 착신전환 정보 표시
-  /// 클릭투콜 발신 시 저장된 착신전환 정보만 표시
-  Widget _buildExtensionInfo(CallHistoryModel call) {
-    final callTheme = CallThemeColors(context);
-    final isForwardEnabled = call.callForwardEnabled == true;
-    final destinationNumber = call.callForwardDestination ?? '';
-    
-    // 상태에 따른 색상 결정 (테마 색상 헬퍼 사용)
-    Color badgeColor;
-    Color textColor;
-    if (isForwardEnabled) {
-      // 착신전환 활성화: 주황색
-      badgeColor = callTheme.forwardedCallBackgroundColor;
-      textColor = callTheme.forwardedCallColor;
-    } else if (call.status == 'device_answered') {
-      // 단말수신: 녹색
-      badgeColor = callTheme.deviceAnsweredBackgroundColor;
-      textColor = callTheme.deviceAnsweredColor;
-    } else if (call.status == 'confirmed') {
-      // 알림확인: 파란색
-      badgeColor = callTheme.confirmedCallBackgroundColor;
-      textColor = callTheme.confirmedCallColor;
-    } else {
-      // 기본: 파란색
-      badgeColor = callTheme.defaultBadgeBackgroundColor;
-      textColor = callTheme.defaultBadgeColor;
-    }
-    
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 3,
-              ),
-              decoration: BoxDecoration(
-                color: badgeColor,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isForwardEnabled
-                      ? callTheme.forwardedCallBorderColor
-                      : textColor.withValues(alpha: 0.5),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.phone_android,
-                    size: 12,
-                    color: textColor,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: isForwardEnabled && destinationNumber.isNotEmpty
-                        ? Text(
-                            '${call.extensionUsed} → $destinationNumber',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: textColor,
-                              letterSpacing: -0.3,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          )
-                        : Text(
-                            call.extensionUsed ?? '',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: textColor,
-                              letterSpacing: -0.3,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
