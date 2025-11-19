@@ -20,13 +20,14 @@ import 'database_service.dart';
 import 'package:provider/provider.dart';
 import '../utils/dialog_utils.dart';
 
-// 🔧 Phase 1, 2, 3, 4 Refactoring: FCM 모듈화
+// 🔧 Phase 1, 2, 3, 4, 5 Refactoring: FCM 모듈화
 import 'fcm/fcm_platform_utils.dart';
 import 'fcm/fcm_token_manager.dart';
 import 'fcm/fcm_device_approval_service.dart';
 import 'fcm/fcm_message_handler.dart';
 import 'fcm/fcm_notification_service.dart';
 import 'fcm/fcm_incoming_call_handler.dart';
+import 'fcm/fcm_web_config.dart'; // 🔧 Phase 5: Web FCM 설정 분리
 
 /// 플랫폼 체크 헬퍼 (웹 플랫폼 안전 처리)
 bool get _isIOS => !kIsWeb && Platform.isIOS;
@@ -48,13 +49,14 @@ class FCMService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final DatabaseService _databaseService = DatabaseService();
   
-  // 🔧 Phase 1, 2, 3, 4 Refactoring: 모듈화된 유틸리티 클래스
+  // 🔧 Phase 1, 2, 3, 4, 5 Refactoring: 모듈화된 유틸리티 클래스
   final FCMPlatformUtils _platformUtils = FCMPlatformUtils();
   final FCMTokenManager _tokenManager = FCMTokenManager();
   final FCMDeviceApprovalService _approvalService = FCMDeviceApprovalService();
   final FCMMessageHandler _messageHandler = FCMMessageHandler();
   final FCMNotificationService _notificationService = FCMNotificationService();
   final FCMIncomingCallHandler _incomingCallHandler = FCMIncomingCallHandler();
+  final FCMWebConfig _webConfig = FCMWebConfig(); // 🔧 Phase 5: 웹 FCM 설정
   
   String? _fcmToken;
   static BuildContext? _context; // 전역 BuildContext 저장
@@ -306,9 +308,13 @@ class FCMService {
         // FCM 토큰 가져오기
         
         if (kIsWeb) {
+          // 🔧 Phase 5: FCMWebConfig 클래스 사용
           try {
-            const vapidKey = 'BM2qgTRRwT-mG4shgKLDr7CnVf5-xVs3DqNNcqY7zzHZXd5P5xWqvCLn8BxGnqJ3YKj0zcY6Kp0YwQ_Zr8vK2jM';
-            _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
+            _fcmToken = await _webConfig.getWebFCMToken();
+            if (_fcmToken == null) {
+              // 웹에서 FCM 실패해도 앱은 계속 동작
+              return;
+            }
           } catch (e) {
             // 웹에서 FCM 실패해도 앱은 계속 동작
             return;
