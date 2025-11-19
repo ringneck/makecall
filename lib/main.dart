@@ -247,7 +247,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   // 🔒 고급 개발자 패턴: 세션 체크 중복 실행 방지
   bool _isSessionCheckScheduled = false;
   String? _lastCheckedUserId;
@@ -271,6 +271,9 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    
+    // 🔄 앱 생명주기 옵저버 등록 (iOS 화면 검게 변하는 문제 해결)
+    WidgetsBinding.instance.addObserver(this);
     
     // 🎨 테마 설정 로드
     _themeProvider.loadThemeMode();
@@ -300,6 +303,29 @@ class _MyAppState extends State<MyApp> {
     });
   }
   
+  /// 🔄 앱 생명주기 변경 감지 (iOS 화면 검게 변하는 문제 해결)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    if (kDebugMode) {
+      debugPrint('🔄 [MyApp] App lifecycle changed to $state');
+    }
+    
+    // iOS에서 포그라운드 복귀 시 UI 강제 재렌더링
+    if (state == AppLifecycleState.resumed) {
+      if (kDebugMode) {
+        debugPrint('🌞 [MyApp] App resumed - forcing UI rebuild');
+      }
+      
+      if (mounted) {
+        setState(() {
+          // UI 강제 재렌더링 트리거
+        });
+      }
+    }
+  }
+  
   /// 앱 초기화 (스플래시 스크린 표시 후 Firebase Auth 세션 체크)
   Future<void> _initializeApp() async {
     try {
@@ -327,6 +353,8 @@ class _MyAppState extends State<MyApp> {
   
   @override
   void dispose() {
+    // 🔄 앱 생명주기 옵저버 제거
+    WidgetsBinding.instance.removeObserver(this);
     // 🛑 WebSocket 연결 관리자 중지
     _connectionManager.stop();
     // 🛑 비활성 서비스 정리
@@ -418,6 +446,15 @@ class _MyAppState extends State<MyApp> {
                 ),
                 // 🎨 ThemeProvider로부터 테마 모드 가져오기
                 themeMode: themeProvider.themeMode,
+                // 🛡️ iOS 화면 검게 변하는 문제 방지: Scaffold background 명시
+                builder: (context, child) {
+                  return Container(
+                    color: themeProvider.themeMode == ThemeMode.dark 
+                        ? Colors.grey[900] 
+                        : Colors.white,
+                    child: child,
+                  );
+                },
             home: _isInitializing
                 ? const SplashScreen() // 💡 스플래시 스크린 표시
                 : Consumer<AuthService>(
