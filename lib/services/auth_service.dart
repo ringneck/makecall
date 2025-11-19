@@ -542,7 +542,7 @@ class AuthService extends ChangeNotifier {
       debugPrint('');
     }
     
-    notifyListeners();
+    // ✅ notifyListeners() 제거 (450줄에서 이미 호출됨, 중복 rebuild 방지)
     
     // 5️⃣ 모든 수신전화 화면 닫기 (로그아웃 후 null 참조 방지)
     try {
