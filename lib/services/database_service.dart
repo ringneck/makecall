@@ -1142,6 +1142,7 @@ class DatabaseService {
           .collection('fcm_tokens')
           .where('userId', isEqualTo: userId)
           .where('isActive', isEqualTo: true)
+          .where('isApproved', isEqualTo: true) // 🔑 승인된 기기만 조회
           .get();
 
       if (querySnapshot.docs.isEmpty) {
