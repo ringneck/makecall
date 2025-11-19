@@ -669,7 +669,19 @@ class FCMDeviceApprovalService {
         
         // 현재 승인 처리 중인 기기의 deviceId와 platform 가져오기
         final currentDeviceId = await _platformUtils.getDeviceId();
-        final currentPlatform = _platformUtils.getPlatformName();
+        final currentPlatformRaw = _platformUtils.getPlatformName(); // 소문자: android, ios
+        
+        // 🔑 CRITICAL: currentPlatform도 대문자로 변환 (newPlatform과 형식 통일)
+        String currentPlatform;
+        if (currentPlatformRaw.toLowerCase() == 'android') {
+          currentPlatform = 'Android';
+        } else if (currentPlatformRaw.toLowerCase() == 'ios') {
+          currentPlatform = 'iOS';
+        } else {
+          currentPlatform = currentPlatformRaw; // web, unknown 등
+        }
+        
+        debugPrint('🔍 [FCM-CANCEL] 현재 승인 처리 기기: ${currentDeviceId}_$currentPlatform');
         
         // 🔑 CRITICAL: 승인된 기기들만 조회 (isApproved: true)
         // 승인 요청을 받았던 기존 기기들에게만 취소 알림을 보내야 함
@@ -685,9 +697,21 @@ class FCMDeviceApprovalService {
         final newDeviceKey = '${newDeviceId}_$newPlatform';
         final currentDeviceKey = '${currentDeviceId}_$currentPlatform';
         
+        debugPrint('🔍 [FCM-CANCEL] 제외할 기기 키: new=$newDeviceKey, current=$currentDeviceKey');
+        
         final otherDeviceTokens = allTokensQuery.docs.where((doc) {
-          final deviceKey = '${doc.data()['deviceId']}_${doc.data()['platform']}';
-          return deviceKey != newDeviceKey && deviceKey != currentDeviceKey;
+          final data = doc.data();
+          final deviceKey = '${data['deviceId']}_${data['platform']}';
+          final isNewDevice = deviceKey == newDeviceKey;
+          final isCurrentDevice = deviceKey == currentDeviceKey;
+          final shouldExclude = isNewDevice || isCurrentDevice;
+          
+          debugPrint('   🔍 [FCM-CANCEL] 기기 체크: $deviceKey');
+          debugPrint('      - 새 기기?: $isNewDevice');
+          debugPrint('      - 승인한 기기?: $isCurrentDevice');
+          debugPrint('      - 제외?: $shouldExclude');
+          
+          return !shouldExclude;
         }).toList();
         
         if (otherDeviceTokens.isEmpty) {
