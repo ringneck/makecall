@@ -14,8 +14,14 @@ import '../../models/user_model.dart';
 import '../../providers/selected_extension_provider.dart';
 import '../../widgets/call_method_dialog.dart';
 
+// 리팩토링: 유틸리티 및 위젯 import
+import 'phonebook_tab/utils/phonebook_translation_service.dart';
+import 'phonebook_tab/utils/phonebook_responsive_helper.dart';
+import 'phonebook_tab/widgets/phonebook_grid_item.dart';
+import 'phonebook_tab/widgets/phonebook_list_item.dart';
+
 class PhonebookTab extends StatefulWidget {
-  final VoidCallback? onClickToCallSuccess; // 클릭투콜 성공 콜백
+  final void Function(bool isGridView)? onClickToCallSuccess; // 클릭투콜 성공 콜백 (그리드뷰 상태 전달)
   
   const PhonebookTab({
     super.key,
@@ -33,8 +39,13 @@ class _PhonebookTabState extends State<PhonebookTab> {
   final TextEditingController _searchController = TextEditingController();
   DateTime? _lastUpdateTime; // 마지막 업데이트 시간
   bool _isGridView = false; // false: 리스트뷰, true: 그리드뷰
+  bool _isFullScreen = false; // 전체화면 모드
 
-  // 영어 이름을 한글로 번역하는 매핑 테이블
+  // ✅ 리팩토링: 번역 매핑 테이블 제거 (PhonebookTranslationService로 이동)
+  // 아래 _nameTranslations는 삭제되었습니다.
+  // PhonebookTranslationService.translate() 사용
+  
+  @Deprecated('Use PhonebookTranslationService.translate() instead')
   final Map<String, String> _nameTranslations = {
     // 기능 코드 (Feature Codes) 이름 번역
     'Echo Test': '에코테스트',
@@ -97,31 +108,9 @@ class _PhonebookTabState extends State<PhonebookTab> {
     'Lobby': '로비',
   };
 
-  // 영어 이름을 한글로 번역
+  // ✅ 리팩토링: 번역 로직을 PhonebookTranslationService로 위임
   String _translateName(String name) {
-    // 이미 한글이 포함되어 있으면 그대로 반환
-    if (RegExp(r'[ㄱ-ㅎ가-힣]').hasMatch(name)) {
-      return name;
-    }
-
-    // 정확히 일치하는 번역이 있는지 확인
-    if (_nameTranslations.containsKey(name)) {
-      return _nameTranslations[name]!;
-    }
-
-    // 부분 일치 번역 (대소문자 무시)
-    final nameLower = name.toLowerCase();
-    for (final entry in _nameTranslations.entries) {
-      if (nameLower.contains(entry.key.toLowerCase())) {
-        return name.replaceAll(
-          RegExp(entry.key, caseSensitive: false),
-          entry.value,
-        );
-      }
-    }
-
-    // 번역이 없으면 원본 반환
-    return name;
+    return PhonebookTranslationService.translate(name);
   }
 
   // 마지막 업데이트 시간을 포맷팅
@@ -499,106 +488,149 @@ class _PhonebookTabState extends State<PhonebookTab> {
       );
     }
 
-    return Column(
-      children: [
-        // 상단 컨트롤 바
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.grey[850] : Colors.grey[100],
-            border: Border(
-              bottom: BorderSide(
-                color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+    // PopScope로 감싸서 Android 뒤로가기 버튼 처리
+    return PopScope(
+      canPop: !_isFullScreen, // 전체화면일 때는 바로 종료 안함
+      onPopInvoked: (didPop) {
+        if (!didPop && _isFullScreen) {
+          // 전체화면 모드일 때 뒤로가기 누르면 전체화면만 해제
+          setState(() {
+            _isFullScreen = false;
+          });
+        }
+      },
+      child: Column(
+        children: [
+          // 상단 컨트롤 바 (전체화면이 아닐 때만 표시)
+          if (!_isFullScreen)
+            Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[850] : Colors.grey[100],
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                ),
               ),
             ),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _loadPhonebooks,
-                      icon: _isLoading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.refresh),
-                      label: const Text('새로고침', style: TextStyle(fontSize: 13)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark 
-                            ? Colors.blue[700] 
-                            : const Color(0xFF2196F3),
-                        foregroundColor: Colors.white,
-                        elevation: 2,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _loadPhonebooks,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.refresh),
+                        label: const Text('새로고침', style: TextStyle(fontSize: 13)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isDark 
+                              ? Colors.blue[700] 
+                              : const Color(0xFF2196F3),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  // 뷰 모드 전환 버튼
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? (_isGridView ? Colors.green[900] : Colors.blue[900])
-                          : (_isGridView ? Colors.green[100] : Colors.blue[100]),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        _isGridView ? Icons.view_list : Icons.grid_view,
+                    const SizedBox(width: 8),
+                    // 뷰 모드 전환 버튼
+                    Container(
+                      decoration: BoxDecoration(
                         color: isDark
-                            ? (_isGridView ? Colors.green[300] : Colors.blue[300])
-                            : (_isGridView ? Colors.green[700] : Colors.blue[700]),
+                            ? (_isGridView ? Colors.green[900] : Colors.blue[900])
+                            : (_isGridView ? Colors.green[100] : Colors.blue[100]),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _isGridView = !_isGridView;
-                        });
-                      },
-                      tooltip: _isGridView ? '리스트뷰로 전환' : '그리드뷰로 전환',
+                      child: IconButton(
+                        icon: Icon(
+                          _isGridView ? Icons.view_list : Icons.grid_view,
+                          color: isDark
+                              ? (_isGridView ? Colors.green[300] : Colors.blue[300])
+                              : (_isGridView ? Colors.green[700] : Colors.blue[700]),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isGridView = !_isGridView;
+                            // 그리드뷰에서 리스트뷰로 전환 시 전체화면 자동 해제
+                            if (!_isGridView && _isFullScreen) {
+                              _isFullScreen = false;
+                            }
+                          });
+                        },
+                        tooltip: _isGridView ? '리스트뷰로 전환' : '그리드뷰로 전환',
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              // 마지막 업데이트 시간
-              if (_lastUpdateTime != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.schedule, 
-                        size: 14, 
-                        color: isDark ? Colors.grey[500] : Colors.grey[600],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '마지막 업데이트: ${_formatLastUpdateTime()}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    // 전체화면 버튼 (그리드뷰일 때만 표시)
+                    if (_isGridView) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? (_isFullScreen ? Colors.purple[900] : Colors.grey[800])
+                              : (_isFullScreen ? Colors.purple[100] : Colors.grey[200]),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                            color: isDark
+                                ? (_isFullScreen ? Colors.purple[300] : Colors.grey[400])
+                                : (_isFullScreen ? Colors.purple[700] : Colors.grey[700]),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isFullScreen = !_isFullScreen;
+                            });
+                          },
+                          tooltip: _isFullScreen ? '전체화면 종료' : '전체화면',
                         ),
                       ),
                     ],
-                  ),
+                  ],
                 ),
-            ],
+                // 마지막 업데이트 시간
+                if (_lastUpdateTime != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.schedule, 
+                          size: 14, 
+                          color: isDark ? Colors.grey[500] : Colors.grey[600],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '마지막 업데이트: ${_formatLastUpdateTime()}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.grey[500] : Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
 
-        // 검색바
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: '이름 또는 전화번호 검색',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchController.text.isNotEmpty
+        // 검색바 (전체화면이 아닐 때만 표시)
+        if (!_isFullScreen)
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: '이름 또는 전화번호 검색',
+                prefixIcon: Icon(_isGridView ? Icons.grid_view : Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear),
                       onPressed: () {
@@ -815,20 +847,28 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       // 스크롤 새로고침 기능 제거됨
                       // 뷰 모드에 따라 ListView 또는 GridView 렌더링
                       return _isGridView
-                          ? GridView.builder(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              padding: EdgeInsets.all(_getResponsiveSize(context, 4)),
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: _getGridColumnCount(context),
-                                crossAxisSpacing: _getResponsiveSize(context, 4),
-                                mainAxisSpacing: _getResponsiveSize(context, 4),
-                                childAspectRatio: _getGridChildAspectRatio(context), // 화면 방향에 따라 동적 조정
-                              ),
-                              itemCount: contacts.length,
-                              itemBuilder: (context, index) {
-                                final contact = contacts[index];
-                                return _buildContactGridItem(contact, registeredExtensions: otherUsersExtensions);
+                          ? GestureDetector(
+                              // 더블탭으로 전체화면 토글
+                              onDoubleTap: () {
+                                setState(() {
+                                  _isFullScreen = !_isFullScreen;
+                                });
                               },
+                              child: GridView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.all(_getResponsiveSize(context, 4)),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: _getGridColumnCount(context),
+                                  crossAxisSpacing: _getResponsiveSize(context, 4),
+                                  mainAxisSpacing: _getResponsiveSize(context, 4),
+                                  childAspectRatio: _getGridChildAspectRatio(context), // 화면 방향에 따라 동적 조정
+                                ),
+                                itemCount: contacts.length,
+                                itemBuilder: (context, index) {
+                                  final contact = contacts[index];
+                                  return _buildContactGridItem(contact, registeredExtensions: otherUsersExtensions);
+                                },
+                              ),
                             )
                           : ListView.builder(
                               physics: const AlwaysScrollableScrollPhysics(), // 항목이 적어도 스크롤 가능
@@ -854,387 +894,50 @@ class _PhonebookTabState extends State<PhonebookTab> {
           ),
         ),
       ],
-    );
+      ), // Column 닫기
+    ); // PopScope 닫기
   }
 
+  // ✅ 리팩토링: 리스트 아이템을 PhonebookListItem 위젯으로 교체
   Widget _buildContactListTile(PhonebookContactModel contact, {List<String>? registeredExtensions}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    Color categoryColor = Colors.blue;
-    IconData categoryIcon = Icons.phone;
-
-    if (contact.category == 'Extensions') {
-      categoryColor = Colors.green;
-      categoryIcon = Icons.phone_android;
-    } else if (contact.category == 'Feature Codes') {
-      categoryColor = Colors.orange;
-      categoryIcon = Icons.star;
-    }
-
-    // 이름 번역
-    final translatedName = _translateName(contact.name);
-    
-    // 등록 여부 확인
-    final isRegistered = registeredExtensions?.contains(contact.telephone) ?? false;
-    
-    // 다른 사용자의 단말번호 여부 (Extensions 카테고리이면서 본인이 등록하지 않은 경우)
-    final isOtherUserExtension = contact.category == 'Extensions' && !isRegistered;
-
-    return ListTile(
-      leading: Stack(
-        children: [
-          CircleAvatar(
-            backgroundColor: contact.isFavorite
-                ? (isDark ? Colors.amber[900]!.withAlpha(128) : Colors.amber[100])
-                : (isDark 
-                    ? categoryColor.withAlpha(77) 
-                    : categoryColor.withAlpha(51)),
-            child: Icon(
-              contact.isFavorite ? Icons.star : categoryIcon,
-              color: contact.isFavorite 
-                  ? (isDark ? Colors.amber[300] : Colors.amber[700])
-                  : (isDark 
-                      ? (categoryColor == Colors.blue 
-                          ? Colors.blue[300] 
-                          : (categoryColor == Colors.green 
-                              ? Colors.green[300] 
-                              : Colors.orange[300]))
-                      : categoryColor),
-            ),
-          ),
-          // 등록된 단말번호 표시 (우측 하단에 초록색 로고 배지)
-          if (isRegistered)
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.grey[850] : Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isDark ? Colors.green[400]! : Colors.green, 
-                    width: 1.5,
-                  ),
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/images/app_logo.png',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-          // 다른 사용자의 단말번호 표시 (우측 하단에 회색 아이콘 배지)
-          if (isOtherUserExtension)
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.grey[700] : Colors.grey[300],
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isDark ? Colors.grey[600]! : Colors.grey[500]!, 
-                    width: 1,
-                  ),
-                ),
-                child: Icon(
-                  Icons.person,
-                  size: 12,
-                  color: isDark ? Colors.grey[400] : Colors.grey[700],
-                ),
-              ),
-            ),
-        ],
-      ),
-      title: Row(
-        children: [
-          // 즐겨찾기 별 아이콘 (이름 앞)
-          if (contact.isFavorite)
-            const Padding(
-              padding: EdgeInsets.only(right: 4),
-              child: Icon(Icons.star, size: 16, color: Colors.amber),
-            ),
-          Expanded(
-            child: Text(
-              translatedName,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: categoryColor.withAlpha(26),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: categoryColor.withAlpha(77)),
-            ),
-            child: Text(
-              contact.categoryDisplay,
-              style: TextStyle(
-                fontSize: 11,
-                color: categoryColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            contact.telephone,
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
-          if (contact.company != null)
-            Text(
-              contact.company!,
-              style: TextStyle(
-                fontSize: 12, 
-                color: isDark ? Colors.grey[500] : Colors.grey[600],
-              ),
-            ),
-        ],
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 즐겨찾기 토글 버튼
-          IconButton(
-            icon: Icon(
-              contact.isFavorite ? Icons.star : Icons.star_border,
-              color: contact.isFavorite 
-                  ? (isDark ? Colors.amber[300] : Colors.amber)
-                  : (isDark ? Colors.grey[600] : Colors.grey),
-            ),
-            onPressed: () => _toggleFavorite(contact),
-            tooltip: contact.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가',
-          ),
-          // 전화 걸기 버튼
-          IconButton(
-            icon: Icon(
-              Icons.phone, 
-              color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
-            ),
-            onPressed: () => _quickCall(
-              contact.telephone,
-              category: contact.category,
-              name: contact.name,
-            ),
-            tooltip: '빠른 발신',
-          ),
-        ],
-      ),
+    return PhonebookListItem(
+      contact: contact,
+      registeredExtensions: registeredExtensions,
       onTap: () => _showContactDetail(contact),
+      onToggleFavorite: () => _toggleFavorite(contact),
+      onQuickCall: () => _quickCall(
+        contact.telephone,
+        category: contact.category,
+        name: contact.name,
+      ),
     );
   }
 
   // 반응형 크기 계산 헬퍼 메서드
+  // ✅ 리팩토링: 반응형 헬퍼를 PhonebookResponsiveHelper로 위임
   double _getResponsiveSize(BuildContext context, double baseSize) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    // 기준: 360px (일반 스마트폰 너비)
-    // 태블릿: ~600px 이상
-    final scaleFactor = screenWidth / 360.0;
-    return baseSize * scaleFactor.clamp(0.8, 2.0); // 최소 0.8배, 최대 2배로 제한
+    return PhonebookResponsiveHelper.getResponsiveSize(context, baseSize);
   }
 
-  // 화면 크기에 따라 그리드 컬럼 수 결정
   int _getGridColumnCount(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    
-    if (screenWidth >= 1024) {
-      return 6; // 대형 태블릿/데스크톱: 6열
-    } else if (screenWidth >= 768) {
-      return 5; // 일반 태블릿: 5열
-    } else if (screenWidth >= 600) {
-      return 4; // 소형 태블릿: 4열
-    } else {
-      return 3; // 스마트폰: 3열
-    }
+    return PhonebookResponsiveHelper.getGridColumnCount(context);
   }
 
-  // 화면 방향에 따라 그리드 childAspectRatio 결정
   double _getGridChildAspectRatio(BuildContext context) {
-    final orientation = MediaQuery.of(context).orientation;
-    final screenWidth = MediaQuery.of(context).size.width;
-    
-    if (orientation == Orientation.landscape) {
-      // 랜드스케이프 모드: 더 넓은 비율 (높이를 더 확보)
-      if (screenWidth >= 1024) {
-        return 1.15; // 대형 화면 (1.1에서 증가)
-      } else if (screenWidth >= 768) {
-        return 1.05; // 태블릿 (1.0에서 증가)
-      } else {
-        return 1.0; // 스마트폰 (0.95에서 증가)
-      }
-    } else {
-      // 포트레이트 모드: 높이 여유 확보
-      return 0.9; // 0.85에서 0.9로 증가
-    }
+    return PhonebookResponsiveHelper.getGridChildAspectRatio(context);
   }
 
   // 그리드 아이템 빌더
+  // ✅ 리팩토링: 그리드 아이템을 PhonebookGridItem 위젯으로 교체
   Widget _buildContactGridItem(PhonebookContactModel contact, {List<String>? registeredExtensions}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    Color categoryColor = Colors.blue;
-    IconData categoryIcon = Icons.phone;
-
-    if (contact.category == 'Extensions') {
-      categoryColor = Colors.green;
-      categoryIcon = Icons.phone_android;
-    } else if (contact.category == 'Feature Codes') {
-      categoryColor = Colors.orange;
-      categoryIcon = Icons.star;
-    }
-
-    final translatedName = _translateName(contact.name);
-    final isRegistered = registeredExtensions?.contains(contact.telephone) ?? false;
-    final isOtherUserExtension = contact.category == 'Extensions' && !isRegistered;
-
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(_getResponsiveSize(context, 8)),
-        side: BorderSide(
-          color: contact.isFavorite 
-              ? (isDark ? Colors.amber[700]!.withAlpha(128) : Colors.amber.withAlpha(128))
-              : (isDark 
-                  ? categoryColor.withAlpha(102)
-                  : categoryColor.withAlpha(77)),
-          width: contact.isFavorite ? 1.5 : 0.5,
-        ),
-      ),
-      child: InkWell(
-        onTap: () => _showContactDetail(contact),
-        onLongPress: () => _quickCall(
-          contact.telephone,
-          category: contact.category,
-          name: contact.name,
-        ),
-        borderRadius: BorderRadius.circular(_getResponsiveSize(context, 8)),
-        child: Padding(
-          padding: EdgeInsets.all(_getResponsiveSize(context, 3)), // 4에서 3으로 감소
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // ✅ 추가: 콘텐츠 크기에 맞춤
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 아이콘 (즐겨찾기 별 표시 포함)
-              Stack(
-                children: [
-                  Container(
-                    width: _getResponsiveSize(context, 36), // 40에서 36으로 감소
-                    height: _getResponsiveSize(context, 36), // 40에서 36으로 감소
-                    decoration: BoxDecoration(
-                      color: contact.isFavorite
-                          ? (isDark ? Colors.amber[900]!.withAlpha(128) : Colors.amber[100])
-                          : (isDark 
-                              ? categoryColor.withAlpha(77)
-                              : categoryColor.withAlpha(51)),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      contact.isFavorite ? Icons.star : categoryIcon,
-                      size: _getResponsiveSize(context, 18),
-                      color: contact.isFavorite 
-                          ? (isDark ? Colors.amber[300] : Colors.amber[700])
-                          : (isDark
-                              ? (categoryColor == Colors.blue 
-                                  ? Colors.blue[300]
-                                  : (categoryColor == Colors.green
-                                      ? Colors.green[300]
-                                      : Colors.orange[300]))
-                              : categoryColor),
-                    ),
-                  ),
-                  // 등록된 단말번호 배지
-                  if (isRegistered)
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        width: _getResponsiveSize(context, 12),
-                        height: _getResponsiveSize(context, 12),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.grey[850] : Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isDark ? Colors.green[400]! : Colors.green, 
-                            width: 1,
-                          ),
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/images/app_logo.png',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ),
-                  // 다른 사용자 배지
-                  if (isOtherUserExtension)
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        width: _getResponsiveSize(context, 10),
-                        height: _getResponsiveSize(context, 10),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.grey[700] : Colors.grey[300],
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isDark ? Colors.grey[600]! : Colors.grey[500]!, 
-                            width: 0.5,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          size: _getResponsiveSize(context, 6),
-                          color: isDark ? Colors.grey[400] : Colors.grey[700],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              SizedBox(height: _getResponsiveSize(context, 3)), // 4에서 3으로 감소
-              
-              // 이름
-              Flexible(
-                child: Text(
-                  translatedName,
-                  style: TextStyle(
-                    fontSize: _getResponsiveSize(context, 10), // 11에서 10으로 감소
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              
-              SizedBox(height: _getResponsiveSize(context, 1)), // 추가: 이름과 번호 사이 간격
-              
-              // 전화번호 (더 크게 표시)
-              Flexible(
-                child: Text(
-                  contact.telephone,
-                  style: TextStyle(
-                    fontSize: _getResponsiveSize(context, 13),
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.grey[200] : Colors.black87,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-        ),
+    return PhonebookGridItem(
+      contact: contact,
+      registeredExtensions: registeredExtensions,
+      onTap: () => _showContactDetail(contact),
+      onLongPress: () => _quickCall(
+        contact.telephone,
+        category: contact.category,
+        name: contact.name,
       ),
     );
   }
@@ -1322,7 +1025,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
       builder: (context) => CallMethodDialog(
         phoneNumber: phoneNumber, 
         autoCallShortExtension: false,
-        onClickToCallSuccess: widget.onClickToCallSuccess, // 부모에게 콜백 전달
+        onClickToCallSuccess: () {
+          // 그리드뷰 상태를 전달하는 wrapper 콜백
+          widget.onClickToCallSuccess?.call(_isGridView);
+        },
       ),
     );
   }
@@ -1479,11 +1185,15 @@ class _PhonebookTabState extends State<PhonebookTab> {
           duration: const Duration(seconds: 3),
         );
         
-        // 🔄 기능번호 발신 성공 시 콜백 호출 (최근통화 탭으로 전환)
-        widget.onClickToCallSuccess?.call();
+        // 🔄 기능번호 발신 성공 시 콜백 호출 (그리드뷰 상태 전달)
+        widget.onClickToCallSuccess?.call(_isGridView);
         
         if (kDebugMode) {
-          debugPrint('✅ 단말번호 기능번호 발신 성공 → 최근통화 탭 전환 콜백 호출');
+          if (_isGridView) {
+            debugPrint('✅ 단말번호 기능번호 발신 성공 (그리드뷰) → 탭 유지');
+          } else {
+            debugPrint('✅ 단말번호 기능번호 발신 성공 (리스트뷰) → 최근통화 탭 전환');
+          }
         }
       }
     } catch (e) {

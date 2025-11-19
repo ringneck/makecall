@@ -828,13 +828,20 @@ class _CallTabState extends State<CallTab> {
         index: _currentTabIndex,
         children: [
           PhonebookTab(                // 0: 단말번호
-            onClickToCallSuccess: () {
+            onClickToCallSuccess: (bool isGridView) {
               if (mounted) {
-                setState(() {
-                  _currentTabIndex = 1; // 최근통화 탭
-                });
-                if (kDebugMode) {
-                  debugPrint('✅ 단말번호 클릭투콜 성공 → 최근통화 탭으로 전환');
+                // 그리드뷰 모드일 때는 탭 전환하지 않음
+                if (!isGridView) {
+                  setState(() {
+                    _currentTabIndex = 1; // 최근통화 탭
+                  });
+                  if (kDebugMode) {
+                    debugPrint('✅ 단말번호 클릭투콜 성공 (리스트뷰) → 최근통화 탭으로 전환');
+                  }
+                } else {
+                  if (kDebugMode) {
+                    debugPrint('✅ 단말번호 클릭투콜 성공 (그리드뷰) → 단말번호 탭 유지');
+                  }
                 }
               }
             },
