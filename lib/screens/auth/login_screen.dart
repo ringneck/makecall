@@ -220,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
   
-  // 비밀번호 찾기 - 전용 화면으로 이동
+  // 비밀번호 재설정 - 전용 화면으로 이동
   void _handleForgotPassword() {
     Navigator.push(
       context,
@@ -787,7 +787,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         
                         const SizedBox(height: 12),
                         
-                        // 옵션 및 비밀번호 찾기
+                        // 옵션 및 비밀번호 재설정
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -822,7 +822,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 ],
                               ),
                             ),
-                            // 비밀번호 찾기
+                            // 비밀번호 재설정
                             TextButton(
                               onPressed: _handleForgotPassword,
                               style: TextButton.styleFrom(
@@ -832,7 +832,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 ),
                               ),
                               child: Text(
-                                '비밀번호 찾기',
+                                '비밀번호 재설정',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: isDark ? Colors.grey[400] : Colors.grey[700],
