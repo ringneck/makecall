@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/phonebook_model.dart';
+import '../../../../models/phonebook_model.dart';
 import '../utils/phonebook_category_helper.dart';
 import '../utils/phonebook_translation_service.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/phonebook_model.dart';
+import '../../../../models/phonebook_model.dart';
 
 /// 단말번호 카테고리 정보
 class CategoryInfo {
