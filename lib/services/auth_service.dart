@@ -672,8 +672,10 @@ class AuthService extends ChangeNotifier {
       debugPrint('');
     }
     
-    // 단 한 번만 notifyListeners() 호출하여 UI 업데이트
-    notifyListeners();
+    // 🔓 로그아웃 플래그 해제 (authStateChanges 리스너 재활성화)
+    _isSigningOut = false;
+    
+    // ✅ notifyListeners() 제거 (450줄에서 이미 호출됨, 중복 rebuild 방지)
   }
   
   // 비밀번호 재설정
