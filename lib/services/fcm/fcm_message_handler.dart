@@ -37,18 +37,9 @@ class FCMMessageHandler {
 
   /// 포그라운드 메시지 처리
   void handleForegroundMessage(RemoteMessage message) {
-    // ignore: avoid_print
-    print('');
-    // ignore: avoid_print
-    print('═══════════════════════════════════════════════');
-    // ignore: avoid_print
-    print('📨 [FCM-HANDLER] handleForegroundMessage() 호출');
-    // ignore: avoid_print
-    print('═══════════════════════════════════════════════');
-    // ignore: avoid_print
-    print('📨 Title: ${message.notification?.title}');
-    // ignore: avoid_print
-    print('📨 Data: ${message.data}');
+    if (kDebugMode) {
+      debugPrint('📨 [FCM-HANDLER] 포그라운드 메시지: ${message.notification?.title ?? message.data['type']}');
+    }
     
     // 중복 메시지 방지
     if (!_checkAndMarkMessage(message.messageId)) {
@@ -61,18 +52,9 @@ class FCMMessageHandler {
 
   /// 백그라운드/종료 상태에서 알림 클릭 시 처리
   void handleMessageOpenedApp(RemoteMessage message) {
-    // ignore: avoid_print
-    print('');
-    // ignore: avoid_print
-    print('═══════════════════════════════════════════════');
-    // ignore: avoid_print
-    print('🔔 [FCM-HANDLER] handleMessageOpenedApp() 호출');
-    // ignore: avoid_print
-    print('═══════════════════════════════════════════════');
-    // ignore: avoid_print
-    print('🔔 Title: ${message.notification?.title}');
-    // ignore: avoid_print
-    print('🔔 Data: ${message.data}');
+    if (kDebugMode) {
+      debugPrint('🔔 [FCM-HANDLER] 백그라운드 알림 탭: ${message.notification?.title ?? message.data['type']}');
+    }
     
     // 메시지 타입별 라우팅
     _routeMessage(message, isForeground: false);
@@ -82,93 +64,80 @@ class FCMMessageHandler {
   void _routeMessage(RemoteMessage message, {required bool isForeground}) async {
     final messageType = message.data['type'] as String?;
     
-    // ignore: avoid_print
-    print('🔍 [FCM-HANDLER] 메시지 타입: $messageType');
-    
-    // 🔐 강제 로그아웃 (레거시)
+    // 강제 로그아웃 (레거시)
     if (messageType == 'force_logout') {
-      // ignore: avoid_print
-      print('🚨 [FCM-HANDLER] 강제 로그아웃 메시지');
+      if (kDebugMode) {
+        debugPrint('🚨 [FCM-HANDLER] 강제 로그아웃');
+      }
       onForceLogout?.call(message);
       return;
     }
     
-    // 🔔 기기 승인 요청 - 항상 허용 (승인 체크 불필요)
+    // 기기 승인 요청 - 항상 허용
     if (messageType == 'device_approval_request') {
-      // ignore: avoid_print
-      print('🔔 [FCM-HANDLER] 기기 승인 요청 메시지 (승인 체크 SKIP)');
-      if (onDeviceApprovalRequest == null) {
-        // ignore: avoid_print
-        print('❌ [FCM-HANDLER] onDeviceApprovalRequest 콜백이 null입니다!');
-        return;
+      if (kDebugMode) {
+        debugPrint('🔔 [FCM-HANDLER] 기기 승인 요청');
       }
-      // ignore: avoid_print
-      print('📞 [FCM-HANDLER] onDeviceApprovalRequest 콜백 호출 중...');
       try {
         onDeviceApprovalRequest?.call(message);
-        // ignore: avoid_print
-        print('✅ [FCM-HANDLER] onDeviceApprovalRequest 콜백 호출 완료');
-      } catch (e, stackTrace) {
-        // ignore: avoid_print
-        print('❌ [FCM-HANDLER] onDeviceApprovalRequest 콜백 실행 중 예외: $e');
-        // ignore: avoid_print
-        print('Stack trace: $stackTrace');
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [FCM-HANDLER] 승인 요청 처리 실패: $e');
+        }
       }
       return;
     }
     
-    // ✅ 기기 승인 응답 - 항상 허용 (승인 체크 불필요)
+    // 기기 승인 응답 - 항상 허용
     if (messageType == 'device_approval_response') {
-      // ignore: avoid_print
-      print('✅ [FCM-HANDLER] 기기 승인 응답 메시지 (승인 체크 SKIP)');
+      if (kDebugMode) {
+        debugPrint('✅ [FCM-HANDLER] 기기 승인 응답');
+      }
       onDeviceApprovalResponse?.call(message);
       return;
     }
     
-    // 🛑 기기 승인 취소 - 항상 허용 (승인 체크 불필요)
+    // 기기 승인 취소 - 항상 허용
     if (messageType == 'device_approval_cancelled') {
-      // ignore: avoid_print
-      print('🛑 [FCM-HANDLER] 기기 승인 취소 메시지 (승인 체크 SKIP)');
+      if (kDebugMode) {
+        debugPrint('🛑 [FCM-HANDLER] 기기 승인 취소');
+      }
       onDeviceApprovalCancelled?.call(message);
       return;
     }
     
-    // 🔐 승인 상태 체크 (승인 관련 메시지 외 모든 메시지)
+    // 승인 상태 체크
     final isApproved = await _checkDeviceApprovalStatus();
     if (!isApproved) {
-      // ignore: avoid_print
-      print('🔒 [FCM-HANDLER] 미승인 기기 - 메시지 차단: $messageType');
+      if (kDebugMode) {
+        debugPrint('🔒 [FCM-HANDLER] 미승인 기기 - 메시지 차단');
+      }
       return;
     }
     
-    // 🛑 수신전화 알림 취소
+    // 수신전화 알림 취소
     if (messageType == 'incoming_call_cancelled') {
-      // ignore: avoid_print
-      print('🛑 [FCM-HANDLER] 수신전화 취소 메시지');
       onIncomingCallCancelled?.call(message);
       return;
     }
     
-    // 📞 수신 전화 (Android와 iOS 모두 지원)
+    // 수신 전화
     if (_isIncomingCallMessage(message)) {
-      // ignore: avoid_print
-      print('📞 [FCM-HANDLER] 수신 전화 메시지');
+      if (kDebugMode) {
+        debugPrint('📞 [FCM-HANDLER] 수신 전화');
+      }
       onIncomingCall?.call(message);
       return;
     }
     
-    // 📲 착신전환 알림 (사운드 재생)
+    // 착신전환 알림
     if (_isCallForwardMessage(message)) {
-      // ignore: avoid_print
-      print('📲 [FCM-HANDLER] 착신전환 알림 메시지');
       _handleCallForwardNotification(message);
       return;
     }
     
-    // 📥 일반 알림 (포그라운드만)
+    // 일반 알림 (포그라운드만)
     if (isForeground) {
-      // ignore: avoid_print
-      print('📥 [FCM-HANDLER] 일반 알림 메시지');
       onGeneralNotification?.call(message);
     }
   }
@@ -181,13 +150,7 @@ class FCMMessageHandler {
   
   /// 착신전환 알림 처리 (사운드 재생)
   void _handleCallForwardNotification(RemoteMessage message) {
-    // 🎵 알림 사운드 및 진동 재생
-    // ignore: avoid_print
-    print('🔔 [FCM-HANDLER] 착신전환 알림 사운드 재생');
-    
     FCMNotificationSoundService.playNotificationWithVibration(duration: 3);
-    
-    // 일반 알림으로도 전달
     onGeneralNotification?.call(message);
   }
 
@@ -198,20 +161,7 @@ class FCMMessageHandler {
                         (message.data['linkedid'] as String).isNotEmpty;
     final hasCallType = message.data['call_type'] != null;
     
-    final isIncomingCall = hasIncomingCallType || (hasLinkedId && hasCallType);
-    
-    if (kDebugMode && isIncomingCall) {
-      // ignore: avoid_print
-      print('🔍 [FCM-HANDLER] 수신 전화 판별:');
-      // ignore: avoid_print
-      print('   - type: ${message.data['type']}');
-      // ignore: avoid_print
-      print('   - linkedid: ${message.data['linkedid']}');
-      // ignore: avoid_print
-      print('   - call_type: ${message.data['call_type']}');
-    }
-    
-    return isIncomingCall;
+    return hasIncomingCallType || (hasLinkedId && hasCallType);
   }
 
   /// 중복 메시지 체크 및 마킹
@@ -219,25 +169,22 @@ class FCMMessageHandler {
   /// Returns: true (처리 가능), false (이미 처리됨)
   bool _checkAndMarkMessage(String? messageId) {
     if (messageId == null) {
-      return true; // messageId가 없으면 처리
+      return true;
     }
     
     if (_processedMessageIds.contains(messageId)) {
-      // ignore: avoid_print
-      print('⚠️ [FCM-HANDLER] 중복 메시지 - 무시: $messageId');
+      if (kDebugMode) {
+        debugPrint('⚠️ [FCM-HANDLER] 중복 메시지 무시');
+      }
       return false;
     }
     
     _processedMessageIds.add(messageId);
-    // ignore: avoid_print
-    print('✅ [FCM-HANDLER] 새 메시지 처리 시작: $messageId');
     
-    // 🧹 메모리 관리: 100개 이상 쌓이면 오래된 것 제거
+    // 메모리 관리: 100개 이상 쌓이면 오래된 것 제거
     if (_processedMessageIds.length > 100) {
       final toRemove = _processedMessageIds.take(50).toList();
       _processedMessageIds.removeAll(toRemove);
-      // ignore: avoid_print
-      print('🧹 [FCM-HANDLER] 오래된 메시지 ID 50개 제거');
     }
     
     return true;

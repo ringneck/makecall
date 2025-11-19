@@ -89,10 +89,10 @@ import FirebaseMessaging
   ) {
     let userInfo = notification.request.content.userInfo
     
-    print("📨 [iOS-FCM] 포그라운드 알림 수신: \(notification.request.content.title)")
-    print("📨 [iOS-FCM] userInfo: \(userInfo)")
+    #if DEBUG
+    print("📨 [iOS-FCM] 포그라운드 알림: \(notification.request.content.title)")
+    #endif
     
-    // 🔧 FIX: 모든 FCM 메시지를 Flutter로 전달 (기기 승인 + 수신 전화 + 착신전환)
     let messageType = userInfo["type"] as? String
     let hasLinkedId = userInfo["linkedid"] != nil
     let hasCallType = userInfo["call_type"] != nil
@@ -106,28 +106,13 @@ import FirebaseMessaging
     // 조건 3: 착신전환 알림
     let isCallForward = messageType?.starts(with: "call_forward") ?? false
     
-    if isDeviceApproval {
-      print("🔔 [iOS-FCM] 기기 승인 관련 메시지 감지 - Flutter로 전달")
-      print("   - type: \(messageType ?? "없음")")
-    } else if isIncomingCall {
-      print("📞 [iOS-FCM] 수신 전화 감지 - Flutter로 전달")
-      print("   - linkedid: \(userInfo["linkedid"] ?? "없음")")
-      print("   - call_type: \(userInfo["call_type"] ?? "없음")")
-      print("   - caller_num: \(userInfo["caller_num"] ?? "없음")")
-    } else if isCallForward {
-      print("📲 [iOS-FCM] 착신전환 알림 감지 - Flutter로 전달")
-      print("   - type: \(messageType ?? "없음")")
-      print("   - extensionNumber: \(userInfo["extensionNumber"] ?? "없음")")
-    }
-    
-    // ✅ 수신 전화, 기기 승인, 착신전환은 모두 Flutter로 전달 (네이티브 알림 차단)
-    // ✅ Flutter에서 AudioPlayer로 사운드 재생
+    // 수신 전화, 기기 승인, 착신전환: Flutter로 전달
     if isIncomingCall || isDeviceApproval || isCallForward {
-      // 수신 전화, 기기 승인, 착신전환: Flutter로 전달, 네이티브 알림 차단
-      // Flutter에서 AudioPlayer로 사운드 재생
       DispatchQueue.main.async { [weak self] in
         guard let self = self, let channel = self.fcmChannel else {
-          print("❌ [iOS-FCM] Method Channel이 없음")
+          #if DEBUG
+          print("❌ [iOS-FCM] Method Channel 없음")
+          #endif
           return
         }
         
@@ -139,27 +124,26 @@ import FirebaseMessaging
           }
         }
         
+        #if DEBUG
         let messageType = isIncomingCall ? "수신 전화" : (isDeviceApproval ? "기기 승인" : "착신전환")
-        print("🔄 [iOS-FCM] \(messageType) - Flutter로 전송")
-        print("   데이터 keys: \(flutterData.keys.sorted())")
+        print("🔄 [iOS-FCM] \(messageType) → Flutter")
+        #endif
         
         channel.invokeMethod("onForegroundMessage", arguments: flutterData) { result in
+          #if DEBUG
           if let error = result as? FlutterError {
-            print("❌ [iOS-FCM] Flutter 호출 실패: \(error.message ?? "알 수 없는 오류")")
-          } else {
-            print("✅ [iOS-FCM] Flutter 호출 성공")
+            print("❌ [iOS-FCM] Flutter 호출 실패: \(error.message ?? "")")
           }
+          #endif
         }
       }
       
-      // 네이티브 알림 차단 (Flutter에서 사운드 재생)
+      // 네이티브 알림 차단
       completionHandler([])
-      print("✅ [iOS-FCM] Flutter 전달 완료, 네이티브 알림 차단됨 (Flutter에서 사운드 재생)")
       return
     }
     
-    // 일반 메시지는 Firebase SDK에 처리 위임
-    print("ℹ️ [iOS-FCM] 일반 메시지 - Firebase SDK 기본 동작 사용")
+    // 일반 메시지
     completionHandler([.banner, .sound, .badge])
   }
   
@@ -171,10 +155,10 @@ import FirebaseMessaging
   ) {
     let userInfo = response.notification.request.content.userInfo
     
-    print("📬 [iOS-FCM] 백그라운드 알림 탭: \(response.notification.request.content.title)")
-    print("📬 [iOS-FCM] userInfo: \(userInfo)")
+    #if DEBUG
+    print("📬 [iOS-FCM-BG] 알림 탭: \(response.notification.request.content.title)")
+    #endif
     
-    // 🔧 FIX: 포그라운드와 동일하게 수신 전화 + 착신전환도 Method Channel로 전달
     let messageType = userInfo["type"] as? String
     let hasLinkedId = userInfo["linkedid"] != nil
     let hasCallType = userInfo["call_type"] != nil
@@ -188,26 +172,13 @@ import FirebaseMessaging
     // 조건 3: 착신전환 알림
     let isCallForward = messageType?.starts(with: "call_forward") ?? false
     
-    if isDeviceApproval {
-      print("🔔 [iOS-FCM-BG] 기기 승인 관련 알림 탭 - Flutter로 전달")
-      print("   - type: \(messageType ?? "없음")")
-    } else if isIncomingCall {
-      print("📞 [iOS-FCM-BG] 수신 전화 알림 탭 - Flutter로 전달")
-      print("   - linkedid: \(userInfo["linkedid"] ?? "없음")")
-      print("   - call_type: \(userInfo["call_type"] ?? "없음")")
-      print("   - caller_num: \(userInfo["caller_num"] ?? "없음")")
-    } else if isCallForward {
-      print("📲 [iOS-FCM-BG] 착신전환 알림 탭 - Flutter로 전달")
-      print("   - type: \(messageType ?? "없음")")
-      print("   - extensionNumber: \(userInfo["extensionNumber"] ?? "없음")")
-    }
-    
-    // ✅ 기기 승인, 수신 전화, 착신전환일 때 Flutter로 전달
+    // 기기 승인, 수신 전화, 착신전환: Flutter로 전달
     if isDeviceApproval || isIncomingCall || isCallForward {
-      // 약간의 딜레이를 주어 Flutter가 준비될 시간 확보
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
         guard let self = self, let channel = self.fcmChannel else {
-          print("❌ [iOS-FCM-BG] Method Channel이 없음")
+          #if DEBUG
+          print("❌ [iOS-FCM-BG] Method Channel 없음")
+          #endif
           return
         }
         
@@ -219,22 +190,20 @@ import FirebaseMessaging
           }
         }
         
-        // 백그라운드 알림 탭임을 표시
         flutterData["_notification_tap"] = true
         
-        print("🔄 [iOS-FCM-BG] Flutter로 전송할 데이터 keys: \(flutterData.keys.sorted())")
+        #if DEBUG
+        print("🔄 [iOS-FCM-BG] Flutter로 전송")
+        #endif
         
         channel.invokeMethod("onNotificationTap", arguments: flutterData) { result in
+          #if DEBUG
           if let error = result as? FlutterError {
-            print("❌ [iOS-FCM-BG] Flutter 호출 실패: \(error.message ?? "알 수 없는 오류")")
-          } else {
-            print("✅ [iOS-FCM-BG] Flutter 호출 성공")
+            print("❌ [iOS-FCM-BG] Flutter 호출 실패: \(error.message ?? "")")
           }
+          #endif
         }
       }
-    } else {
-      print("ℹ️ [iOS-FCM-BG] 일반 메시지 (기기 승인/수신 전화/착신전환 아님) - Firebase SDK 기본 동작 사용")
-      // Firebase SDK의 기본 동작 (FirebaseMessaging.onMessageOpenedApp)
     }
     
     completionHandler()
