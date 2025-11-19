@@ -81,7 +81,11 @@ class FCMService {
   
   // 🔧 Private 생성자: 콜백 설정을 가장 먼저 수행 (iOS Method Channel 호출 대응)
   FCMService._internal() {
+    // ignore: avoid_print
+    print('🏗️ [FCM] FCMService 싱글톤 생성자 실행 - 콜백 설정');
     _setupMessageHandlerCallbacks();
+    // ignore: avoid_print
+    print('✅ [FCM] 싱글톤 생성자에서 콜백 설정 완료');
   }
   
   /// FCM 토큰 가져오기
@@ -113,9 +117,17 @@ class FCMService {
   /// 
   /// 🔧 Phase 2: FCMMessageHandler 사용
   Future<void> handleRemoteMessage(RemoteMessage message, {required bool isForeground}) async {
+    // ignore: avoid_print
+    print('📨 [FCM-PUBLIC] handleRemoteMessage() 호출됨');
+    // ignore: avoid_print
+    print('   - isForeground: $isForeground');
+    // ignore: avoid_print
+    print('   - messageId: ${message.messageId}');
     
     // 🔧 안전장치: 콜백이 설정되지 않았다면 지금 설정
     if (_messageHandler.onDeviceApprovalRequest == null) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-PUBLIC] 콜백이 null - 지금 설정');
       _setupMessageHandlerCallbacks();
     }
     
@@ -148,13 +160,25 @@ class FCMService {
   /// FCM 초기화
   Future<void> initialize(String userId) async {
     try {
+      // ignore: avoid_print
+      print('🔔 [FCM] 초기화 시작 (User: $userId, Platform: ${_platformUtils.getPlatformName()})');
       
       // 🔒 중복 초기화 방지 체크
       if (_isInitializing) {
+        // ignore: avoid_print
+        print('⏸️  [FCM] 이미 초기화 진행 중 - 완료 대기...');
         if (_initializationCompleter != null) {
+          // ignore: avoid_print
+          print('⏳ [FCM] 첫 번째 초기화(승인 대기 포함) 완료까지 대기합니다');
           try {
             await _initializationCompleter!.future;
+            // ignore: avoid_print
+            print('✅ [FCM] 첫 번째 초기화 완료됨 - 두 번째 호출 반환');
           } catch (e) {
+            // ignore: avoid_print
+            print('❌ [FCM] 첫 번째 초기화 실패 - 두 번째 호출도 실패');
+            // ignore: avoid_print
+            print('   에러: $e');
             rethrow; // 승인 실패 시 두 번째 호출도 실패해야 함
           }
         }
@@ -162,6 +186,8 @@ class FCMService {
       }
       
       if (_initializedUserId == userId && _fcmToken != null) {
+        // ignore: avoid_print
+        print('✅ [FCM] 이미 초기화 완료 - 재초기화 스킵');
         return;
       }
       _isInitializing = true;
@@ -174,20 +200,32 @@ class FCMService {
       
       // 포그라운드 메시지 리스너 (🔧 Phase 2: FCMMessageHandler 사용)
       FirebaseMessaging.onMessage.listen(_messageHandler.handleForegroundMessage);
+      // ignore: avoid_print
+      print('✅ [FCM] onMessage 리스너 등록 완료 (FCMMessageHandler 사용)');
       
       // 백그라운드/종료 상태에서 알림 클릭 시 처리 (🔧 Phase 2: FCMMessageHandler 사용)
       FirebaseMessaging.onMessageOpenedApp.listen(_messageHandler.handleMessageOpenedApp);
+      // ignore: avoid_print
+      print('✅ [FCM] onMessageOpenedApp 리스너 등록 완료 (FCMMessageHandler 사용)');
       
       // 앱이 종료된 상태에서 알림 클릭으로 시작된 경우 처리
       _messaging.getInitialMessage().then((RemoteMessage? message) {
         if (message != null) {
+          // ignore: avoid_print
+          print('🚀 [FCM] 앱이 종료 상태에서 알림 클릭으로 시작됨');
           _messageHandler.handleMessageOpenedApp(message);
         }
       });
+      // ignore: avoid_print
+      print('✅ [FCM] getInitialMessage 설정 완료');
       
+      // ignore: avoid_print
+      print('🎯 [FCM] 모든 메시지 리스너 등록 완료! 이제 토큰 생성 시작');
       
       // Android 로컬 알림 플러그인 초기화 및 알림 채널 생성
       if (_isAndroid) {
+        // ignore: avoid_print
+        print('🤖 [FCM] Android: flutter_local_notifications 초기화 중...');
         
         final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
             FlutterLocalNotificationsPlugin();
@@ -207,8 +245,12 @@ class FCMService {
           },
         );
         
+        // ignore: avoid_print
+        print('✅ [FCM] flutter_local_notifications 초기화 완료');
         
         // 알림 채널 생성 (4가지 조합: 소리/진동 ON/OFF)
+        // ignore: avoid_print
+        print('🤖 [FCM] Android: 알림 채널 생성 중 (4가지 조합)...');
         
         final androidPlugin = flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<
@@ -284,10 +326,14 @@ class FCMService {
           );
           await androidPlugin.createNotificationChannel(channel4);
           
+          // ignore: avoid_print
+          print('✅ [FCM] Android: 6가지 알림 채널 생성 완료 (수신전화, 착신전환 포함)');
         }
       }
       
       // 알림 권한 요청
+      // ignore: avoid_print
+      print('📱 [FCM] 알림 권한 요청 중...');
       NotificationSettings settings = await _messaging.requestPermission(
         alert: true,
         announcement: false,
@@ -298,24 +344,66 @@ class FCMService {
         sound: true,
       );
       
+      // ignore: avoid_print
+      print('✅ [FCM] 알림 권한 응답: ${settings.authorizationStatus}');
       
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
         
         // FCM 토큰 가져오기
+        // ignore: avoid_print
+        print('🔑 [FCM] 토큰 요청 시작...');
         
         if (kIsWeb) {
+          // ignore: avoid_print
+          print('🌐 [FCM] 웹 플랫폼: VAPID 키 사용');
           try {
             const vapidKey = 'BM2qgTRRwT-mG4shgKLDr7CnVf5-xVs3DqNNcqY7zzHZXd5P5xWqvCLn8BxGnqJ3YKj0zcY6Kp0YwQ_Zr8vK2jM';
             _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
           } catch (e) {
+            // ignore: avoid_print
+            print('⚠️ [FCM] 웹 토큰 생성 실패: $e');
+            // ignore: avoid_print
+            print('');
+            // ignore: avoid_print
+            print('📋 해결 방법:');
+            // ignore: avoid_print
+            print('1️⃣ Google Cloud Console에서 FCM API 활성화');
+            // ignore: avoid_print
+            print('   URL: https://console.cloud.google.com/apis/library/fcm.googleapis.com?project=makecallio');
+            // ignore: avoid_print
+            print('   → "사용 설정" 또는 "Enable" 클릭');
+            // ignore: avoid_print
+            print('');
+            // ignore: avoid_print
+            print('2️⃣ Firebase Console에서 Web App 확인');
+            // ignore: avoid_print
+            print('   URL: https://console.firebase.google.com/project/makecallio/settings/general');
+            // ignore: avoid_print
+            print('   → 웹 앱이 올바르게 등록되었는지 확인');
+            // ignore: avoid_print
+            print('');
+            // ignore: avoid_print
+            print('3️⃣ Service Worker 강제 새로고침');
+            // ignore: avoid_print
+            print('   → Chrome: Ctrl+Shift+R (Mac: Cmd+Shift+R)');
+            // ignore: avoid_print
+            print('   → 또는 개발자도구 > Application > Service Workers > Unregister');
+            // ignore: avoid_print
+            print('');
+            // ignore: avoid_print
+            print('⏭️  웹에서 FCM 없이 앱 계속 사용 가능 (모바일은 정상 동작)');
             // 웹에서 FCM 실패해도 앱은 계속 동작
             return;
           }
         } else {
+          // ignore: avoid_print
+          print('📱 [FCM] 모바일 플랫폼: 일반 토큰 요청');
           
           // iOS 전용: APNs 토큰 확인 (재시도 로직 포함)
           if (_isIOS) {
+            // ignore: avoid_print
+            print('🍎 [FCM] iOS: APNs 토큰 확인 중...');
             
             String? apnsToken;
             int retryCount = 0;
@@ -327,45 +415,109 @@ class FCMService {
               
               if (apnsToken == null) {
                 retryCount++;
+                // ignore: avoid_print
+                print('⏳ [FCM] APNs 토큰 대기 중... (시도 $retryCount/$maxRetries)');
                 await Future.delayed(const Duration(milliseconds: 500));
               }
             }
             
             if (apnsToken != null) {
+              // ignore: avoid_print
+              print('✅ [FCM] APNs 토큰 존재: ${apnsToken.substring(0, 20)}...');
             } else {
+              // ignore: avoid_print
+              print('❌ [FCM] APNs 토큰 없음 - FCM 토큰 생성 실패');
+              // ignore: avoid_print
+              print('💡 해결방법:');
+              // ignore: avoid_print
+              print('   1. 실제 iOS 기기에서 테스트 (시뮬레이터 X)');
+              // ignore: avoid_print
+              print('   2. Firebase Console에서 APNs 인증 키 업로드');
+              // ignore: avoid_print
+              print('   3. Xcode에서 Push Notifications Capability 추가');
+              // ignore: avoid_print
+              print('   4. 네트워크 연결 확인 (Wi-Fi/셀룰러)');
+              // ignore: avoid_print
+              print('   5. 앱을 완전히 종료하고 재시작');
               return;
             }
           }
           
+          // ignore: avoid_print
+          print('🔄 [FCM] getToken() 호출 중...');
           _fcmToken = await _messaging.getToken();
+          // ignore: avoid_print
+          print('🔄 [FCM] getToken() 완료');
         }
         
         if (_fcmToken != null) {
+          // ignore: avoid_print
+          print('✅ [FCM] 토큰 생성 완료!');
+          // ignore: avoid_print
+          print('   - 토큰 앞부분: ${_fcmToken!.substring(0, 20)}...');
+          // ignore: avoid_print
+          print('   - 전체 길이: ${_fcmToken!.length}자');
+          // ignore: avoid_print
+          print('   - 플랫폼: ${_platformUtils.getPlatformName()}');
+          // ignore: avoid_print
+          print('   - 사용자 ID: $userId');
           
           // Firestore에 토큰 저장 (🔧 Phase 1: FCMTokenManager 사용)
+          // ignore: avoid_print
+          print('💾 [FCM] Firestore 저장 시작...');
           await _saveFCMTokenWithApproval(userId, _fcmToken!);
+          // ignore: avoid_print
+          print('✅ [FCM] Firestore 저장 완료');
           
           // 🔒 토큰 갱신 리스너 중복 등록 방지
           if (_tokenRefreshSubscription == null) {
+            // ignore: avoid_print
+            print('📡 [FCM] 토큰 갱신 리스너 등록 중...');
             _tokenRefreshSubscription = _messaging.onTokenRefresh.listen((newToken) {
+              // ignore: avoid_print
+              print('🔄 [FCM] 토큰 갱신 이벤트: ${newToken.substring(0, 20)}...');
               
               _fcmToken = newToken;
               // 🔧 Phase 1: 리팩토링된 메서드 사용
               _saveFCMTokenWithApproval(userId, newToken);
             });
+            // ignore: avoid_print
+            print('✅ [FCM] 토큰 갱신 리스너 등록 완료');
           } else {
+            // ignore: avoid_print
+            print('✅ [FCM] 토큰 갱신 리스너 이미 등록됨 - 스킵');
           }
           
           // ℹ️ 메시지 리스너는 이미 초기화 최상단에서 등록 완료됨
           // 백그라운드 메시지 핸들러는 main.dart에서 설정
           
         } else {
+          // ignore: avoid_print
+          print('❌ [FCM] 토큰 생성 실패 (null 반환)');
+          // ignore: avoid_print
+          print('🔍 가능한 원인:');
+          // ignore: avoid_print
+          print('   1. 네트워크 연결 오류');
+          // ignore: avoid_print
+          print('   2. Firebase 설정 오류 (GoogleService-Info.plist)');
           if (_isIOS) {
+            // ignore: avoid_print
+            print('   3. APNs 토큰 없음 (iOS 시뮬레이터는 지원 안 됨)');
+            // ignore: avoid_print
+            print('   4. iOS 네트워크 권한 거부');
           }
         }
       } else {
+        // ignore: avoid_print
+        print('❌ [FCM] 알림 권한 거부됨: ${settings.authorizationStatus}');
       }
     } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('❌ [FCM] 초기화 예외 발생: $e');
+      // ignore: avoid_print
+      print('Stack trace:');
+      // ignore: avoid_print
+      print(stackTrace);
       
       // 🔒 CRITICAL: 기기 승인 관련 오류는 반드시 상위로 전파
       final isApprovalError = e.toString().contains('Device approval') || 
@@ -373,18 +525,24 @@ class FCMService {
                                e.toString().contains('timeout');
       
       if (isApprovalError) {
+        // ignore: avoid_print
+        print('🚫 [FCM] 기기 승인 실패 - 로그인 차단');
         
         // 🔒 CRITICAL: 승인 실패 시 Completer에 에러를 전달
         // 이렇게 하면 대기 중인 다른 초기화 호출들도 같은 에러를 받음
         _isInitializing = false;
         if (_initializationCompleter != null && !_initializationCompleter!.isCompleted) {
           _initializationCompleter!.completeError(e, stackTrace);
+          // ignore: avoid_print
+          print('🔒 [FCM] Completer에 에러 전달 완료 - 대기 중인 호출들도 실패');
         }
         
         rethrow;
       }
       
       // 일반적인 FCM 초기화 오류는 무시 (앱은 계속 실행)
+      // ignore: avoid_print
+      print('⚠️ [FCM] 초기화 실패했지만 앱은 계속 실행');
     } finally {
       // 🔓 초기화 완료 - 잠금 해제
       _isInitializing = false;
@@ -398,6 +556,8 @@ class FCMService {
       // ✅ 성공 시에만 userId 저장
       if (_fcmToken != null) {
         _initializedUserId = userId;
+        // ignore: avoid_print
+        print('✅ [FCM] 초기화 완료 - userId: $userId');
       }
     }
   }
@@ -429,6 +589,12 @@ class FCMService {
           platform = platformLower; // web, unknown 등
         }
         
+        // ignore: avoid_print
+        print('🔔 [FCM-SAVE] 새 기기 로그인 감지!');
+        // ignore: avoid_print
+        print('   - 새 기기: $deviceName ($platform)');
+        // ignore: avoid_print
+        print('   - 기존 기기 ${otherDevices.length}개에 알림 전송 예정');
         
         // ✅ 승인 요청 전송 및 승인 대기 (🔧 Phase 2: FCMDeviceApprovalService 사용)
         final approvalRequestId = await _approvalService.sendDeviceApprovalRequestAndWait(
@@ -440,9 +606,13 @@ class FCMService {
         );
         
         if (approvalRequestId == null) {
+          // ignore: avoid_print
+          print('❌ [FCM-SAVE] 승인 요청 전송 실패 - 로그인 중단');
           throw Exception('Device approval request failed');
         }
         
+        // ignore: avoid_print
+        print('⏳ [FCM-SAVE] 기존 기기의 승인 대기 중...');
         
         // 🎨 승인 요청 정보 저장
         _currentApprovalRequestId = approvalRequestId;
@@ -452,6 +622,8 @@ class FCMService {
         // 🔐 AuthService에 승인 대기 상태 설정
         if (_authService != null) {
           _authService!.setWaitingForApproval(true, approvalRequestId: approvalRequestId);
+          // ignore: avoid_print
+          print('✅ [FCM-SAVE] AuthService 승인 대기 상태 설정 완료');
         }
         
         // 승인 대기 (최대 5분) - 🔧 Phase 2: FCMDeviceApprovalService 사용
@@ -460,6 +632,8 @@ class FCMService {
         // 🔐 AuthService 승인 대기 상태 해제
         if (_authService != null) {
           _authService!.setWaitingForApproval(false);
+          // ignore: avoid_print
+          print('✅ [FCM-SAVE] AuthService 승인 대기 상태 해제 완료');
         }
         
         // 🎨 승인 요청 정보 초기화
@@ -467,23 +641,39 @@ class FCMService {
         _currentUserId = null;
         _approvalService.setApprovalRequestInfo(null, null);
         
+        // ignore: avoid_print
+        print('🔙 [FCM-SAVE] waitForDeviceApproval() 반환됨: $approved');
         
         if (!approved) {
+          // ignore: avoid_print
+          print('❌ [FCM-SAVE] 기기 승인 거부됨 또는 시간 초과 - 로그인 중단');
           throw Exception('Device approval denied or timeout');
         }
         
+        // ignore: avoid_print
+        print('✅ [FCM-SAVE] 기기 승인 완료! 로그인 진행');
       }
       
     } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('❌ [FCM-SAVE] 토큰 저장 오류: $e');
+      // ignore: avoid_print
+      print('Stack trace:');
+      // ignore: avoid_print
+      print(stackTrace);
       
       // 🔒 CRITICAL: 승인 관련 오류는 반드시 상위로 전파하여 로그인 차단
       if (e.toString().contains('Device approval') || 
           e.toString().contains('denied') || 
           e.toString().contains('timeout')) {
+        // ignore: avoid_print
+        print('🚫 [FCM-SAVE] 승인 관련 오류 감지 - 상위로 예외 전파');
         rethrow;
       }
       
       // 일반적인 토큰 저장 오류는 무시 (로그인은 계속 진행)
+      // ignore: avoid_print
+      print('⚠️ [FCM-SAVE] 토큰 저장 실패했지만 로그인은 허용');
     }
   }
   
@@ -553,6 +743,10 @@ class FCMService {
   /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService
   Future<bool> _waitForDeviceApprovalOriginal(String approvalRequestId) async {
     try {
+      // ignore: avoid_print
+      print('⏳ [FCM-WAIT] 기기 승인 대기 시작: $approvalRequestId');
+      // ignore: avoid_print
+      print('🔒 [FCM-WAIT] 이 함수는 승인/거부/타임아웃까지 계속 대기합니다');
       
       // Firestore 스냅샷 리스너 사용 (실시간 업데이트)
       final stream = _firestore
@@ -562,42 +756,72 @@ class FCMService {
       
       // 최대 5분 대기 (Cloud Functions에서 설정한 만료 시간과 동일)
       final timeout = DateTime.now().add(const Duration(minutes: 5));
+      // ignore: avoid_print
+      print('⏰ [FCM-WAIT] 타임아웃 시간: ${timeout.toString()}');
       
       int snapshotCount = 0;
       await for (var snapshot in stream) {
         snapshotCount++;
+        // ignore: avoid_print
+        print('📡 [FCM-WAIT] 스냅샷 수신 #$snapshotCount');
         
         if (!snapshot.exists) {
+          // ignore: avoid_print
+          print('❌ [FCM-WAIT] 승인 요청 문서가 삭제됨 - false 반환');
           return false;
         }
         
         final data = snapshot.data();
         if (data == null) {
+          // ignore: avoid_print
+          print('⚠️ [FCM-WAIT] 문서 데이터가 null - continue');
           continue;
         }
         
         final status = data['status'] as String?;
         
+        // ignore: avoid_print
+        print('📊 [FCM-WAIT] 현재 상태: $status (타입: ${status.runtimeType})');
         
         if (status == 'approved') {
+          // ignore: avoid_print
+          print('✅ [FCM-WAIT] 기기 승인됨! - true 반환');
           return true;
         } else if (status == 'rejected') {
+          // ignore: avoid_print
+          print('❌ [FCM-WAIT] 기기 거부됨 - false 반환');
           return false;
         } else if (status == 'expired') {
+          // ignore: avoid_print
+          print('⏰ [FCM-WAIT] 승인 요청 만료됨 - false 반환');
           return false;
         }
         
         // 시간 초과 체크
         final now = DateTime.now();
         if (now.isAfter(timeout)) {
+          // ignore: avoid_print
+          print('⏰ [FCM-WAIT] 승인 대기 시간 초과 (5분) - false 반환');
+          // ignore: avoid_print
+          print('   현재 시간: ${now.toString()}');
+          // ignore: avoid_print
+          print('   타임아웃: ${timeout.toString()}');
           return false;
         }
         
+        // ignore: avoid_print
+        print('⏳ [FCM-WAIT] 계속 대기 중... (남은 시간: ${timeout.difference(now).inSeconds}초)');
       }
       
+      // ignore: avoid_print
+      print('⚠️ [FCM-WAIT] 스트림이 비정상 종료됨 - false 반환');
       return false;
       
     } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('❌ [FCM-WAIT] 승인 대기 오류: $e');
+      // ignore: avoid_print
+      print('Stack trace: $stackTrace');
       return false;
     }
   }
@@ -612,21 +836,51 @@ class FCMService {
 
   /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMMessageHandler
   void _handleForegroundMessageOriginal(RemoteMessage message) {
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('📨 [FLUTTER-FCM] _handleForegroundMessage() 호출됨!');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('📨 포그라운드 메시지: ${message.notification?.title}');
+    // ignore: avoid_print
+    print('📨 메시지 데이터: ${message.data}');
+    // ignore: avoid_print
+    print('🔍 [FCM-DEBUG] 전체 메시지 구조:');
+    // ignore: avoid_print
+    print('   - messageId: ${message.messageId}');
+    // ignore: avoid_print
+    print('   - notification.title: ${message.notification?.title}');
+    // ignore: avoid_print
+    print('   - notification.body: ${message.notification?.body}');
+    // ignore: avoid_print
+    print('   - data keys: ${message.data.keys.toList()}');
     message.data.forEach((key, value) {
+      // ignore: avoid_print
+      print('   - data[$key]: $value (${value.runtimeType})');
     });
     
     // 🔒 중복 메시지 처리 방지
     final messageId = message.messageId;
     if (messageId != null && _processedMessageIds.contains(messageId)) {
+      // ignore: avoid_print
+      print('⚠️ [FCM] 이미 처리한 메시지 - 무시: $messageId');
       return;
     }
     if (messageId != null) {
       _processedMessageIds.add(messageId);
+      // ignore: avoid_print
+      print('✅ [FCM] 새 메시지 처리 시작: $messageId');
       
       // 🧹 메모리 관리: 100개 이상 쌓이면 오래된 것 제거
       if (_processedMessageIds.length > 100) {
         final toRemove = _processedMessageIds.take(50).toList();
         _processedMessageIds.removeAll(toRemove);
+        // ignore: avoid_print
+        print('🧹 [FCM] 오래된 메시지 ID 50개 제거');
       }
     }
     
@@ -639,6 +893,8 @@ class FCMService {
     // 🔔 기기 승인 요청 메시지 처리
     // ✅ FIX: 포그라운드에서도 즉시 다이얼로그 표시
     if (message.data['type'] == 'device_approval_request') {
+      // ignore: avoid_print
+      print('🔔 [FCM] 기기 승인 요청 - 즉시 다이얼로그 표시');
       _handleDeviceApprovalRequest(message);
       return; // 알림 표시하지 않고 즉시 다이얼로그만 표시
     }
@@ -663,11 +919,31 @@ class FCMService {
                         (message.data['linkedid'] as String).isNotEmpty;
     final hasCallType = message.data['call_type'] != null;
     
+    // ignore: avoid_print
+    print('🔍 [FCM-DEBUG] 수신 전화 조건 체크:');
+    // ignore: avoid_print
+    print('   - hasIncomingCallType: $hasIncomingCallType (type=${message.data['type']})');
+    // ignore: avoid_print
+    print('   - hasLinkedId: $hasLinkedId (linkedid=${message.data['linkedid']})');
+    // ignore: avoid_print
+    print('   - hasCallType: $hasCallType (call_type=${message.data['call_type']})');
+    // ignore: avoid_print
+    print('   - 최종 조건: ${hasIncomingCallType || (hasLinkedId && hasCallType)}');
     
     if (hasIncomingCallType || (hasLinkedId && hasCallType)) {
+      // ignore: avoid_print
+      print('📞 [FCM] 수신 전화 감지:');
+      // ignore: avoid_print
+      print('   - type: ${message.data['type']}');
+      // ignore: avoid_print
+      print('   - linkedid: ${message.data['linkedid']}');
+      // ignore: avoid_print
+      print('   - call_type: ${message.data['call_type']}');
       _handleIncomingCallFCM(message);
       return;
     } else {
+      // ignore: avoid_print
+      print('⚠️ [FCM-DEBUG] 수신 전화 조건 불만족 - 일반 알림으로 처리');
     }
     
     // 📥 사용자 알림 설정 확인 (알림 표시 전 체크) - 동기 함수에서 비동기 호출 불가능하므로 주석 처리
@@ -699,6 +975,18 @@ class FCMService {
 
   /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMMessageHandler
   void _handleMessageOpenedAppOriginal(RemoteMessage message) {
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('🔔 [FLUTTER-FCM] _handleMessageOpenedApp() 호출됨!');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('🔔 [FCM] 백그라운드 알림 클릭됨: ${message.notification?.title}');
+    // ignore: avoid_print
+    print('🔔 [FCM] 메시지 데이터: ${message.data}');
     
     // 🔐 강제 로그아웃 메시지 처리 (레거시)
     if (message.data['type'] == 'force_logout') {
@@ -708,6 +996,8 @@ class FCMService {
     
     // 🔔 기기 승인 요청 메시지 처리 (알림 클릭 시 다이얼로그 표시)
     if (message.data['type'] == 'device_approval_request') {
+      // ignore: avoid_print
+      print('🔔 [FCM] 기기 승인 요청 알림 클릭 - Context 대기 후 다이얼로그 표시');
       // 🔧 FIX: iOS에서 context가 준비되지 않을 수 있으므로 대기
       _waitForContextAndShowApprovalDialog(message);
       return;
@@ -755,6 +1045,12 @@ class FCMService {
 
   /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMIncomingCallHandler
   Future<void> _handleIncomingCallFCMOriginal(RemoteMessage message) async {
+    // ignore: avoid_print
+    print('📞 [FCM-INCOMING] 수신 전화 FCM 메시지 처리 시작');
+    // ignore: avoid_print
+    print('   - Platform: ${_isAndroid ? 'Android' : (_isIOS ? 'iOS' : 'Other')}');
+    // ignore: avoid_print
+    print('   - Message data: ${message.data}');
     
     // 🔔 사용자 알림 설정 확인 (pushEnabled, soundEnabled, vibrationEnabled)
     final authService = AuthService();
@@ -770,11 +1066,23 @@ class FCMService {
         soundEnabled = settings?['soundEnabled'] ?? true;
         vibrationEnabled = settings?['vibrationEnabled'] ?? true;
         
+        // ignore: avoid_print
+        print('📦 [FCM-INCOMING] 알림 설정:');
+        // ignore: avoid_print
+        print('   - pushEnabled: $pushEnabled');
+        // ignore: avoid_print
+        print('   - soundEnabled: $soundEnabled');
+        // ignore: avoid_print
+        print('   - vibrationEnabled: $vibrationEnabled');
         
         if (!pushEnabled) {
+          // ignore: avoid_print
+          print('⏭️ [FCM-INCOMING] 푸시 알림이 비활성화되어 수신 전화 표시 건너뜀');
           return; // 알림 설정이 꺼져있으면 수신 전화 처리 중단
         }
       } catch (e) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-INCOMING] 알림 설정 확인 실패: $e');
         // 설정 확인 실패 시 기본 동작 (수신 전화 표시, 소리/진동 켜짐)
       }
     }
@@ -782,9 +1090,17 @@ class FCMService {
     // 1️⃣ 사용자 설정 확인 (dcmiwsEnabled)
     final dcmiwsEnabled = authService.currentUserModel?.dcmiwsEnabled ?? false;
     
+    // ignore: avoid_print
+    print('📋 [FCM-INCOMING] 사용자 수신 전화 처리 설정:');
+    // ignore: avoid_print
+    print('   - dcmiwsEnabled: $dcmiwsEnabled');
+    // ignore: avoid_print
+    print('   - 처리 방식: ${dcmiwsEnabled ? "WebSocket (DCMIWS)" : "FCM (Push)"}');
     
     if (dcmiwsEnabled) {
       // 2️⃣ WebSocket 모드: FCM 무시
+      // ignore: avoid_print
+      print('✅ [FCM-INCOMING] WebSocket 모드 설정됨 - FCM 무시');
       
       // WebSocket 연결 상태 확인 (경고용)
       try {
@@ -792,20 +1108,42 @@ class FCMService {
         final isConnected = dcmiwsService.isConnected;
         
         if (!isConnected) {
+          // ignore: avoid_print
+          print('⚠️ [FCM-INCOMING] WebSocket 연결 안 됨 - 수신 전화 놓칠 수 있음');
+          // ignore: avoid_print
+          print('   💡 WebSocket 연결을 확인하거나 FCM 모드로 전환하세요');
         } else {
+          // ignore: avoid_print
+          print('✅ [FCM-INCOMING] WebSocket 연결 활성 - WebSocket으로 수신 전화 처리 중');
         }
       } catch (e) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-INCOMING] WebSocket 상태 확인 오류: $e');
       }
       
       return; // WebSocket 모드는 FCM 무시
     }
     
     // 3️⃣ FCM 모드: FCM으로 수신 전화 처리
+    // ignore: avoid_print
+    print('✅ [FCM-INCOMING] FCM 모드 설정됨 - FCM으로 수신 전화 처리');
+    // ignore: avoid_print
+    print('📞 [FCM-INCOMING] _showIncomingCallScreen() 호출 시작...');
+    // ignore: avoid_print
+    print('   - soundEnabled: $soundEnabled (벨소리 재생)');
+    // ignore: avoid_print
+    print('   - vibrationEnabled: $vibrationEnabled (진동)');
     
     try {
       // 풀스크린 수신 전화 화면 표시 (통화 기록 생성 포함) + 소리/진동 설정 전달
       await _showIncomingCallScreen(message, soundEnabled: soundEnabled, vibrationEnabled: vibrationEnabled);
+      // ignore: avoid_print
+      print('✅ [FCM-INCOMING] _showIncomingCallScreen() 호출 완료');
     } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('❌ [FCM-INCOMING] _showIncomingCallScreen() 오류: $e');
+      // ignore: avoid_print
+      print('Stack trace: $stackTrace');
     }
   }
   
@@ -879,6 +1217,12 @@ class FCMService {
   
   /// 🔧 NEW: Context 준비 대기 후 기기 승인 다이얼로그 표시
   Future<void> _waitForContextAndShowApprovalDialog(RemoteMessage message) async {
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('🔄 [FCM-APPROVAL-DIALOG] Context 대기 시작...');
+    // ignore: avoid_print
+    print('   🍎 iOS 알림 탭 → 앱 포그라운드 전환 대기 중...');
     
     // 🔧 FIX: iOS에서는 앱이 active 상태가 될 때까지 충분히 대기
     // 1. 먼저 500ms 대기 (앱 전환 시작 시간)
@@ -893,17 +1237,41 @@ class FCMService {
     const maxAttempts = 50; // 🔧 5초로 증가 (100ms * 50)
     
     if (attempt >= maxAttempts) {
+      // ignore: avoid_print
+      print('');
+      // ignore: avoid_print
+      print('❌ [FCM-APPROVAL-DIALOG] Context 타임아웃!');
+      // ignore: avoid_print
+      print('   - 5초 대기 후에도 Context 없음');
+      // ignore: avoid_print
+      print('   - 앱이 백그라운드에 있거나 종료된 상태일 수 있음');
+      // ignore: avoid_print
+      print('💡 [FCM-APPROVAL-DIALOG] 사용자는 프로필 → 활성 세션에서 수동으로 승인 가능');
       print('');
       return;
     }
     
     final context = _context ?? navigatorKey.currentContext;
     
+    // ignore: avoid_print
+    print('🔍 [FCM-APPROVAL-DIALOG] 재시도 ${attempt + 1}/$maxAttempts');
+    // ignore: avoid_print
+    print('   - _context: ${_context != null ? "✅" : "❌"}');
+    // ignore: avoid_print
+    print('   - navigatorKey.currentContext: ${navigatorKey.currentContext != null ? "✅" : "❌"}');
     
     if (context != null && context.mounted) {
+      // ignore: avoid_print
+      print('✅ [FCM-APPROVAL-DIALOG] Context 준비 완료!');
+      // ignore: avoid_print
+      print('   - 대기 시간: ${(attempt + 1) * 100}ms');
+      // ignore: avoid_print
+      print('   - 다이얼로그 표시 시작...');
       print('');
       
       // 🔧 FIX: iOS에서는 이미 Context가 준비되어 있으므로 직접 호출
+      // ignore: avoid_print
+      print('📲 [FCM-APPROVAL-DIALOG] _handleDeviceApprovalRequest() 직접 호출');
       
       // 기기 승인 요청 메시지 처리
       _handleDeviceApprovalRequest(message);
@@ -997,6 +1365,12 @@ class FCMService {
   /// 
   /// DCMIWSConnectionManager에서 앱이 포그라운드로 돌아올 때 호출됩니다.
   void handlePendingApprovalRequest(RemoteMessage message) {
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('🔔 [FCM-APPROVAL] handlePendingApprovalRequest() 호출됨 (Public)');
+    // ignore: avoid_print
+    print('   - 앱이 포그라운드로 돌아와서 보류 중인 승인 요청 처리');
     
     // Context 대기 후 다이얼로그 표시
     _waitForContextAndShowApprovalDialog(message);
@@ -1012,19 +1386,39 @@ class FCMService {
 
   /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService
   void _handleDeviceApprovalRequestOriginal(RemoteMessage message) {
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
+    // ignore: avoid_print
+    print('🔔 [FCM-APPROVAL] _handleDeviceApprovalRequest() 호출됨');
+    // ignore: avoid_print
+    print('═══════════════════════════════════════════════');
     
     final approvalRequestId = message.data['approvalRequestId'] as String?;
     final newDeviceName = message.data['newDeviceName'] ?? '알 수 없는 기기';
     final newPlatform = message.data['newPlatform'] ?? 'unknown';
     
+    // ignore: avoid_print
+    print('📋 [FCM-APPROVAL] 메시지 데이터:');
+    // ignore: avoid_print
+    print('   - approvalRequestId: $approvalRequestId');
+    // ignore: avoid_print
+    print('   - newDeviceName: $newDeviceName');
+    // ignore: avoid_print
+    print('   - newPlatform: $newPlatform');
     
     if (approvalRequestId == null) {
+      // ignore: avoid_print
+      print('❌ [FCM-APPROVAL] approvalRequestId 없음 - 처리 중단');
       print('');
       return;
     }
     
     // 🔒 이미 표시 중인 다이얼로그 확인
     if (_currentDisplayedApprovalId == approvalRequestId) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-APPROVAL] 이미 표시 중인 다이얼로그 - 중복 표시 방지: $approvalRequestId');
       print('');
       return;
     }
@@ -1032,8 +1426,18 @@ class FCMService {
     // 🔧 FIX: Context 즉시 확인
     final context = _context ?? navigatorKey.currentContext;
     
+    // ignore: avoid_print
+    print('🔍 [FCM-APPROVAL] Context 상태 확인:');
+    // ignore: avoid_print
+    print('   - _context: ${_context != null ? "존재" : "null"}');
+    // ignore: avoid_print
+    print('   - navigatorKey.currentContext: ${navigatorKey.currentContext != null ? "존재" : "null"}');
+    // ignore: avoid_print
+    print('   - context (final): ${context != null ? "존재" : "null"}');
     
     if (context == null) {
+      // ignore: avoid_print
+      print('⏳ [FCM-APPROVAL] BuildContext 없음 - Context 준비 대기 시작');
       _waitForContextAndShowApprovalDialog(message);
       return;
     }
@@ -1041,6 +1445,8 @@ class FCMService {
     // 🔒 다이얼로그 표시 시작 - ID 기록
     _currentDisplayedApprovalId = approvalRequestId;
     
+    // ignore: avoid_print
+    print('✅ [FCM-APPROVAL] Context 존재 - 즉시 다이얼로그 표시');
     print('');
     
     // 📳 새 기기 로그인 감지 시 진동 (사용자 알림)
@@ -1125,9 +1531,13 @@ class FCMService {
         actions: [
           TextButton(
             onPressed: () {
+              // ignore: avoid_print
+              print('🔘 [FCM-APPROVAL] 거부 버튼 클릭됨');
               
               // 🔒 중복 처리 방지
               if (_processingApprovalIds.contains(approvalRequestId)) {
+                // ignore: avoid_print
+                print('⚠️ [FCM-APPROVAL] 이미 처리 중 - 중복 클릭 무시');
                 return;
               }
               _processingApprovalIds.add(approvalRequestId);
@@ -1135,6 +1545,8 @@ class FCMService {
               // 🔧 FIX: 다이얼로그를 먼저 닫고, 거부 처리는 백그라운드에서 실행
               if (context.mounted) {
                 Navigator.of(context).pop();
+                // ignore: avoid_print
+                print('✅ [FCM-APPROVAL] 다이얼로그 즉시 닫힘');
                 
                 // 🔒 다이얼로그 닫힘 - ID 초기화
                 _currentDisplayedApprovalId = null;
@@ -1142,7 +1554,11 @@ class FCMService {
               
               // 거부 처리는 비동기로 백그라운드 실행
               _rejectDeviceApproval(approvalRequestId).then((_) {
+                // ignore: avoid_print
+                print('✅ [FCM-APPROVAL] 거부 처리 완료');
               }).catchError((e) {
+                // ignore: avoid_print
+                print('❌ [FCM-APPROVAL] 거부 처리 오류: $e');
               }).whenComplete(() {
                 // 🔒 처리 완료 - 플래그 제거
                 _processingApprovalIds.remove(approvalRequestId);
@@ -1152,9 +1568,13 @@ class FCMService {
           ),
           ElevatedButton(
             onPressed: () {
+              // ignore: avoid_print
+              print('🔘 [FCM-APPROVAL] 승인 버튼 클릭됨');
               
               // 🔒 중복 처리 방지
               if (_processingApprovalIds.contains(approvalRequestId)) {
+                // ignore: avoid_print
+                print('⚠️ [FCM-APPROVAL] 이미 처리 중 - 중복 클릭 무시');
                 return;
               }
               _processingApprovalIds.add(approvalRequestId);
@@ -1162,6 +1582,8 @@ class FCMService {
               // 🔧 FIX: 다이얼로그를 먼저 닫고, 승인 처리는 백그라운드에서 실행
               if (context.mounted) {
                 Navigator.of(context).pop();
+                // ignore: avoid_print
+                print('✅ [FCM-APPROVAL] 다이얼로그 즉시 닫힘');
                 
                 // 🔒 다이얼로그 닫힘 - ID 초기화
                 _currentDisplayedApprovalId = null;
@@ -1169,7 +1591,11 @@ class FCMService {
               
               // 승인 처리는 비동기로 백그라운드 실행
               _approveDeviceApproval(approvalRequestId).then((_) {
+                // ignore: avoid_print
+                print('✅ [FCM-APPROVAL] 승인 처리 완료');
               }).catchError((e) {
+                // ignore: avoid_print
+                print('❌ [FCM-APPROVAL] 승인 처리 오류: $e');
               }).whenComplete(() {
                 // 🔒 처리 완료 - 플래그 제거
                 _processingApprovalIds.remove(approvalRequestId);
@@ -1773,12 +2199,20 @@ class FCMService {
 
   /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMIncomingCallHandler
   Future<void> _showIncomingCallScreenOriginal(RemoteMessage message, {bool soundEnabled = true, bool vibrationEnabled = true}) async {
+    // ignore: avoid_print
+    print('🎬 [FCM-SCREEN] _showIncomingCallScreen() 시작');
     
     // 🔧 중복 표시 방지
     if (_isShowingIncomingCall) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-SCREEN] 이미 수신 전화 화면이 표시 중 - 중복 호출 무시');
       return;
     }
     
+    // ignore: avoid_print
+    print('   - _context: ${_context != null ? '있음' : '없음'}');
+    // ignore: avoid_print
+    print('   - navigatorKey.currentContext: ${navigatorKey.currentContext != null ? '있음' : '없음'}');
     
     // 🔧 FIX: navigatorKey.currentContext를 우선 사용 (항상 최신 상태)
     BuildContext? context = navigatorKey.currentContext;
@@ -1786,20 +2220,38 @@ class FCMService {
     // navigatorKey가 없으면 _context 사용 (폴백)
     if (context == null) {
       context = _context;
+      // ignore: avoid_print
+      print('⚠️ [FCM-SCREEN] navigatorKey 없음 - _context 사용 (폴백)');
     } else {
+      // ignore: avoid_print
+      print('✅ [FCM-SCREEN] navigatorKey.currentContext 사용 (우선)');
     }
     
     if (context == null) {
+      // ignore: avoid_print
+      print('❌ [FCM-SCREEN] BuildContext와 NavigatorKey 모두 사용 불가');
+      // ignore: avoid_print
+      print('💡 main.dart에서 FCMService.setContext()를 호출하거나 앱이 완전히 시작될 때까지 기다리세요');
       return;
     }
     
     // 🔧 Context가 mounted 상태인지 확인
     if (context is Element) {
       if (!context.mounted) {
+        // ignore: avoid_print
+        print('❌ [FCM-SCREEN] Context가 deactivated 상태 - 사용 불가');
+        // ignore: avoid_print
+        print('   mounted: ${context.mounted}');
+        // ignore: avoid_print
+        print('   owner: ${context.owner}');
         return;
       }
+      // ignore: avoid_print
+      print('✅ [FCM-SCREEN] Context mounted 확인 완료');
     }
     
+    // ignore: avoid_print
+    print('✅ [FCM-SCREEN] Context 최종 확인 완료');
     
     // 📋 메시지 데이터에서 정보 추출
     // iOS와 Android 모두 지원 (caller_num, caller_name 등)
@@ -1836,8 +2288,26 @@ class FCMService {
                      message.data['type'] ??
                      'voice'; // iOS FCM에서는 voice로 전송됨
     
+    // ignore: avoid_print
+    print('📞 [FCM-SCREEN] 수신 전화 데이터 추출:');
+    // ignore: avoid_print
+    print('   발신자: $callerName');
+    // ignore: avoid_print
+    print('   번호: $callerNumber');
+    // ignore: avoid_print
+    print('   아바타: ${callerAvatar ?? "없음"}');
+    // ignore: avoid_print
+    print('   채널: $channel');
+    // ignore: avoid_print
+    print('   링크ID: $linkedid');
+    // ignore: avoid_print
+    print('   수신번호: $receiverNumber');
+    // ignore: avoid_print
+    print('   통화타입: $callType');
     
     // 💾 통화 기록 생성 (call_history) - 네트워크 오류에도 불구하고 화면은 표시
+    // ignore: avoid_print
+    print('📝 [FCM-SCREEN] 통화 기록 생성 시도 중...');
     await _createCallHistory(
       callerNumber: callerNumber,
       callerName: callerName,
@@ -1846,6 +2316,8 @@ class FCMService {
       channel: channel,
       callType: callType,
     );
+    // ignore: avoid_print
+    print('📝 [FCM-SCREEN] 통화 기록 생성 완료 (또는 실패)');
     
     print('🎬 [FCM] 수신 전화 화면 표시');
     
@@ -1862,10 +2334,14 @@ class FCMService {
       if (currentRoute != null && 
           (currentRoute.settings.name == '/incoming_call' || 
            currentRoute.isCurrent == false)) {
+        // ignore: avoid_print
+        print('🔄 [FCM-SCREEN] 기존 IncomingCallScreen 감지 - 교체 모드');
         
         // 기존 화면 제거
         navigator.popUntil((route) => route.isFirst || route.settings.name != '/incoming_call');
         
+        // ignore: avoid_print
+        print('✅ [FCM-SCREEN] 기존 화면 제거 완료');
       }
       
       // 수신 전화 화면 표시 (fullscreenDialog로 전체 화면)
@@ -1911,10 +2387,13 @@ class FCMService {
       
       // DEPRECATED: moveToTab 로직 제거됨 (IncomingCallScreen은 이제 단순 pop만 수행)
       
+      print('✅ [FCM] 수신 전화 처리 완료');
       
     } finally {
       // 🔧 플래그 해제 (화면 종료)
       _isShowingIncomingCall = false;
+      // ignore: avoid_print
+      print('🔓 [FCM-SCREEN] 수신 전화 화면 플래그 해제');
     }
   }
   
@@ -2033,6 +2512,8 @@ class FCMService {
   /// 
   /// 🔧 Phase 1 Refactoring: FCMTokenManager 사용
   Future<void> deactivateToken(String userId) async {
+    // ignore: avoid_print
+    print('🚪 [FCM] 토큰 비활성화 및 상태 리셋 (userId: $userId)');
     
     await _tokenManager.deactivateToken(userId, _fcmToken);
     
@@ -2043,6 +2524,8 @@ class FCMService {
     _initializationCompleter = null;
     _tokenManager.clearSaveTracking();
     
+    // ignore: avoid_print
+    print('✅ [FCM] 상태 리셋 완료');
   }
   
   /// 🔧 Phase 1 Refactoring: 플랫폼 유틸리티 메서드들을 FCMPlatformUtils로 이동
@@ -2113,9 +2596,19 @@ class FCMService {
       final userId = authService.currentUser?.uid;
       
       if (userId == null) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-CALLHIST] 사용자 인증 없음 - 통화 기록 생성 스킵');
         return;
       }
       
+      // ignore: avoid_print
+      print('💾 [FCM-CALLHIST] 통화 기록 생성 시작');
+      // ignore: avoid_print
+      print('   linkedid: $linkedid');
+      // ignore: avoid_print
+      print('   발신자: $callerName ($callerNumber)');
+      // ignore: avoid_print
+      print('   수신자: $receiverNumber');
       
       // linkedid로 기존 통화 기록 확인 (중복 방지) - 타임아웃 5초
       final existingDoc = await _firestore
@@ -2125,11 +2618,17 @@ class FCMService {
           .timeout(
             const Duration(seconds: 5),
             onTimeout: () {
+              // ignore: avoid_print
+              print('⏱️ [FCM-CALLHIST] Firestore 조회 타임아웃 (5초)');
               throw TimeoutException('Firestore get timeout');
             },
           );
       
       if (existingDoc.exists) {
+        // ignore: avoid_print
+        print('ℹ️ [FCM-CALLHIST] 이미 존재하는 통화 기록 (Firebase Functions에서 생성됨)');
+        // ignore: avoid_print
+        print('   linkedid: $linkedid');
         
         // 상태만 업데이트 (FCM 수신 확인) - 타임아웃 5초
         // 🔧 FIX: cancelled 필드 초기화 (iOS에서 이전 취소 상태가 남아있을 수 있음)
@@ -2141,14 +2640,20 @@ class FCMService {
         }).timeout(
           const Duration(seconds: 5),
           onTimeout: () {
+            // ignore: avoid_print
+            print('⏱️ [FCM-CALLHIST] Firestore 업데이트 타임아웃 (5초)');
             throw TimeoutException('Firestore update timeout');
           },
         );
         
+        // ignore: avoid_print
+        print('✅ [FCM-CALLHIST] 기존 기록 업데이트 완료');
         return;
       }
       
       // 새 통화 기록 생성 (Firebase Functions에서 생성되지 않은 경우)
+      // ignore: avoid_print
+      print('📝 [FCM-CALLHIST] 새 통화 기록 생성');
       
       await _firestore.collection('call_history').doc(linkedid).set({
         'userId': userId,
@@ -2168,14 +2673,42 @@ class FCMService {
       }).timeout(
         const Duration(seconds: 5),
         onTimeout: () {
+          // ignore: avoid_print
+          print('⏱️ [FCM-CALLHIST] Firestore 생성 타임아웃 (5초)');
           throw TimeoutException('Firestore set timeout');
         },
       );
       
+      // ignore: avoid_print
+      print('✅ [FCM-CALLHIST] 새 통화 기록 생성 완료');
+      // ignore: avoid_print
+      print('   linkedid: $linkedid');
+      // ignore: avoid_print
+      print('   발신자: $callerName ($callerNumber)');
+      // ignore: avoid_print
+      print('   수신자: $receiverNumber');
       
     } on TimeoutException catch (e) {
+      // ignore: avoid_print
+      print('⏱️ [FCM-CALLHIST] Firestore 타임아웃: $e');
+      // ignore: avoid_print
+      print('   ⚠️ 네트워크 불안정 - 통화 기록 생성 실패');
+      // ignore: avoid_print
+      print('   ℹ️ 수신 전화 화면은 정상 표시됨');
     } on FirebaseException catch (e) {
+      // ignore: avoid_print
+      print('❌ [FCM-CALLHIST] Firebase 오류: ${e.code} - ${e.message}');
+      // ignore: avoid_print
+      print('   ⚠️ Firestore 연결 실패 - 통화 기록 생성 실패');
+      // ignore: avoid_print
+      print('   ℹ️ 수신 전화 화면은 정상 표시됨');
     } catch (e, stackTrace) {
+      // ignore: avoid_print
+      print('❌ [FCM-CALLHIST] 통화 기록 생성 실패: $e');
+      // ignore: avoid_print
+      print('   Type: ${e.runtimeType}');
+      // ignore: avoid_print
+      print('Stack trace: $stackTrace');
     }
   }
   
@@ -2183,9 +2716,13 @@ class FCMService {
   void _showApprovalWaitingDialog() {
     final context = _context ?? navigatorKey.currentContext;
     if (context == null) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-DIALOG] Context 없음 - 다이얼로그 표시 불가');
       return;
     }
     
+    // ignore: avoid_print
+    print('🎨 [FCM-DIALOG] 승인 대기 전체 화면 표시 (백그라운드 UI 완전 차단)');
     
     // 🔧 키보드 숨기기
     FocusScope.of(context).unfocus();
@@ -2198,6 +2735,8 @@ class FCMService {
         canPop: false, // 뒤로 가기 방지
         child: _ApprovalWaitingDialog(
           onResendRequest: () async {
+            // ignore: avoid_print
+            print('🔄 [FCM-DIALOG] 재요청 버튼 클릭');
             if (_currentApprovalRequestId != null && _currentUserId != null) {
               try {
                 await resendApprovalRequest(_currentApprovalRequestId!, _currentUserId!);
@@ -2212,6 +2751,8 @@ class FCMService {
                   );
                 }
               } catch (e) {
+                // ignore: avoid_print
+                print('❌ [FCM-DIALOG] 재전송 오류: $e');
                 
                 // 사용자에게 오류 메시지 표시
                 final context = _context ?? navigatorKey.currentContext;
@@ -2241,6 +2782,12 @@ class FCMService {
   /// ⚠️ DEPRECATED - INTERNAL USE ONLY: Original implementation moved to FCMDeviceApprovalService
   Future<void> resendApprovalRequestOriginal(String approvalRequestId, String userId) async {
     try {
+      // ignore: avoid_print
+      print('');
+      // ignore: avoid_print
+      print('🔄 [FCM-RESEND] 승인 요청 재전송 시작');
+      // ignore: avoid_print
+      print('   - Approval Request ID: $approvalRequestId');
       
       // Firestore에서 승인 요청 문서 가져오기
       final approvalDoc = await _firestore
@@ -2249,6 +2796,8 @@ class FCMService {
           .get();
       
       if (!approvalDoc.exists) {
+        // ignore: avoid_print
+        print('❌ [FCM-RESEND] 승인 요청 문서가 존재하지 않음');
         return;
       }
       
@@ -2263,12 +2812,22 @@ class FCMService {
       ).toList();
       
       if (activeTokens.isEmpty) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-RESEND] 활성 기기가 없음');
         return;
       }
       
+      // ignore: avoid_print
+      print('📤 [FCM-RESEND] ${activeTokens.length}개 기기에 알림 재전송');
       
       // 알림 큐에 다시 등록
       for (var token in activeTokens) {
+        // ignore: avoid_print
+        print('📤 [FCM-RESEND] 알림 큐 등록 시작: ${token.deviceName}');
+        // ignore: avoid_print
+        print('   - Target Token: ${token.fcmToken.substring(0, 20)}...');
+        // ignore: avoid_print
+        print('   - New Device: $newDeviceName ($newPlatform)');
         
         final docRef = await _firestore.collection('fcm_approval_notification_queue').add({
           'targetToken': token.fcmToken,
@@ -2287,11 +2846,21 @@ class FCMService {
           'processed': false,
         });
         
+        // ignore: avoid_print
+        print('✅ [FCM-RESEND] 알림 큐 등록 완료: ${token.deviceName}');
+        // ignore: avoid_print
+        print('   - Document ID: ${docRef.id}');
+        // ignore: avoid_print
+        print('   ⏳ Cloud Functions sendApprovalNotification 트리거 대기 중...');
       }
       
+      // ignore: avoid_print
+      print('✅ [FCM-RESEND] 승인 요청 재전송 완료');
       print('');
       
     } catch (e) {
+      // ignore: avoid_print
+      print('❌ [FCM-RESEND] 재전송 실패: $e');
     }
   }
   
@@ -2299,9 +2868,13 @@ class FCMService {
   void _dismissApprovalWaitingDialog() {
     final context = _context ?? navigatorKey.currentContext;
     if (context == null) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-DIALOG] Context 없음 - 다이얼로그 닫기 불가');
       return;
     }
     
+    // ignore: avoid_print
+    print('🎨 [FCM-DIALOG] 승인 대기 다이얼로그 닫기');
     
     // 다이얼로그가 열려있는지 확인하고 닫기
     if (Navigator.of(context).canPop()) {

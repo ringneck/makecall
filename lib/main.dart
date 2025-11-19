@@ -115,12 +115,12 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print('✅ Firebase 초기화 완료 (Flutter)');
+    // Firebase initialized successfully
   } catch (e) {
     // Native에서 이미 초기화된 경우 무시 (정상 동작)
     if (e.toString().contains('duplicate-app') || 
         e.toString().contains('already created')) {
-      print('✅ Firebase 이미 초기화됨 (Native에서) - 정상');
+      // Firebase already initialized from native
     } else {
       print('❌ Firebase 초기화 오류: $e');
       rethrow;
@@ -134,14 +134,14 @@ void main() async {
     nativeAppKey: '737f26c4d0d81077b35b8f0313ec3536', // 카카오 Native App Key
     javaScriptAppKey: 'YOUR_KAKAO_JAVASCRIPT_KEY', // Web용 (선택사항, 추후 설정)
   );
-  print('✅ 카카오 SDK 초기화 완료');
+  // Kakao SDK initialized
   
   // ✅ iOS Method Channel 설정 (포그라운드 FCM 메시지 수신용)
   // 🔧 CRITICAL FIX: Web 플랫폼에서는 Platform.isIOS 체크 불가
   if (!kIsWeb && Platform.isIOS) {
     _fcmChannel = const MethodChannel('com.makecall.app/fcm');
     _fcmChannel!.setMethodCallHandler(_handleIOSForegroundMessage);
-    print('✅ iOS FCM Method Channel 등록 완료');
+    // iOS FCM Method Channel registered
   }
   
   // FCM 백그라운드 핸들러 등록
@@ -158,15 +158,16 @@ void main() async {
 
 /// ✅ iOS FCM 메시지 핸들러 (Method Channel)
 Future<void> _handleIOSForegroundMessage(MethodCall call) async {
-  print('📲 [Flutter-FCM] iOS Method Channel 호출: ${call.method}');
+  if (kDebugMode) {
+    debugPrint('[FCM] iOS Method Channel: ${call.method}');
+  }
   
   if (call.method == 'onForegroundMessage') {
     // 포그라운드 메시지 처리
     try {
       final Map<String, dynamic> data = Map<String, dynamic>.from(call.arguments as Map);
       
-      print('📲 [Flutter-FCM] iOS 포그라운드 메시지 수신');
-      print('📲 데이터 keys: ${data.keys.toList()}');
+      // iOS foreground message received
       
       // APS 데이터에서 notification 정보 추출
       final apsData = data['aps'] as Map?;
@@ -184,27 +185,25 @@ Future<void> _handleIOSForegroundMessage(MethodCall call) async {
         messageId: data['gcm.message_id']?.toString(),
       );
       
-      print('✅ [Flutter-FCM] RemoteMessage 생성 완료');
-      print('   - type: ${data['type']}');
-      print('   - linkedid: ${data['linkedid']}');
-      print('   - call_type: ${data['call_type']}');
+      // RemoteMessage created
       
       // FCM 서비스로 전달 (포그라운드 처리)
       await FCMService().handleRemoteMessage(remoteMessage, isForeground: true);
       
-      print('✅ [Flutter-FCM] FCM 서비스 처리 완료');
+      // FCM service handled message
       
     } catch (e, stackTrace) {
-      print('❌ [Flutter-FCM] iOS 메시지 처리 오류: $e');
-      print('Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('❌ [FCM] iOS message error: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
     }
   } else if (call.method == 'onNotificationTap') {
     // 🔧 NEW: 백그라운드 알림 탭 처리
     try {
       final Map<String, dynamic> data = Map<String, dynamic>.from(call.arguments as Map);
       
-      print('📬 [Flutter-FCM] iOS 백그라운드 알림 탭 수신');
-      print('📬 데이터 keys: ${data.keys.toList()}');
+      // iOS background notification tap received
       
       // _notification_tap 플래그 제거
       data.remove('_notification_tap');
@@ -225,19 +224,18 @@ Future<void> _handleIOSForegroundMessage(MethodCall call) async {
         messageId: data['gcm.message_id']?.toString(),
       );
       
-      print('✅ [Flutter-FCM] RemoteMessage 생성 완료 (백그라운드)');
-      print('   - type: ${data['type']}');
-      print('   - linkedid: ${data['linkedid']}');
-      print('   - call_type: ${data['call_type']}');
+      // RemoteMessage created (background)
       
       // FCM 서비스로 전달 (백그라운드 알림 탭 처리)
       await FCMService().handleRemoteMessage(remoteMessage, isForeground: false);
       
-      print('✅ [Flutter-FCM] FCM 서비스 처리 완료 (백그라운드)');
+      // FCM service handled background notification tap
       
     } catch (e, stackTrace) {
-      print('❌ [Flutter-FCM] iOS 백그라운드 알림 탭 처리 오류: $e');
-      print('Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('❌ [FCM] iOS background notification tap error: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
     }
   }
 }
