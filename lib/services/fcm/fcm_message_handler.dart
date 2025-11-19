@@ -30,6 +30,7 @@ class FCMMessageHandler {
   Function(RemoteMessage)? onForceLogout;
   Function(RemoteMessage)? onDeviceApprovalRequest;
   Function(RemoteMessage)? onDeviceApprovalResponse;
+  Function(RemoteMessage)? onDeviceApprovalCancelled;
   Function(RemoteMessage)? onIncomingCallCancelled;
   Function(RemoteMessage)? onIncomingCall;
   Function(RemoteMessage)? onGeneralNotification;
@@ -121,6 +122,14 @@ class FCMMessageHandler {
       // ignore: avoid_print
       print('✅ [FCM-HANDLER] 기기 승인 응답 메시지 (승인 체크 SKIP)');
       onDeviceApprovalResponse?.call(message);
+      return;
+    }
+    
+    // 🛑 기기 승인 취소 - 항상 허용 (승인 체크 불필요)
+    if (messageType == 'device_approval_cancelled') {
+      // ignore: avoid_print
+      print('🛑 [FCM-HANDLER] 기기 승인 취소 메시지 (승인 체크 SKIP)');
+      onDeviceApprovalCancelled?.call(message);
       return;
     }
     

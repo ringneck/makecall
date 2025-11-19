@@ -654,6 +654,75 @@ class FCMDeviceApprovalService {
         // fcm_tokens 업데이트 실패해도 승인 프로세스는 완료된 것으로 처리
       }
       
+      // 🛑 Step 4: 다른 기기들에게 승인 취소 알림 전송 (NEW!)
+      // (한 기기가 승인하면 다른 기기들의 승인 다이얼로그 자동 닫기)
+      try {
+        debugPrint('🛑 [FCM-CANCEL] 다른 기기들에게 승인 취소 알림 전송 시작...');
+        
+        // 승인된 새 기기 정보 (Cloud Function 호환성을 위해 필요)
+        final newDeviceName = data['newDeviceName'] as String? ?? 'Unknown Device';
+        final newPlatformForQueue = newPlatformRaw; // 원본 플랫폼 이름 사용 (소문자)
+        
+        // 현재 승인 처리 중인 기기의 deviceId와 platform 가져오기
+        final currentDeviceId = await _deviceService.getDeviceId();
+        final currentPlatform = await _deviceService.getPlatform();
+        
+        // 모든 활성 fcm_tokens 조회
+        final allTokensQuery = await _firestore
+            .collection('fcm_tokens')
+            .where('userId', isEqualTo: userId)
+            .where('isActive', isEqualTo: true)
+            .get()
+            .timeout(const Duration(seconds: 5));
+        
+        // 현재 승인 처리 기기와 새 기기를 제외한 다른 기기들 필터링
+        final newDeviceKey = '${newDeviceId}_$newPlatform';
+        final currentDeviceKey = '${currentDeviceId}_$currentPlatform';
+        
+        final otherDeviceTokens = allTokensQuery.docs.where((doc) {
+          final deviceKey = '${doc.data()['deviceId']}_${doc.data()['platform']}';
+          return deviceKey != newDeviceKey && deviceKey != currentDeviceKey;
+        }).toList();
+        
+        if (otherDeviceTokens.isEmpty) {
+          debugPrint('✅ [FCM-CANCEL] 취소 알림을 보낼 다른 기기 없음');
+        } else {
+          debugPrint('📤 [FCM-CANCEL] ${otherDeviceTokens.length}개의 다른 기기에 취소 알림 전송...');
+          
+          // 각 기기에 취소 알림 큐 생성
+          for (var tokenDoc in otherDeviceTokens) {
+            final tokenData = tokenDoc.data();
+            final targetToken = tokenData['fcmToken'] as String;
+            final targetDeviceName = tokenData['deviceName'] as String?;
+            
+            await _firestore.collection('fcm_approval_notification_queue').add({
+              'targetToken': targetToken,
+              'targetDeviceName': targetDeviceName ?? 'Unknown Device',
+              'approvalRequestId': approvalRequestId,
+              'newDeviceName': newDeviceName, // Cloud Function 호환성
+              'newPlatform': newPlatformForQueue, // Cloud Function 호환성
+              'userId': userId,
+              'message': {
+                'type': 'device_approval_cancelled',
+                'title': '✅ 기기 승인 완료',
+                'body': '다른 기기에서 승인이 완료되었습니다.',
+                'approvalRequestId': approvalRequestId,
+                'action': 'approved',
+              },
+              'createdAt': FieldValue.serverTimestamp(),
+              'processed': false,
+            });
+            
+            debugPrint('✅ [FCM-CANCEL] 취소 알림 큐 생성: ${targetDeviceName ?? targetToken.substring(0, 20)}...');
+          }
+          
+          debugPrint('✅ [FCM-CANCEL] 모든 취소 알림 큐 생성 완료 (${otherDeviceTokens.length}개)');
+        }
+      } catch (e) {
+        debugPrint('⚠️ [FCM-CANCEL] 취소 알림 전송 실패 (무시): $e');
+        // 취소 알림 실패해도 승인 프로세스는 완료된 것으로 처리
+      }
+      
     } catch (e, stackTrace) {
       debugPrint('❌ [FCM] 기기 승인 오류: $e');
       debugPrint('Stack trace: $stackTrace');

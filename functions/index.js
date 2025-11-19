@@ -211,8 +211,9 @@ exports.sendApprovalNotification = functions.region(region).firestore
           data: {
             type: message.type,
             approvalRequestId: approvalRequestId,
-            newDeviceName: newDeviceName,
-            newPlatform: newPlatform,
+            newDeviceName: newDeviceName || "",
+            newPlatform: newPlatform || "",
+            action: message.action || "unknown",
           },
           android: {
             priority: "high",
