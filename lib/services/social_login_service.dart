@@ -332,6 +332,8 @@ class SocialLoginService {
           debugPrint('✅ [Naver] FlutterNaverLogin.logIn() 응답 받음');
           debugPrint('   - status: ${result.status}');
           debugPrint('   - account != null: ${result.account != null}');
+          debugPrint('   - errorMessage: ${result.errorMessage}'); // 🆕 에러 메시지 로깅
+          
           if (result.account != null) {
             debugPrint('   - account.id: ${result.account!.id}');
             debugPrint('   - account.email: ${result.account!.email}');
@@ -341,6 +343,14 @@ class SocialLoginService {
           if (result.status == NaverLoginStatus.error) {
             debugPrint('');
             debugPrint('🔍 [Naver Error] 진단 정보:');
+            
+            // 🆕 네이버 SDK 에러 메시지 강조 출력
+            if (result.errorMessage != null && result.errorMessage!.isNotEmpty) {
+              debugPrint('   🚨 네이버 SDK 에러 메시지:');
+              debugPrint('      "${result.errorMessage}"');
+              debugPrint('');
+            }
+            
             debugPrint('   📍 네이버 개발자 센터 확인 사항:');
             debugPrint('      https://developers.naver.com/apps/#/myapps');
             debugPrint('');
@@ -351,6 +361,7 @@ class SocialLoginService {
             debugPrint('');
             debugPrint('   ✅ Android 설정 확인:');
             debugPrint('      - 패키지명: com.olssoo.makecall_app');
+            debugPrint('      - URL Scheme: naverlogin://callback');
             debugPrint('      - 서비스 환경: Android 추가 확인');
             debugPrint('      - 로그인 오픈 API 서비스 환경: Android 앱 등록 필수');
             debugPrint('');
@@ -359,6 +370,7 @@ class SocialLoginService {
             debugPrint('      2. 패키지명 불일치 (등록: com.olssoo.makecall_app)');
             debugPrint('      3. Client ID/Secret 불일치');
             debugPrint('      4. 네이버 앱 로그인이 활성화되지 않음');
+            debugPrint('      5. 네이버 앱이 설치되지 않음 (브라우저 로그인 시도)');
             debugPrint('');
           }
         }
@@ -495,7 +507,12 @@ class SocialLoginService {
         String errorMessage = '로그인이 취소되었거나 실패했습니다';
         
         if (result.status == NaverLoginStatus.error) {
-          errorMessage = '네이버 로그인 오류\n\n'
+          // 🆕 네이버 SDK 에러 메시지를 포함한 상세 에러 메시지
+          final sdkErrorMsg = result.errorMessage != null && result.errorMessage!.isNotEmpty 
+              ? '\n\n🚨 네이버 SDK 에러:\n"${result.errorMessage}"\n'
+              : '';
+          
+          errorMessage = '네이버 로그인 오류$sdkErrorMsg\n'
               '가장 가능성 높은 원인:\n'
               '▪ 네이버 개발자 센터에서 Android 앱 미등록\n'
               '  (패키지명: com.olssoo.makecall_app)\n\n'
@@ -508,6 +525,7 @@ class SocialLoginService {
               '   com.olssoo.makecall_app\n\n'
               '기타 확인 사항:\n'
               '▪ 네이버 앱 업데이트 (Play 스토어)\n'
+              '▪ 네이버 앱이 설치되어 있는지 확인\n'
               '▪ 앱 권한 확인 (설정 > 앱)\n'
               '▪ 인터넷 연결 확인';
         } else if (result.status == NaverLoginStatus.loggedOut) {
