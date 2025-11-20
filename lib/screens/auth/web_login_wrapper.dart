@@ -261,7 +261,7 @@ class _RightFeaturesSection extends StatelessWidget {
         children: [
           _buildInfoCard(
             icon: Icons.devices,
-            title: '다양한 플랫폼 및 동시 사용  지원',
+            title: '다양한 플랫폼 및 동시 사용 지원',
             description: '모바일, 웹, 데스크톱 어디서나\n한 사용자가 여러 기기 동시 사용 가능',
             gradient: LinearGradient(
               colors: isDark
@@ -285,7 +285,7 @@ class _RightFeaturesSection extends StatelessWidget {
           const SizedBox(height: 24),
           _buildInfoCard(
             icon: Icons.home_work,
-            title: '재택근무 · 이동근무 최적화',
+            title: '재택근무·이동근무로 업무 효율성 증가',
             description: '어디서나 업무 가능\n유연한 근무 환경 지원',
             gradient: LinearGradient(
               colors: isDark
