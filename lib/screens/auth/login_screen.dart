@@ -497,18 +497,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               'Naver 로그인이 취소되었습니다.',
               title: 'Naver 로그인',
             );
-          } else if (result.errorMessage?.contains('네이버 앱') ?? false) {
-            // 네이버 앱 설치 안내는 정보 다이얼로그로 표시
-            if (kDebugMode) {
-              debugPrint('📱 [LOGIN SCREEN] 네이버 앱 안내 다이얼로그 표시');
-              debugPrint('   - 메시지: ${result.errorMessage}');
-            }
-            await DialogUtils.showInfo(
-              context,
-              result.errorMessage ?? '네이버 앱이 필요합니다.',
-              title: '네이버 로그인 안내',
-            );
           } else {
+            // 기타 에러는 에러 다이얼로그로 표시
             if (kDebugMode) {
               debugPrint('❌ [LOGIN SCREEN] 에러 다이얼로그 표시');
               debugPrint('   - 메시지: ${result.errorMessage}');
