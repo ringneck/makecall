@@ -9,7 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
-import 'package:flutter_naver_login/flutter_naver_login.dart';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'firebase_options.dart';
@@ -137,20 +136,6 @@ void main() async {
     javaScriptAppKey: 'YOUR_KAKAO_JAVASCRIPT_KEY', // Web용 (선택사항, 추후 설정)
   );
   // Kakao SDK initialized
-  
-  // 네이버 로그인 초기화
-  // Android: strings.xml에서 naver_client_id, naver_client_secret, naver_client_name 설정
-  // iOS: Info.plist에서 NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, NAVER_CLIENT_NAME 설정
-  try {
-    await FlutterNaverLogin.logOut(); // 초기화를 위한 로그아웃 (기존 세션 정리)
-    if (kDebugMode) {
-      debugPrint('✅ [NAVER] Login SDK initialized');
-    }
-  } catch (e) {
-    if (kDebugMode) {
-      debugPrint('⚠️ [NAVER] Login SDK initialization: $e');
-    }
-  }
   
   // ✅ iOS Method Channel 설정 (포그라운드 FCM 메시지 수신용)
   // 🔧 CRITICAL FIX: Web 플랫폼에서는 Platform.isIOS 체크 불가
