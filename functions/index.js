@@ -794,7 +794,14 @@ exports.createCustomTokenForKakao = functions
         });
         console.log(`✅ [KAKAO] Custom token created, length: ${customToken.length}`);
 
-        // Firestore에 사용자 정보 저장
+        // 🔧 Firestore 저장 건너뛰기 (권한 문제 회피)
+        // Firebase Auth에서 사용자 정보를 관리하므로 Firestore 저장은 선택사항
+        console.log(`⚠️ [KAKAO] Skipping Firestore save (using Firebase Auth user data instead)`);
+        
+        // TODO: Firestore Security Rules 수정 후 활성화
+        // Firestore Security Rules: https://console.firebase.google.com/project/makecallio/firestore/rules
+        // 필요시 아래 코드 주석 해제:
+        /*
         console.log(`🔄 [KAKAO] Saving user data to Firestore...`);
         try {
           await admin.firestore().collection("users").doc(firebaseUid).set({
@@ -810,10 +817,8 @@ exports.createCustomTokenForKakao = functions
           console.log(`✅ [KAKAO] User data saved to Firestore successfully`);
         } catch (firestoreError) {
           console.error(`❌ [KAKAO] Firestore save failed:`, firestoreError);
-          console.error(`   Error message: ${firestoreError.message}`);
-          console.error(`   Error code: ${firestoreError.code}`);
-          // Firestore 저장 실패해도 Custom Token은 반환 (로그인은 가능하게)
         }
+        */
 
         console.log(`✅ [KAKAO] Custom token created successfully`);
         console.log(`🔄 [KAKAO] Returning response to client...`);
