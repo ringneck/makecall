@@ -390,8 +390,8 @@ class _PhoneFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 400,
-      height: 850,
+      width: 430,
+      height: 900,
       margin: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(50),
@@ -522,8 +522,11 @@ class _FooterSection extends StatelessWidget {
           ),
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 0,
+        runSpacing: 8,
         children: [
           _buildFooterLink(
             text: '개인정보 보호정책',
@@ -546,6 +549,11 @@ class _FooterSection extends StatelessWidget {
           _buildFooterLink(
             text: 'MAKECALL',
             url: 'https://makecall.io',
+            isDark: isDark,
+          ),
+          _buildDivider(isDark),
+          _buildFooterText(
+            text: '고객센터: 1668-2471',
             isDark: isDark,
           ),
         ],
@@ -595,6 +603,20 @@ class _FooterSection extends StatelessWidget {
           fontSize: 13,
           color: isDark ? Colors.grey[600] : Colors.grey[400],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFooterText({
+    required String text,
+    required bool isDark,
+  }) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 13,
+        color: isDark ? Colors.grey[400] : Colors.grey[700],
+        fontWeight: FontWeight.w500,
       ),
     );
   }
