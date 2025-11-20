@@ -759,7 +759,6 @@ class AuthService extends ChangeNotifier {
     }
   }
   
-  // 회사명(조직명) 업데이트
   Future<void> updateCompanyName(String? companyName) async {
     if (currentUser == null) return;
     
@@ -767,11 +766,8 @@ class AuthService extends ChangeNotifier {
       await _firestore
           .collection('users')
           .doc(currentUser!.uid)
-          .update({
-        'companyName': companyName,
-      });
+          .update({'companyName': companyName});
       
-      // 사용자 모델 다시 로드
       await _loadUserModel(currentUser!.uid);
       
       if (kDebugMode) {

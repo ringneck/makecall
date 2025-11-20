@@ -152,7 +152,7 @@ class AccountManagementUtils {
     );
   }
 
-  /// 🏢 조직명 편집 다이얼로그
+  /// 조직명 편집 다이얼로그
   static Future<void> showEditCompanyNameDialog(BuildContext context, AuthService authService) async {
     final currentCompanyName = authService.currentUserModel?.companyName ?? '';
     final controller = TextEditingController(text: currentCompanyName);
@@ -186,7 +186,7 @@ class AccountManagementUtils {
         actions: [
           if (currentCompanyName.isNotEmpty)
             TextButton(
-              onPressed: () => Navigator.pop(context, ''), // 빈 문자열로 삭제
+              onPressed: () => Navigator.pop(context, ''),
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('삭제'),
             ),
@@ -205,9 +205,8 @@ class AccountManagementUtils {
       ),
     );
 
-    if (result != null && context.mounted) {
+    if (result != null) {
       try {
-        // Firestore 업데이트
         await authService.updateCompanyName(result.isEmpty ? null : result);
         
         if (context.mounted) {
