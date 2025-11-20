@@ -132,15 +132,32 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   // 소셜 로그인 성공 처리
   Future<void> _handleSocialLoginSuccess(SocialLoginResult result) async {
     try {
-      // 카카오 로그인 성공 시 Firestore 사용자 정보 업데이트
-      if (result.success && result.userId != null) {
-        await _updateFirestoreUserProfile(
-          userId: result.userId!,
-          displayName: result.displayName,
-          photoUrl: result.photoUrl,
-          provider: result.provider,
-        );
+      if (!result.success || result.userId == null) return;
+      
+      // 🔍 기존 계정 확인
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(result.userId!)
+          .get();
+      
+      if (userDoc.exists) {
+        // ✅ 기존 계정이 있음 - 안내 다이얼로그 표시
+        if (mounted) {
+          await _showExistingAccountDialog(
+            email: result.email ?? 'Unknown',
+            provider: result.provider,
+          );
+        }
+        return;
       }
+      
+      // 🆕 신규 가입 - Firestore 프로필 업데이트
+      await _updateFirestoreUserProfile(
+        userId: result.userId!,
+        displayName: result.displayName,
+        photoUrl: result.photoUrl,
+        provider: result.provider,
+      );
       
       if (mounted) {
         Navigator.pop(context);
@@ -154,6 +171,129 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         debugPrint('❌ 소셜 로그인 성공 처리 오류: $e');
       }
     }
+  }
+  
+  // 기존 계정 안내 다이얼로그
+  Future<void> _showExistingAccountDialog({
+    required String email,
+    required SocialLoginProvider provider,
+  }) async {
+    if (!mounted) return;
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: isDark ? Colors.blue[300] : Colors.blue[700],
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            const Text('기존 계정 확인'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '기존에 가입한 계정이 있습니다.',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark 
+                    ? Colors.grey[800] 
+                    : Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.email_outlined,
+                    size: 20,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '가입한 계정:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          email,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              // Firebase 로그아웃 (기존 계정 세션 제거)
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pop(); // 다이얼로그 닫기
+              }
+            },
+            child: const Text('닫기'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // 기존 계정으로 로그인 진행
+              if (context.mounted) {
+                Navigator.of(context).pop(); // 다이얼로그 닫기
+                Navigator.of(context).pop(); // 회원가입 화면 닫기
+                
+                // 로그인 화면으로 자동 이동되며 AuthService가 자동으로 로그인 처리
+                await DialogUtils.showSuccess(
+                  context,
+                  '기존 계정으로 로그인합니다',
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDark ? Colors.blue[700] : Colors.blue[600],
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('로그인'),
+          ),
+        ],
+      ),
+    );
   }
   
   // Firestore 사용자 프로필 업데이트 (카카오 닉네임 → 조직명, 프로필사진 → 썸네일)
