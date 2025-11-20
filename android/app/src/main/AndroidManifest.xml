@@ -47,16 +47,15 @@
             </intent-filter>
             
             <!-- 네이버 로그인 콜백 URL Scheme -->
-            <!-- 네이버 개발자 센터 원본 설정: http://localhost/callback -->
+            <!-- Callback URL: naverWl4fP6XbiTRQQMpbC5a9://oauth -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 
                 <data
-                    android:scheme="http"
-                    android:host="localhost"
-                    android:path="/callback" />
+                    android:scheme="naverWl4fP6XbiTRQQMpbC5a9"
+                    android:host="oauth" />
             </intent-filter>
         </activity>
         
