@@ -81,7 +81,7 @@
                 <!-- Apple 로그인 콜백 URL -->
                 <data
                     android:scheme="signinwithapple"
-                    android:path="callback" />
+                    android:path="/callback" />
             </intent-filter>
         </activity>
         
