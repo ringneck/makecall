@@ -22,6 +22,7 @@
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="MAKECALL">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
@@ -38,22 +39,36 @@
 
   <script>
     // 🚀 Service Worker 등록 (PWA 지원 + FCM)
+    // 타임아웃 방지를 위해 즉시 등록 시작 (load 이벤트 대기 안함)
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
+      // DOMContentLoaded 이벤트 사용 (load보다 빠름)
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', registerServiceWorker);
+      } else {
+        // 이미 로드 완료된 경우 즉시 실행
+        registerServiceWorker();
+      }
+      
+      function registerServiceWorker() {
         // Firebase Messaging Service Worker 등록 (기본 scope 사용)
-        navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+          scope: '/',
+          updateViaCache: 'none' // 캐시 우회하여 최신 버전 사용
+        })
           .then((registration) => {
             console.log('✅ Firebase Messaging Service Worker 등록 완료:', registration.scope);
-            console.log('   업데이트 확인 중...');
-            return registration.update();
-          })
-          .then(() => {
-            console.log('✅ Firebase Messaging SW 업데이트 완료');
+            
+            // 업데이트 확인 (백그라운드에서 비동기 실행)
+            registration.update().then(() => {
+              console.log('✅ Firebase Messaging SW 업데이트 완료');
+            }).catch((err) => {
+              console.warn('⚠️ SW 업데이트 확인 실패 (무시 가능):', err);
+            });
           })
           .catch((error) => {
             console.error('❌ Firebase Messaging Service Worker 등록 실패:', error);
           });
-      });
+      }
     }
   </script>
 </head>
