@@ -275,11 +275,28 @@ class _CallTabState extends State<CallTab> {
       final userId = _authService?.currentUser?.uid;
       if (userId == null) return;
 
-      // 🔒 userModel 로드 대기
+      // 🔐 CRITICAL: userModel 로드 완료까지 대기 (소셜 로그인 시 필수)
+      // 소셜 로그인 직후에는 userModel이 null일 수 있으므로 최대 3초 대기
+      if (kDebugMode) debugPrint('⏳ [신규사용자체크] userModel 로드 대기 시작...');
+      
+      int waitCount = 0;
+      while (_authService?.currentUserModel == null && waitCount < 30) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        waitCount++;
+      }
+      
       final userModel = _authService?.currentUserModel;
       if (userModel == null) {
-        if (kDebugMode) debugPrint('⏳ userModel 로딩 중 - 신규 사용자 체크 대기');
+        if (kDebugMode) {
+          debugPrint('⚠️ [신규사용자체크] userModel 로드 타임아웃 (3초)');
+          debugPrint('   → 신규 사용자 체크 건너뜀 (나중에 _onUserModelChanged에서 재시도)');
+        }
+        _hasCheckedNewUser = false; // 재시도 가능하도록 플래그 리셋
         return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ [신규사용자체크] userModel 로드 완료 (${waitCount * 100}ms)');
       }
 
       // 🔒 필수 설정 확인
@@ -371,11 +388,28 @@ class _CallTabState extends State<CallTab> {
       return;
     }
     
-    // 🔒 userModel 로드 대기
+    // 🔐 CRITICAL: userModel 로드 완료까지 대기 (소셜 로그인 시 필수)
+    // 소셜 로그인 직후에는 userModel이 null일 수 있으므로 최대 5초 대기
+    if (kDebugMode) debugPrint('⏳ [설정체크] userModel 로드 대기 시작...');
+    
+    int waitCount = 0;
+    while (_authService?.currentUserModel == null && waitCount < 50) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      waitCount++;
+    }
+    
     final userModel = _authService?.currentUserModel;
     if (userModel == null) {
-      if (kDebugMode) debugPrint('⏳ userModel 로딩 중 - 설정 체크 대기');
+      if (kDebugMode) {
+        debugPrint('⚠️ [설정체크] userModel 로드 타임아웃 (5초)');
+        debugPrint('   → 설정 체크 건너뜀 (나중에 _onUserModelChanged에서 재시도)');
+      }
+      _hasCheckedSettings = false; // 재시도 가능하도록 플래그 리셋
       return;
+    }
+    
+    if (kDebugMode) {
+      debugPrint('✅ [설정체크] userModel 로드 완료 (${waitCount * 100}ms)');
     }
     
     final userId = _authService?.currentUser?.uid ?? '';
