@@ -336,6 +336,31 @@ class SocialLoginService {
             debugPrint('   - account.id: ${result.account!.id}');
             debugPrint('   - account.email: ${result.account!.email}');
           }
+          
+          // ⚠️ 에러 상태일 때 진단 정보 출력
+          if (result.status == NaverLoginStatus.error) {
+            debugPrint('');
+            debugPrint('🔍 [Naver Error] 진단 정보:');
+            debugPrint('   📍 네이버 개발자 센터 확인 사항:');
+            debugPrint('      https://developers.naver.com/apps/#/myapps');
+            debugPrint('');
+            debugPrint('   ✅ 애플리케이션 정보:');
+            debugPrint('      - Client ID: Wl4fP6XbiTRQQMpbC5a9');
+            debugPrint('      - Client Secret: gr2MvANyr8');
+            debugPrint('      - Client Name: MAKECALL');
+            debugPrint('');
+            debugPrint('   ✅ Android 설정 확인:');
+            debugPrint('      - 패키지명: com.olssoo.makecall_app');
+            debugPrint('      - 서비스 환경: Android 추가 확인');
+            debugPrint('      - 로그인 오픈 API 서비스 환경: Android 앱 등록 필수');
+            debugPrint('');
+            debugPrint('   ⚠️ 가능한 원인:');
+            debugPrint('      1. 네이버 개발자 센터에서 Android 앱 미등록');
+            debugPrint('      2. 패키지명 불일치 (등록: com.olssoo.makecall_app)');
+            debugPrint('      3. Client ID/Secret 불일치');
+            debugPrint('      4. 네이버 앱 로그인이 활성화되지 않음');
+            debugPrint('');
+          }
         }
       } catch (loginError) {
         if (kDebugMode) {
@@ -471,12 +496,20 @@ class SocialLoginService {
         
         if (result.status == NaverLoginStatus.error) {
           errorMessage = '네이버 로그인 오류\n\n'
-              '네이버 앱 또는 네트워크 문제일 수 있습니다.\n\n'
+              '가장 가능성 높은 원인:\n'
+              '▪ 네이버 개발자 센터에서 Android 앱 미등록\n'
+              '  (패키지명: com.olssoo.makecall_app)\n\n'
               '해결 방법:\n'
-              '1. 네이버 앱이 설치되어 있다면 업데이트하세요\n'
-              '2. 앱 권한을 확인하세요\n'
-              '3. 네이버 개발자 센터 설정을 확인하세요\n'
-              '4. 인터넷 연결을 확인하세요';
+              '1. 네이버 개발자 센터 접속\n'
+              '   https://developers.naver.com/apps\n\n'
+              '2. 애플리케이션 설정 > 서비스 환경\n'
+              '   → Android 앱 추가\n\n'
+              '3. 패키지명 입력:\n'
+              '   com.olssoo.makecall_app\n\n'
+              '기타 확인 사항:\n'
+              '▪ 네이버 앱 업데이트 (Play 스토어)\n'
+              '▪ 앱 권한 확인 (설정 > 앱)\n'
+              '▪ 인터넷 연결 확인';
         } else if (result.status == NaverLoginStatus.loggedOut) {
           errorMessage = '네이버 로그인이 취소되었습니다\n\n'
               '다시 시도해주세요.';
