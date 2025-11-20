@@ -180,8 +180,9 @@ class _CallTabState extends State<CallTab> {
         debugPrint('✅ userModel 로드 완료 - 설정 체크 재실행');
       }
       
-      // 다음 프레임에서 실행 (비동기 안전)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 🔐 CRITICAL: 소셜 로그인 후 다이얼로그 겹침 방지
+      // signup_screen의 "기존 계정 확인" 다이얼로그가 완료될 때까지 3초 지연
+      Future.delayed(const Duration(seconds: 3), () {
         if (mounted) {
           _checkSettingsAndShowGuide();
         }
