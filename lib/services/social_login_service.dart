@@ -57,17 +57,9 @@ class SocialLoginService {
   // Android 네이티브 통신용 MethodChannel
   static const MethodChannel _channel = MethodChannel('com.olssoo.makecall_app/webview');
 
-  /// ===== 1. 구글 로그인 (Android 네이티브 전용) =====
+  /// ===== 1. 구글 로그인 =====
   Future<SocialLoginResult> signInWithGoogle() async {
     try {
-      // Android만 지원
-      if (!_isAndroid) {
-        return SocialLoginResult(
-          success: false,
-          errorMessage: '구글 로그인은 Android 앱에서만 지원됩니다.',
-          provider: SocialLoginProvider.google,
-        );
-      }
 
       if (kDebugMode) {
         debugPrint('🔵 [Google] 로그인 시작');
@@ -125,17 +117,9 @@ class SocialLoginService {
     }
   }
 
-  /// ===== 2. 카카오 로그인 (Android 네이티브 전용) =====
+  /// ===== 2. 카카오 로그인 =====
   Future<SocialLoginResult> signInWithKakao() async {
     try {
-      // Android만 지원
-      if (!_isAndroid) {
-        return SocialLoginResult(
-          success: false,
-          errorMessage: '카카오 로그인은 Android 앱에서만 지원됩니다.',
-          provider: SocialLoginProvider.kakao,
-        );
-      }
 
       if (kDebugMode) {
         debugPrint('🟡 [Kakao] 로그인 시작');
@@ -474,17 +458,9 @@ class SocialLoginService {
     }
   }
 
-  /// ===== 4. 애플 로그인 (Android 네이티브 전용) =====
+  /// ===== 4. 애플 로그인 =====
   Future<SocialLoginResult> signInWithApple() async {
     try {
-      // Android만 지원
-      if (!_isAndroid) {
-        return SocialLoginResult(
-          success: false,
-          errorMessage: 'Apple 로그인은 Android 앱에서만 지원됩니다.',
-          provider: SocialLoginProvider.apple,
-        );
-      }
 
       if (kDebugMode) {
         debugPrint('🍎 [Apple] 로그인 시작');
