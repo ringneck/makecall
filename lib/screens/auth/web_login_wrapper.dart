@@ -504,56 +504,156 @@ class _FooterSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 40),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.black.withValues(alpha: 0.3)
-            : Colors.white.withValues(alpha: 0.3),
-        border: Border(
-          top: BorderSide(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.1)
-                : Colors.grey.withValues(alpha: 0.2),
-            width: 1,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 스토어 아이콘 섹션
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Google Play Store 아이콘
+              _buildStoreIcon(
+                icon: Icons.shop,
+                label: 'Google Play',
+                url: '', // TODO: Google Play Store URL 추가
+                isDark: isDark,
+              ),
+              const SizedBox(width: 24),
+              // Apple App Store 아이콘
+              _buildStoreIcon(
+                icon: Icons.apple,
+                label: 'App Store',
+                url: '', // TODO: Apple App Store URL 추가
+                isDark: isDark,
+              ),
+            ],
           ),
         ),
-      ),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 0,
-        runSpacing: 8,
-        children: [
-          _buildFooterLink(
-            text: '개인정보 보호정책',
-            url: 'https://makecall.io/privacy',
-            isDark: isDark,
+        
+        // 푸터 링크 섹션
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 40),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.white.withValues(alpha: 0.3),
+            border: Border(
+              top: BorderSide(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.grey.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
           ),
-          _buildDivider(isDark),
-          _buildFooterLink(
-            text: '서비스 이용 약관',
-            url: 'https://makecall.io/terms',
-            isDark: isDark,
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 0,
+            runSpacing: 8,
+            children: [
+              _buildFooterLink(
+                text: '개인정보 보호정책',
+                url: 'https://app.makecall.io/privacy_policy.html',
+                isDark: isDark,
+              ),
+              _buildDivider(isDark),
+              _buildFooterLink(
+                text: '서비스 이용 약관',
+                url: 'https://app.makecall.io/terms_of_service.html',
+                isDark: isDark,
+              ),
+              _buildDivider(isDark),
+              _buildFooterLink(
+                text: '주식회사 얼쑤팩토리',
+                url: 'https://olssoo.com',
+                isDark: isDark,
+              ),
+              _buildDivider(isDark),
+              _buildFooterLink(
+                text: 'MAKECALL',
+                url: 'https://makecall.io',
+                isDark: isDark,
+              ),
+              _buildDivider(isDark),
+              _buildFooterText(
+                text: '고객센터: 1668-2471',
+                isDark: isDark,
+              ),
+            ],
           ),
-          _buildDivider(isDark),
-          _buildFooterLink(
-            text: '주식회사 얼쑤팩토리',
-            url: 'https://olssoo.com',
-            isDark: isDark,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStoreIcon({
+    required IconData icon,
+    required String label,
+    required String url,
+    required bool isDark,
+  }) {
+    final bool hasUrl = url.isNotEmpty;
+    
+    return MouseRegion(
+      cursor: hasUrl ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: hasUrl
+            ? () {
+                try {
+                  if (kIsWeb) {
+                    html.window.open(url, '_blank');
+                  }
+                } catch (e) {
+                  if (kDebugMode) {
+                    print('Failed to open URL: $url');
+                  }
+                }
+              }
+            : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.grey[900]!.withValues(alpha: 0.5)
+                : Colors.white.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.2)
+                  : Colors.grey.withValues(alpha: 0.3),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 8,
+                spreadRadius: 0,
+              ),
+            ],
           ),
-          _buildDivider(isDark),
-          _buildFooterLink(
-            text: 'MAKECALL',
-            url: 'https://makecall.io',
-            isDark: isDark,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 24,
+                color: isDark ? Colors.grey[300] : Colors.grey[700],
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.grey[300] : Colors.grey[700],
+                ),
+              ),
+            ],
           ),
-          _buildDivider(isDark),
-          _buildFooterText(
-            text: '고객센터: 1668-2471',
-            isDark: isDark,
-          ),
-        ],
+        ),
       ),
     );
   }
