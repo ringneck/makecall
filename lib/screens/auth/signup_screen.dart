@@ -272,13 +272,24 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
               // 기존 계정으로 로그인 진행
               if (context.mounted) {
                 Navigator.of(context).pop(); // 다이얼로그 닫기
-                Navigator.of(context).pop(); // 회원가입 화면 닫기
                 
-                // 로그인 화면으로 자동 이동되며 AuthService가 자동으로 로그인 처리
-                await DialogUtils.showSuccess(
-                  context,
-                  '기존 계정으로 로그인합니다',
-                );
+                // 🔧 다이얼로그 완전히 닫힐 때까지 대기
+                await Future.delayed(const Duration(milliseconds: 500));
+                
+                if (context.mounted) {
+                  Navigator.of(context).pop(); // 회원가입 화면 닫기
+                  
+                  // 🔧 화면 전환 완료 후 성공 메시지 표시
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  
+                  if (context.mounted) {
+                    // 로그인 화면으로 자동 이동되며 AuthService가 자동으로 로그인 처리
+                    await DialogUtils.showSuccess(
+                      context,
+                      '기존 계정으로 로그인합니다',
+                    );
+                  }
+                }
               }
             },
             style: ElevatedButton.styleFrom(

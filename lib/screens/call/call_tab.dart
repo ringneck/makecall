@@ -181,8 +181,9 @@ class _CallTabState extends State<CallTab> {
       }
       
       // 🔐 CRITICAL: 소셜 로그인 후 다이얼로그 겹침 방지
-      // signup_screen의 "기존 계정 확인" 다이얼로그가 완료될 때까지 3초 지연
-      Future.delayed(const Duration(seconds: 3), () {
+      // signup_screen의 "기존 계정 확인" 다이얼로그가 완료될 때까지 대기
+      // signup_screen에서 800ms 지연 + 추가 여유 시간 = 총 2초
+      Future.delayed(const Duration(milliseconds: 2000), () {
         if (mounted) {
           _checkSettingsAndShowGuide();
         }
