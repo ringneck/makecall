@@ -180,14 +180,50 @@ class _CallTabState extends State<CallTab> {
         debugPrint('✅ userModel 로드 완료 - 설정 체크 재실행');
       }
       
-      // 🔐 CRITICAL: 소셜 로그인 후 다이얼로그 겹침 방지
-      // signup_screen의 "기존 계정 확인" 다이얼로그가 완료될 때까지 대기
-      // signup_screen에서 800ms 지연 + 추가 여유 시간 = 총 2초
-      Future.delayed(const Duration(milliseconds: 2000), () {
-        if (mounted) {
-          _checkSettingsAndShowGuide();
-        }
-      });
+      // 🎯 이벤트 기반 제어: 소셜 로그인 성공 메시지가 표시되었는지 확인
+      _waitForSocialLoginMessageCompletion();
+    }
+  }
+  
+  /// 🎯 소셜 로그인 성공 메시지 완료 대기 (이벤트 기반)
+  Future<void> _waitForSocialLoginMessageCompletion() async {
+    // 소셜 로그인 성공 메시지 플래그가 true가 될 때까지 대기
+    int waitCount = 0;
+    const maxWaitTime = 10000; // 최대 10초 대기
+    const checkInterval = 100; // 100ms마다 체크
+    
+    while (!(_authService?.socialLoginSuccessMessageShown ?? false) && 
+           waitCount * checkInterval < maxWaitTime &&
+           mounted) {
+      await Future.delayed(const Duration(milliseconds: checkInterval));
+      waitCount++;
+    }
+    
+    if (!mounted) return;
+    
+    if (_authService?.socialLoginSuccessMessageShown ?? false) {
+      if (kDebugMode) {
+        debugPrint('✅ 소셜 로그인 성공 메시지 완료 감지 (${waitCount * checkInterval}ms)');
+      }
+      
+      // 성공 메시지가 완료된 후 약간의 여유 시간 추가
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (mounted) {
+        // 플래그 초기화 (다음 로그인을 위해)
+        _authService?.setSocialLoginSuccessMessageShown(false);
+        
+        // 초기 설정 체크 다이얼로그 표시
+        _checkSettingsAndShowGuide();
+      }
+    } else {
+      if (kDebugMode) {
+        debugPrint('⏱️ 소셜 로그인 성공 메시지 타임아웃 (10초) - 바로 설정 체크 진행');
+      }
+      // 타임아웃 시에도 설정 체크 진행
+      if (mounted) {
+        _checkSettingsAndShowGuide();
+      }
     }
   }
   

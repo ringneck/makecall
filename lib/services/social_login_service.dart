@@ -177,14 +177,9 @@ class SocialLoginService {
 
       // Firebase Custom Token 생성 및 로그인
       try {
-        if (kDebugMode) {
-          debugPrint('🔄 [Kakao] Firebase Custom Token 생성 요청 중...');
-        }
-        
         final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
         final callable = functions.httpsCallable('createCustomTokenForKakao');
         
-        // 🔍 전송할 데이터 로깅
         final requestData = {
           'kakaoUid': user.id.toString(),
           'email': user.kakaoAccount?.email,
@@ -192,29 +187,12 @@ class SocialLoginService {
           'photoUrl': user.kakaoAccount?.profile?.profileImageUrl,
         };
         
-        if (kDebugMode) {
-          debugPrint('🔍 [Kakao] 전송 데이터: $requestData');
-          debugPrint('🔍 [Kakao] Functions URL: https://asia-northeast3-makecallio.cloudfunctions.net/createCustomTokenForKakao');
-        }
-        
-        // Firebase Functions 호출 (명시적 데이터 전달)
         final response = await callable.call(requestData);
-        
-        if (kDebugMode) {
-          debugPrint('✅ [Kakao] Firebase Custom Token 생성 완료');
-        }
-        
         final customToken = response.data['customToken'] as String;
-        
-        if (kDebugMode) {
-          debugPrint('🔄 [Kakao] Firebase 로그인 중...');
-        }
-        
         final userCredential = await FirebaseAuth.instance.signInWithCustomToken(customToken);
         
         if (kDebugMode) {
-          debugPrint('✅ [Kakao] Firebase 로그인 완료');
-          debugPrint('✅ [Kakao] 전체 로그인 프로세스 성공');
+          debugPrint('[Kakao] Firebase 로그인 성공');
         }
         
         return SocialLoginResult(

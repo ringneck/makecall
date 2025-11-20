@@ -749,18 +749,7 @@ exports.cancelIncomingCallNotification = functions.region(region).https.onCall(
 exports.createCustomTokenForKakao = functions
     .region(region)
     .https.onCall(async (data, context) => {
-      // 🔍 최우선 로깅 (try 블록 밖에서)
-      console.log(`🎯 [KAKAO] Function called!`);
-      console.log(`🎯 [KAKAO] Raw data:`, data);
-      console.log(`🎯 [KAKAO] Context:`, context ? 'exists' : 'null');
-      
       try {
-        // 🔍 받은 데이터 전체 로깅
-        console.log(`🔍 [KAKAO] Received data:`, JSON.stringify(data, null, 2));
-        console.log(`🔍 [KAKAO] Data type:`, typeof data);
-        console.log(`🔍 [KAKAO] Data keys:`, Object.keys(data || {}));
-        
-        // 입력 검증
         const {kakaoUid, email, displayName, photoUrl} = data;
 
         if (!kakaoUid) {
@@ -770,101 +759,25 @@ exports.createCustomTokenForKakao = functions
           );
         }
 
-        // Firebase UID 생성 (prefix로 구분)
         const firebaseUid = `kakao_${kakaoUid}`;
 
-        console.log(`🔐 [KAKAO] Creating custom token for user: ${firebaseUid}`);
-        console.log(`🔐 [KAKAO] User data:`, {
-          kakaoUid,
-          email,
-          displayName,
-          photoUrl,
-        });
-
-        // 🔍 Firebase Admin Auth 객체 확인
-        console.log(`🔧 [KAKAO] Firebase Admin Auth available:`, typeof admin.auth());
-
         // Custom Token 생성
-        console.log(`🔄 [KAKAO] Calling admin.auth().createCustomToken()...`);
         const customToken = await admin.auth().createCustomToken(firebaseUid, {
           provider: "kakao",
           email: email || null,
           name: displayName || "Kakao User",
           picture: photoUrl || null,
         });
-        console.log(`✅ [KAKAO] Custom token created, length: ${customToken.length}`);
 
-        // 🔧 Firestore 저장 건너뛰기 (권한 문제 회피)
-        // Firebase Auth에서 사용자 정보를 관리하므로 Firestore 저장은 선택사항
-        console.log(`⚠️ [KAKAO] Skipping Firestore save (using Firebase Auth user data instead)`);
-        
-        // TODO: Firestore Security Rules 수정 후 활성화
-        // Firestore Security Rules: https://console.firebase.google.com/project/makecallio/firestore/rules
-        // 필요시 아래 코드 주석 해제:
-        /*
-        console.log(`🔄 [KAKAO] Saving user data to Firestore...`);
-        try {
-          await admin.firestore().collection("users").doc(firebaseUid).set({
-            uid: firebaseUid,
-            provider: "kakao",
-            kakaoUid: kakaoUid,
-            email: email || null,
-            displayName: displayName || "Kakao User",
-            photoURL: photoUrl || null,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
-          }, {merge: true});
-          console.log(`✅ [KAKAO] User data saved to Firestore successfully`);
-        } catch (firestoreError) {
-          console.error(`❌ [KAKAO] Firestore save failed:`, firestoreError);
-        }
-        */
+        // TODO: Firestore Security Rules 수정 후 사용자 데이터 저장 활성화
+        // await admin.firestore().collection("users").doc(firebaseUid).set({...}, {merge: true});
 
-        console.log(`✅ [KAKAO] Custom token created successfully`);
-        console.log(`🔄 [KAKAO] Returning response to client...`);
-
-        const response = {customToken};
-        console.log(`✅ [KAKAO] Response prepared:`, { hasToken: !!customToken, tokenLength: customToken?.length });
-        
-        return response;
+        return {customToken};
       } catch (error) {
-        console.error("❌ [KAKAO] Error creating custom token:", error);
-        console.error("❌ [KAKAO] Error details:", {
-          message: error.message,
-          code: error.code,
-          name: error.name,
-          stack: error.stack,
-        });
-
-        // 🔍 전체 에러 객체 출력 (숨겨진 속성 포함)
-        console.error("❌ [KAKAO] Full error object:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-
-        // 🔍 Firebase Admin SDK 설정 정보
-        try {
-          const app = admin.app();
-          console.log("🔧 [KAKAO] Firebase Admin SDK config:", {
-            projectId: app.options.projectId,
-            serviceAccount: app.options.credential ? "✅ Credential configured" : "❌ No credential",
-          });
-        } catch (e) {
-          console.error("⚠️ [KAKAO] Could not read Firebase Admin config:", e.message);
-        }
+        console.error("[KAKAO] Error creating custom token:", error.message);
 
         if (error instanceof functions.https.HttpsError) {
           throw error;
-        }
-
-        // PERMISSION_DENIED 에러 상세 정보 추가
-        if (error.code === 7 || error.message?.includes("PERMISSION_DENIED")) {
-          console.error("🔐 [KAKAO] IAM Permission Issue Detected");
-          console.error("   Error code 7 = gRPC PERMISSION_DENIED");
-          console.error("   Required IAM roles:");
-          console.error("   - roles/iam.serviceAccountTokenCreator");
-          console.error("   - roles/serviceusage.serviceUsageConsumer");
-          console.error("   ");
-          console.error("   Service accounts to check:");
-          console.error("   - makecallio@appspot.gserviceaccount.com");
-          console.error("   - 793164633643-compute@developer.gserviceaccount.com");
         }
 
         throw new functions.https.HttpsError(

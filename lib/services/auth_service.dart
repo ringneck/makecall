@@ -40,6 +40,10 @@ class AuthService extends ChangeNotifier {
   String? _approvalRequestId;
   String? get approvalRequestId => _approvalRequestId;
   
+  // 🎯 소셜 로그인 성공 메시지 완료 플래그
+  bool _socialLoginSuccessMessageShown = false;
+  bool get socialLoginSuccessMessageShown => _socialLoginSuccessMessageShown;
+  
   /// 승인 대기 상태 설정
   void setWaitingForApproval(bool waiting, {String? approvalRequestId}) {
     _isWaitingForApproval = waiting;
@@ -49,6 +53,15 @@ class AuthService extends ChangeNotifier {
       if (approvalRequestId != null) {
         debugPrint('   - Approval Request ID: $approvalRequestId');
       }
+    }
+    notifyListeners();
+  }
+  
+  /// 소셜 로그인 성공 메시지 표시 완료 설정
+  void setSocialLoginSuccessMessageShown(bool shown) {
+    _socialLoginSuccessMessageShown = shown;
+    if (kDebugMode) {
+      debugPrint('🎯 [AUTH] 소셜 로그인 성공 메시지 표시 완료: $shown');
     }
     notifyListeners();
   }
