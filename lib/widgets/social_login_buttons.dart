@@ -5,7 +5,7 @@ import 'dart:io' show Platform;
 /// 소셜 로그인 버튼 위젯
 /// 
 /// 플랫폼별 소셜 로그인 버튼 제공:
-/// - 웹 플랫폼: Google, Apple (2개)
+/// - 웹 플랫폼: Kakao, Google, Apple (3개)
 /// - iOS 플랫폼: Kakao, Google, Apple (3개)
 /// - Android 플랫폼: Kakao, Google, Apple (3개 - Apple 웹뷰 지원)
 class SocialLoginButtons extends StatelessWidget {
@@ -33,8 +33,17 @@ class SocialLoginButtons extends StatelessWidget {
     final spacing = SizedBox(width: screenWidth > 600 ? 20 : 16);
     
     if (kIsWeb) {
-      // 🌐 웹 플랫폼: Google + Apple
+      // 🌐 웹 플랫폼: Kakao + Google + Apple (3개)
       return [
+        _buildIconButton(
+          context: context,
+          onPressed: isLoading ? null : onKakaoPressed,
+          backgroundColor: const Color(0xFFFEE500),
+          icon: _buildKakaoIcon(iconSize),
+          size: buttonSize,
+          isDark: isDark,
+        ),
+        spacing,
         _buildIconButton(
           context: context,
           onPressed: isLoading ? null : onGooglePressed,
