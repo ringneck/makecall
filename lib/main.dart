@@ -22,6 +22,7 @@ import 'providers/selected_extension_provider.dart';
 import 'providers/dcmiws_event_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/web_login_wrapper.dart';
 import 'screens/auth/approval_waiting_screen.dart';
 import 'screens/home/main_screen.dart';
 import 'screens/splash/splash_screen.dart';
@@ -632,8 +633,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           ), // 로그인 후 MAKECALL 메인 화면으로 이동
                         );
                       } else {
-                        return LoginScreen(
-                          key: ValueKey('login_${DateTime.now().millisecondsSinceEpoch}'),
+                        return WebLoginWrapper(
+                          child: LoginScreen(
+                            key: ValueKey('login_${DateTime.now().millisecondsSinceEpoch}'),
+                          ),
                         );
                       }
                     },

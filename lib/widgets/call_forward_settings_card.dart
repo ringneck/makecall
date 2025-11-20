@@ -922,17 +922,19 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                               ),
                               const SizedBox(width: 4),
                               Expanded(
-                                child: Text(
-                                  PhoneFormatter.format(_destination),
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDefaultNumber 
-                                        ? (isDark ? Colors.grey[600] : Colors.grey)
-                                        : (isDark ? Colors.white : Colors.black87),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    PhoneFormatter.format(_destination),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDefaultNumber 
+                                          ? (isDark ? Colors.grey[600] : Colors.grey)
+                                          : (isDark ? Colors.white : Colors.black87),
+                                    ),
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
                                 ),
                               ),
                               const SizedBox(width: 3),
