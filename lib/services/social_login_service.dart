@@ -259,24 +259,17 @@ class SocialLoginService {
     }
   }
 
-  /// ===== 3. 네이버 로그인 (Android 네이티브 앱 전용) =====
+  /// ===== 3. 네이버 로그인 =====
   Future<SocialLoginResult> signInWithNaver() async {
     try {
-      // Android만 지원
-      if (!_isAndroid) {
-        return SocialLoginResult(
-          success: false,
-          errorMessage: '네이버 로그인은 Android 앱에서만 지원됩니다.',
-          provider: SocialLoginProvider.naver,
-        );
-      }
-
       if (kDebugMode) {
         debugPrint('🟢 [Naver] 로그인 시작');
       }
 
-      // STEP 1: Android WebView 쿠키 삭제 (무한 동의 화면 방지)
-      await _clearNaverWebViewCookies();
+      // STEP 1: Android WebView 쿠키 삭제 (무한 동의 화면 방지, Android만 해당)
+      if (_isAndroid) {
+        await _clearNaverWebViewCookies();
+      }
 
       // STEP 2: 기존 세션 로그아웃
       try {
