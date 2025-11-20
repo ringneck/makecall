@@ -47,8 +47,9 @@
             </intent-filter>
             
             <!-- 네이버 로그인 콜백 URL Scheme -->
-            <!-- Callback URL: naverWl4fP6XbiTRQQMpbC5a9://oauth -->
-            <intent-filter>
+            <!-- 네이버 개발자 센터 Callback URL: http://localhost/callback -->
+            <!-- 앱 실제 수신 URL: naverWl4fP6XbiTRQQMpbC5a9://oauth -->
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -56,6 +57,18 @@
                 <data
                     android:scheme="naverWl4fP6XbiTRQQMpbC5a9"
                     android:host="oauth" />
+            </intent-filter>
+            
+            <!-- 네이버 로그인 HTTP Callback (fallback) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <data
+                    android:scheme="http"
+                    android:host="localhost"
+                    android:path="/callback" />
             </intent-filter>
         </activity>
         
@@ -86,10 +99,12 @@
             android:name="com.nhn.android.naverlogin.ui.OAuthLoginActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:screenOrientation="portrait"
+            android:launchMode="singleTask"
             android:exported="true" />
         <activity
             android:name="com.nhn.android.naverlogin.ui.OAuthLoginInAppBrowserActivity"
             android:label="OAuth2.0 In-app"
+            android:launchMode="singleTask"
             android:exported="true" />
         
         <!-- Don't delete the meta-data below.
