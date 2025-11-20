@@ -21,9 +21,11 @@ if (!gmailEmail || !gmailPassword) {
 }
 
 // Firebase Admin SDK 초기화
-// 배포 환경에서는 자동으로 프로젝트의 기본 Service Account 사용
+// Service Account Key 파일을 직접 사용 (가장 확실한 방법)
+const serviceAccount = require("./serviceAccountKey.json");
+
 admin.initializeApp({
-  credential: admin.credential.applicationDefault(),
+  credential: admin.credential.cert(serviceAccount),
 });
 
 const transporter = nodemailer.createTransport({
