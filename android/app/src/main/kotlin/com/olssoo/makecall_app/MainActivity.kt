@@ -52,48 +52,45 @@ class MainActivity : FlutterActivity() {
         return try {
             val cookieManager = CookieManager.getInstance()
             
-            // 네이버 관련 도메인 목록
-            val naverDomains = listOf(
-                "naver.com",
-                ".naver.com",
-                "nid.naver.com",
-                ".nid.naver.com"
-            )
+            Log.d("NAVER_COOKIES", "🧹 Clearing ALL WebView cookies and data...")
             
-            Log.d("NAVER_COOKIES", "🧹 Clearing Naver WebView cookies...")
-            
-            // 각 도메인의 쿠키 삭제
-            var deletedAny = false
-            for (domain in naverDomains) {
-                val cookieString = cookieManager.getCookie(domain)
-                if (cookieString != null) {
-                    Log.d("NAVER_COOKIES", "   Found cookies for domain: $domain")
-                    
-                    // 도메인의 모든 쿠키 삭제
-                    val cookies = cookieString.split(";")
-                    for (cookie in cookies) {
-                        val cookieName = cookie.split("=")[0].trim()
-                        val expiredCookie = "$cookieName=; Domain=$domain; Path=/; Max-Age=0"
-                        cookieManager.setCookie(domain, expiredCookie)
-                        deletedAny = true
-                    }
-                    
-                    Log.d("NAVER_COOKIES", "   → Deleted ${cookies.size} cookies")
+            // 🔥 CRITICAL FIX: 모든 쿠키 삭제 (도메인별이 아닌 전체)
+            cookieManager.removeAllCookies { success ->
+                if (success) {
+                    Log.d("NAVER_COOKIES", "   ✅ All cookies removed")
+                } else {
+                    Log.d("NAVER_COOKIES", "   ⚠️ Failed to remove all cookies")
                 }
+            }
+            
+            // WebView 캐시 및 저장소 삭제
+            try {
+                val webViewDir = applicationContext.getDir("webview", MODE_PRIVATE)
+                if (webViewDir.exists()) {
+                    webViewDir.deleteRecursively()
+                    Log.d("NAVER_COOKIES", "   ✅ WebView directory deleted")
+                }
+            } catch (e: Exception) {
+                Log.w("NAVER_COOKIES", "   ⚠️ Failed to delete WebView dir: ${e.message}")
             }
             
             // 쿠키 즉시 적용
             cookieManager.flush()
             
-            if (deletedAny) {
-                Log.d("NAVER_COOKIES", "✅ Naver WebView cookies cleared successfully")
-            } else {
-                Log.d("NAVER_COOKIES", "ℹ️ No Naver cookies found to delete")
+            // SharedPreferences에서 네이버 관련 데이터 삭제
+            try {
+                val prefs = applicationContext.getSharedPreferences("NaverIdLogin", MODE_PRIVATE)
+                prefs.edit().clear().apply()
+                Log.d("NAVER_COOKIES", "   ✅ NaverIdLogin SharedPreferences cleared")
+            } catch (e: Exception) {
+                Log.w("NAVER_COOKIES", "   ⚠️ Failed to clear preferences: ${e.message}")
             }
+            
+            Log.d("NAVER_COOKIES", "✅ Complete cleanup finished")
             
             true
         } catch (e: Exception) {
-            Log.e("NAVER_COOKIES", "❌ Failed to clear Naver cookies: ${e.message}", e)
+            Log.e("NAVER_COOKIES", "❌ Failed to clear Naver data: ${e.message}", e)
             false
         }
     }
