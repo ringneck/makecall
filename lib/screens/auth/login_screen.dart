@@ -457,11 +457,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
   
-  // Naver 로그인 제거됨 - Google, Kakao, Apple만 사용
-      }
-    }
-  }
-  
   // 애플 로그인 (모든 플랫폼)
   Future<void> _handleAppleLogin() async {
     if (_isSocialLoginLoading) return;

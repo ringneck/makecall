@@ -449,11 +449,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     }
   }
 
-  // Naver 회원가입 제거됨 - Google, Kakao, Apple만 사용
-      }
-    }
-  }
-
   // Apple 회원가입 (모든 플랫폼)
   Future<void> _handleAppleSignUp() async {
     if (_isSocialLoginLoading) return;
