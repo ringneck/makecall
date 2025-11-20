@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -52,6 +53,9 @@ class SocialLoginResult {
 class SocialLoginService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  
+  // Android 네이티브 통신용 MethodChannel
+  static const MethodChannel _channel = MethodChannel('com.olssoo.makecall_app/webview');
 
   /// ===== 1. 구글 로그인 =====
   Future<SocialLoginResult> signInWithGoogle() async {
@@ -308,6 +312,31 @@ class SocialLoginService {
     }
   }
 
+  /// Android WebView 쿠키 삭제 (네이버 도메인)
+  Future<void> _clearNaverWebViewCookies() async {
+    if (!_isAndroid) return;
+    
+    try {
+      if (kDebugMode) {
+        debugPrint('🧹 [Naver] Android WebView 쿠키 삭제 시도...');
+      }
+      
+      final result = await _channel.invokeMethod('clearNaverCookies');
+      
+      if (kDebugMode) {
+        if (result == true) {
+          debugPrint('   ✅ WebView 쿠키 삭제 완료');
+        } else {
+          debugPrint('   ⚠️ WebView 쿠키 삭제 실패 또는 쿠키 없음');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [Naver] WebView 쿠키 삭제 오류 (무시하고 계속): $e');
+      }
+    }
+  }
+
   /// ===== 3. 네이버 로그인 =====
   Future<SocialLoginResult> signInWithNaver() async {
     try {
@@ -318,7 +347,10 @@ class SocialLoginService {
         debugPrint('='*60);
       }
 
-      // 🔧 FIX: 무한 동의 화면 방지 - 기존 세션 명시적 로그아웃
+      // 🧹 STEP 1: Android WebView 쿠키 삭제 (무한 동의 화면 방지)
+      await _clearNaverWebViewCookies();
+
+      // 🔧 STEP 2: 무한 동의 화면 방지 - 기존 세션 명시적 로그아웃
       try {
         if (kDebugMode) {
           debugPrint('🔧 [Naver] 기존 세션 확인 및 정리 중...');

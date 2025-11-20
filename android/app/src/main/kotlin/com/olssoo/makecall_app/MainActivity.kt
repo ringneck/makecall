@@ -4,15 +4,98 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Base64
 import android.util.Log
+import android.webkit.CookieManager
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 import java.security.MessageDigest
 
 class MainActivity : FlutterActivity() {
+    private val CHANNEL = "com.olssoo.makecall_app/webview"
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         // 카카오 로그인용 키 해시 출력
         printKakaoKeyHash()
+    }
+    
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        
+        // Flutter와 네이티브 통신 채널 설정
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "clearNaverCookies" -> {
+                    try {
+                        val success = clearNaverWebViewCookies()
+                        result.success(success)
+                    } catch (e: Exception) {
+                        Log.e("NAVER_COOKIES", "Failed to clear cookies", e)
+                        result.success(false)
+                    }
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+    }
+    
+    /**
+     * 네이버 도메인 관련 WebView 쿠키 삭제
+     * 
+     * 무한 동의 화면 방지를 위해 네이버 로그인 관련 쿠키를 삭제합니다.
+     * Android WebView의 CookieManager를 사용하여 전역 쿠키를 삭제합니다.
+     */
+    private fun clearNaverWebViewCookies(): Boolean {
+        return try {
+            val cookieManager = CookieManager.getInstance()
+            
+            // 네이버 관련 도메인 목록
+            val naverDomains = listOf(
+                "naver.com",
+                ".naver.com",
+                "nid.naver.com",
+                ".nid.naver.com"
+            )
+            
+            Log.d("NAVER_COOKIES", "🧹 Clearing Naver WebView cookies...")
+            
+            // 각 도메인의 쿠키 삭제
+            var deletedAny = false
+            for (domain in naverDomains) {
+                val cookieString = cookieManager.getCookie(domain)
+                if (cookieString != null) {
+                    Log.d("NAVER_COOKIES", "   Found cookies for domain: $domain")
+                    
+                    // 도메인의 모든 쿠키 삭제
+                    val cookies = cookieString.split(";")
+                    for (cookie in cookies) {
+                        val cookieName = cookie.split("=")[0].trim()
+                        val expiredCookie = "$cookieName=; Domain=$domain; Path=/; Max-Age=0"
+                        cookieManager.setCookie(domain, expiredCookie)
+                        deletedAny = true
+                    }
+                    
+                    Log.d("NAVER_COOKIES", "   → Deleted ${cookies.size} cookies")
+                }
+            }
+            
+            // 쿠키 즉시 적용
+            cookieManager.flush()
+            
+            if (deletedAny) {
+                Log.d("NAVER_COOKIES", "✅ Naver WebView cookies cleared successfully")
+            } else {
+                Log.d("NAVER_COOKIES", "ℹ️ No Naver cookies found to delete")
+            }
+            
+            true
+        } catch (e: Exception) {
+            Log.e("NAVER_COOKIES", "❌ Failed to clear Naver cookies: ${e.message}", e)
+            false
+        }
     }
     
     private fun printKakaoKeyHash() {
