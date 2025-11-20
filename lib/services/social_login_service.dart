@@ -53,9 +53,6 @@ class SocialLoginResult {
 class SocialLoginService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  
-  // Android 네이티브 통신용 MethodChannel
-  static const MethodChannel _channel = MethodChannel('com.olssoo.makecall_app/webview');
 
   /// ===== 1. 구글 로그인 =====
   Future<SocialLoginResult> signInWithGoogle() async {
@@ -245,33 +242,15 @@ class SocialLoginService {
     }
   }
 
-  /// Android WebView 쿠키 삭제 (네이버 무한 동의 화면 방지)
-  Future<void> _clearNaverWebViewCookies() async {
-    if (!_isAndroid) return;
-    
-    try {
-      await _channel.invokeMethod('clearNaverCookies');
-      if (kDebugMode) {
-        debugPrint('✅ [Naver] WebView 쿠키 삭제 완료');
-      }
-    } catch (e) {
-      // 쿠키 삭제 실패해도 로그인 진행
-    }
-  }
-
   /// ===== 3. 네이버 로그인 =====
+
   Future<SocialLoginResult> signInWithNaver() async {
     try {
       if (kDebugMode) {
         debugPrint('🟢 [Naver] 로그인 시작');
       }
 
-      // STEP 1: Android WebView 쿠키 삭제 (무한 동의 화면 방지, Android만 해당)
-      if (_isAndroid) {
-        await _clearNaverWebViewCookies();
-      }
-
-      // STEP 2: 기존 세션 로그아웃
+      // STEP 1: 기존 세션 로그아웃
       try {
         await FlutterNaverLogin.logOut();
         await Future.delayed(const Duration(milliseconds: 500));
@@ -279,7 +258,7 @@ class SocialLoginService {
         // 로그아웃 실패해도 계속 진행
       }
 
-      // STEP 3: 네이버 로그인 시도
+      // STEP 2: 네이버 로그인 시도
       NaverLoginResult result;
       final startTime = DateTime.now();
       
