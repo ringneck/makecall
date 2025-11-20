@@ -387,8 +387,8 @@ class _PhoneFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 460,
-      height: 940,
+      width: 500,
+      height: 980,
       margin: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(50),
