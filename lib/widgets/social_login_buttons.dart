@@ -7,7 +7,7 @@ import 'dart:io' show Platform;
 /// 플랫폼별 소셜 로그인 버튼 제공:
 /// - 웹 플랫폼: Google, Apple (2개)
 /// - iOS 플랫폼: Kakao, Google, Apple (3개)
-/// - Android 플랫폼: Kakao, Google (2개, Apple 제외)
+/// - Android 플랫폼: Kakao, Google, Apple (3개 - Apple 웹뷰 지원)
 class SocialLoginButtons extends StatelessWidget {
   final Function()? onGooglePressed;
   final Function()? onKakaoPressed;
@@ -98,7 +98,7 @@ class SocialLoginButtons extends StatelessWidget {
           ),
         ];
       } else {
-        // Android: Kakao + Google (2개)
+        // Android: Kakao + Google + Apple (3개 - Apple 복원)
         return [
           _buildIconButton(
             context: context,
@@ -117,6 +117,19 @@ class SocialLoginButtons extends StatelessWidget {
             size: buttonSize,
             isDark: isDark,
             hasBorder: true,
+          ),
+          spacing,
+          _buildIconButton(
+            context: context,
+            onPressed: isLoading ? null : onApplePressed,
+            backgroundColor: isDark ? Colors.white : Colors.black,
+            icon: Icon(
+              Icons.apple,
+              color: isDark ? Colors.black : Colors.white,
+              size: iconSize,
+            ),
+            size: buttonSize,
+            isDark: isDark,
           ),
         ];
       }
@@ -211,39 +224,41 @@ class SocialLoginButtons extends StatelessWidget {
   }
 
   Widget _buildGoogleIcon(double size) {
-    return Container(
-      width: size * 0.85,
-      height: size * 0.85,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(size * 0.15),
-      ),
-      child: Center(
-        child: Text(
-          'G',
-          style: TextStyle(
-            fontSize: size * 0.65,
-            fontWeight: FontWeight.w900,
+    // Google 로고 이미지 사용
+    return ClipOval(
+      child: Image.asset(
+        'assets/images/social/google_logo.png',
+        width: size * 0.65,
+        height: size * 0.65,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          // 이미지 로드 실패 시 폴백 아이콘
+          return Icon(
+            Icons.g_mobiledata,
+            size: size * 0.7,
             color: const Color(0xFF4285F4),
-            height: 1.0,
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildKakaoIcon(double size) {
-    return Container(
-      width: size * 0.85,
-      height: size * 0.85,
-      decoration: BoxDecoration(
-        color: Colors.black87,
-        borderRadius: BorderRadius.circular(size * 0.15),
-      ),
-      child: Icon(
-        Icons.chat_bubble,
-        color: const Color(0xFFFFE500),
-        size: size * 0.6,
+    // 카카오 로고 이미지 사용
+    return ClipOval(
+      child: Image.asset(
+        'assets/images/social/kakao_logo.png',
+        width: size * 0.65,
+        height: size * 0.65,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          // 이미지 로드 실패 시 폴백 아이콘
+          return Icon(
+            Icons.chat_bubble,
+            size: size * 0.6,
+            color: Colors.black87,
+          );
+        },
       ),
     );
   }
