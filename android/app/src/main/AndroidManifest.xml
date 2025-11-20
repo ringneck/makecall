@@ -47,15 +47,16 @@
             </intent-filter>
             
             <!-- 네이버 로그인 콜백 URL Scheme -->
-            <!-- URL: naverlogin://callback (네이버 개발자 센터 설정과 일치) -->
+            <!-- 네이버 개발자 센터 원본 설정: http://localhost/callback -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 
                 <data
-                    android:scheme="naverlogin"
-                    android:host="callback" />
+                    android:scheme="http"
+                    android:host="localhost"
+                    android:path="/callback" />
             </intent-filter>
         </activity>
         
