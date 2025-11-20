@@ -175,8 +175,7 @@ class AuthService extends ChangeNotifier {
           final isSocialLogin = providerIds.any((id) => 
             id == 'google.com' || 
             id == 'apple.com' || 
-            id.startsWith('kakao') || 
-            id.startsWith('naver')
+            id.startsWith('kakao')
           );
           
           if (isSocialLogin) {

@@ -526,14 +526,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.2.0"
-  flutter_naver_login:
-    dependency: "direct main"
-    description:
-      name: flutter_naver_login
-      sha256: b1776c7de0e66a594048c09c37ff29b28234098545dc0464f6a02153230b18ae
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.0"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:

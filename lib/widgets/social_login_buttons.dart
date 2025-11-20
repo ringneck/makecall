@@ -6,12 +6,11 @@ import 'dart:io' show Platform;
 /// 
 /// 플랫폼별 소셜 로그인 버튼 제공:
 /// - 웹 플랫폼: Google, Apple (2개)
-/// - iOS 플랫폼: Naver, Kakao, Google, Apple (4개)
-/// - Android 플랫폼: Naver, Kakao, Google (3개, Apple 제외)
+/// - iOS 플랫폼: Kakao, Google, Apple (3개)
+/// - Android 플랫폼: Kakao, Google (2개, Apple 제외)
 class SocialLoginButtons extends StatelessWidget {
   final Function()? onGooglePressed;
   final Function()? onKakaoPressed;
-  final Function()? onNaverPressed;
   final Function()? onApplePressed;
   final bool isLoading;
 
@@ -19,13 +18,11 @@ class SocialLoginButtons extends StatelessWidget {
     super.key,
     this.onGooglePressed,
     this.onKakaoPressed,
-    this.onNaverPressed,
     this.onApplePressed,
     this.isLoading = false,
   });
 
   /// 플랫폼별 소셜 로그인 버튼 생성
-  /// 웹: 구글 + 애플만 / 모바일: 네이버 + 카카오 + 구글 + 애플
   List<Widget> _buildPlatformSpecificButtons(
     BuildContext context,
     double buttonSize,
@@ -35,20 +32,9 @@ class SocialLoginButtons extends StatelessWidget {
   ) {
     final spacing = SizedBox(width: screenWidth > 600 ? 20 : 16);
     
-    // 🔍 디버그: 플랫폼 확인
-    if (kDebugMode) {
-      debugPrint('🔍 [SOCIAL BUTTONS] Platform check:');
-      debugPrint('   - kIsWeb: $kIsWeb');
-      debugPrint('   - Building ${kIsWeb ? "WEB" : "MOBILE"} buttons');
-    }
-    
     if (kIsWeb) {
-      // 🌐 웹 플랫폼: 구글 + 애플만 표시
-      if (kDebugMode) {
-        debugPrint('   - Buttons: Google, Apple (2 buttons)');
-      }
+      // 🌐 웹 플랫폼: Google + Apple
       return [
-        // 구글 로그인
         _buildIconButton(
           context: context,
           onPressed: isLoading ? null : onGooglePressed,
@@ -58,10 +44,7 @@ class SocialLoginButtons extends StatelessWidget {
           isDark: isDark,
           hasBorder: true,
         ),
-        
         spacing,
-        
-        // 애플 로그인
         _buildIconButton(
           context: context,
           onPressed: isLoading ? null : onApplePressed,
@@ -76,70 +59,67 @@ class SocialLoginButtons extends StatelessWidget {
         ),
       ];
     } else {
-      // 📱 모바일 플랫폼: 모든 플랫폼에서 4개 버튼 표시
-      // iOS + Android: 네이버 + 카카오 + 구글 + 애플 (4개)
-      
+      // 📱 모바일 플랫폼
       final bool isIOS = !kIsWeb && Platform.isIOS;
-      final bool isAndroid = !kIsWeb && Platform.isAndroid;
       
-      if (kDebugMode) {
-        debugPrint('   - Platform: ${isIOS ? "iOS" : isAndroid ? "Android" : "Unknown"}');
-        debugPrint('   - Buttons: Naver, Kakao, Google, Apple (4)');
-        debugPrint('   - Kakao callback: ${onKakaoPressed != null ? "SET" : "NULL"}');
-      }
-      
-      return [
-        // 네이버 로그인 (왼쪽부터)
-        _buildIconButton(
-          context: context,
-          onPressed: isLoading ? null : onNaverPressed,
-          backgroundColor: const Color(0xFF03C75A),
-          icon: _buildNaverIcon(iconSize),
-          size: buttonSize,
-          isDark: isDark,
-        ),
-        
-        spacing,
-        
-        // 카카오 로그인
-        _buildIconButton(
-          context: context,
-          onPressed: isLoading ? null : onKakaoPressed,
-          backgroundColor: const Color(0xFFFEE500),  // 카카오 공식 노란색
-          icon: _buildKakaoIcon(iconSize),
-          size: buttonSize,
-          isDark: isDark,
-        ),
-        
-        spacing,
-        
-        // 구글 로그인
-        _buildIconButton(
-          context: context,
-          onPressed: isLoading ? null : onGooglePressed,
-          backgroundColor: isDark ? Colors.grey[850]! : Colors.white,
-          icon: _buildGoogleIcon(iconSize),
-          size: buttonSize,
-          isDark: isDark,
-          hasBorder: true,
-        ),
-        
-        spacing,
-        
-        // 애플 로그인 (모든 플랫폼)
-        _buildIconButton(
-          context: context,
-          onPressed: isLoading ? null : onApplePressed,
-          backgroundColor: isDark ? Colors.white : Colors.black,
-          icon: Icon(
-            Icons.apple,
-            color: isDark ? Colors.black : Colors.white,
-            size: iconSize,
+      if (isIOS) {
+        // iOS: Kakao + Google + Apple (3개)
+        return [
+          _buildIconButton(
+            context: context,
+            onPressed: isLoading ? null : onKakaoPressed,
+            backgroundColor: const Color(0xFFFEE500),
+            icon: _buildKakaoIcon(iconSize),
+            size: buttonSize,
+            isDark: isDark,
           ),
-          size: buttonSize,
-          isDark: isDark,
-        ),
-      ];
+          spacing,
+          _buildIconButton(
+            context: context,
+            onPressed: isLoading ? null : onGooglePressed,
+            backgroundColor: isDark ? Colors.grey[850]! : Colors.white,
+            icon: _buildGoogleIcon(iconSize),
+            size: buttonSize,
+            isDark: isDark,
+            hasBorder: true,
+          ),
+          spacing,
+          _buildIconButton(
+            context: context,
+            onPressed: isLoading ? null : onApplePressed,
+            backgroundColor: isDark ? Colors.white : Colors.black,
+            icon: Icon(
+              Icons.apple,
+              color: isDark ? Colors.black : Colors.white,
+              size: iconSize,
+            ),
+            size: buttonSize,
+            isDark: isDark,
+          ),
+        ];
+      } else {
+        // Android: Kakao + Google (2개)
+        return [
+          _buildIconButton(
+            context: context,
+            onPressed: isLoading ? null : onKakaoPressed,
+            backgroundColor: const Color(0xFFFEE500),
+            icon: _buildKakaoIcon(iconSize),
+            size: buttonSize,
+            isDark: isDark,
+          ),
+          spacing,
+          _buildIconButton(
+            context: context,
+            onPressed: isLoading ? null : onGooglePressed,
+            backgroundColor: isDark ? Colors.grey[850]! : Colors.white,
+            icon: _buildGoogleIcon(iconSize),
+            size: buttonSize,
+            isDark: isDark,
+            hasBorder: true,
+          ),
+        ];
+      }
     }
   }
 
@@ -148,13 +128,11 @@ class SocialLoginButtons extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     
-    // 반응형 버튼 크기
     final buttonSize = screenWidth > 600 ? 70.0 : 64.0;
     final iconSize = screenWidth > 600 ? 32.0 : 28.0;
     
     return Column(
       children: [
-        // "SNS 계정으로 로그인" 텍스트
         Text(
           'SNS 계정으로 로그인',
           style: TextStyle(
@@ -164,10 +142,7 @@ class SocialLoginButtons extends StatelessWidget {
             letterSpacing: 0.3,
           ),
         ),
-        
         const SizedBox(height: 8),
-        
-        // "연동했던 SNS 계정을 선택해 주세요." 텍스트
         Text(
           '연동했던 SNS 계정을 선택해 주세요.',
           style: TextStyle(
@@ -176,10 +151,7 @@ class SocialLoginButtons extends StatelessWidget {
             letterSpacing: 0.2,
           ),
         ),
-        
         const SizedBox(height: 24),
-        
-        // 소셜 로그인 버튼들 (플랫폼별 분기)
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: _buildPlatformSpecificButtons(
@@ -270,30 +242,8 @@ class SocialLoginButtons extends StatelessWidget {
       ),
       child: Icon(
         Icons.chat_bubble,
-        color: const Color(0xFFFFE500),  // 카카오 노란색 (밝은 노란색)
+        color: const Color(0xFFFFE500),
         size: size * 0.6,
-      ),
-    );
-  }
-
-  Widget _buildNaverIcon(double size) {
-    return Container(
-      width: size * 0.85,
-      height: size * 0.85,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(size * 0.15),
-      ),
-      child: Center(
-        child: Text(
-          'N',
-          style: TextStyle(
-            fontSize: size * 0.65,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF03C75A),
-            height: 1.0,
-          ),
-        ),
       ),
     );
   }

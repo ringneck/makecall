@@ -449,53 +449,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     }
   }
 
-  // Naver 회원가입
-  Future<void> _handleNaverSignUp() async {
-    if (_isSocialLoginLoading) return;
-    
-    // 웹 플랫폼 체크 - 네이버 회원가입은 모바일만 지원
-    if (kIsWeb) {
-      await DialogUtils.showInfo(
-        context,
-        'Naver 회원가입은 모바일 앱에서만 사용할 수 있습니다.\n\n웹에서는 Google 회원가입을 사용해 주세요.',
-        title: 'Naver 회원가입 안내',
-      );
-      return;
-    }
-    
-    setState(() => _isSocialLoginLoading = true);
-    
-    try {
-      final result = await _socialLoginService.signInWithNaver();
-      
-      if (result.success) {
-        await _handleSocialLoginSuccess(result);
-      } else {
-        if (mounted) {
-          if (result.errorMessage?.contains('취소') ?? false) {
-            await DialogUtils.showInfo(
-              context,
-              'Naver 회원가입이 취소되었습니다.',
-              title: 'Naver 회원가입',
-            );
-          } else {
-            await DialogUtils.showError(
-              context,
-              result.errorMessage ?? 'Naver 회원가입에 실패했습니다.',
-            );
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        await DialogUtils.showError(
-          context,
-          'Naver 회원가입 중 오류가 발생했습니다: ${e.toString()}',
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSocialLoginLoading = false);
+  // Naver 회원가입 제거됨 - Google, Kakao, Apple만 사용
       }
     }
   }
@@ -1003,7 +957,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         SocialLoginButtons(
                           onGooglePressed: _handleGoogleSignUp,
                           onKakaoPressed: _handleKakaoSignUp,
-                          onNaverPressed: _handleNaverSignUp,
                           onApplePressed: _handleAppleSignUp,
                           isLoading: _isSocialLoginLoading,
                         ),

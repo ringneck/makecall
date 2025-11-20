@@ -457,76 +457,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
   
-  // 네이버 로그인
-  Future<void> _handleNaverLogin() async {
-    if (_isSocialLoginLoading) return;
-    
-    // 웹 플랫폼 체크 - 네이버 로그인은 모바일만 지원
-    if (kIsWeb) {
-      await DialogUtils.showInfo(
-        context,
-        'Naver 로그인은 모바일 앱에서만 사용할 수 있습니다.\n\n웹에서는 Google 로그인을 사용해 주세요.',
-        title: 'Naver 로그인 안내',
-      );
-      return;
-    }
-    
-    setState(() => _isSocialLoginLoading = true);
-    
-    try {
-      final result = await _socialLoginService.signInWithNaver();
-      
-      if (kDebugMode) {
-        debugPrint('🔍 [LOGIN SCREEN] 네이버 로그인 결과:');
-        debugPrint('   - success: ${result.success}');
-        debugPrint('   - errorMessage: ${result.errorMessage}');
-        debugPrint('   - mounted: $mounted');
-      }
-      
-      if (result.success) {
-        await _handleSocialLoginSuccess(result);
-      } else {
-        if (mounted) {
-          // 사용자 취소는 안내 메시지로 표시
-          if (result.errorMessage?.contains('취소') ?? false) {
-            if (kDebugMode) {
-              debugPrint('📱 [LOGIN SCREEN] 취소 다이얼로그 표시');
-            }
-            await DialogUtils.showInfo(
-              context,
-              'Naver 로그인이 취소되었습니다.',
-              title: 'Naver 로그인',
-            );
-          } else {
-            // 기타 에러는 에러 다이얼로그로 표시
-            if (kDebugMode) {
-              debugPrint('❌ [LOGIN SCREEN] 에러 다이얼로그 표시');
-              debugPrint('   - 메시지: ${result.errorMessage}');
-            }
-            await DialogUtils.showError(
-              context,
-              result.errorMessage ?? 'Naver 로그인에 실패했습니다.',
-            );
-          }
-        } else {
-          if (kDebugMode) {
-            debugPrint('⚠️ [LOGIN SCREEN] mounted == false, 다이얼로그 표시 안 함');
-          }
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ [LOGIN SCREEN] Exception 발생: $e');
-      }
-      if (mounted) {
-        await DialogUtils.showError(
-          context,
-          'Naver 로그인 중 오류가 발생했습니다: ${e.toString()}',
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSocialLoginLoading = false);
+  // Naver 로그인 제거됨 - Google, Kakao, Apple만 사용
       }
     }
   }
@@ -989,11 +920,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         
                         SizedBox(height: _isMobile ? 40 : 48),
                         
-                        // 소셜 로그인 버튼들 (1줄에 4개 아이콘)
+                        // 소셜 로그인 버튼들 (Google, Kakao, Apple)
                         SocialLoginButtons(
                           onGooglePressed: _isSocialLoginLoading ? null : _handleGoogleLogin,
                           onKakaoPressed: _isSocialLoginLoading ? null : _handleKakaoLogin,
-                          onNaverPressed: _isSocialLoginLoading ? null : _handleNaverLogin,
                           onApplePressed: _isSocialLoginLoading ? null : _handleAppleLogin,
                           isLoading: _isSocialLoginLoading,
                         ),
