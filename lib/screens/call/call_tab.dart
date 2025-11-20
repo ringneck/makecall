@@ -137,7 +137,15 @@ class _CallTabState extends State<CallTab> {
     if (!mounted) return;
     
     // 🎯 STEP 2: 설정 확인 (선택적 안내)
-    await _checkSettingsAndShowGuide();
+    // 소셜 로그인이 아닌 경우에만 즉시 실행
+    // 소셜 로그인인 경우는 _onUserModelChanged에서 이벤트 기반으로 처리
+    if (!widget.autoOpenProfileForNewUser) {
+      await _checkSettingsAndShowGuide();
+    } else {
+      if (kDebugMode) {
+        debugPrint('🎯 소셜 로그인 감지 - 초기 설정 체크는 이벤트 기반으로 처리');
+      }
+    }
   }
   
   @override
