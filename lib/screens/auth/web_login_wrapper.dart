@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
-import 'dart:html' as html show window;
+import 'package:url_launcher/url_launcher.dart';
 
 /// 웹 전용 로그인 래퍼 - 모바일 폰 프레임과 소개 섹션
 class WebLoginWrapper extends StatelessWidget {
@@ -601,10 +601,11 @@ class _FooterSection extends StatelessWidget {
       cursor: hasUrl ? SystemMouseCursors.click : SystemMouseCursors.basic,
       child: GestureDetector(
         onTap: hasUrl
-            ? () {
+            ? () async {
                 try {
-                  if (kIsWeb) {
-                    html.window.open(url, '_blank');
+                  final uri = Uri.parse(url);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
                   }
                 } catch (e) {
                   if (kDebugMode) {
@@ -666,11 +667,12 @@ class _FooterSection extends StatelessWidget {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () {
+        onTap: () async {
           // URL 링크 열기
           try {
-            if (kIsWeb) {
-              html.window.open(url, '_blank');
+            final uri = Uri.parse(url);
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
             }
           } catch (e) {
             if (kDebugMode) {
