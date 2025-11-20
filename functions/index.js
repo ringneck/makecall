@@ -750,6 +750,11 @@ exports.createCustomTokenForKakao = functions
     .region(region)
     .https.onCall(async (data, context) => {
       try {
+        // 🔍 받은 데이터 전체 로깅
+        console.log(`🔍 [KAKAO] Received data:`, JSON.stringify(data, null, 2));
+        console.log(`🔍 [KAKAO] Data type:`, typeof data);
+        console.log(`🔍 [KAKAO] Data keys:`, Object.keys(data || {}));
+        
         // 입력 검증
         const {kakaoUid, email, displayName, photoUrl} = data;
 
