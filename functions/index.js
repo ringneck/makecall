@@ -21,12 +21,20 @@ if (!gmailEmail || !gmailPassword) {
 }
 
 // Firebase Admin SDK 초기화
-// Service Account Key 파일을 직접 사용 (가장 확실한 방법)
-const serviceAccount = require("./serviceAccountKey.json");
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+// 배포 환경에서는 자동으로 인증 정보 사용
+// 로컬 개발 환경에서만 serviceAccountKey.json 사용
+try {
+  // 로컬 개발 환경: serviceAccountKey.json 파일 사용
+  const serviceAccount = require("./serviceAccountKey.json");
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+  console.log("✅ Firebase Admin SDK 초기화 완료 (로컬 serviceAccountKey.json)");
+} catch (error) {
+  // 배포 환경: 기본 Application Default Credentials 사용
+  admin.initializeApp();
+  console.log("✅ Firebase Admin SDK 초기화 완료 (배포 환경 기본 인증)");
+}
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
