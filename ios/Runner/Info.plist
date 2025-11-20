@@ -121,10 +121,11 @@
 	<string>793164633643-urj0qb989v8l2bggj6h025plnbbshfg5.apps.googleusercontent.com</string>
 	
 	<!-- 🟢 Naver Login Configuration (flutter_naver_login 2.1.0+) -->
+	<!-- ⚠️ CRITICAL: Android와 동일한 Client Secret 사용 필수 -->
 	<key>NidClientId</key>
 	<string>Wl4fP6XbiTRQQMpbC5a9</string>
 	<key>NidClientSecret</key>
-	<string>FtDpKUbzIj</string>
+	<string>gr2MvANyr8</string>
 	<key>NidClientName</key>
 	<string>MAKECALL</string>
 	<key>NidUrlScheme</key>
