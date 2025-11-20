@@ -99,14 +99,10 @@ class _LeftIntroSection extends StatelessWidget {
         children: [
           // 앱 로고와 글로우 효과
           Container(
-            padding: const EdgeInsets.all(16),
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [Colors.blue[400]!, Colors.blue[600]!]
-                    : [Colors.blue[300]!, Colors.blue[500]!],
-              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.blue.withValues(alpha: isDark ? 0.5 : 0.3),
@@ -115,10 +111,11 @@ class _LeftIntroSection extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(
-              Icons.phone_in_talk_rounded,
-              size: 48,
-              color: Colors.white,
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/app_logo.png',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(height: 32),
