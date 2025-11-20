@@ -261,8 +261,8 @@ class _RightFeaturesSection extends StatelessWidget {
         children: [
           _buildInfoCard(
             icon: Icons.devices,
-            title: '다양한 플랫폼 및 다중 기기',
-            description: '모바일, 웹, 데스크톱 어디서나\n여러 사용자가 동시 접속 가능',
+            title: '다양한 플랫폼 및 동시 사용  지원',
+            description: '모바일, 웹, 데스크톱 어디서나\n한 사용자가 여러 기기 동시 사용 가능',
             gradient: LinearGradient(
               colors: isDark
                   ? [Colors.blue[700]!, Colors.blue[900]!]
@@ -273,8 +273,8 @@ class _RightFeaturesSection extends StatelessWidget {
           const SizedBox(height: 24),
           _buildInfoCard(
             icon: Icons.grid_view,
-            title: '전화번호 그리드뷰 전체화면',
-            description: '다수의 전화번호를 한눈에\n전체화면으로 효율적 관리',
+            title: '빠른 발신 - 그리드뷰 전체화면',
+            description: '다수의 전화번호를 한눈에\n전체화면으로 효율적 발신',
             gradient: LinearGradient(
               colors: isDark
                   ? [Colors.purple[700]!, Colors.purple[900]!]
@@ -285,7 +285,7 @@ class _RightFeaturesSection extends StatelessWidget {
           const SizedBox(height: 24),
           _buildInfoCard(
             icon: Icons.home_work,
-            title: '재택근무·이동근무 최적화',
+            title: '재택근무 · 이동근무 최적화',
             description: '어디서나 업무 가능\n유연한 근무 환경 지원',
             gradient: LinearGradient(
               colors: isDark
