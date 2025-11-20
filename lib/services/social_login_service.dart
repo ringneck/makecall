@@ -648,7 +648,7 @@ class SocialLoginService {
         if (!_isIOS) {
           debugPrint('🌐 [Apple] 웹 플로우 설정:');
           debugPrint('   - Client ID: com.olssoo.makecall.signin');
-          debugPrint('   - Redirect URI: https://app.makecall.io/auth/callback');
+          debugPrint('   - Redirect URI: https://makecallio.web.app/auth/callback');
         } else {
           debugPrint('📱 [Apple] iOS 네이티브 로그인');
         }
@@ -665,8 +665,8 @@ class SocialLoginService {
                 clientId: 'com.olssoo.makecall.signin',  // Apple Service ID
                 redirectUri: Uri.parse(
                   // ⚠️ CRITICAL: Apple은 localhost에 포트 번호를 허용하지 않음
-                  // 개발/프로덕션 모두 동일한 프로덕션 URL 사용
-                  'https://app.makecall.io/auth/callback',
+                  // Firebase Hosting 기본 도메인 사용 (makecallio.web.app)
+                  'https://makecallio.web.app/auth/callback',
                 ),
               )
             : null,
