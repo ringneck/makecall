@@ -293,6 +293,21 @@ class SocialLoginService {
   /// ===== 3. 네이버 로그인 =====
 
   Future<SocialLoginResult> signInWithNaver() async {
+    // ⚠️ iOS에서는 CocoaPods 설치 필요 (IOS_NAVER_LOGIN_SETUP.md 참고)
+    if (_isIOS) {
+      if (kDebugMode) {
+        debugPrint('🚫 [Naver] iOS에서는 CocoaPods 설치 후 사용 가능');
+        debugPrint('   📄 가이드: IOS_NAVER_LOGIN_SETUP.md 참고');
+      }
+      return SocialLoginResult(
+        success: false,
+        errorMessage: 'iOS에서 Naver 로그인은 준비 중입니다.\n\n'
+            '현재 Google, Kakao, Apple 로그인을 사용해주세요.\n\n'
+            '자세한 내용은 IOS_NAVER_LOGIN_SETUP.md 파일을 참고하세요.',
+        provider: SocialLoginProvider.naver,
+      );
+    }
+    
     try {
       if (kDebugMode) {
         debugPrint('🟢 [Naver] 로그인 시작');
