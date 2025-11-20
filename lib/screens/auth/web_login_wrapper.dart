@@ -263,9 +263,9 @@ class _RightFeaturesSection extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildInfoCard(
-            icon: Icons.cloud_sync,
-            title: '클라우드 동기화',
-            description: '모든 기기에서 자동으로 설정이 동기화됩니다',
+            icon: Icons.devices,
+            title: '다양한 플랫폼 및 다중 기기',
+            description: '모바일, 웹, 데스크톱 어디서나\n여러 사용자가 동시 접속 가능',
             gradient: LinearGradient(
               colors: isDark
                   ? [Colors.blue[700]!, Colors.blue[900]!]
@@ -275,9 +275,9 @@ class _RightFeaturesSection extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           _buildInfoCard(
-            icon: Icons.security,
-            title: '안전한 통화',
-            description: 'Firebase 보안 인증으로 통화 정보를 안전하게 보호합니다',
+            icon: Icons.grid_view,
+            title: '전화번호 그리드뷰 전체화면',
+            description: '다수의 전화번호를 한눈에\n전체화면으로 효율적 관리',
             gradient: LinearGradient(
               colors: isDark
                   ? [Colors.purple[700]!, Colors.purple[900]!]
@@ -287,9 +287,9 @@ class _RightFeaturesSection extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           _buildInfoCard(
-            icon: Icons.speed,
-            title: '빠른 연결',
-            description: 'WebSocket 실시간 통신으로 지연 없는 통화를 제공합니다',
+            icon: Icons.home_work,
+            title: '재택근무·이동근무 최적화',
+            description: '어디서나 업무 가능\n유연한 근무 환경 지원',
             gradient: LinearGradient(
               colors: isDark
                   ? [Colors.teal[700]!, Colors.teal[900]!]
@@ -390,8 +390,8 @@ class _PhoneFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 430,
-      height: 900,
+      width: 460,
+      height: 940,
       margin: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(50),
