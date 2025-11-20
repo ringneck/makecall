@@ -555,7 +555,7 @@ class _FooterSection extends StatelessWidget {
             runSpacing: 8,
             children: [
               _buildFooterLink(
-                text: '개인정보 보호정책',
+                text: '개인정보 처리방침',
                 url: 'https://app.makecall.io/privacy_policy.html',
                 isDark: isDark,
               ),
