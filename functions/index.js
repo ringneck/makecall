@@ -20,7 +20,11 @@ if (!gmailEmail || !gmailPassword) {
   );
 }
 
-admin.initializeApp();
+// Firebase Admin SDK 초기화
+// 배포 환경에서는 자동으로 프로젝트의 기본 Service Account 사용
+admin.initializeApp({
+  credential: admin.credential.applicationDefault(),
+});
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -776,9 +780,23 @@ exports.createCustomTokenForKakao = functions
         return {customToken};
       } catch (error) {
         console.error("❌ [KAKAO] Error creating custom token:", error);
+        console.error("❌ [KAKAO] Error details:", {
+          message: error.message,
+          code: error.code,
+          stack: error.stack,
+        });
 
         if (error instanceof functions.https.HttpsError) {
           throw error;
+        }
+
+        // PERMISSION_DENIED 에러 상세 정보 추가
+        if (error.code === 7 || error.message?.includes("PERMISSION_DENIED")) {
+          console.error("🔐 [KAKAO] IAM Permission Issue Detected");
+          console.error("   Required roles:");
+          console.error("   - roles/iam.serviceAccountTokenCreator");
+          console.error("   - roles/serviceusage.serviceUsageConsumer");
+          console.error("   Service Account:", admin.instanceId().app.options.credential);
         }
 
         throw new functions.https.HttpsError(
@@ -844,9 +862,23 @@ exports.createCustomTokenForNaver = functions
         return {customToken};
       } catch (error) {
         console.error("❌ [NAVER] Error creating custom token:", error);
+        console.error("❌ [NAVER] Error details:", {
+          message: error.message,
+          code: error.code,
+          stack: error.stack,
+        });
 
         if (error instanceof functions.https.HttpsError) {
           throw error;
+        }
+
+        // PERMISSION_DENIED 에러 상세 정보 추가
+        if (error.code === 7 || error.message?.includes("PERMISSION_DENIED")) {
+          console.error("🔐 [NAVER] IAM Permission Issue Detected");
+          console.error("   Required roles:");
+          console.error("   - roles/iam.serviceAccountTokenCreator");
+          console.error("   - roles/serviceusage.serviceUsageConsumer");
+          console.error("   Service Account:", admin.instanceId().app.options.credential);
         }
 
         throw new functions.https.HttpsError(
