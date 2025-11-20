@@ -749,6 +749,11 @@ exports.cancelIncomingCallNotification = functions.region(region).https.onCall(
 exports.createCustomTokenForKakao = functions
     .region(region)
     .https.onCall(async (data, context) => {
+      // 🔍 최우선 로깅 (try 블록 밖에서)
+      console.log(`🎯 [KAKAO] Function called!`);
+      console.log(`🎯 [KAKAO] Raw data:`, data);
+      console.log(`🎯 [KAKAO] Context:`, context ? 'exists' : 'null');
+      
       try {
         // 🔍 받은 데이터 전체 로깅
         console.log(`🔍 [KAKAO] Received data:`, JSON.stringify(data, null, 2));
