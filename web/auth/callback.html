@@ -1,146 +1,133 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Apple Sign In - Processing</title>
-  <script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background: #f5f5f5;
-    }
-    .container {
-      text-align: center;
-      padding: 40px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    }
-    .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #000;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    h2 {
-      font-size: 20px;
-      font-weight: 600;
-      color: #333;
-      margin: 0 0 10px 0;
-    }
-    p {
-      font-size: 14px;
-      color: #666;
-      margin: 0;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apple Sign In Callback</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        h2 {
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        p {
+            color: #666;
+            font-size: 14px;
+            margin: 0;
+        }
+        .success {
+            color: #10b981;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        .error {
+            color: #ef4444;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="spinner"></div>
-    <h2>🍎 Apple 로그인 처리 중</h2>
-    <p>잠시만 기다려주세요...</p>
-  </div>
+    <div class="container">
+        <div class="spinner"></div>
+        <h2>Apple 로그인 처리 중...</h2>
+        <p>잠시만 기다려주세요</p>
+    </div>
 
-  <script>
-    console.log('🍎 Apple Sign In Callback Page Loaded');
-    
-    // URL에서 파라미터 추출
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const state = urlParams.get('state');
-    const id_token = urlParams.get('id_token');
-    const error = urlParams.get('error');
-    
-    console.log('📋 Callback Parameters:', {
-      code: code ? '✅' : '❌',
-      state: state ? '✅' : '❌',
-      id_token: id_token ? '✅' : '❌',
-      error: error || 'none'
-    });
-    
-    // 에러 처리
-    if (error) {
-      console.error('❌ Apple Sign In Error:', error);
-      
-      if (window.opener) {
-        window.opener.postMessage({
-          type: 'apple_sign_in_error',
-          error: error,
-          error_description: urlParams.get('error_description')
-        }, '*');
-        
-        setTimeout(() => {
-          window.close();
-        }, 1000);
-      } else {
-        document.querySelector('.container').innerHTML = `
-          <div style="color: #d32f2f;">
-            <h2>❌ 로그인 실패</h2>
-            <p>${error}</p>
-          </div>
-        `;
-      }
-      return;
-    }
-    
-    // 성공 처리
-    if (code && id_token) {
-      console.log('✅ Apple Sign In Success - Sending data to opener');
-      
-      if (window.opener) {
-        // Flutter 앱으로 데이터 전달
-        window.opener.postMessage({
-          type: 'apple_sign_in_callback',
-          code: code,
-          state: state,
-          id_token: id_token
-        }, '*');
-        
-        console.log('📤 Data sent to opener window');
-        
-        // 성공 메시지 표시 후 창 닫기
-        document.querySelector('.container').innerHTML = `
-          <div style="color: #4CAF50;">
-            <h2>✅ 로그인 성공</h2>
-            <p>창이 자동으로 닫힙니다...</p>
-          </div>
-        `;
-        
-        setTimeout(() => {
-          console.log('🔒 Closing callback window');
-          window.close();
-        }, 1500);
-      } else {
-        console.error('❌ No opener window found');
-        document.querySelector('.container').innerHTML = `
-          <div style="color: #ff9800;">
-            <h2>⚠️ 알림</h2>
-            <p>이 창을 닫고 앱으로 돌아가주세요.</p>
-          </div>
-        `;
-      }
-    } else {
-      console.error('❌ Missing required parameters');
-      document.querySelector('.container').innerHTML = `
-        <div style="color: #d32f2f;">
-          <h2>❌ 로그인 실패</h2>
-          <p>필수 파라미터가 누락되었습니다.</p>
-        </div>
-      `;
-    }
-  </script>
+    <script>
+        // Apple Sign-In 콜백 처리
+        (function() {
+            try {
+                // URL에서 파라미터 추출
+                const params = new URLSearchParams(window.location.search);
+                const hash = new URLSearchParams(window.location.hash.substring(1));
+                
+                // Authorization Code 또는 ID Token 추출
+                const code = params.get('code') || hash.get('id_token');
+                const state = params.get('state') || hash.get('state');
+                const error = params.get('error');
+                
+                console.log('Apple Callback received:', {
+                    code: code ? 'present' : 'missing',
+                    state: state,
+                    error: error
+                });
+
+                if (error) {
+                    // 에러 발생
+                    showError('Apple 로그인 오류: ' + error);
+                    return;
+                }
+
+                if (code) {
+                    // 성공: 토큰을 앱으로 전달
+                    showSuccess();
+                    
+                    // sign_in_with_apple 플러그인이 처리할 수 있도록 URL 유지
+                    // 플러그인이 자동으로 토큰을 추출합니다
+                    setTimeout(() => {
+                        // 앱으로 복귀 시도 (sign_in_with_apple 플러그인이 처리)
+                        if (window.opener) {
+                            window.close();
+                        }
+                    }, 1500);
+                } else {
+                    // 토큰 없음
+                    showError('인증 코드를 받지 못했습니다');
+                }
+            } catch (e) {
+                console.error('Callback processing error:', e);
+                showError('처리 중 오류가 발생했습니다: ' + e.message);
+            }
+        })();
+
+        function showSuccess() {
+            document.querySelector('.container').innerHTML = `
+                <div class="success">✓</div>
+                <h2>로그인 성공!</h2>
+                <p>앱으로 돌아가는 중...</p>
+            `;
+        }
+
+        function showError(message) {
+            document.querySelector('.container').innerHTML = `
+                <div class="error">✕</div>
+                <h2>로그인 실패</h2>
+                <p>${message}</p>
+                <br>
+                <button onclick="window.close()" style="padding: 10px 20px; border: none; background: #667eea; color: white; border-radius: 8px; cursor: pointer;">닫기</button>
+            `;
+        }
+    </script>
 </body>
 </html>
