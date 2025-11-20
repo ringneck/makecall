@@ -318,6 +318,42 @@ class SocialLoginService {
         debugPrint('='*60);
       }
 
+      // 🔧 FIX: 무한 동의 화면 방지 - 기존 세션 명시적 로그아웃
+      try {
+        if (kDebugMode) {
+          debugPrint('🔧 [Naver] 기존 세션 확인 및 정리 중...');
+        }
+        
+        final currentStatus = await FlutterNaverLogin.currentStatus();
+        
+        if (kDebugMode) {
+          debugPrint('   - 현재 로그인 상태: $currentStatus');
+        }
+        
+        // 기존 세션이 있으면 로그아웃 후 재로그인
+        if (currentStatus == NaverLoginStatus.loggedIn) {
+          if (kDebugMode) {
+            debugPrint('   → 기존 세션 발견, 로그아웃 실행');
+          }
+          await FlutterNaverLogin.logOut();
+          
+          // 로그아웃 후 약간의 대기 시간 (SDK 상태 정리)
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          if (kDebugMode) {
+            debugPrint('   ✅ 기존 세션 정리 완료');
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('   ✅ 기존 세션 없음, 새 로그인 진행');
+          }
+        }
+      } catch (statusError) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [Naver] 세션 확인 실패 (무시하고 계속): $statusError');
+        }
+      }
+
       // 네이버 로그인 (계정 정보가 result.account에 포함됨)
       NaverLoginResult result;
       
@@ -332,11 +368,24 @@ class SocialLoginService {
           debugPrint('✅ [Naver] FlutterNaverLogin.logIn() 응답 받음');
           debugPrint('   - status: ${result.status}');
           debugPrint('   - account != null: ${result.account != null}');
-          debugPrint('   - errorMessage: ${result.errorMessage}'); // 🆕 에러 메시지 로깅
+          debugPrint('   - errorMessage: ${result.errorMessage}');
+          debugPrint('   - errorDescription: ${result.errorDescription}'); // 🆕 추가 에러 정보
           
           if (result.account != null) {
             debugPrint('   - account.id: ${result.account!.id}');
             debugPrint('   - account.email: ${result.account!.email}');
+            debugPrint('   - account.name: ${result.account!.name}');
+          }
+          
+          // 🆕 로그인 직후 저장된 토큰 확인
+          try {
+            final tokenStatus = await FlutterNaverLogin.currentAccessToken;
+            debugPrint('   - accessToken 저장 확인: ${tokenStatus.accessToken != null ? "존재" : "없음"}');
+            if (tokenStatus.accessToken != null) {
+              debugPrint('   - accessToken 길이: ${tokenStatus.accessToken!.length}자');
+            }
+          } catch (tokenError) {
+            debugPrint('   ⚠️ 토큰 확인 실패: $tokenError');
           }
           
           // ⚠️ 에러 상태일 때 진단 정보 출력
