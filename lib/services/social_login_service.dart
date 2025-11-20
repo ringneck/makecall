@@ -184,12 +184,21 @@ class SocialLoginService {
         final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
         final callable = functions.httpsCallable('createCustomTokenForKakao');
         
-        final response = await callable.call<Map<String, dynamic>>({
+        // 🔍 전송할 데이터 로깅
+        final requestData = {
           'kakaoUid': user.id.toString(),
           'email': user.kakaoAccount?.email,
           'displayName': user.kakaoAccount?.profile?.nickname,
           'photoUrl': user.kakaoAccount?.profile?.profileImageUrl,
-        });
+        };
+        
+        if (kDebugMode) {
+          debugPrint('🔍 [Kakao] 전송 데이터: $requestData');
+          debugPrint('🔍 [Kakao] Functions URL: https://asia-northeast3-makecallio.cloudfunctions.net/createCustomTokenForKakao');
+        }
+        
+        // Firebase Functions 호출 (명시적 데이터 전달)
+        final response = await callable.call(requestData);
         
         if (kDebugMode) {
           debugPrint('✅ [Kakao] Firebase Custom Token 생성 완료');
@@ -247,12 +256,22 @@ class SocialLoginService {
         }
         
         // INTERNAL 에러 감지
-        if (errorString.contains('internal')) {
+        if (errorString.contains('internal') || errorString.contains('missing data')) {
+          if (kDebugMode) {
+            debugPrint('🔍 [Kakao] INTERNAL 에러 상세 분석:');
+            debugPrint('   에러 메시지: $e');
+            if (e is FirebaseFunctionsException) {
+              debugPrint('   에러 코드: ${e.code}');
+              debugPrint('   에러 상세: ${e.details}');
+            }
+          }
+          
           return SocialLoginResult(
             success: false,
             errorMessage: '서버 설정 오류\n\n'
                 '카카오 로그인 서버가 준비 중입니다.\n'
-                '관리자에게 문의해주세요.',
+                '관리자에게 문의해주세요.\n\n'
+                '에러: ${e is FirebaseFunctionsException ? e.message : e.toString()}',
             provider: SocialLoginProvider.kakao,
           );
         }
