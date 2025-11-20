@@ -141,24 +141,62 @@ class SocialLoginService {
       
       kakao.OAuthToken token;
       
+      if (kDebugMode) {
+        debugPrint('🔄 [Kakao] 카카오톡 설치 여부: $isKakaoTalkInstalled');
+      }
+      
       // 카카오톡 앱 로그인 시도
       if (isKakaoTalkInstalled) {
         try {
+          if (kDebugMode) {
+            debugPrint('🔄 [Kakao] 카카오톡 앱 로그인 시도...');
+          }
           token = await kakao.UserApi.instance.loginWithKakaoTalk();
+          if (kDebugMode) {
+            debugPrint('✅ [Kakao] 카카오톡 앱 로그인 성공');
+          }
         } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [Kakao] 카카오톡 앱 로그인 실패, 웹뷰로 전환: $e');
+          }
           // 카카오톡 로그인 실패 시 웹뷰로 전환
           token = await kakao.UserApi.instance.loginWithKakaoAccount();
+          if (kDebugMode) {
+            debugPrint('✅ [Kakao] 웹뷰 로그인 성공');
+          }
         }
       } else {
         // 카카오톡 미설치 시 웹뷰 로그인
+        if (kDebugMode) {
+          debugPrint('🔄 [Kakao] 웹뷰 로그인 시도...');
+        }
         token = await kakao.UserApi.instance.loginWithKakaoAccount();
+        if (kDebugMode) {
+          debugPrint('✅ [Kakao] 웹뷰 로그인 성공');
+        }
+      }
+
+      if (kDebugMode) {
+        debugPrint('✅ [Kakao] OAuth 토큰 획득 완료');
+        debugPrint('🔄 [Kakao] 사용자 정보 조회 중...');
       }
 
       // 사용자 정보 가져오기
       kakao.User user = await kakao.UserApi.instance.me();
+      
+      if (kDebugMode) {
+        debugPrint('✅ [Kakao] 사용자 정보 조회 완료');
+        debugPrint('   - User ID: ${user.id}');
+        debugPrint('   - Email: ${user.kakaoAccount?.email}');
+        debugPrint('   - Nickname: ${user.kakaoAccount?.profile?.nickname}');
+      }
 
       // Firebase Custom Token 생성 및 로그인
       try {
+        if (kDebugMode) {
+          debugPrint('🔄 [Kakao] Firebase Custom Token 생성 요청 중...');
+        }
+        
         final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
         final callable = functions.httpsCallable('createCustomTokenForKakao');
         
@@ -169,11 +207,21 @@ class SocialLoginService {
           'photoUrl': user.kakaoAccount?.profile?.profileImageUrl,
         });
         
+        if (kDebugMode) {
+          debugPrint('✅ [Kakao] Firebase Custom Token 생성 완료');
+        }
+        
         final customToken = response.data['customToken'] as String;
+        
+        if (kDebugMode) {
+          debugPrint('🔄 [Kakao] Firebase 로그인 중...');
+        }
+        
         final userCredential = await FirebaseAuth.instance.signInWithCustomToken(customToken);
         
         if (kDebugMode) {
-          debugPrint('✅ [Kakao] 로그인 성공');
+          debugPrint('✅ [Kakao] Firebase 로그인 완료');
+          debugPrint('✅ [Kakao] 전체 로그인 프로세스 성공');
         }
         
         return SocialLoginResult(
