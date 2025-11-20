@@ -476,12 +476,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     try {
       final result = await _socialLoginService.signInWithNaver();
       
+      if (kDebugMode) {
+        debugPrint('🔍 [LOGIN SCREEN] 네이버 로그인 결과:');
+        debugPrint('   - success: ${result.success}');
+        debugPrint('   - errorMessage: ${result.errorMessage}');
+        debugPrint('   - mounted: $mounted');
+      }
+      
       if (result.success) {
         await _handleSocialLoginSuccess(result);
       } else {
         if (mounted) {
           // 사용자 취소는 안내 메시지로 표시
           if (result.errorMessage?.contains('취소') ?? false) {
+            if (kDebugMode) {
+              debugPrint('📱 [LOGIN SCREEN] 취소 다이얼로그 표시');
+            }
             await DialogUtils.showInfo(
               context,
               'Naver 로그인이 취소되었습니다.',
@@ -489,20 +499,35 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             );
           } else if (result.errorMessage?.contains('네이버 앱') ?? false) {
             // 네이버 앱 설치 안내는 정보 다이얼로그로 표시
+            if (kDebugMode) {
+              debugPrint('📱 [LOGIN SCREEN] 네이버 앱 안내 다이얼로그 표시');
+              debugPrint('   - 메시지: ${result.errorMessage}');
+            }
             await DialogUtils.showInfo(
               context,
               result.errorMessage ?? '네이버 앱이 필요합니다.',
               title: '네이버 로그인 안내',
             );
           } else {
+            if (kDebugMode) {
+              debugPrint('❌ [LOGIN SCREEN] 에러 다이얼로그 표시');
+              debugPrint('   - 메시지: ${result.errorMessage}');
+            }
             await DialogUtils.showError(
               context,
               result.errorMessage ?? 'Naver 로그인에 실패했습니다.',
             );
           }
+        } else {
+          if (kDebugMode) {
+            debugPrint('⚠️ [LOGIN SCREEN] mounted == false, 다이얼로그 표시 안 함');
+          }
         }
       }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [LOGIN SCREEN] Exception 발생: $e');
+      }
       if (mounted) {
         await DialogUtils.showError(
           context,

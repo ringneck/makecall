@@ -206,11 +206,34 @@ class SocialLoginService {
       } catch (e) {
         if (kDebugMode) {
           debugPrint('❌ [Kakao] Firebase 인증 실패: $e');
+          debugPrint('   Error Type: ${e.runtimeType}');
+        }
+        
+        // INTERNAL 에러 감지
+        final errorString = e.toString().toLowerCase();
+        if (errorString.contains('internal')) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [Kakao] Firebase Functions INTERNAL 오류');
+            debugPrint('   가능한 원인:');
+            debugPrint('   1. Firebase Functions 미배포 (createCustomTokenForKakao)');
+            debugPrint('   2. IAM 권한 미설정 (Service Account Token Creator)');
+            debugPrint('   3. Functions Region 불일치 (asia-northeast3)');
+          }
+          
+          return SocialLoginResult(
+            success: false,
+            errorMessage: '서버 설정 오류\n\n'
+                '카카오 로그인 서버가 준비 중입니다.\n'
+                '관리자에게 문의해주세요.\n\n'
+                '오류 코드: FIREBASE_INTERNAL',
+            provider: SocialLoginProvider.kakao,
+          );
         }
         
         return SocialLoginResult(
           success: false,
-          errorMessage: 'Firebase 인증 실패',
+          errorMessage: 'Firebase 인증 실패\n\n'
+              '잠시 후 다시 시도해주세요.',
           provider: SocialLoginProvider.kakao,
         );
       }
@@ -282,26 +305,35 @@ class SocialLoginService {
       // STEP 3: 네이버 로그인 시도
       NaverLoginResult result;
       
+      if (kDebugMode) {
+        debugPrint('🔄 [Naver] FlutterNaverLogin.logIn() 호출 중...');
+      }
+      
       try {
         result = await FlutterNaverLogin.logIn();
         
         if (kDebugMode) {
           debugPrint('✅ [Naver] 로그인 응답 받음');
           debugPrint('   - status: ${result.status}');
+          debugPrint('   - status.name: ${result.status.name}');
           debugPrint('   - errorMessage: ${result.errorMessage ?? "없음"}');
           debugPrint('   - account: ${result.account != null ? "있음" : "없음"}');
+          
+          // 네이버 앱 미설치 가능성 체크
+          if (result.status == NaverLoginStatus.error) {
+            debugPrint('🔍 [Naver] ERROR 상태 감지 - 네이버 앱 미설치 가능성');
+            debugPrint('   - errorMessage 내용: "${result.errorMessage}"');
+          }
         }
       } catch (loginError) {
         if (kDebugMode) {
-          debugPrint('❌ [Naver] 로그인 호출 실패');
+          debugPrint('❌ [Naver] 로그인 호출 중 Exception 발생');
+          debugPrint('   - Error Type: ${loginError.runtimeType}');
           debugPrint('   - Error: $loginError');
+          debugPrint('ℹ️ [Naver] Exception이므로 네이버 앱 안내 표시');
         }
         
-        // 네이버 앱 설치 안내
-        if (kDebugMode) {
-          debugPrint('ℹ️ [Naver] 네이버 앱 인증 필요');
-        }
-        
+        // Exception 발생 시 네이버 앱 설치 안내
         return SocialLoginResult(
           success: false,
           errorMessage: '📱 네이버 앱 로그인 안내\n\n'
@@ -351,11 +383,34 @@ class SocialLoginService {
         } catch (e) {
           if (kDebugMode) {
             debugPrint('❌ [Naver] Firebase 인증 실패: $e');
+            debugPrint('   Error Type: ${e.runtimeType}');
+          }
+          
+          // INTERNAL 에러 감지
+          final errorString = e.toString().toLowerCase();
+          if (errorString.contains('internal')) {
+            if (kDebugMode) {
+              debugPrint('⚠️ [Naver] Firebase Functions INTERNAL 오류');
+              debugPrint('   가능한 원인:');
+              debugPrint('   1. Firebase Functions 미배포 (createCustomTokenForNaver)');
+              debugPrint('   2. IAM 권한 미설정 (Service Account Token Creator)');
+              debugPrint('   3. Functions Region 불일치 (asia-northeast3)');
+            }
+            
+            return SocialLoginResult(
+              success: false,
+              errorMessage: '서버 설정 오류\n\n'
+                  '네이버 로그인 서버가 준비 중입니다.\n'
+                  '관리자에게 문의해주세요.\n\n'
+                  '오류 코드: FIREBASE_INTERNAL',
+              provider: SocialLoginProvider.naver,
+            );
           }
           
           return SocialLoginResult(
             success: false,
-            errorMessage: 'Firebase 인증 실패',
+            errorMessage: 'Firebase 인증 실패\n\n'
+                '잠시 후 다시 시도해주세요.',
             provider: SocialLoginProvider.naver,
           );
         }
