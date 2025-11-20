@@ -195,6 +195,15 @@ class _CallTabState extends State<CallTab> {
   
   /// 🎯 소셜 로그인 성공 메시지 완료 대기 (이벤트 기반)
   Future<void> _waitForSocialLoginMessageCompletion() async {
+    // 🔍 신규 사용자 소셜 로그인이 아니면 즉시 설정 체크 진행
+    if (!widget.autoOpenProfileForNewUser) {
+      if (kDebugMode) {
+        debugPrint('🎯 일반 로그인 또는 기존 사용자 - 이벤트 대기 생략');
+      }
+      _checkSettingsAndShowGuide();
+      return;
+    }
+    
     // 소셜 로그인 성공 메시지 플래그가 true가 될 때까지 대기
     int waitCount = 0;
     const maxWaitTime = 10000; // 최대 10초 대기

@@ -9,6 +9,7 @@ import '../../services/auth_service.dart';
 import '../../services/social_login_service.dart';
 import '../../utils/dialog_utils.dart';
 import '../../widgets/social_login_buttons.dart';
+import '../home/main_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -290,6 +291,17 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     if (context.mounted) {
                       final authService = context.read<AuthService>();
                       authService.setSocialLoginSuccessMessageShown(true);
+                      
+                      // 5️⃣ 메인 화면으로 이동 (기존 계정 로그인 완료)
+                      // AuthService가 이미 로그인 상태이므로 메인 화면으로 직접 이동
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const MainScreen(
+                            autoOpenProfileForNewUser: false,
+                          ),
+                        ),
+                        (route) => false, // 모든 이전 route 제거
+                      );
                     }
                   }
                 }
