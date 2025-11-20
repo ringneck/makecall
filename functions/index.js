@@ -795,20 +795,31 @@ exports.createCustomTokenForKakao = functions
         console.log(`✅ [KAKAO] Custom token created, length: ${customToken.length}`);
 
         // Firestore에 사용자 정보 저장
-        await admin.firestore().collection("users").doc(firebaseUid).set({
-          uid: firebaseUid,
-          provider: "kakao",
-          kakaoUid: kakaoUid,
-          email: email || null,
-          displayName: displayName || "Kakao User",
-          photoURL: photoUrl || null,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
-        }, {merge: true});
+        console.log(`🔄 [KAKAO] Saving user data to Firestore...`);
+        try {
+          await admin.firestore().collection("users").doc(firebaseUid).set({
+            uid: firebaseUid,
+            provider: "kakao",
+            kakaoUid: kakaoUid,
+            email: email || null,
+            displayName: displayName || "Kakao User",
+            photoURL: photoUrl || null,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
+          }, {merge: true});
+          console.log(`✅ [KAKAO] User data saved to Firestore successfully`);
+        } catch (firestoreError) {
+          console.error(`❌ [KAKAO] Firestore save failed:`, firestoreError);
+          // Firestore 저장 실패해도 Custom Token은 반환 (로그인은 가능하게)
+        }
 
         console.log(`✅ [KAKAO] Custom token created successfully`);
+        console.log(`🔄 [KAKAO] Returning response to client...`);
 
-        return {customToken};
+        const response = {customToken};
+        console.log(`✅ [KAKAO] Response prepared:`, { hasToken: !!customToken, tokenLength: customToken?.length });
+        
+        return response;
       } catch (error) {
         console.error("❌ [KAKAO] Error creating custom token:", error);
         console.error("❌ [KAKAO] Error details:", {
