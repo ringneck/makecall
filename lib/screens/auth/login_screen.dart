@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
 import '../../services/account_manager_service.dart';
 import '../../services/social_login_service.dart';
@@ -243,17 +242,51 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         debugPrint('   - Photo URL: ${result.photoUrl}');
       }
       
-      // 카카오 로그인 성공 시 Firestore 사용자 정보 업데이트
+      // 🔐 CRITICAL: Firestore 사용자 정보 업데이트 완료 대기
+      // 소셜 로그인 성공 시 Firestore 사용자 정보를 먼저 업데이트하고
+      // 업데이트가 완전히 완료된 후에야 AuthService가 userModel을 로드하도록 함
       if (result.success && result.userId != null) {
+        if (kDebugMode) {
+          debugPrint('🔄 [SOCIAL LOGIN] Firestore 업데이트 시작...');
+        }
+        
         await _updateFirestoreUserProfile(
           userId: result.userId!,
           displayName: result.displayName,
           photoUrl: result.photoUrl,
           provider: result.provider,
         );
+        
+        if (kDebugMode) {
+          debugPrint('✅ [SOCIAL LOGIN] Firestore 업데이트 완료');
+        }
+        
+        // 🔐 CRITICAL: AuthService의 userModel 로드 완료까지 대기
+        // Firebase Authentication이 이미 완료되었지만,
+        // AuthService의 _loadUserModel()이 완료될 때까지 추가 대기
+        if (kDebugMode) {
+          debugPrint('⏳ [SOCIAL LOGIN] AuthService userModel 로드 대기...');
+        }
+        
+        // userModel이 로드될 때까지 최대 5초 대기
+        int waitCount = 0;
+        while (authService.currentUserModel == null && waitCount < 50) {
+          await Future.delayed(const Duration(milliseconds: 100));
+          waitCount++;
+        }
+        
+        if (authService.currentUserModel != null) {
+          if (kDebugMode) {
+            debugPrint('✅ [SOCIAL LOGIN] AuthService userModel 로드 완료 (${waitCount * 100}ms)');
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('⚠️ [SOCIAL LOGIN] AuthService userModel 로드 타임아웃 (5초)');
+          }
+        }
       }
       
-      // Firebase Authentication이 이미 완료되었으므로
+      // 🎯 모든 비동기 처리 완료 후 홈 화면으로 이동
       // AuthService의 user stream이 자동으로 업데이트되어 홈 화면으로 이동
       
     } catch (e) {
