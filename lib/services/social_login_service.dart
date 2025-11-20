@@ -304,6 +304,7 @@ class SocialLoginService {
 
       // STEP 3: 네이버 로그인 시도
       NaverLoginResult result;
+      final startTime = DateTime.now();
       
       if (kDebugMode) {
         debugPrint('🔄 [Naver] FlutterNaverLogin.logIn() 호출 중...');
@@ -312,17 +313,25 @@ class SocialLoginService {
       try {
         result = await FlutterNaverLogin.logIn();
         
+        final elapsedTime = DateTime.now().difference(startTime);
+        
         if (kDebugMode) {
           debugPrint('✅ [Naver] 로그인 응답 받음');
           debugPrint('   - status: ${result.status}');
           debugPrint('   - status.name: ${result.status.name}');
           debugPrint('   - errorMessage: ${result.errorMessage ?? "없음"}');
           debugPrint('   - account: ${result.account != null ? "있음" : "없음"}');
+          debugPrint('   - elapsed time: ${elapsedTime.inMilliseconds}ms');
           
           // 네이버 앱 미설치 가능성 체크
           if (result.status == NaverLoginStatus.error) {
             debugPrint('🔍 [Naver] ERROR 상태 감지 - 네이버 앱 미설치 가능성');
             debugPrint('   - errorMessage 내용: "${result.errorMessage}"');
+          }
+          
+          if (result.status == NaverLoginStatus.loggedOut && elapsedTime.inSeconds < 3) {
+            debugPrint('🔍 [Naver] loggedOut 상태 + 빠른 종료 (${elapsedTime.inMilliseconds}ms)');
+            debugPrint('   → 네이버 앱 미설치 가능성 높음');
           }
         }
       } catch (loginError) {
@@ -423,6 +432,7 @@ class SocialLoginService {
         }
         
         String errorMessage;
+        final elapsedTime = DateTime.now().difference(startTime);
         
         if (result.status == NaverLoginStatus.error) {
           // 네이버 앱 미설치 또는 인증 실패 - 안내 메시지
@@ -436,8 +446,24 @@ class SocialLoginService {
               '✅ Play 스토어에서 네이버 앱을 설치한 후\n'
               '다시 시도해주세요.';
         } else if (result.status == NaverLoginStatus.loggedOut) {
-          // 사용자가 로그인 취소
-          errorMessage = '로그인이 취소되었습니다';
+          // loggedOut 상태인데 3초 이내에 종료된 경우 → 네이버 앱 미설치
+          if (elapsedTime.inSeconds < 3) {
+            if (kDebugMode) {
+              debugPrint('ℹ️ [Naver] 빠른 종료 감지 (${elapsedTime.inMilliseconds}ms) - 네이버 앱 안내 표시');
+            }
+            errorMessage = '📱 네이버 앱 로그인 안내\n\n'
+                '네이버 계정으로 로그인하기 위해서는\n'
+                '네이버 앱이 설치되고,\n'
+                '네이버 앱으로 로그인해야 합니다.\n\n'
+                '✅ Play 스토어에서 네이버 앱을 설치한 후\n'
+                '다시 시도해주세요.';
+          } else {
+            // 사용자가 직접 취소한 경우 (3초 이상 소요)
+            if (kDebugMode) {
+              debugPrint('ℹ️ [Naver] 사용자 취소 (${elapsedTime.inMilliseconds}ms)');
+            }
+            errorMessage = '로그인이 취소되었습니다';
+          }
         } else {
           // 알 수 없는 상태 - 네이버 앱 안내
           errorMessage = '📱 네이버 앱 로그인 안내\n\n'
