@@ -764,14 +764,25 @@ exports.createCustomTokenForKakao = functions
         const firebaseUid = `kakao_${kakaoUid}`;
 
         console.log(`🔐 [KAKAO] Creating custom token for user: ${firebaseUid}`);
+        console.log(`🔐 [KAKAO] User data:`, {
+          kakaoUid,
+          email,
+          displayName,
+          photoUrl,
+        });
+
+        // 🔍 Firebase Admin Auth 객체 확인
+        console.log(`🔧 [KAKAO] Firebase Admin Auth available:`, typeof admin.auth());
 
         // Custom Token 생성
+        console.log(`🔄 [KAKAO] Calling admin.auth().createCustomToken()...`);
         const customToken = await admin.auth().createCustomToken(firebaseUid, {
           provider: "kakao",
           email: email || null,
           name: displayName || "Kakao User",
           picture: photoUrl || null,
         });
+        console.log(`✅ [KAKAO] Custom token created, length: ${customToken.length}`);
 
         // Firestore에 사용자 정보 저장
         await admin.firestore().collection("users").doc(firebaseUid).set({
@@ -793,8 +804,23 @@ exports.createCustomTokenForKakao = functions
         console.error("❌ [KAKAO] Error details:", {
           message: error.message,
           code: error.code,
+          name: error.name,
           stack: error.stack,
         });
+
+        // 🔍 전체 에러 객체 출력 (숨겨진 속성 포함)
+        console.error("❌ [KAKAO] Full error object:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+
+        // 🔍 Firebase Admin SDK 설정 정보
+        try {
+          const app = admin.app();
+          console.log("🔧 [KAKAO] Firebase Admin SDK config:", {
+            projectId: app.options.projectId,
+            serviceAccount: app.options.credential ? "✅ Credential configured" : "❌ No credential",
+          });
+        } catch (e) {
+          console.error("⚠️ [KAKAO] Could not read Firebase Admin config:", e.message);
+        }
 
         if (error instanceof functions.https.HttpsError) {
           throw error;
@@ -803,10 +829,14 @@ exports.createCustomTokenForKakao = functions
         // PERMISSION_DENIED 에러 상세 정보 추가
         if (error.code === 7 || error.message?.includes("PERMISSION_DENIED")) {
           console.error("🔐 [KAKAO] IAM Permission Issue Detected");
-          console.error("   Required roles:");
+          console.error("   Error code 7 = gRPC PERMISSION_DENIED");
+          console.error("   Required IAM roles:");
           console.error("   - roles/iam.serviceAccountTokenCreator");
           console.error("   - roles/serviceusage.serviceUsageConsumer");
-          console.error("   Service Account:", admin.instanceId().app.options.credential);
+          console.error("   ");
+          console.error("   Service accounts to check:");
+          console.error("   - makecallio@appspot.gserviceaccount.com");
+          console.error("   - 793164633643-compute@developer.gserviceaccount.com");
         }
 
         throw new functions.https.HttpsError(
