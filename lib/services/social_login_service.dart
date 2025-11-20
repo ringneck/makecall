@@ -288,43 +288,28 @@ class SocialLoginService {
         if (kDebugMode) {
           debugPrint('✅ [Naver] 로그인 응답 받음');
           debugPrint('   - status: ${result.status}');
+          debugPrint('   - errorMessage: ${result.errorMessage ?? "없음"}');
+          debugPrint('   - account: ${result.account != null ? "있음" : "없음"}');
         }
       } catch (loginError) {
         if (kDebugMode) {
-          debugPrint('❌ [Naver] 로그인 호출 실패: $loginError');
+          debugPrint('❌ [Naver] 로그인 호출 실패');
+          debugPrint('   - Error: $loginError');
         }
         
-        // 네이버 앱 미설치 에러 감지
-        final errorString = loginError.toString().toLowerCase();
-        if (errorString.contains('not installed') || 
-            errorString.contains('설치') ||
-            errorString.contains('앱이 없') ||
-            errorString.contains('app not found')) {
-          return SocialLoginResult(
-            success: false,
-            errorMessage: '네이버 앱 인증 필요\n\n'
-                '네이버로 로그인하기 위해서는\n'
-                '네이버 앱 인증이 필요합니다.\n\n'
-                'Play 스토어에서 네이버 앱을 설치한 후\n'
-                '다시 시도해주세요.',
-            provider: SocialLoginProvider.naver,
-          );
-        }
-        
-        // MissingPluginException 감지
-        if (errorString.contains('missingpluginexception')) {
-          return SocialLoginResult(
-            success: false,
-            errorMessage: '네이버 로그인 플러그인 오류\n\n'
-                '앱을 완전히 종료한 후\n'
-                '다시 시작해주세요.',
-            provider: SocialLoginProvider.naver,
-          );
+        // 네이버 앱 설치 안내
+        if (kDebugMode) {
+          debugPrint('ℹ️ [Naver] 네이버 앱 인증 필요');
         }
         
         return SocialLoginResult(
           success: false,
-          errorMessage: '네이버 로그인 오류',
+          errorMessage: '📱 네이버 앱 로그인 안내\n\n'
+              '네이버 계정으로 로그인하기 위해서는\n'
+              '네이버 앱이 설치되고,\n'
+              '네이버 앱으로 로그인해야 합니다.\n\n'
+              '✅ Play 스토어에서 네이버 앱을 설치한 후\n'
+              '다시 시도해주세요.',
           provider: SocialLoginProvider.naver,
         );
       }
@@ -376,15 +361,34 @@ class SocialLoginService {
         }
       } else {
         // 로그인 취소 또는 실패
-        String errorMessage = '로그인이 취소되었습니다';
+        if (kDebugMode) {
+          debugPrint('ℹ️ [Naver] 로그인 미완료');
+          debugPrint('   - status: ${result.status}');
+          debugPrint('   - errorMessage: ${result.errorMessage ?? "없음"}');
+        }
+        
+        String errorMessage;
         
         if (result.status == NaverLoginStatus.error) {
-          // 네이버 앱 미설치 가능성
-          errorMessage = '네이버 앱 인증 필요\n\n'
-              '네이버로 로그인하기 위해서는\n'
-              '네이버 앱 인증이 필요합니다.\n\n'
-              'Play 스토어에서 네이버 앱을 설치한 후\n'
+          // 네이버 앱 미설치 또는 인증 실패 - 안내 메시지
+          if (kDebugMode) {
+            debugPrint('ℹ️ [Naver] 네이버 앱 인증 필요 안내 표시');
+          }
+          errorMessage = '📱 네이버 앱 로그인 안내\n\n'
+              '네이버 계정으로 로그인하기 위해서는\n'
+              '네이버 앱이 설치되고,\n'
+              '네이버 앱으로 로그인해야 합니다.\n\n'
+              '✅ Play 스토어에서 네이버 앱을 설치한 후\n'
               '다시 시도해주세요.';
+        } else if (result.status == NaverLoginStatus.loggedOut) {
+          // 사용자가 로그인 취소
+          errorMessage = '로그인이 취소되었습니다';
+        } else {
+          // 알 수 없는 상태 - 네이버 앱 안내
+          errorMessage = '📱 네이버 앱 로그인 안내\n\n'
+              '네이버 계정으로 로그인하기 위해서는\n'
+              '네이버 앱이 설치되고,\n'
+              '네이버 앱으로 로그인해야 합니다.';
         }
         
         return SocialLoginResult(
@@ -396,11 +400,18 @@ class SocialLoginService {
 
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ [Naver] 로그인 오류: $e');
+        debugPrint('ℹ️ [Naver] 로그인 처리 중 예외: $e');
       }
+      
+      // 최종 catch - 네이버 앱 필수 안내
       return SocialLoginResult(
         success: false,
-        errorMessage: '네이버 로그인 오류',
+        errorMessage: '📱 네이버 앱 로그인 안내\n\n'
+            '네이버 계정으로 로그인하기 위해서는\n'
+            '네이버 앱이 설치되고,\n'
+            '네이버 앱으로 로그인해야 합니다.\n\n'
+            '✅ Play 스토어에서 네이버 앱을 설치한 후\n'
+            '다시 시도해주세요.',
         provider: SocialLoginProvider.naver,
       );
     }

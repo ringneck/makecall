@@ -487,6 +487,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               'Naver 로그인이 취소되었습니다.',
               title: 'Naver 로그인',
             );
+          } else if (result.errorMessage?.contains('네이버 앱') ?? false) {
+            // 네이버 앱 설치 안내는 정보 다이얼로그로 표시
+            await DialogUtils.showInfo(
+              context,
+              result.errorMessage ?? '네이버 앱이 필요합니다.',
+              title: '네이버 로그인 안내',
+            );
           } else {
             await DialogUtils.showError(
               context,
