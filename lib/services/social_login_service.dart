@@ -218,10 +218,35 @@ class SocialLoginService {
         );
       } catch (e) {
         if (kDebugMode) {
-          debugPrint('❌ [Kakao] Firebase 인증 실패: $e');
+          debugPrint('❌ [Kakao] Firebase 인증 실패');
+          debugPrint('   에러 타입: ${e.runtimeType}');
+          debugPrint('   에러 메시지: $e');
+          
+          // FirebaseFunctionsException인 경우 추가 정보 출력
+          if (e is FirebaseFunctionsException) {
+            debugPrint('   Functions 에러 코드: ${e.code}');
+            debugPrint('   Functions 에러 메시지: ${e.message}');
+            debugPrint('   Functions 에러 상세: ${e.details}');
+          }
         }
         
         final errorString = e.toString().toLowerCase();
+        
+        // PERMISSION_DENIED 에러 감지
+        if (errorString.contains('permission') || 
+            (e is FirebaseFunctionsException && e.code == 'permission-denied')) {
+          return SocialLoginResult(
+            success: false,
+            errorMessage: 'IAM 권한 오류\n\n'
+                'Firebase Functions 서비스 계정에\n'
+                'IAM 권한이 올바르게 설정되지 않았습니다.\n\n'
+                'KAKAO_LOGIN_IAM_FIX.md 문서를 참고하여\n'
+                'IAM 권한을 다시 확인해주세요.',
+            provider: SocialLoginProvider.kakao,
+          );
+        }
+        
+        // INTERNAL 에러 감지
         if (errorString.contains('internal')) {
           return SocialLoginResult(
             success: false,
@@ -232,10 +257,24 @@ class SocialLoginService {
           );
         }
         
+        // NOT_FOUND 에러 감지 (함수가 배포되지 않음)
+        if (errorString.contains('not-found') || errorString.contains('not found')) {
+          return SocialLoginResult(
+            success: false,
+            errorMessage: '함수 배포 오류\n\n'
+                'createCustomTokenForKakao 함수가\n'
+                'Firebase에 배포되지 않았습니다.\n\n'
+                'Firebase Console에서 Functions 배포를\n'
+                '확인해주세요.',
+            provider: SocialLoginProvider.kakao,
+          );
+        }
+        
         return SocialLoginResult(
           success: false,
           errorMessage: 'Firebase 인증 실패\n\n'
-              '잠시 후 다시 시도해주세요.',
+              '잠시 후 다시 시도해주세요.\n\n'
+              '에러: ${e is FirebaseFunctionsException ? e.message : e.toString()}',
           provider: SocialLoginProvider.kakao,
         );
       }
