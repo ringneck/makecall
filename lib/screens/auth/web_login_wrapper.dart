@@ -513,17 +513,17 @@ class _FooterSection extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Google Play Store 아이콘
+              // Google Play Store Badge
               _buildStoreIcon(
-                icon: Icons.shop,
+                imagePath: 'assets/images/stores/google_play.png',
                 label: 'Google Play',
                 url: '', // TODO: Google Play Store URL 추가
                 isDark: isDark,
               ),
               const SizedBox(width: 24),
-              // Apple App Store 아이콘
+              // Apple App Store Badge
               _buildStoreIcon(
-                icon: Icons.apple,
+                imagePath: 'assets/images/stores/app_store.png',
                 label: 'App Store',
                 url: '', // TODO: Apple App Store URL 추가
                 isDark: isDark,
@@ -590,7 +590,7 @@ class _FooterSection extends StatelessWidget {
   }
 
   Widget _buildStoreIcon({
-    required IconData icon,
+    required String imagePath,
     required String label,
     required String url,
     required bool isDark,
@@ -615,16 +615,16 @@ class _FooterSection extends StatelessWidget {
               }
             : null,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          height: 60,
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.grey[900]!.withValues(alpha: 0.5)
-                : Colors.white.withValues(alpha: 0.5),
+                ? Colors.grey[900]!.withValues(alpha: 0.3)
+                : Colors.white.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withValues(alpha: 0.2)
-                  : Colors.grey.withValues(alpha: 0.3),
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.grey.withValues(alpha: 0.2),
               width: 1,
             ),
             boxShadow: [
@@ -635,24 +635,11 @@ class _FooterSection extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 24,
-                color: isDark ? Colors.grey[300] : Colors.grey[700],
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.grey[300] : Colors.grey[700],
-                ),
-              ),
-            ],
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Image.asset(
+            imagePath,
+            height: 44,
+            fit: BoxFit.contain,
           ),
         ),
       ),

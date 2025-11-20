@@ -120,6 +120,8 @@ flutter:
   assets:
     - assets/icons/app_icon.png
     - assets/images/app_logo.png
+    - assets/images/stores/google_play.png
+    - assets/images/stores/app_store.png
     - assets/html/terms_of_service.html
     - assets/html/privacy_policy.html
     - assets/audio/ringtone.mp3
