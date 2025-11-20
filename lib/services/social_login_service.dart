@@ -57,21 +57,25 @@ class SocialLoginService {
   // Android 네이티브 통신용 MethodChannel
   static const MethodChannel _channel = MethodChannel('com.olssoo.makecall_app/webview');
 
-  /// ===== 1. 구글 로그인 =====
+  /// ===== 1. 구글 로그인 (Android 네이티브 전용) =====
   Future<SocialLoginResult> signInWithGoogle() async {
     try {
+      // Android만 지원
+      if (!_isAndroid) {
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '구글 로그인은 Android 앱에서만 지원됩니다.',
+          provider: SocialLoginProvider.google,
+        );
+      }
+
       if (kDebugMode) {
         debugPrint('🔵 [Google] 로그인 시작');
       }
 
-      // Google Sign In
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       
       if (googleUser == null) {
-        // 사용자가 로그인 취소
-        if (kDebugMode) {
-          debugPrint('⚠️ [Google] 사용자가 로그인 취소');
-        }
         return SocialLoginResult(
           success: false,
           errorMessage: '로그인이 취소되었습니다',
@@ -79,31 +83,18 @@ class SocialLoginService {
         );
       }
 
-      // Google 인증 정보 가져오기
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
-      if (kDebugMode) {
-        debugPrint('🔐 [Google] 인증 정보 확인');
-        debugPrint('   - accessToken: ${googleAuth.accessToken != null ? "존재" : "null"}');
-        debugPrint('   - idToken: ${googleAuth.idToken != null ? "존재" : "null"}');
-      }
-
-      // Firebase 자격증명 생성 (null 안전성 체크)
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Firebase 로그인
       final UserCredential userCredential = await _auth.signInWithCredential(credential);
       final User? user = userCredential.user;
 
       if (user != null) {
         if (kDebugMode) {
           debugPrint('✅ [Google] 로그인 성공');
-          debugPrint('   - UID: ${user.uid}');
-          debugPrint('   - Email: ${user.email}');
-          debugPrint('   - Name: ${user.displayName}');
         }
 
         return SocialLoginResult(
@@ -128,15 +119,24 @@ class SocialLoginService {
       }
       return SocialLoginResult(
         success: false,
-        errorMessage: e.toString(),
+        errorMessage: '구글 로그인 오류',
         provider: SocialLoginProvider.google,
       );
     }
   }
 
-  /// ===== 2. 카카오 로그인 =====
+  /// ===== 2. 카카오 로그인 (Android 네이티브 전용) =====
   Future<SocialLoginResult> signInWithKakao() async {
     try {
+      // Android만 지원
+      if (!_isAndroid) {
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '카카오 로그인은 Android 앱에서만 지원됩니다.',
+          provider: SocialLoginProvider.kakao,
+        );
+      }
+
       if (kDebugMode) {
         debugPrint('🟡 [Kakao] 로그인 시작');
       }
@@ -147,16 +147,12 @@ class SocialLoginService {
       try {
         isKakaoTalkInstalled = await kakao.isKakaoTalkInstalled();
       } catch (checkError) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [Kakao] 카카오톡 설치 확인 실패: $checkError');
-        }
-        // MissingPluginException인 경우 명확한 에러 메시지
         if (checkError.toString().contains('MissingPluginException')) {
           return SocialLoginResult(
             success: false,
-            errorMessage: '카카오 로그인 플러그인이 초기화되지 않았습니다.\n\n'
-                '앱을 완전히 종료한 후 다시 시작해주세요.\n'
-                '(Hot Reload가 아닌 앱 재시작 필요)',
+            errorMessage: '카카오 로그인 플러그인 오류\n\n'
+                '앱을 완전히 종료한 후\n'
+                '다시 시작해주세요.',
             provider: SocialLoginProvider.kakao,
           );
         }
@@ -164,53 +160,24 @@ class SocialLoginService {
       
       kakao.OAuthToken token;
       
-      // 🔧 임시 수정: 카카오톡 앱 로그인 시도 중 에러 발생 시 웹뷰로 fallback
+      // 카카오톡 앱 로그인 시도
       if (isKakaoTalkInstalled) {
         try {
-          // 카카오톡으로 로그인 시도
-          if (kDebugMode) {
-            debugPrint('📱 [Kakao] 카카오톡 앱으로 로그인 시도');
-          }
           token = await kakao.UserApi.instance.loginWithKakaoTalk();
         } catch (e) {
-          if (kDebugMode) {
-            debugPrint('⚠️ [Kakao] 카카오톡 앱 로그인 실패, 웹뷰로 전환');
-            debugPrint('   - 에러: $e');
-          }
-          // 웹뷰로 fallback
+          // 카카오톡 로그인 실패 시 웹뷰로 전환
           token = await kakao.UserApi.instance.loginWithKakaoAccount();
         }
       } else {
-        // 카카오 계정으로 로그인 (웹뷰)
-        if (kDebugMode) {
-          debugPrint('🌐 [Kakao] 카카오톡 미설치, 카카오 계정으로 로그인');
-        }
+        // 카카오톡 미설치 시 웹뷰 로그인
         token = await kakao.UserApi.instance.loginWithKakaoAccount();
-      }
-
-      if (kDebugMode) {
-        debugPrint('✅ [Kakao] 토큰 발급 성공');
       }
 
       // 사용자 정보 가져오기
       kakao.User user = await kakao.UserApi.instance.me();
 
-      if (kDebugMode) {
-        debugPrint('✅ [Kakao] 사용자 정보 조회 성공');
-        debugPrint('   - ID: ${user.id}');
-        debugPrint('   - Email: ${user.kakaoAccount?.email}');
-        debugPrint('   - Nickname: ${user.kakaoAccount?.profile?.nickname}');
-      }
-
       // Firebase Custom Token 생성 및 로그인
       try {
-        if (kDebugMode) {
-          debugPrint('🔐 [Kakao] Firebase Custom Token 생성 요청');
-          debugPrint('   - kakaoUid: ${user.id}');
-          debugPrint('   - email: ${user.kakaoAccount?.email ?? "null"}');
-          debugPrint('   - displayName: ${user.kakaoAccount?.profile?.nickname ?? "null"}');
-        }
-        
         final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
         final callable = functions.httpsCallable('createCustomTokenForKakao');
         
@@ -222,17 +189,10 @@ class SocialLoginService {
         });
         
         final customToken = response.data['customToken'] as String;
-        
-        if (kDebugMode) {
-          debugPrint('✅ [Kakao] Custom Token 생성 완료');
-        }
-        
-        // Firebase Authentication 로그인
         final userCredential = await FirebaseAuth.instance.signInWithCustomToken(customToken);
         
         if (kDebugMode) {
-          debugPrint('✅ [Kakao] Firebase Authentication 로그인 완료');
-          debugPrint('   - Firebase UID: ${userCredential.user?.uid}');
+          debugPrint('✅ [Kakao] 로그인 성공');
         }
         
         return SocialLoginResult(
@@ -243,47 +203,14 @@ class SocialLoginService {
           photoUrl: user.kakaoAccount?.profile?.profileImageUrl,
           provider: SocialLoginProvider.kakao,
         );
-      } catch (e, stackTrace) {
+      } catch (e) {
         if (kDebugMode) {
-          debugPrint('❌ [Kakao] Firebase Custom Token 생성 실패');
-          debugPrint('   Error: $e');
-          debugPrint('   Type: ${e.runtimeType}');
-          debugPrint('   StackTrace: $stackTrace');
-        }
-        
-        // 에러 메시지 분석
-        final errorString = e.toString().toLowerCase();
-        
-        // IAM 권한 에러 감지
-        if (errorString.contains('permission') || 
-            errorString.contains('iam.serviceaccounts.signblob')) {
-          return SocialLoginResult(
-            success: false,
-            errorMessage: 'Firebase 설정이 완료되지 않았습니다.\n\n'
-                '관리자가 IAM 권한을 설정 중입니다.\n'
-                '잠시 후 다시 시도해주세요.',
-            provider: SocialLoginProvider.kakao,
-          );
-        }
-        
-        // 일반 INTERNAL 에러
-        if (errorString.contains('internal')) {
-          return SocialLoginResult(
-            success: false,
-            errorMessage: 'Firebase Functions 오류\n\n'
-                '카카오 로그인 서버에 문제가 발생했습니다.\n\n'
-                '해결 방법:\n'
-                '1. 잠시 후 다시 시도\n'
-                '2. 다른 로그인 방법 사용 (구글, 네이버)\n'
-                '3. 이메일 로그인 사용\n\n'
-                '문제가 계속되면 고객센터로 문의하세요.',
-            provider: SocialLoginProvider.kakao,
-          );
+          debugPrint('❌ [Kakao] Firebase 인증 실패: $e');
         }
         
         return SocialLoginResult(
           success: false,
-          errorMessage: 'Firebase 인증 실패\n\n$e',
+          errorMessage: 'Firebase 인증 실패',
           provider: SocialLoginProvider.kakao,
         );
       }
@@ -291,7 +218,6 @@ class SocialLoginService {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ [Kakao] 로그인 오류: $e');
-        debugPrint('❌ [Kakao] 오류 타입: ${e.runtimeType}');
       }
       
       // 사용자 취소 감지
@@ -306,154 +232,99 @@ class SocialLoginService {
       
       return SocialLoginResult(
         success: false,
-        errorMessage: e.toString(),
+        errorMessage: '카카오 로그인 오류',
         provider: SocialLoginProvider.kakao,
       );
     }
   }
 
-  /// Android WebView 쿠키 삭제 (네이버 도메인)
+  /// Android WebView 쿠키 삭제 (네이버 무한 동의 화면 방지)
   Future<void> _clearNaverWebViewCookies() async {
     if (!_isAndroid) return;
     
     try {
+      await _channel.invokeMethod('clearNaverCookies');
       if (kDebugMode) {
-        debugPrint('🧹 [Naver] Android WebView 쿠키 삭제 시도...');
-      }
-      
-      final result = await _channel.invokeMethod('clearNaverCookies');
-      
-      if (kDebugMode) {
-        if (result == true) {
-          debugPrint('   ✅ WebView 쿠키 삭제 완료');
-        } else {
-          debugPrint('   ⚠️ WebView 쿠키 삭제 실패 또는 쿠키 없음');
-        }
+        debugPrint('✅ [Naver] WebView 쿠키 삭제 완료');
       }
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('⚠️ [Naver] WebView 쿠키 삭제 오류 (무시하고 계속): $e');
-      }
+      // 쿠키 삭제 실패해도 로그인 진행
     }
   }
 
-  /// ===== 3. 네이버 로그인 =====
+  /// ===== 3. 네이버 로그인 (Android 네이티브 앱 전용) =====
   Future<SocialLoginResult> signInWithNaver() async {
     try {
-      if (kDebugMode) {
-        debugPrint('');
-        debugPrint('='*60);
-        debugPrint('🟢 [Naver] 로그인 시작');
-        debugPrint('='*60);
+      // Android만 지원
+      if (!_isAndroid) {
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '네이버 로그인은 Android 앱에서만 지원됩니다.',
+          provider: SocialLoginProvider.naver,
+        );
       }
 
-      // 🧹 STEP 1: Android WebView 쿠키 삭제 (무한 동의 화면 방지)
+      if (kDebugMode) {
+        debugPrint('🟢 [Naver] 로그인 시작');
+      }
+
+      // STEP 1: Android WebView 쿠키 삭제 (무한 동의 화면 방지)
       await _clearNaverWebViewCookies();
 
-      // 🔧 STEP 2: 무한 동의 화면 방지 - 기존 세션 명시적 로그아웃
+      // STEP 2: 기존 세션 로그아웃
       try {
-        if (kDebugMode) {
-          debugPrint('🔧 [Naver] 기존 세션 로그아웃 실행...');
-        }
-        
-        // flutter_naver_login 2.1.0에서는 currentStatus()가 없으므로
-        // 무조건 로그아웃 시도 (이미 로그아웃 상태여도 에러 발생 안함)
         await FlutterNaverLogin.logOut();
-        
-        // 로그아웃 후 약간의 대기 시간 (SDK 상태 정리)
         await Future.delayed(const Duration(milliseconds: 500));
-        
-        if (kDebugMode) {
-          debugPrint('   ✅ 세션 정리 완료 (이전 세션이 있었다면 삭제됨)');
-        }
       } catch (logoutError) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [Naver] 로그아웃 실패 (무시하고 계속): $logoutError');
-        }
+        // 로그아웃 실패해도 계속 진행
       }
 
-      // 네이버 로그인 (계정 정보가 result.account에 포함됨)
+      // STEP 3: 네이버 로그인 시도
       NaverLoginResult result;
       
       try {
-        if (kDebugMode) {
-          debugPrint('🔧 [Naver] FlutterNaverLogin.logIn() 호출 중...');
-        }
-        
         result = await FlutterNaverLogin.logIn();
         
         if (kDebugMode) {
-          debugPrint('✅ [Naver] FlutterNaverLogin.logIn() 응답 받음');
+          debugPrint('✅ [Naver] 로그인 응답 받음');
           debugPrint('   - status: ${result.status}');
-          debugPrint('   - account != null: ${result.account != null}');
-          debugPrint('   - errorMessage: ${result.errorMessage}');
-          
-          if (result.account != null) {
-            debugPrint('   - account.id: ${result.account!.id}');
-            debugPrint('   - account.email: ${result.account!.email}');
-            debugPrint('   - account.name: ${result.account!.name}');
-          }
-          
-          // ⚠️ 에러 상태일 때 진단 정보 출력
-          if (result.status == NaverLoginStatus.error) {
-            debugPrint('');
-            debugPrint('🔍 [Naver Error] 진단 정보:');
-            
-            // 🆕 네이버 SDK 에러 메시지 강조 출력
-            if (result.errorMessage != null && result.errorMessage!.isNotEmpty) {
-              debugPrint('   🚨 네이버 SDK 에러 메시지:');
-              debugPrint('      "${result.errorMessage}"');
-              debugPrint('');
-            }
-            
-            debugPrint('   📍 네이버 개발자 센터 확인 사항:');
-            debugPrint('      https://developers.naver.com/apps/#/myapps');
-            debugPrint('');
-            debugPrint('   ✅ 애플리케이션 정보:');
-            debugPrint('      - Client ID: Wl4fP6XbiTRQQMpbC5a9');
-            debugPrint('      - Client Secret: gr2MvANyr8');
-            debugPrint('      - Client Name: MAKECALL');
-            debugPrint('');
-            debugPrint('   ✅ Android 설정 확인:');
-            debugPrint('      - 패키지명: com.olssoo.makecall_app');
-            debugPrint('      - URL Scheme: naverlogin://callback');
-            debugPrint('      - 서비스 환경: Android 추가 확인');
-            debugPrint('      - 로그인 오픈 API 서비스 환경: Android 앱 등록 필수');
-            debugPrint('');
-            debugPrint('   ⚠️ 가능한 원인:');
-            debugPrint('      1. 네이버 개발자 센터에서 Android 앱 미등록');
-            debugPrint('      2. 패키지명 불일치 (등록: com.olssoo.makecall_app)');
-            debugPrint('      3. Client ID/Secret 불일치');
-            debugPrint('      4. 네이버 앱 로그인이 활성화되지 않음');
-            debugPrint('      5. 네이버 앱이 설치되지 않음 (브라우저 로그인 시도)');
-            debugPrint('');
-          }
         }
       } catch (loginError) {
         if (kDebugMode) {
-          debugPrint('❌ [Naver] 로그인 호출 실패');
-          debugPrint('   - Error Type: ${loginError.runtimeType}');
-          debugPrint('   - Error: $loginError');
+          debugPrint('❌ [Naver] 로그인 호출 실패: $loginError');
         }
         
-        // MissingPluginException 감지
-        if (loginError.toString().contains('MissingPluginException')) {
+        // 네이버 앱 미설치 에러 감지
+        final errorString = loginError.toString().toLowerCase();
+        if (errorString.contains('not installed') || 
+            errorString.contains('설치') ||
+            errorString.contains('앱이 없') ||
+            errorString.contains('app not found')) {
           return SocialLoginResult(
             success: false,
-            errorMessage: '네이버 로그인 플러그인 오류\n\n'
-                '해결 방법:\n'
-                '1. 앱을 완전히 종료하세요 (백그라운드에서도 제거)\n'
-                '2. 기기를 재부팅하세요\n'
-                '3. 앱을 다시 시작하세요\n\n'
-                '문제가 계속되면 앱을 재설치해주세요.',
+            errorMessage: '네이버 앱 인증 필요\n\n'
+                '네이버로 로그인하기 위해서는\n'
+                '네이버 앱 인증이 필요합니다.\n\n'
+                'Play 스토어에서 네이버 앱을 설치한 후\n'
+                '다시 시도해주세요.',
             provider: SocialLoginProvider.naver,
           );
         }
         
-        // 기타 에러
+        // MissingPluginException 감지
+        if (errorString.contains('missingpluginexception')) {
+          return SocialLoginResult(
+            success: false,
+            errorMessage: '네이버 로그인 플러그인 오류\n\n'
+                '앱을 완전히 종료한 후\n'
+                '다시 시작해주세요.',
+            provider: SocialLoginProvider.naver,
+          );
+        }
+        
         return SocialLoginResult(
           success: false,
-          errorMessage: '네이버 로그인 오류: ${loginError.toString()}',
+          errorMessage: '네이버 로그인 오류',
           provider: SocialLoginProvider.naver,
         );
       }
@@ -463,17 +334,10 @@ class SocialLoginService {
         
         if (kDebugMode) {
           debugPrint('✅ [Naver] 로그인 성공');
-          debugPrint('   - ID: ${account.id}');
-          debugPrint('   - Email: ${account.email}');
-          debugPrint('   - Name: ${account.name}');
         }
 
         // Firebase Custom Token 생성 및 로그인
         try {
-          if (kDebugMode) {
-            debugPrint('🔐 [Naver] Firebase Custom Token 생성 요청');
-          }
-          
           final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
           final callable = functions.httpsCallable('createCustomTokenForNaver');
           
@@ -485,17 +349,10 @@ class SocialLoginService {
           });
           
           final customToken = response.data['customToken'] as String;
-          
-          if (kDebugMode) {
-            debugPrint('✅ [Naver] Custom Token 생성 완료');
-          }
-          
-          // Firebase Authentication 로그인
           final userCredential = await FirebaseAuth.instance.signInWithCustomToken(customToken);
           
           if (kDebugMode) {
-            debugPrint('✅ [Naver] Firebase Authentication 로그인 완료');
-            debugPrint('   - Firebase UID: ${userCredential.user?.uid}');
+            debugPrint('✅ [Naver] Firebase 로그인 완료');
           }
           
           return SocialLoginResult(
@@ -508,83 +365,25 @@ class SocialLoginService {
           );
         } catch (e) {
           if (kDebugMode) {
-            debugPrint('❌ [Naver] Firebase Custom Token 생성 실패: $e');
-          }
-          
-          // 에러 메시지 분석
-          final errorString = e.toString().toLowerCase();
-          
-          // IAM 권한 에러 감지
-          if (errorString.contains('permission') || 
-              errorString.contains('iam.serviceaccounts.signblob')) {
-            return SocialLoginResult(
-              success: false,
-              errorMessage: 'Firebase 설정이 완료되지 않았습니다.\n\n'
-                  '관리자가 IAM 권한을 설정 중입니다.\n'
-                  '잠시 후 다시 시도해주세요.',
-              provider: SocialLoginProvider.naver,
-            );
-          }
-          
-          // 일반 INTERNAL 에러
-          if (errorString.contains('internal')) {
-            return SocialLoginResult(
-              success: false,
-              errorMessage: 'Firebase 서버 설정 오류\n\n'
-                  '가능한 원인:\n'
-                  '1. Firebase Functions가 배포되지 않음\n'
-                  '2. IAM 권한이 설정되지 않음\n'
-                  '3. Functions Region 불일치\n\n'
-                  'Firebase Console에서 확인 필요:\n'
-                  '- Functions > createCustomTokenForNaver 배포 확인\n'
-                  '- Functions 로그에서 에러 메시지 확인\n'
-                  '- IAM 권한 (Service Account Token Creator) 설정 확인',
-              provider: SocialLoginProvider.naver,
-            );
+            debugPrint('❌ [Naver] Firebase 인증 실패: $e');
           }
           
           return SocialLoginResult(
             success: false,
-            errorMessage: 'Firebase 인증 실패: ${e.toString()}',
+            errorMessage: 'Firebase 인증 실패',
             provider: SocialLoginProvider.naver,
           );
         }
       } else {
-        if (kDebugMode) {
-          debugPrint('⚠️ [Naver] 로그인 취소 또는 실패');
-          debugPrint('   - status: ${result.status}');
-          debugPrint('   - account: ${result.account}');
-          debugPrint('='*60);
-          debugPrint('');
-        }
-        
-        // 상태별 상세 메시지
-        String errorMessage = '로그인이 취소되었거나 실패했습니다';
+        // 로그인 취소 또는 실패
+        String errorMessage = '로그인이 취소되었습니다';
         
         if (result.status == NaverLoginStatus.error) {
-          // 🆕 네이버 SDK 에러 메시지를 포함한 상세 에러 메시지
-          final sdkErrorMsg = result.errorMessage != null && result.errorMessage!.isNotEmpty 
-              ? '\n\n🚨 네이버 SDK 에러:\n"${result.errorMessage}"\n'
-              : '';
-          
-          errorMessage = '네이버 로그인 오류$sdkErrorMsg\n'
-              '가장 가능성 높은 원인:\n'
-              '▪ 네이버 개발자 센터에서 Android 앱 미등록\n'
-              '  (패키지명: com.olssoo.makecall_app)\n\n'
-              '해결 방법:\n'
-              '1. 네이버 개발자 센터 접속\n'
-              '   https://developers.naver.com/apps\n\n'
-              '2. 애플리케이션 설정 > 서비스 환경\n'
-              '   → Android 앱 추가\n\n'
-              '3. 패키지명 입력:\n'
-              '   com.olssoo.makecall_app\n\n'
-              '기타 확인 사항:\n'
-              '▪ 네이버 앱 업데이트 (Play 스토어)\n'
-              '▪ 네이버 앱이 설치되어 있는지 확인\n'
-              '▪ 앱 권한 확인 (설정 > 앱)\n'
-              '▪ 인터넷 연결 확인';
-        } else if (result.status == NaverLoginStatus.loggedOut) {
-          errorMessage = '네이버 로그인이 취소되었습니다\n\n'
+          // 네이버 앱 미설치 가능성
+          errorMessage = '네이버 앱 인증 필요\n\n'
+              '네이버로 로그인하기 위해서는\n'
+              '네이버 앱 인증이 필요합니다.\n\n'
+              'Play 스토어에서 네이버 앱을 설치한 후\n'
               '다시 시도해주세요.';
         }
         
@@ -601,31 +400,26 @@ class SocialLoginService {
       }
       return SocialLoginResult(
         success: false,
-        errorMessage: e.toString(),
+        errorMessage: '네이버 로그인 오류',
         provider: SocialLoginProvider.naver,
       );
     }
   }
 
-  /// ===== 4. 애플 로그인 (iOS + Web + Android) =====
+  /// ===== 4. 애플 로그인 (Android 네이티브 전용) =====
   Future<SocialLoginResult> signInWithApple() async {
     try {
-      // 플랫폼 로그
-      String platformName = kIsWeb ? "Web" : (_isIOS ? "iOS" : "Android");
-      if (kDebugMode) {
-        debugPrint('🍎 [Apple] 로그인 시작 (플랫폼: $platformName)');
+      // Android만 지원
+      if (!_isAndroid) {
+        return SocialLoginResult(
+          success: false,
+          errorMessage: 'Apple 로그인은 Android 앱에서만 지원됩니다.',
+          provider: SocialLoginProvider.apple,
+        );
       }
 
-      // Apple 로그인 (모든 플랫폼 지원)
-      // Android는 웹 플로우 사용, iOS는 네이티브, Web은 웹 플로우
       if (kDebugMode) {
-        if (!_isIOS) {
-          debugPrint('🌐 [Apple] 웹 플로우 설정:');
-          debugPrint('   - Client ID: com.olssoo.makecall.signin');
-          debugPrint('   - Redirect URI: https://makecallio.web.app/auth/callback');
-        } else {
-          debugPrint('📱 [Apple] iOS 네이티브 로그인');
-        }
+        debugPrint('🍎 [Apple] 로그인 시작');
       }
       
       final credential = await SignInWithApple.getAppleIDCredential(
@@ -633,22 +427,11 @@ class SocialLoginService {
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
-        // 🌐 웹 플로우 설정 (Android + Web)
-        webAuthenticationOptions: (!_isIOS)
-            ? WebAuthenticationOptions(
-                clientId: 'com.olssoo.makecall.signin',  // Apple Service ID
-                redirectUri: Uri.parse(
-                  // ⚠️ CRITICAL: Apple은 localhost에 포트 번호를 허용하지 않음
-                  // Firebase Hosting 기본 도메인 사용 (makecallio.web.app)
-                  'https://makecallio.web.app/auth/callback',
-                ),
-              )
-            : null,
+        webAuthenticationOptions: WebAuthenticationOptions(
+          clientId: 'com.olssoo.makecall.signin',
+          redirectUri: Uri.parse('https://makecallio.web.app/auth/callback'),
+        ),
       );
-
-      if (kDebugMode) {
-        debugPrint('✅ [Apple] 자격증명 발급 성공');
-      }
 
       // Firebase 자격증명 생성
       final oAuthProvider = OAuthProvider('apple.com');
@@ -664,8 +447,6 @@ class SocialLoginService {
       if (user != null) {
         if (kDebugMode) {
           debugPrint('✅ [Apple] 로그인 성공');
-          debugPrint('   - UID: ${user.uid}');
-          debugPrint('   - Email: ${user.email}');
         }
 
         // 이름 정보 업데이트 (첫 로그인 시)
@@ -694,70 +475,37 @@ class SocialLoginService {
       );
 
     } on SignInWithAppleAuthorizationException catch (e) {
-      // Apple Sign-In 특정 에러 처리
-      if (kDebugMode) {
-        debugPrint('❌ [Apple] 인증 예외: ${e.code} - ${e.message}');
-      }
-      
-      // Error code 1001은 사용자 취소
       if (e.code == AuthorizationErrorCode.canceled) {
         return SocialLoginResult(
           success: false,
-          errorMessage: '사용자가 Apple 로그인을 취소했습니다',
+          errorMessage: 'Apple 로그인이 취소되었습니다',
           provider: SocialLoginProvider.apple,
         );
       }
       
-      // 기타 Apple Sign-In 에러
-      String errorMessage = 'Apple 로그인 중 오류가 발생했습니다';
-      if (e.message != null && e.message!.isNotEmpty) {
-        errorMessage = e.message!;
-      }
-      
       return SocialLoginResult(
         success: false,
-        errorMessage: errorMessage,
+        errorMessage: 'Apple 로그인 오류',
         provider: SocialLoginProvider.apple,
       );
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ [Apple] 로그인 오류: $e');
-        debugPrint('   - 오류 타입: ${e.runtimeType}');
-        debugPrint('   - 오류 메시지: ${e.toString()}');
       }
       
-      // 일반 에러 메시지에서 취소 키워드 확인
+      // 사용자 취소 감지
       String errorString = e.toString();
-      if (errorString.contains('canceled') || 
-          errorString.contains('1001') ||
-          errorString.contains('취소') ||
-          errorString.contains('CANCELED')) {
-        if (kDebugMode) {
-          debugPrint('ℹ️ [Apple] 사용자가 로그인을 취소했습니다');
-        }
+      if (errorString.contains('canceled') || errorString.contains('취소')) {
         return SocialLoginResult(
           success: false,
-          errorMessage: '사용자가 Apple 로그인을 취소했습니다',
-          provider: SocialLoginProvider.apple,
-        );
-      }
-      
-      // invalid_client 에러 감지
-      if (errorString.contains('invalid_client') || 
-          errorString.contains('INVALID_CLIENT')) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [Apple] invalid_client 오류 - Service ID 설정 확인 필요');
-        }
-        return SocialLoginResult(
-          success: false,
-          errorMessage: 'Apple 로그인 설정 오류\n\nApple Developer Console에서\nService ID 설정을 확인해주세요.',
+          errorMessage: 'Apple 로그인이 취소되었습니다',
           provider: SocialLoginProvider.apple,
         );
       }
       
       return SocialLoginResult(
         success: false,
-        errorMessage: 'Apple 로그인 중 오류가 발생했습니다\n\n$errorString',
+        errorMessage: 'Apple 로그인 오류',
         provider: SocialLoginProvider.apple,
       );
     }
