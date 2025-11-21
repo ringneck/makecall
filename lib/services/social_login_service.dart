@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -328,19 +329,27 @@ class SocialLoginService {
     try {
       if (kDebugMode) {
         debugPrint('🍎 [Apple] 로그인 시작');
-        debugPrint('   플랫폼: ${kIsWeb ? "Web" : "Mobile"}');
-      }
-      
-      // 웹 플랫폼 체크 및 추가 안전 조치
-      if (kIsWeb) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [Apple] 웹 플랫폼 감지 - 타입 안전 처리 적용');
+        if (kIsWeb) {
+          debugPrint('   플랫폼: Web (webAuthenticationOptions 사용)');
+        } else if (Platform.isIOS) {
+          debugPrint('   플랫폼: iOS (Native Sign In)');
+        } else if (Platform.isAndroid) {
+          debugPrint('   플랫폼: Android (webAuthenticationOptions 사용)');
         }
       }
       
       // 플랫폼별 설정 분리
-      final credential = kIsWeb
+      // iOS: Native Apple Sign In (webAuthenticationOptions 불필요)
+      // Android & Web: Web-based authentication (webAuthenticationOptions 필수)
+      final credential = (!kIsWeb && Platform.isIOS)
           ? await SignInWithApple.getAppleIDCredential(
+              scopes: [
+                AppleIDAuthorizationScopes.email,
+                AppleIDAuthorizationScopes.fullName,
+              ],
+              // iOS: Native Sign In - no webAuthenticationOptions needed
+            )
+          : await SignInWithApple.getAppleIDCredential(
               scopes: [
                 AppleIDAuthorizationScopes.email,
                 AppleIDAuthorizationScopes.fullName,
@@ -349,14 +358,7 @@ class SocialLoginService {
                 clientId: 'com.olssoo.makecall.signin',
                 redirectUri: Uri.parse('https://makecallio.web.app/auth/callback'),
               ),
-            )
-          : await SignInWithApple.getAppleIDCredential(
-              scopes: [
-                AppleIDAuthorizationScopes.email,
-                AppleIDAuthorizationScopes.fullName,
-              ],
-              // 안드로이드/iOS: 네이티브 리다이렉트 사용 (webAuthenticationOptions 없음)
-              // AndroidManifest.xml의 signinwithapple://callback 사용
+              // Android & Web: Web-based authentication via WebView/Browser
             );
 
       if (kDebugMode) {
