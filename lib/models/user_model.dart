@@ -1,3 +1,5 @@
+import 'consent_record.dart';
+
 class UserModel {
   final String uid;
   final String email;
@@ -26,6 +28,18 @@ class UserModel {
   final int maxExtensions; // 사용자별 단말번호 저장 가능 개수
   final List<String>? myExtensions; // 내 단말번호 목록
   
+  // 🆕 개인정보보호법 준수 - 동의 관리 필드
+  final String? consentVersion;              // 약관 버전 (예: "1.0")
+  final bool termsAgreed;                    // 이용약관 동의 여부
+  final DateTime? termsAgreedAt;             // 이용약관 동의 날짜
+  final bool privacyPolicyAgreed;            // 개인정보처리방침 동의 여부
+  final DateTime? privacyPolicyAgreedAt;     // 개인정보처리방침 동의 날짜
+  final bool? marketingConsent;              // 마케팅 수신 동의 (선택)
+  final DateTime? marketingConsentAt;        // 마케팅 수신 동의 날짜
+  final DateTime? lastConsentCheckAt;        // 마지막 동의 확인 날짜
+  final DateTime? nextConsentCheckDue;       // 다음 재동의 예정일 (2년 후)
+  final List<ConsentRecord>? consentHistory; // 동의 이력
+  
   UserModel({
     required this.uid,
     required this.email,
@@ -53,7 +67,29 @@ class UserModel {
     this.isPremium = false, // 기본값: 무료 사용자 (하위 호환성)
     this.maxExtensions = 1, // 기본값: 1개
     this.myExtensions,
+    // 🆕 동의 관리 필드
+    this.consentVersion,
+    this.termsAgreed = false,
+    this.termsAgreedAt,
+    this.privacyPolicyAgreed = false,
+    this.privacyPolicyAgreedAt,
+    this.marketingConsent,
+    this.marketingConsentAt,
+    this.lastConsentCheckAt,
+    this.nextConsentCheckDue,
+    this.consentHistory,
   });
+  
+  // 🆕 동의 만료 체크 메서드
+  bool get needsConsentRenewal {
+    if (nextConsentCheckDue == null) return true;
+    return DateTime.now().isAfter(nextConsentCheckDue!);
+  }
+  
+  // 🆕 동의 유효성 체크
+  bool get hasValidConsent {
+    return termsAgreed && privacyPolicyAgreed && !needsConsentRenewal;
+  }
   
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
     // Firestore Timestamp 또는 String을 DateTime으로 변환하는 헬퍼 함수
@@ -98,6 +134,21 @@ class UserModel {
       myExtensions: map['myExtensions'] != null 
           ? List<String>.from(map['myExtensions'] as List)
           : null,
+      // 🆕 동의 관리 필드 파싱
+      consentVersion: map['consentVersion'] as String?,
+      termsAgreed: map['termsAgreed'] as bool? ?? false,
+      termsAgreedAt: parseTimestamp(map['termsAgreedAt']),
+      privacyPolicyAgreed: map['privacyPolicyAgreed'] as bool? ?? false,
+      privacyPolicyAgreedAt: parseTimestamp(map['privacyPolicyAgreedAt']),
+      marketingConsent: map['marketingConsent'] as bool?,
+      marketingConsentAt: parseTimestamp(map['marketingConsentAt']),
+      lastConsentCheckAt: parseTimestamp(map['lastConsentCheckAt']),
+      nextConsentCheckDue: parseTimestamp(map['nextConsentCheckDue']),
+      consentHistory: map['consentHistory'] != null
+          ? (map['consentHistory'] as List)
+              .map((item) => ConsentRecord.fromMap(item as Map<String, dynamic>))
+              .toList()
+          : null,
     );
   }
   
@@ -128,6 +179,18 @@ class UserModel {
       'isPremium': isPremium,
       'maxExtensions': maxExtensions,
       'myExtensions': myExtensions,
+      // 🆕 동의 관리 필드
+      if (consentVersion != null) 'consentVersion': consentVersion,
+      'termsAgreed': termsAgreed,
+      if (termsAgreedAt != null) 'termsAgreedAt': termsAgreedAt!.toIso8601String(),
+      'privacyPolicyAgreed': privacyPolicyAgreed,
+      if (privacyPolicyAgreedAt != null) 'privacyPolicyAgreedAt': privacyPolicyAgreedAt!.toIso8601String(),
+      if (marketingConsent != null) 'marketingConsent': marketingConsent,
+      if (marketingConsentAt != null) 'marketingConsentAt': marketingConsentAt!.toIso8601String(),
+      if (lastConsentCheckAt != null) 'lastConsentCheckAt': lastConsentCheckAt!.toIso8601String(),
+      if (nextConsentCheckDue != null) 'nextConsentCheckDue': nextConsentCheckDue!.toIso8601String(),
+      if (consentHistory != null) 
+        'consentHistory': consentHistory!.map((record) => record.toMap()).toList(),
     };
   }
   

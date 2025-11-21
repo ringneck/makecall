@@ -27,7 +27,14 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _agreedToTerms = false;
+  
+  // 🆕 개인정보보호법 준수 - 동의 관리
+  bool _agreedToTerms = false;  // 하위 호환성 유지
+  bool _allAgreed = false;                 // 전체 동의
+  bool _termsAgreed = false;               // 이용약관 동의 (필수)
+  bool _privacyPolicyAgreed = false;       // 개인정보처리방침 동의 (필수)
+  bool _marketingConsent = false;          // 마케팅 수신 동의 (선택)
+  
   bool _isSocialLoginLoading = false;
   
   final _socialLoginService = SocialLoginService();
@@ -93,10 +100,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   Future<void> _handleSignUp() async {
     if (!_formKey.currentState!.validate()) return;
     
-    if (!_agreedToTerms) {
+    // 🆕 필수 동의 항목 확인
+    if (!_termsAgreed || !_privacyPolicyAgreed) {
       await DialogUtils.showWarning(
         context,
-        '이용약관에 동의해주세요',
+        '필수 항목에 모두 동의해주세요\n\n- 이용약관\n- 개인정보처리방칈',
       );
       return;
     }
@@ -523,6 +531,41 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         }
       }
       
+      // 🆕 동의 관리 필드 업데이트 (신규 가입 또는 동의 데이터가 없는 경우)
+      final data = docSnapshot.data();
+      final needsConsentUpdate = !docSnapshot.exists || 
+                                   data?['termsAgreed'] == null || 
+                                   data?['privacyPolicyAgreed'] == null;
+      
+      if (needsConsentUpdate) {
+        final now = Timestamp.now();
+        final twoYearsLater = DateTime.now().add(const Duration(days: 730));
+        
+        updateData['consentVersion'] = '1.0';
+        updateData['termsAgreed'] = _termsAgreed;
+        updateData['termsAgreedAt'] = _termsAgreed ? now : null;
+        updateData['privacyPolicyAgreed'] = _privacyPolicyAgreed;
+        updateData['privacyPolicyAgreedAt'] = _privacyPolicyAgreed ? now : null;
+        updateData['marketingConsent'] = _marketingConsent;
+        updateData['marketingConsentAt'] = _marketingConsent ? now : null;
+        updateData['lastConsentCheckAt'] = now;
+        updateData['nextConsentCheckDue'] = Timestamp.fromDate(twoYearsLater);
+        updateData['consentHistory'] = FieldValue.arrayUnion([
+          {
+            'version': '1.0',
+            'agreedAt': now,
+            'type': 'initial',
+          }
+        ]);
+        
+        if (kDebugMode) {
+          debugPrint('   ✅ 동의 정보 저장');
+          debugPrint('      - 이용약관: $_termsAgreed');
+          debugPrint('      - 개인정보처리방침: $_privacyPolicyAgreed');
+          debugPrint('      - 마케팅 수신: $_marketingConsent');
+        }
+      }
+      
       // 업데이트 실행
       if (updateData.isNotEmpty) {
         await userDoc.set(updateData, SetOptions(merge: true));
@@ -751,6 +794,213 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         setState(() => _isSocialLoginLoading = false);
       }
     }
+  }
+  
+  // 🆕 전체 동의 상태 업데이트
+  void _updateAllAgreed() {
+    setState(() {
+      _allAgreed = _termsAgreed && _privacyPolicyAgreed && _marketingConsent;
+    });
+  }
+  
+  // 🆕 이용약관 다이얼로그
+  Future<void> _showTermsDialog(BuildContext context) async {
+    final Uri url = Uri.parse('https://app.makecall.io/terms_of_service.html');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.inAppWebView);
+    } else {
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          '이용약관을 열 수 없습니다.',
+        );
+      }
+    }
+  }
+  
+  // 🆕 개인정보처리방침 다이얼로그
+  Future<void> _showPrivacyPolicyDialog(BuildContext context) async {
+    final Uri url = Uri.parse('https://app.makecall.io/privacy_policy.html');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.inAppWebView);
+    } else {
+      if (mounted) {
+        await DialogUtils.showError(
+          context,
+          '개인정보처리방침을 열 수 없습니다.',
+        );
+      }
+    }
+  }
+  
+  // 🆕 동의 섹션 UI 빌더
+  Widget _buildConsentSection(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark 
+            ? Colors.grey[850]
+            : (_isWeb 
+                ? Colors.blue.withValues(alpha: 0.05)
+                : Colors.grey.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          // 전체 동의
+          CheckboxListTile(
+            value: _allAgreed,
+            onChanged: (value) {
+              setState(() {
+                _allAgreed = value ?? false;
+                _termsAgreed = _allAgreed;
+                _privacyPolicyAgreed = _allAgreed;
+                _marketingConsent = _allAgreed;
+                _agreedToTerms = _termsAgreed && _privacyPolicyAgreed;
+              });
+            },
+            title: Text(
+              '전체 동의',
+              style: TextStyle(
+                fontSize: 15,
+                color: isDark ? Colors.white : Colors.grey[900],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            activeColor: const Color(0xFF2196F3),
+          ),
+          
+          Divider(
+            height: 1,
+            thickness: 1,
+            indent: 16,
+            endIndent: 16,
+            color: isDark ? Colors.grey[700] : Colors.grey[300],
+          ),
+          
+          // 필수 1: 이용약관
+          CheckboxListTile(
+            value: _termsAgreed,
+            onChanged: (value) {
+              setState(() {
+                _termsAgreed = value ?? false;
+                _agreedToTerms = _termsAgreed && _privacyPolicyAgreed;
+                _updateAllAgreed();
+              });
+            },
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '[필수] 이용약관 동의',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey[300] : Colors.grey[800],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _showTermsDialog(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(40, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    '보기',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.blue[300] : Colors.blue[700],
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+            activeColor: const Color(0xFF2196F3),
+          ),
+          
+          // 필수 2: 개인정보처리방침
+          CheckboxListTile(
+            value: _privacyPolicyAgreed,
+            onChanged: (value) {
+              setState(() {
+                _privacyPolicyAgreed = value ?? false;
+                _agreedToTerms = _termsAgreed && _privacyPolicyAgreed;
+                _updateAllAgreed();
+              });
+            },
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '[필수] 개인정보처리방침 동의',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey[300] : Colors.grey[800],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _showPrivacyPolicyDialog(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(40, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    '보기',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.blue[300] : Colors.blue[700],
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+            activeColor: const Color(0xFF2196F3),
+          ),
+          
+          // 선택: 마케팅 수신 동의
+          CheckboxListTile(
+            value: _marketingConsent,
+            onChanged: (value) {
+              setState(() {
+                _marketingConsent = value ?? false;
+                _updateAllAgreed();
+              });
+            },
+            title: Text(
+              '[선택] 마케팅 정보 수신 동의',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.grey[400] : Colors.grey[700],
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            subtitle: Text(
+              '이벤트, 프로모션 등의 마케팅 정보를 받아보실 수 있습니다',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey[500] : Colors.grey[600],
+              ),
+            ),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+            activeColor: const Color(0xFF2196F3),
+            isThreeLine: true,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1089,43 +1339,8 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         ),
                         const SizedBox(height: 24),
                         
-                        // Terms Checkbox
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.grey[850]
-                                : (_isWeb 
-                                    ? Colors.blue.withValues(alpha: 0.05)
-                                    : Colors.grey.withValues(alpha: 0.05)),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: CheckboxListTile(
-                            value: _agreedToTerms,
-                            onChanged: (value) {
-                              setState(() {
-                                _agreedToTerms = value ?? false;
-                              });
-                            },
-                            title: Text(
-                              '이용약관 및 개인정보처리방침에 동의합니다',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: isDark ? Colors.grey[300] : Colors.grey[800],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            controlAffinity: ListTileControlAffinity.leading,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                            activeColor: const Color(0xFF2196F3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
+                        // 🆕 개선된 동의 UI - 필수/선택 분리
+                        _buildConsentSection(isDark),
                         const SizedBox(height: 32),
                         
                         // Sign Up Button (Gradient)

@@ -235,14 +235,17 @@ class AuthService extends ChangeNotifier {
             }
             
             // 기본 사용자 문서 생성
+            final now = FieldValue.serverTimestamp();
+            final twoYearsLater = DateTime.now().add(const Duration(days: 730));
+            
             final userData = {
               'uid': uid,
               'email': currentUser.email ?? '',
               'displayName': currentUser.displayName ?? 'User',
               'photoURL': currentUser.photoURL,
               'providers': providerIds,
-              'createdAt': FieldValue.serverTimestamp(),
-              'lastLoginAt': FieldValue.serverTimestamp(),
+              'createdAt': now,
+              'lastLoginAt': now,
               'maxExtensions': 1, // 기본값: 단말 1개
               'myExtensions': [], // 빈 배열
               // API 서버 정보는 나중에 Profile에서 설정
@@ -256,6 +259,18 @@ class AuthService extends ChangeNotifier {
               'companyId': null,
               'companyName': null,
               'appKey': null,
+              // 🆕 개인정보보호법 준수 - 동의 관리 필드 (기본값)
+              // 실제 동의 데이터는 SignupScreen에서 업데이트
+              'consentVersion': '1.0',
+              'termsAgreed': false,
+              'termsAgreedAt': null,
+              'privacyPolicyAgreed': false,
+              'privacyPolicyAgreedAt': null,
+              'marketingConsent': false,
+              'marketingConsentAt': null,
+              'lastConsentCheckAt': null,
+              'nextConsentCheckDue': Timestamp.fromDate(twoYearsLater),
+              'consentHistory': [],
             };
             
             await _firestore.collection('users').doc(uid).set(userData);
