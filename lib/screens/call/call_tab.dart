@@ -328,10 +328,11 @@ class _CallTabState extends State<CallTab> {
       }
       
       // 🔐 CRITICAL: 기기 승인 대기 중인 경우 ProfileDrawer 열지 않음
-      if (_authService?.deviceApprovalStatus == DeviceApprovalStatus.pending) {
+      if (_authService?.approvalRequestId != null) {
         if (kDebugMode) {
           debugPrint('⏳ 신규 사용자 체크 스킵: 기기 승인 대기 중');
           debugPrint('   → 기기 승인 화면이 우선 표시되어야 함');
+          debugPrint('   → Approval Request ID: ${_authService?.approvalRequestId}');
         }
         _hasCheckedNewUser = true;
         return;
@@ -477,10 +478,11 @@ class _CallTabState extends State<CallTab> {
     }
     
     // 🔐 CRITICAL: 기기 승인 대기 중인 경우 초기 등록 팝업 표시 안 함
-    if (_authService?.deviceApprovalStatus == DeviceApprovalStatus.pending) {
+    if (_authService?.approvalRequestId != null) {
       if (kDebugMode) {
         debugPrint('⏳ 설정 체크 스킵: 기기 승인 대기 중');
         debugPrint('   → 기기 승인 화면이 우선 표시되어야 함');
+        debugPrint('   → Approval Request ID: ${_authService?.approvalRequestId}');
       }
       _hasCheckedSettings = true; // 승인 후 재실행 방지
       return;
