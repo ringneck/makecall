@@ -99,7 +99,7 @@ class SocialLoginButtons extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: Center(
             child: Image.asset(
-              'assets/images/social/kakao_logo.png',
+              'assets/images/social/kakao_talk_logo.png',
               width: buttonSize * 0.6,
               height: buttonSize * 0.6,
               errorBuilder: (context, error, stackTrace) {
