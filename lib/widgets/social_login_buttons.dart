@@ -132,10 +132,10 @@ class SocialLoginButtons extends StatelessWidget {
       width: buttonSize,
       height: buttonSize,
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.white,
+        color: isDark ? const Color(0xFF424242) : const Color(0xFFF5F5F5), // 보색 대비 좋은 회색
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+          color: isDark ? Colors.grey[700]! : Colors.grey[400]!,
           width: 1,
         ),
         boxShadow: [
