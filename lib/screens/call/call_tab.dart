@@ -354,6 +354,29 @@ class _CallTabState extends State<CallTab> {
         debugPrint('✅ [신규사용자체크] userModel 로드 완료 (${waitCount * 100}ms)');
       }
 
+      // 🔒 CRITICAL: 소셜 로그인 직후(5분 이내)인 경우 설정 체크 건너뛰기
+      // 소셜 로그인 시에는 빈 사용자 문서가 생성되어 "설정 미완료"로 오판될 수 있음
+      if (userModel.lastLoginAt != null) {
+        final now = DateTime.now();
+        final lastLogin = userModel.lastLoginAt!;
+        final timeSinceLogin = now.difference(lastLogin);
+        
+        if (timeSinceLogin.inMinutes < 5) {
+          if (kDebugMode) {
+            debugPrint('');
+            debugPrint('='*60);
+            debugPrint('🆕 소셜 로그인 직후 감지 (${timeSinceLogin.inSeconds}초 경과)');
+            debugPrint('='*60);
+            debugPrint('   → 설정 체크 건너뜀 (사용자가 직접 설정할 시간 제공)');
+            debugPrint('   → ProfileDrawer 자동 열기 비활성화');
+            debugPrint('='*60);
+            debugPrint('');
+          }
+          _hasCheckedSettings = true;
+          return;
+        }
+      }
+
       // 🔒 필수 설정 확인
       final hasApiSettings = (userModel.apiBaseUrl?.isNotEmpty ?? false) &&
                             (userModel.companyId?.isNotEmpty ?? false) &&
