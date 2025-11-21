@@ -134,10 +134,14 @@ void main() async {
   
   if (kDebugMode) {
     print('🔑 [KAKAO] 초기화 시작...');
-    print('   - Native App Key: ${KakaoConfig.nativeAppKey.substring(0, 10)}...');
-    print('   - JavaScript Key: ${KakaoConfig.javaScriptAppKey.substring(0, 10)}...');
+    print('   - Native App Key (full): ${KakaoConfig.nativeAppKey}');
+    print('   - JavaScript Key (full): ${KakaoConfig.javaScriptAppKey}');
+    print('   - Native App Key (substr): ${KakaoConfig.nativeAppKey.substring(0, 10)}...');
+    print('   - JavaScript Key (substr): ${KakaoConfig.javaScriptAppKey.substring(0, 10)}...');
     print('   - validateConfig(): ${KakaoConfig.validateConfig()}');
     print('   - isWebLoginEnabled: ${KakaoConfig.isWebLoginEnabled}');
+    print('   - javaScriptAppKey != "YOUR_KAKAO_JAVASCRIPT_KEY": ${KakaoConfig.javaScriptAppKey != 'YOUR_KAKAO_JAVASCRIPT_KEY'}');
+    print('   - javaScriptAppKey.isNotEmpty: ${KakaoConfig.javaScriptAppKey.isNotEmpty}');
   }
   
   if (!KakaoConfig.validateConfig()) {

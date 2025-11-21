@@ -39,9 +39,11 @@ class KakaoConfig {
   /// 
   /// - true: JavaScript 키가 설정되어 웹에서 카카오 로그인 가능
   /// - false: JavaScript 키 미설정, 웹에서 카카오 로그인 비활성화
-  static bool get isWebLoginEnabled => 
-      javaScriptAppKey != 'YOUR_KAKAO_JAVASCRIPT_KEY' && 
-      javaScriptAppKey.isNotEmpty;
+  static bool get isWebLoginEnabled {
+    final notPlaceholder = javaScriptAppKey != 'YOUR_KAKAO_JAVASCRIPT_KEY';
+    final notEmpty = javaScriptAppKey.isNotEmpty;
+    return notPlaceholder && notEmpty;
+  }
   
   /// 카카오 로그인 Redirect URI (선택사항)
   /// 
@@ -53,7 +55,12 @@ class KakaoConfig {
   /// 
   /// 카카오 SDK 초기화 전 설정이 올바른지 검증
   static bool validateConfig() {
-    if (nativeAppKey.isEmpty || nativeAppKey == 'YOUR_KAKAO_NATIVE_KEY') {
+    // 디버그: 검증 과정 로그
+    final isEmpty = nativeAppKey.isEmpty;
+    final isPlaceholder = nativeAppKey == 'YOUR_KAKAO_NATIVE_KEY';
+    final actualKey = nativeAppKey;
+    
+    if (isEmpty || isPlaceholder) {
       return false;
     }
     return true;
