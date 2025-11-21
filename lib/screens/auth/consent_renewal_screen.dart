@@ -422,8 +422,9 @@ class _ConsentRenewalScreenState extends State<ConsentRenewalScreen> {
           '약관 동의가 완료되었습니다.',
         );
         
-        // 화면 닫기
-        Navigator.of(context).pop();
+        // ✅ 화면을 닫지 않음 - AuthService.notifyListeners()가 자동으로 화면 전환
+        // Navigator.of(context).pop() 대신 자동 전환 대기
+        // main.dart의 Consumer<AuthService>가 rebuild되면서 자동으로 MainScreen으로 이동
       }
     } catch (e) {
       if (mounted) {
