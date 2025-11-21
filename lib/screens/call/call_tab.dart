@@ -163,37 +163,26 @@ class _CallTabState extends State<CallTab> {
     super.dispose();
   }
   
-  // 🔔 AuthService 상태 변경 감지 콜백 (고급 이벤트 기반 패턴)
-  // - userModel 변경 감지 (기존 기능)
-  // - 승인 대기 상태 변경 감지 (이벤트 기반)
-  // - FCM 초기화 완료 감지 (NEW: 고급 패턴)
+  // 🔔 AuthService 상태 변경 감지 콜백 (완전한 이벤트 기반 패턴)
+  // - FCM 초기화 완료 감지
+  // - 승인 대기 상태 변경 감지
+  // - 소셜 로그인 성공 메시지 완료 감지 (NEW)
   void _onAuthServiceStateChanged() {
     if (kDebugMode) {
       debugPrint('🔔 AuthService 리스너 트리거: 상태 변경 감지');
     }
     
-    // 🔒 mounted 체크 최우선 (Widget이 dispose되었을 수 있음)
-    if (!mounted) {
-      if (kDebugMode) {
-        debugPrint('⚠️ Widget이 이미 dispose됨 - 리스너 콜백 무시');
-      }
-      return;
-    }
-    
-    // 로그아웃 상태 체크
+    if (!mounted) return;
     if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
       return;
     }
     
-    // 🆕 고급 패턴: FCM 초기화 완료 이벤트 감지
-    // FCM 초기화가 완료되면 승인 대기 상태도 확정되므로 신규 사용자 체크 재실행
+    // 1️⃣ FCM 초기화 완료 이벤트 감지
     if ((_authService?.isFcmInitialized ?? false) && !_hasCheckedNewUser && widget.autoOpenProfileForNewUser) {
       if (kDebugMode) {
-        debugPrint('🚀 [이벤트] FCM 초기화 완료 감지됨');
-        debugPrint('   → 신규 사용자 체크 재실행');
+        debugPrint('🚀 [이벤트] FCM 초기화 완료 감지됨 → 신규 사용자 체크 재실행');
       }
       
-      // 비동기 체크를 위해 Future.microtask 사용 (이벤트 루프 후 실행)
       Future.microtask(() {
         if (mounted) {
           _checkAndOpenProfileDrawerForNewUser();
@@ -202,82 +191,33 @@ class _CallTabState extends State<CallTab> {
       return;
     }
     
-    // 🆕 이벤트 기반 승인 대기 상태 감지 (시간 기반 폴링 제거)
-    // AuthService의 setWaitingForApproval()이 호출되면 즉시 이 리스너가 트리거됨
+    // 2️⃣ 승인 대기 상태 감지
     if ((_authService?.isWaitingForApproval ?? false) || _authService?.approvalRequestId != null) {
       if (kDebugMode) {
-        debugPrint('🔔 [이벤트] 기기 승인 대기 상태 감지됨');
-        debugPrint('   → isWaitingForApproval: ${_authService?.isWaitingForApproval}');
-        debugPrint('   → ProfileDrawer 자동 열기 취소');
+        debugPrint('🔔 [이벤트] 기기 승인 대기 상태 감지됨 → ProfileDrawer 자동 열기 취소');
       }
-      
-      // 승인 대기 중이므로 신규 사용자 체크 완료 표시 (ProfileDrawer 열지 않음)
       _hasCheckedNewUser = true;
       return;
     }
     
-    // 🔒 저장된 AuthService 참조 사용 (context 사용 안함)
-    if (_authService?.currentUserModel != null && !_hasCheckedSettings) {
+    // 3️⃣ 소셜 로그인 성공 메시지 완료 이벤트 감지 (NEW)
+    if ((_authService?.socialLoginSuccessMessageShown ?? false) && 
+        !_hasCheckedSettings && 
+        widget.autoOpenProfileForNewUser) {
       if (kDebugMode) {
-        debugPrint('✅ userModel 로드 완료 - 설정 체크 재실행');
+        debugPrint('🎉 [이벤트] 소셜 로그인 성공 메시지 완료 감지됨 → 설정 체크 실행');
       }
       
-      // 🎯 이벤트 기반 제어: 소셜 로그인 성공 메시지가 표시되었는지 확인
-      _waitForSocialLoginMessageCompletion();
-    }
-  }
-  
-  /// 🎯 소셜 로그인 성공 메시지 완료 대기 (이벤트 기반)
-  Future<void> _waitForSocialLoginMessageCompletion() async {
-    // 🔍 신규 사용자 소셜 로그인이 아니면 즉시 설정 체크 진행
-    if (!widget.autoOpenProfileForNewUser) {
-      if (kDebugMode) {
-        debugPrint('🎯 일반 로그인 또는 기존 사용자 - 이벤트 대기 생략');
-      }
-      _checkSettingsAndShowGuide();
+      Future.microtask(() {
+        if (mounted) {
+          _checkSettingsAndShowGuide();
+        }
+      });
       return;
     }
-    
-    // 소셜 로그인 성공 메시지 플래그가 true가 될 때까지 대기
-    int waitCount = 0;
-    const maxWaitTime = 10000; // 최대 10초 대기
-    const checkInterval = 100; // 100ms마다 체크
-    
-    while (!(_authService?.socialLoginSuccessMessageShown ?? false) && 
-           waitCount * checkInterval < maxWaitTime &&
-           mounted) {
-      await Future.delayed(const Duration(milliseconds: checkInterval));
-      waitCount++;
-    }
-    
-    if (!mounted) return;
-    
-    if (_authService?.socialLoginSuccessMessageShown ?? false) {
-      if (kDebugMode) {
-        debugPrint('✅ 소셜 로그인 성공 메시지 완료 감지 (${waitCount * checkInterval}ms)');
-      }
-      
-      // 성공 메시지가 완료된 후 약간의 여유 시간 추가
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      if (mounted) {
-        // 플래그 초기화 (다음 로그인을 위해)
-        _authService?.setSocialLoginSuccessMessageShown(false);
-        
-        // 초기 설정 체크 다이얼로그 표시
-        _checkSettingsAndShowGuide();
-      }
-    } else {
-      if (kDebugMode) {
-        debugPrint('⏱️ 소셜 로그인 성공 메시지 타임아웃 (10초) - 바로 설정 체크 진행');
-      }
-      // 타임아웃 시에도 설정 체크 진행
-      if (mounted) {
-        _checkSettingsAndShowGuide();
-      }
-    }
   }
   
+
   /// 🎯 단말번호 자동 초기화 (로그인 직후 실행)
   /// 
   /// **핵심 기능**: 클릭투콜을 위한 단말번호 자동 설정
