@@ -193,12 +193,15 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         SocialLoginProgressHelper.hide();
       }
       
-      if (mounted) {
-        Navigator.pop(context);
-        await DialogUtils.showSuccess(
-          context,
-          '${result.provider.name.toUpperCase()} 계정으로 가입되었습니다',
-        );
+      // 🎯 AuthService의 user stream이 자동으로 홈 화면으로 네비게이션
+      // Success 다이얼로그 제거 - 자연스러운 화면 전환을 위해
+      // Firebase 로그인이 완료되면 main.dart의 Consumer<AuthService>가
+      // 자동으로 LoginScreen → MainScreen으로 전환
+      
+      if (kDebugMode) {
+        debugPrint('✅ [SIGNUP] 회원가입 완료 - AuthService가 자동으로 홈 화면으로 이동');
+        debugPrint('   - Provider: ${result.provider.name}');
+        debugPrint('   - Email: ${result.email}');
       }
     } catch (e) {
       if (kDebugMode) {
