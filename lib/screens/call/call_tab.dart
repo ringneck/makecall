@@ -163,9 +163,10 @@ class _CallTabState extends State<CallTab> {
     super.dispose();
   }
   
-  // 🔔 AuthService 상태 변경 감지 콜백 (이벤트 기반 패턴)
+  // 🔔 AuthService 상태 변경 감지 콜백 (고급 이벤트 기반 패턴)
   // - userModel 변경 감지 (기존 기능)
-  // - 승인 대기 상태 변경 감지 (NEW: 시간 기반 폴링 제거)
+  // - 승인 대기 상태 변경 감지 (이벤트 기반)
+  // - FCM 초기화 완료 감지 (NEW: 고급 패턴)
   void _onAuthServiceStateChanged() {
     if (kDebugMode) {
       debugPrint('🔔 AuthService 리스너 트리거: 상태 변경 감지');
@@ -181,6 +182,23 @@ class _CallTabState extends State<CallTab> {
     
     // 로그아웃 상태 체크
     if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
+      return;
+    }
+    
+    // 🆕 고급 패턴: FCM 초기화 완료 이벤트 감지
+    // FCM 초기화가 완료되면 승인 대기 상태도 확정되므로 신규 사용자 체크 재실행
+    if ((_authService?.isFcmInitialized ?? false) && !_hasCheckedNewUser && widget.autoOpenProfileForNewUser) {
+      if (kDebugMode) {
+        debugPrint('🚀 [이벤트] FCM 초기화 완료 감지됨');
+        debugPrint('   → 신규 사용자 체크 재실행');
+      }
+      
+      // 비동기 체크를 위해 Future.microtask 사용 (이벤트 루프 후 실행)
+      Future.microtask(() {
+        if (mounted) {
+          _checkAndOpenProfileDrawerForNewUser();
+        }
+      });
       return;
     }
     
@@ -326,22 +344,43 @@ class _CallTabState extends State<CallTab> {
     }
   }
   
-  /// 🎉 신규 사용자 감지 및 ProfileDrawer 자동 열기
+  /// 🎉 신규 사용자 감지 및 ProfileDrawer 자동 열기 (고급 이벤트 기반 패턴)
   /// 
   /// **기능**: 회원가입 직후 기본 설정이 필요한 신규 사용자를 감지하고 ProfileDrawer를 자동으로 엽니다
   /// - API 설정, WebSocket 설정, 단말번호 모두 완료된 경우 ProfileDrawer 열지 않음
   /// - 설정이 부족한 경우에만 ProfileDrawer 자동 열기
   /// - 안내 메시지 없이 바로 ProfileDrawer 열기
   /// - 최초 1회만 실행 (중복 열기 방지)
+  /// 
+  /// **고급 패턴**:
+  /// - FCM 초기화 완료 대기 (이벤트 기반)
+  /// - 초기화 미완료 시 스킵 → FCM 완료 후 재실행 (_onAuthServiceStateChanged에서)
   Future<void> _checkAndOpenProfileDrawerForNewUser() async {
     if (_hasCheckedNewUser) return;
-    _hasCheckedNewUser = true;
 
     try {
       // 🔒 Early Return: 인증 상태 검증 (CRITICAL FIX for blank screen issue)
       if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
         if (kDebugMode) debugPrint('⚠️ 신규 사용자 체크 스킵: 로그아웃 상태');
         return;
+      }
+      
+      // 🚀 고급 패턴: FCM 초기화 완료 대기 (이벤트 기반)
+      // FCM 초기화가 완료되지 않았으면 스킵 → 완료 후 _onAuthServiceStateChanged에서 재실행
+      if (!(_authService?.isFcmInitialized ?? false)) {
+        if (kDebugMode) {
+          debugPrint('⏳ [고급패턴] 신규 사용자 체크 대기: FCM 초기화 미완료');
+          debugPrint('   → FCM 초기화 완료 후 자동 재실행 (이벤트 기반)');
+        }
+        // _hasCheckedNewUser를 true로 설정하지 않음 → 재실행 허용
+        return;
+      }
+      
+      // FCM 초기화가 완료되었으므로 이제 체크 완료 플래그 설정
+      _hasCheckedNewUser = true;
+      
+      if (kDebugMode) {
+        debugPrint('🚀 [고급패턴] FCM 초기화 완료 확인 - 신규 사용자 체크 진행');
       }
       
       // 🔐 CRITICAL: 기기 승인 대기 중인 경우 ProfileDrawer 열지 않음
@@ -353,7 +392,6 @@ class _CallTabState extends State<CallTab> {
           debugPrint('   → isWaitingForApproval: ${_authService?.isWaitingForApproval}');
           debugPrint('   → Approval Request ID: ${_authService?.approvalRequestId}');
         }
-        _hasCheckedNewUser = true;
         return;
       }
       

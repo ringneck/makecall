@@ -44,6 +44,19 @@ class AuthService extends ChangeNotifier {
   bool _socialLoginSuccessMessageShown = false;
   bool get socialLoginSuccessMessageShown => _socialLoginSuccessMessageShown;
   
+  // 🚀 고급 패턴: FCM 초기화 완료 상태 (이벤트 기반)
+  bool _isFcmInitialized = false;
+  bool get isFcmInitialized => _isFcmInitialized;
+  
+  /// FCM 초기화 완료 상태 설정
+  void setFcmInitialized(bool initialized) {
+    _isFcmInitialized = initialized;
+    if (kDebugMode) {
+      debugPrint('🚀 [AUTH] FCM 초기화 상태 변경: $initialized');
+    }
+    notifyListeners();
+  }
+  
   /// 승인 대기 상태 설정
   void setWaitingForApproval(bool waiting, {String? approvalRequestId}) {
     _isWaitingForApproval = waiting;

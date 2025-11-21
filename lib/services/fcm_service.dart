@@ -406,6 +406,14 @@ class FCMService {
       // ✅ 성공 시에만 userId 저장
       if (_fcmToken != null) {
         _initializedUserId = userId;
+        
+        // 🚀 고급 패턴: FCM 초기화 완료 이벤트 발행 (AuthService에 알림)
+        if (_authService != null) {
+          _authService!.setFcmInitialized(true);
+          if (kDebugMode) {
+            debugPrint('🚀 [FCM] 초기화 완료 이벤트 발행 → AuthService 알림');
+          }
+        }
       }
     }
   }
