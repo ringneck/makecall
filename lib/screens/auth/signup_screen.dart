@@ -181,6 +181,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   }) async {
     if (!mounted) return;
     
+    // 🎯 소셜 로그인 진행 중 플래그 설정 (이벤트 기반)
+    // "기존 계정 확인" 다이얼로그가 표시되는 동안 초기 설정 팝업 표시 안 함
+    final authService = context.read<AuthService>();
+    authService.setInSocialLoginFlow(true);
+    
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     await showDialog(
@@ -260,6 +265,12 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         actions: [
           TextButton(
             onPressed: () async {
+              // 소셜 로그인 진행 취소 (이벤트 기반)
+              if (context.mounted) {
+                final authService = context.read<AuthService>();
+                authService.setInSocialLoginFlow(false);
+              }
+              
               // Firebase 로그아웃 (기존 계정 세션 제거)
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
@@ -273,10 +284,13 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
               if (context.mounted) {
                 final authService = context.read<AuthService>();
                 
-                // 1️⃣ AuthService 상태 업데이트 (먼저 실행)
+                // 1️⃣ 소셜 로그인 진행 완료 (이벤트 기반)
+                authService.setInSocialLoginFlow(false);
+                
+                // 2️⃣ AuthService 상태 업데이트
                 authService.setSocialLoginSuccessMessageShown(true);
                 
-                // 2️⃣ 모든 navigation stack 제거하고 root로 돌아가기
+                // 3️⃣ 모든 navigation stack 제거하고 root로 돌아가기
                 // main.dart의 Consumer<AuthService>가 자동으로 적절한 화면 표시:
                 // - isWaitingForApproval == true → ApprovalWaitingScreen
                 // - 아니면 → MainScreen

@@ -44,6 +44,11 @@ class AuthService extends ChangeNotifier {
   bool _socialLoginSuccessMessageShown = false;
   bool get socialLoginSuccessMessageShown => _socialLoginSuccessMessageShown;
   
+  // 🎯 소셜 로그인 진행 중 플래그 (이벤트 기반)
+  // SignupScreen에서 "기존 계정 확인" 다이얼로그가 표시되는 동안 true
+  bool _isInSocialLoginFlow = false;
+  bool get isInSocialLoginFlow => _isInSocialLoginFlow;
+  
   // 🚀 고급 패턴: FCM 초기화 완료 상태 (이벤트 기반)
   bool _isFcmInitialized = false;
   bool get isFcmInitialized => _isFcmInitialized;
@@ -75,6 +80,16 @@ class AuthService extends ChangeNotifier {
     _socialLoginSuccessMessageShown = shown;
     if (kDebugMode) {
       debugPrint('🎯 [AUTH] 소셜 로그인 성공 메시지 표시 완료: $shown');
+    }
+    notifyListeners();
+  }
+  
+  /// 소셜 로그인 진행 중 상태 설정
+  /// SignupScreen에서 "기존 계정 확인" 다이얼로그 표시 전/후 호출
+  void setInSocialLoginFlow(bool inFlow) {
+    _isInSocialLoginFlow = inFlow;
+    if (kDebugMode) {
+      debugPrint('🎯 [AUTH] 소셜 로그인 진행 중: $inFlow');
     }
     notifyListeners();
   }
