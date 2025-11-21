@@ -22,6 +22,7 @@ import '../../widgets/profile_drawer.dart';
 import '../../widgets/extension_drawer.dart';
 import '../../widgets/cached_network_image_widget.dart';
 import '../../widgets/safe_circle_avatar.dart';
+import '../../widgets/social_login_progress_overlay.dart';
 import '../../theme/call_theme_extension.dart';
 import 'call_tab/widgets/extension_info_widget.dart';
 
@@ -69,6 +70,17 @@ class _CallTabState extends State<CallTab> {
   @override
   void initState() {
     super.initState();
+    
+    // 🔄 CRITICAL: 소셜 로그인 오버레이 강제 제거 (화면 전환 안전장치)
+    // 로그인 성공 후 화면 전환 시 오버레이가 남아있을 수 있으므로 강제 제거
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        // dynamic import to avoid direct dependency
+        SocialLoginProgressHelper.forceHide();
+      } catch (e) {
+        // Ignore if helper is not available
+      }
+    });
     
     // ✅ FCM에서 지정한 탭 인덱스 또는 기본값 (키패드) 사용
     _currentTabIndex = widget.initialTabIndex ?? 2; // 기본값: 2 (키패드)

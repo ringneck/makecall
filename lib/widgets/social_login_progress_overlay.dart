@@ -187,6 +187,21 @@ class SocialLoginProgressHelper {
     _currentOverlay?.remove();
     _currentOverlay = null;
   }
+  
+  /// 강제 오버레이 제거 (화면 전환 시 안전장치)
+  static void forceHide() {
+    if (kDebugMode) {
+      debugPrint('🚨 [OVERLAY] Force hiding overlay (safety net)');
+    }
+    try {
+      _currentOverlay?.remove();
+      _currentOverlay = null;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [OVERLAY] Force hide error (expected during navigation): $e');
+      }
+    }
+  }
 
   /// 진행 상황 업데이트 (기존 오버레이를 새 것으로 즉시 교체)
   static void update(

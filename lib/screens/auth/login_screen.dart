@@ -304,7 +304,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           debugPrint('⏳ [SOCIAL LOGIN] AuthService userModel 로드 대기...');
         }
         
+        // 🔄 CRITICAL: 오버레이를 먼저 제거하고 userModel 로드 대기
+        // AuthService의 user stream이 업데이트되면 화면이 자동 전환되므로
+        // 오버레이는 최대한 빨리 제거해야 함
+        if (kDebugMode) {
+          debugPrint('🔄 [OVERLAY] userModel 로드 전 오버레이 제거');
+        }
+        SocialLoginProgressHelper.hide();
+        
         // userModel이 로드될 때까지 최대 5초 대기
+        if (kDebugMode) {
+          debugPrint('⏳ [SOCIAL LOGIN] AuthService userModel 로드 대기...');
+        }
+        
         int waitCount = 0;
         while (authService.currentUserModel == null && waitCount < 50) {
           await Future.delayed(const Duration(milliseconds: 100));
@@ -319,11 +331,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           if (kDebugMode) {
             debugPrint('⚠️ [SOCIAL LOGIN] AuthService userModel 로드 타임아웃 (5초)');
           }
-        }
-        
-        // 진행 상황 오버레이 제거
-        if (mounted) {
-          SocialLoginProgressHelper.hide();
         }
       }
       
