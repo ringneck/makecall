@@ -408,7 +408,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isSocialLoginLoading = true);
     
     try {
+      // 🎯 구글 로그인 진행 중 오버레이 표시
+      if (mounted) {
+        SocialLoginProgressHelper.show(
+          context,
+          message: '구글로 로그인 중입니다',
+          subMessage: '잠시만 기다려주세요',
+        );
+      }
+      
       final result = await _socialLoginService.signInWithGoogle();
+      
+      // 진행 상황 오버레이 제거
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+      }
       
       if (result.success) {
         await _handleSocialLoginSuccess(result);
@@ -430,6 +444,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         }
       }
     } catch (e) {
+      // 에러 시 오버레이 제거
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+      }
       if (mounted) {
         await DialogUtils.showError(
           context,
@@ -460,7 +478,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isSocialLoginLoading = true);
     
     try {
+      // 🎯 카카오톡 로그인 진행 중 오버레이 표시
+      if (mounted) {
+        SocialLoginProgressHelper.show(
+          context,
+          message: '카카오톡으로 로그인 중입니다',
+          subMessage: '잠시만 기다려주세요',
+        );
+      }
+      
       final result = await _socialLoginService.signInWithKakao();
+      
+      // 진행 상황 오버레이 제거
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+      }
       
       if (result.success) {
         await _handleSocialLoginSuccess(result);
@@ -482,6 +514,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         }
       }
     } catch (e) {
+      // 에러 시 오버레이 제거
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+      }
       if (mounted) {
         await DialogUtils.showError(
           context,
@@ -512,7 +548,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isSocialLoginLoading = true);
     
     try {
+      // 🎯 애플 로그인 진행 중 오버레이 표시
+      if (mounted) {
+        SocialLoginProgressHelper.show(
+          context,
+          message: '애플로 로그인 중입니다',
+          subMessage: '잠시만 기다려주세요',
+        );
+      }
+      
       final result = await _socialLoginService.signInWithApple();
+      
+      // 진행 상황 오버레이 제거
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+      }
       
       if (result.success) {
         await _handleSocialLoginSuccess(result);
@@ -536,6 +586,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         }
       }
     } catch (e) {
+      // 에러 시 오버레이 제거
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+      }
       if (mounted) {
         await DialogUtils.showError(
           context,
