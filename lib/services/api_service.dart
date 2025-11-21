@@ -312,7 +312,7 @@ class ApiService {
       if (kDebugMode) {
         debugPrint('❌ Get phonebooks error: $e');
       }
-      throw _handleError(e, 'Phonebook 목록 조회');
+      throw _handleError(e, 'REST API 서버 설정을 확인해주세요');
     }
   }
   
@@ -361,7 +361,7 @@ class ApiService {
       if (kDebugMode) {
         debugPrint('❌ Get phonebook contacts error: $e');
       }
-      throw _handleError(e, 'Phonebook 연락처 조회');
+      throw _handleError(e, 'REST API 서버 설정을 확인해주세요');
     }
   }
 

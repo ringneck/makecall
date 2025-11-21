@@ -211,6 +211,105 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     }
   }
   
+  // REST API 설정 필요 안내 다이얼로그
+  Future<void> _showApiSettingsRequiredDialog() async {
+    if (!mounted) return;
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.settings_outlined,
+              color: isDark ? Colors.orange[300] : Colors.orange[700],
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            const Text('REST API 설정 필요'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '통화 기능을 사용하기 위해서는\nREST API 서버 설정이 필요합니다.',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.orange[900]!.withAlpha(77)
+                    : Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.orange[700]!
+                      : Colors.orange.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.touch_app,
+                    size: 20,
+                    color: isDark ? Colors.orange[300] : Colors.orange[700],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '왼쪽 상단 프로필 아이콘을 눌러\nREST API 서버 정보를 입력해주세요.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.orange[300] : Colors.orange[800],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '※ WebSocket 설정은 선택사항입니다',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey[500] : Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDark ? Colors.orange[700] : Colors.orange[600],
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+  }
+  
   // 기존 계정 안내 다이얼로그
   Future<void> _showExistingAccountDialog({
     required String email,
@@ -324,10 +423,42 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                 // 1️⃣ 소셜 로그인 진행 완료 (이벤트 기반)
                 authService.setInSocialLoginFlow(false);
                 
-                // 2️⃣ AuthService 상태 업데이트
+                // 2️⃣ REST API 설정 확인 (기존 계정 로그인 시에만 체크)
+                final userModel = authService.currentUserModel;
+                
+                // 🔍 REST API 설정이 없는 경우 안내 다이얼로그 표시
+                if (userModel != null) {
+                  final hasApiSettings = (userModel.apiBaseUrl?.isNotEmpty ?? false) &&
+                                        (userModel.companyId?.isNotEmpty ?? false) &&
+                                        (userModel.appKey?.isNotEmpty ?? false);
+                  
+                  if (!hasApiSettings && context.mounted) {
+                    // 다이얼로그 닫기
+                    Navigator.of(context).pop();
+                    
+                    // 약간의 지연 후 REST API 설정 안내 다이얼로그 표시
+                    await Future.delayed(const Duration(milliseconds: 300));
+                    
+                    if (context.mounted) {
+                      await _showApiSettingsRequiredDialog();
+                    }
+                    
+                    // 3️⃣ AuthService 상태 업데이트
+                    authService.setSocialLoginSuccessMessageShown(true);
+                    
+                    // 4️⃣ 모든 navigation stack 제거하고 root로 돌아가기
+                    if (context.mounted && Navigator.of(context).canPop()) {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    }
+                    
+                    return;
+                  }
+                }
+                
+                // 3️⃣ AuthService 상태 업데이트
                 authService.setSocialLoginSuccessMessageShown(true);
                 
-                // 3️⃣ 모든 navigation stack 제거하고 root로 돌아가기
+                // 4️⃣ 모든 navigation stack 제거하고 root로 돌아가기
                 // main.dart의 Consumer<AuthService>가 자동으로 적절한 화면 표시:
                 // - isWaitingForApproval == true → ApprovalWaitingScreen
                 // - 아니면 → MainScreen
