@@ -200,21 +200,9 @@ class _CallTabState extends State<CallTab> {
       return;
     }
     
-    // 3️⃣ 소셜 로그인 성공 메시지 완료 이벤트 감지 (NEW)
-    if ((_authService?.socialLoginSuccessMessageShown ?? false) && 
-        !_hasCheckedSettings && 
-        widget.autoOpenProfileForNewUser) {
-      if (kDebugMode) {
-        debugPrint('🎉 [이벤트] 소셜 로그인 성공 메시지 완료 감지됨 → 설정 체크 실행');
-      }
-      
-      Future.microtask(() {
-        if (mounted) {
-          _checkSettingsAndShowGuide();
-        }
-      });
-      return;
-    }
+    // 3️⃣ 소셜 로그인 성공 메시지 완료 이벤트 감지 (REMOVED)
+    // 🚫 자동 진행 방지: 사용자가 "기존 계정으로 로그인" 버튼을 클릭해야만 진행
+    // socialLoginSuccessMessageShown 플래그는 더 이상 사용하지 않음
   }
   
 

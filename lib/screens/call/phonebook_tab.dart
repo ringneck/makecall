@@ -137,9 +137,20 @@ class _PhonebookTabState extends State<PhonebookTab> {
   @override
   void initState() {
     super.initState();
-    // 화면 진입 시 DB에 데이터가 없으면 자동으로 API 호출
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAndLoadPhonebooks();
+    // 🎯 이벤트 기반: 소셜 로그인 진행 중에는 자동 로드하지 않음
+    // 소셜 로그인이 완료되고 "기존 계정으로 로그인" 버튼을 클릭한 후에만 로드
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // AuthService에서 소셜 로그인 진행 중인지 확인
+      final authService = context.read<AuthService>();
+      
+      // 소셜 로그인 진행 중이 아닐 때만 자동 로드
+      if (!(authService.isInSocialLoginFlow)) {
+        await _checkAndLoadPhonebooks();
+      } else {
+        if (kDebugMode) {
+          debugPrint('⏭️ 소셜 로그인 진행 중 - Phonebook 자동 로드 건너뛰기');
+        }
+      }
     });
   }
 
