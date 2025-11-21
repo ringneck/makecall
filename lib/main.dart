@@ -25,6 +25,7 @@ import 'providers/theme_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/web_login_wrapper.dart';
 import 'screens/auth/approval_waiting_screen.dart';
+import 'screens/auth/consent_renewal_screen.dart';
 import 'screens/home/main_screen.dart';
 import 'screens/splash/splash_screen.dart';
 
@@ -630,6 +631,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       if (authService.currentUser != null && 
                           authService.currentUserModel != null &&
                           !authService.isLoggingOut) {
+                        
+                        // 🔄 개인정보보호법 준수: 동의 만료 체크 (2년 주기)
+                        final userModel = authService.currentUserModel!;
+                        if (userModel.needsConsentRenewal) {
+                          return const ConsentRenewalScreen();
+                        }
+                        
                         // ⏱️ 사용자 활동 감지 (GestureDetector로 전체 앱 감싸기)
                         return GestureDetector(
                           key: ValueKey('gesture_${authService.currentUser?.uid}'),

@@ -1016,6 +1016,31 @@ class AuthService extends ChangeNotifier {
     }
   }
   
+  // 🔄 사용자 정보 다시 로드 (동의 갱신 후)
+  Future<void> reloadCurrentUser() async {
+    if (currentUser == null) return;
+    
+    try {
+      final userId = currentUser!.uid;
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      
+      if (userDoc.exists) {
+        _currentUserModel = UserModel.fromMap(
+          userDoc.data()!,
+          userId,
+        );
+        if (kDebugMode) {
+          debugPrint('✅ [AUTH] 사용자 정보 다시 로드 완료');
+        }
+        notifyListeners();
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [AUTH] 사용자 정보 다시 로드 실패: $e');
+      }
+    }
+  }
+  
   // Firebase Auth 에러 메시지 한글화
   String getErrorMessage(String errorCode) {
     switch (errorCode) {

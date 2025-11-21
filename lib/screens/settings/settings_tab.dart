@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../services/auth_service.dart';
 import '../debug/token_debug_screen.dart';
+import '../auth/consent_history_screen.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
@@ -82,6 +83,20 @@ class SettingsTab extends StatelessWidget {
                 '2. 수집하는 개인정보의 항목\n'
                 '3. 개인정보의 보유 및 이용 기간\n'
                 '...',
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.history, color: Colors.blue),
+            title: const Text('동의 이력'),
+            subtitle: const Text('약관 동의 이력 확인'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ConsentHistoryScreen(),
+                ),
               );
             },
           ),

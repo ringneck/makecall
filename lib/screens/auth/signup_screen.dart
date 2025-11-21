@@ -1362,7 +1362,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                             ],
                           ),
                           child: ElevatedButton(
-                            onPressed: _isLoading ? null : _handleSignUp,
+                            onPressed: (_isLoading || !_termsAgreed || !_privacyPolicyAgreed) 
+                                ? null 
+                                : _handleSignUp,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
