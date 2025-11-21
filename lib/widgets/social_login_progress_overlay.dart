@@ -145,27 +145,25 @@ class SocialLoginProgressHelper {
   static OverlayEntry? _currentOverlay;
 
   /// 진행 상황 오버레이 표시
-  static Future<void> show(
+  static void show(
     BuildContext context, {
     required String message,
     String? subMessage,
     double? progress,
-  }) async {
+  }) {
     if (kDebugMode) {
       debugPrint('🔄 [OVERLAY] Showing: $message');
     }
     
-    // 기존 오버레이가 있으면 먼저 제거
-    if (_currentOverlay != null) {
-      hide();
-      // 오버레이가 완전히 제거될 때까지 대기
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
+    // 기존 오버레이 즉시 제거
+    _currentOverlay?.remove();
+    _currentOverlay = null;
 
     if (kDebugMode) {
       debugPrint('✅ [OVERLAY] Creating new overlay: $message');
     }
 
+    // 새 오버레이 즉시 생성 및 삽입
     _currentOverlay = OverlayEntry(
       builder: (context) => SocialLoginProgressOverlay(
         message: message,
@@ -190,22 +188,19 @@ class SocialLoginProgressHelper {
     _currentOverlay = null;
   }
 
-  /// 진행 상황 업데이트 (기존 오버레이를 새 것으로 교체)
-  static Future<void> update(
+  /// 진행 상황 업데이트 (기존 오버레이를 새 것으로 즉시 교체)
+  static void update(
     BuildContext context, {
     required String message,
     String? subMessage,
     double? progress,
-  }) async {
+  }) {
     if (kDebugMode) {
       debugPrint('🔄 [OVERLAY] Updating to: $message');
     }
     
-    hide();
-    // 오버레이가 완전히 제거될 때까지 대기
-    await Future.delayed(const Duration(milliseconds: 100));
-    
-    await show(
+    // 즉시 교체
+    show(
       context,
       message: message,
       subMessage: subMessage,
