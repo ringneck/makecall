@@ -328,6 +328,7 @@ class _CallTabState extends State<CallTab> {
       }
       
       // 🔐 CRITICAL: 기기 승인 대기 중인 경우 ProfileDrawer 열지 않음
+      // 추가 대기 시간을 두어 approvalRequestId가 설정될 때까지 기다림
       if (_authService?.approvalRequestId != null) {
         if (kDebugMode) {
           debugPrint('⏳ 신규 사용자 체크 스킵: 기기 승인 대기 중');
@@ -336,6 +337,28 @@ class _CallTabState extends State<CallTab> {
         }
         _hasCheckedNewUser = true;
         return;
+      }
+      
+      // 🔐 ADDITIONAL CHECK: approvalRequestId가 설정될 때까지 추가 대기 (소셜 로그인 직후)
+      // FCM 토큰 저장 및 승인 요청이 완료될 때까지 최대 2초 대기
+      int approvalWaitCount = 0;
+      while (_authService?.approvalRequestId == null && approvalWaitCount < 20) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        approvalWaitCount++;
+        
+        // 재확인
+        if (_authService?.approvalRequestId != null) {
+          if (kDebugMode) {
+            debugPrint('⏳ 신규 사용자 체크 스킵: 기기 승인 대기 감지됨 (${approvalWaitCount * 100}ms 후)');
+            debugPrint('   → Approval Request ID: ${_authService?.approvalRequestId}');
+          }
+          _hasCheckedNewUser = true;
+          return;
+        }
+      }
+      
+      if (kDebugMode && approvalWaitCount > 0) {
+        debugPrint('✓ 기기 승인 대기 체크 완료 (${approvalWaitCount * 100}ms): 승인 요청 없음');
       }
       
       final userId = _authService?.currentUser?.uid;
