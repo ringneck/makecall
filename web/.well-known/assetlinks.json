@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.olssoo.makecall_app",
+      "sha256_cert_fingerprints": [
+        "45:AC:F3:B0:10:16:9F:91:31:95:C2:AF:08:4D:D1:92:C7:31:54:FB:9C:56:DE:F8:15:4E:FE:B8:CB:11:10:6F"
+      ]
+    }
+  }
+]
