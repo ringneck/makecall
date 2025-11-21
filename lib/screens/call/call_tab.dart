@@ -430,6 +430,19 @@ class _CallTabState extends State<CallTab> {
       return;
     }
     
+    // 🔐 CRITICAL: 소셜 로그인 직후(5분 이내)인 경우 설정 체크 건너뛰기
+    // "기존 계정 확인" 다이얼로그가 표시되기 전에 "초기 등록 필요"가 표시되는 것을 방지
+    if (userModel.lastLoginAt != null) {
+      final timeSinceLogin = DateTime.now().difference(userModel.lastLoginAt!);
+      if (timeSinceLogin.inMinutes < 5) {
+        if (kDebugMode) {
+          debugPrint('⏭️ 소셜 로그인 직후 - 초기 등록 팝업 건너뛰기 (${timeSinceLogin.inSeconds}초 경과)');
+        }
+        _hasCheckedSettings = true;
+        return;
+      }
+    }
+    
     if (kDebugMode) {
     }
     
