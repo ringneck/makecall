@@ -138,7 +138,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       
       // 1️⃣ 사용자 정보 확인 중
       if (mounted) {
-        SocialLoginProgressHelper.show(
+        await SocialLoginProgressHelper.show(
           context,
           message: '사용자 정보 확인 중...',
           subMessage: '잠시만 기다려주세요',
@@ -171,7 +171,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       
       // 2️⃣ 신규 가입 - 프로필 생성 중
       if (mounted) {
-        SocialLoginProgressHelper.show(
+        await SocialLoginProgressHelper.show(
           context,
           message: '계정 생성 중...',
           subMessage: 'Firebase 프로필을 생성하고 있습니다',
@@ -559,7 +559,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     try {
       // 🎯 구글 회원가입 진행 중 오버레이 표시
       if (mounted) {
-        SocialLoginProgressHelper.show(
+        await SocialLoginProgressHelper.show(
           context,
           message: '구글로 회원가입 중입니다',
           subMessage: '잠시만 기다려주세요',
@@ -628,7 +628,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     try {
       // 🎯 카카오톡 회원가입 진행 중 오버레이 표시
       if (mounted) {
-        SocialLoginProgressHelper.show(
+        await SocialLoginProgressHelper.show(
           context,
           message: '카카오톡으로 회원가입 중입니다',
           subMessage: '잠시만 기다려주세요',
@@ -697,7 +697,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     try {
       // 🎯 애플 회원가입 진행 중 오버레이 표시
       if (mounted) {
-        SocialLoginProgressHelper.show(
+        await SocialLoginProgressHelper.show(
           context,
           message: '애플로 회원가입 중입니다',
           subMessage: '잠시만 기다려주세요',

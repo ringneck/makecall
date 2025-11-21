@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "2W96U5V89C.com.olssoo.makecall",
+        "paths": [
+          "/auth/callback",
+          "/auth/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "2W96U5V89C.com.olssoo.makecall"
+    ]
+  }
+}

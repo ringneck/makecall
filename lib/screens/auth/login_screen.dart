@@ -249,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (result.success && result.userId != null) {
         // 1️⃣ 사용자 정보 업데이트 중
         if (mounted) {
-          SocialLoginProgressHelper.show(
+          await SocialLoginProgressHelper.show(
             context,
             message: '사용자 정보 업데이트 중...',
             subMessage: 'Firebase에 프로필 정보를 저장하고 있습니다',
@@ -273,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         
         // 2️⃣ 계정 정보 로드 중
         if (mounted) {
-          SocialLoginProgressHelper.update(
+          await SocialLoginProgressHelper.update(
             context,
             message: '계정 정보 로드 중...',
             subMessage: '잠시만 기다려주세요',
@@ -410,7 +410,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     try {
       // 🎯 구글 로그인 진행 중 오버레이 표시
       if (mounted) {
-        SocialLoginProgressHelper.show(
+        await SocialLoginProgressHelper.show(
           context,
           message: '구글로 로그인 중입니다',
           subMessage: '잠시만 기다려주세요',
@@ -480,7 +480,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     try {
       // 🎯 카카오톡 로그인 진행 중 오버레이 표시
       if (mounted) {
-        SocialLoginProgressHelper.show(
+        await SocialLoginProgressHelper.show(
           context,
           message: '카카오톡으로 로그인 중입니다',
           subMessage: '잠시만 기다려주세요',
@@ -550,7 +550,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     try {
       // 🎯 애플 로그인 진행 중 오버레이 표시
       if (mounted) {
-        SocialLoginProgressHelper.show(
+        await SocialLoginProgressHelper.show(
           context,
           message: '애플로 로그인 중입니다',
           subMessage: '잠시만 기다려주세요',

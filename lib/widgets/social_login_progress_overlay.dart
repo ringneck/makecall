@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// 소셜 로그인 진행 상황 오버레이
@@ -144,13 +145,26 @@ class SocialLoginProgressHelper {
   static OverlayEntry? _currentOverlay;
 
   /// 진행 상황 오버레이 표시
-  static void show(
+  static Future<void> show(
     BuildContext context, {
     required String message,
     String? subMessage,
     double? progress,
-  }) {
-    hide(); // 기존 오버레이 제거
+  }) async {
+    if (kDebugMode) {
+      debugPrint('🔄 [OVERLAY] Showing: $message');
+    }
+    
+    // 기존 오버레이가 있으면 먼저 제거
+    if (_currentOverlay != null) {
+      hide();
+      // 오버레이가 완전히 제거될 때까지 대기
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    if (kDebugMode) {
+      debugPrint('✅ [OVERLAY] Creating new overlay: $message');
+    }
 
     _currentOverlay = OverlayEntry(
       builder: (context) => SocialLoginProgressOverlay(
@@ -161,23 +175,37 @@ class SocialLoginProgressHelper {
     );
 
     Overlay.of(context).insert(_currentOverlay!);
+    
+    if (kDebugMode) {
+      debugPrint('✅ [OVERLAY] Overlay inserted: $message');
+    }
   }
 
   /// 오버레이 숨기기
   static void hide() {
+    if (kDebugMode) {
+      debugPrint('❌ [OVERLAY] Hiding overlay');
+    }
     _currentOverlay?.remove();
     _currentOverlay = null;
   }
 
-  /// 진행 상황 업데이트
-  static void update(
+  /// 진행 상황 업데이트 (기존 오버레이를 새 것으로 교체)
+  static Future<void> update(
     BuildContext context, {
     required String message,
     String? subMessage,
     double? progress,
-  }) {
+  }) async {
+    if (kDebugMode) {
+      debugPrint('🔄 [OVERLAY] Updating to: $message');
+    }
+    
     hide();
-    show(
+    // 오버레이가 완전히 제거될 때까지 대기
+    await Future.delayed(const Duration(milliseconds: 100));
+    
+    await show(
       context,
       message: message,
       subMessage: subMessage,
