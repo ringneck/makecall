@@ -86,8 +86,8 @@ class _CallTabState extends State<CallTab> {
         return;
       }
       
-      // AuthService 리스너 등록 (사용자 전환 감지)
-      _authService?.addListener(_onUserModelChanged);
+      // AuthService 리스너 등록 (사용자 전환 및 승인 대기 상태 변경 감지)
+      _authService?.addListener(_onAuthServiceStateChanged);
       
       // 🔔 DCMIWS 이벤트 스트림 구독 (IncomingCallScreen 결과 처리)
       _dcmiwsEventSubscription = DCMIWSService().events.listen((event) {
@@ -138,7 +138,7 @@ class _CallTabState extends State<CallTab> {
     
     // 🎯 STEP 2: 설정 확인 (선택적 안내)
     // 소셜 로그인이 아닌 경우에만 즉시 실행
-    // 소셜 로그인인 경우는 _onUserModelChanged에서 이벤트 기반으로 처리
+    // 소셜 로그인인 경우는 _onAuthServiceStateChanged에서 이벤트 기반으로 처리
     if (!widget.autoOpenProfileForNewUser) {
       await _checkSettingsAndShowGuide();
     } else {
@@ -152,7 +152,7 @@ class _CallTabState extends State<CallTab> {
   void dispose() {
     // 🔒 고급 개발자 패턴: 저장된 참조를 사용하여 안전하게 리스너 제거
     // context.read()를 사용하지 않음 → deactivated widget 에러 방지
-    _authService?.removeListener(_onUserModelChanged);
+    _authService?.removeListener(_onAuthServiceStateChanged);
     _authService = null; // 메모리 누수 방지
     
     // 🔔 DCMIWS 이벤트 구독 취소
@@ -163,10 +163,12 @@ class _CallTabState extends State<CallTab> {
     super.dispose();
   }
   
-  // 🔔 userModel 변경 감지 콜백 (고급 패턴: 안전한 비동기 처리)
-  void _onUserModelChanged() {
+  // 🔔 AuthService 상태 변경 감지 콜백 (이벤트 기반 패턴)
+  // - userModel 변경 감지 (기존 기능)
+  // - 승인 대기 상태 변경 감지 (NEW: 시간 기반 폴링 제거)
+  void _onAuthServiceStateChanged() {
     if (kDebugMode) {
-      debugPrint('🔔 AuthService 리스너 트리거: userModel 변경 감지');
+      debugPrint('🔔 AuthService 리스너 트리거: 상태 변경 감지');
     }
     
     // 🔒 mounted 체크 최우선 (Widget이 dispose되었을 수 있음)
@@ -179,6 +181,21 @@ class _CallTabState extends State<CallTab> {
     
     // 로그아웃 상태 체크
     if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
+      return;
+    }
+    
+    // 🆕 이벤트 기반 승인 대기 상태 감지 (시간 기반 폴링 제거)
+    // AuthService의 setWaitingForApproval()이 호출되면 즉시 이 리스너가 트리거됨
+    if ((_authService?.isWaitingForApproval ?? false) || _authService?.approvalRequestId != null) {
+      if (kDebugMode) {
+        debugPrint('🔔 [이벤트] 기기 승인 대기 상태 감지됨');
+        debugPrint('   → isWaitingForApproval: ${_authService?.isWaitingForApproval}');
+        debugPrint('   → Approval Request ID: ${_authService?.approvalRequestId}');
+        debugPrint('   → ProfileDrawer 자동 열기 취소');
+      }
+      
+      // 승인 대기 중이므로 신규 사용자 체크 완료 표시 (ProfileDrawer 열지 않음)
+      _hasCheckedNewUser = true;
       return;
     }
     
@@ -328,37 +345,16 @@ class _CallTabState extends State<CallTab> {
       }
       
       // 🔐 CRITICAL: 기기 승인 대기 중인 경우 ProfileDrawer 열지 않음
-      // 추가 대기 시간을 두어 approvalRequestId가 설정될 때까지 기다림
-      if (_authService?.approvalRequestId != null) {
+      // ✅ 이벤트 기반 방식: 시간 대기 없이 현재 상태만 체크
+      if ((_authService?.isWaitingForApproval ?? false) || _authService?.approvalRequestId != null) {
         if (kDebugMode) {
           debugPrint('⏳ 신규 사용자 체크 스킵: 기기 승인 대기 중');
           debugPrint('   → 기기 승인 화면이 우선 표시되어야 함');
+          debugPrint('   → isWaitingForApproval: ${_authService?.isWaitingForApproval}');
           debugPrint('   → Approval Request ID: ${_authService?.approvalRequestId}');
         }
         _hasCheckedNewUser = true;
         return;
-      }
-      
-      // 🔐 ADDITIONAL CHECK: approvalRequestId가 설정될 때까지 추가 대기 (소셜 로그인 직후)
-      // FCM 토큰 저장 및 승인 요청이 완료될 때까지 최대 2초 대기
-      int approvalWaitCount = 0;
-      while (_authService?.approvalRequestId == null && approvalWaitCount < 20) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        approvalWaitCount++;
-        
-        // 재확인
-        if (_authService?.approvalRequestId != null) {
-          if (kDebugMode) {
-            debugPrint('⏳ 신규 사용자 체크 스킵: 기기 승인 대기 감지됨 (${approvalWaitCount * 100}ms 후)');
-            debugPrint('   → Approval Request ID: ${_authService?.approvalRequestId}');
-          }
-          _hasCheckedNewUser = true;
-          return;
-        }
-      }
-      
-      if (kDebugMode && approvalWaitCount > 0) {
-        debugPrint('✓ 기기 승인 대기 체크 완료 (${approvalWaitCount * 100}ms): 승인 요청 없음');
       }
       
       final userId = _authService?.currentUser?.uid;
@@ -378,7 +374,7 @@ class _CallTabState extends State<CallTab> {
       if (userModel == null) {
         if (kDebugMode) {
           debugPrint('⚠️ [신규사용자체크] userModel 로드 타임아웃 (3초)');
-          debugPrint('   → 신규 사용자 체크 건너뜀 (나중에 _onUserModelChanged에서 재시도)');
+          debugPrint('   → 신규 사용자 체크 건너뜀 (나중에 _onAuthServiceStateChanged에서 재시도)');
         }
         _hasCheckedNewUser = false; // 재시도 가능하도록 플래그 리셋
         return;
@@ -525,7 +521,7 @@ class _CallTabState extends State<CallTab> {
     if (userModel == null) {
       if (kDebugMode) {
         debugPrint('⚠️ [설정체크] userModel 로드 타임아웃 (5초)');
-        debugPrint('   → 설정 체크 건너뜀 (나중에 _onUserModelChanged에서 재시도)');
+        debugPrint('   → 설정 체크 건너뜀 (나중에 _onAuthServiceStateChanged에서 재시도)');
       }
       _hasCheckedSettings = false; // 재시도 가능하도록 플래그 리셋
       return;
