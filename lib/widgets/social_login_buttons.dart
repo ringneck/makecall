@@ -80,7 +80,7 @@ class SocialLoginButtons extends StatelessWidget {
     
     return SizedBox(
       width: buttonWidth,
-      height: 50,
+      height: 56,
       child: ElevatedButton(
         onPressed: isLoading ? null : onKakaoPressed,
         style: ElevatedButton.styleFrom(
@@ -95,23 +95,23 @@ class SocialLoginButtons extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 카카오 로고
+            // 카카오 로고 (크게)
             Image.asset(
               'assets/images/social/kakao_logo.png',
-              width: 24,
-              height: 24,
+              width: 36,
+              height: 36,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  width: 24,
-                  height: 24,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: Colors.black87,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                   child: const Icon(
                     Icons.chat_bubble,
                     color: Color(0xFFFEE500),
-                    size: 16,
+                    size: 24,
                   ),
                 );
               },
@@ -137,7 +137,7 @@ class SocialLoginButtons extends StatelessWidget {
     
     return SizedBox(
       width: buttonWidth,
-      height: 50,
+      height: 56,
       child: ElevatedButton(
         onPressed: isLoading ? null : onGooglePressed,
         style: ElevatedButton.styleFrom(
@@ -156,24 +156,24 @@ class SocialLoginButtons extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 구글 로고
+            // 구글 로고 (크게)
             Image.asset(
               'assets/images/social/google_logo.png',
-              width: 24,
-              height: 24,
+              width: 36,
+              height: 36,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  width: 24,
-                  height: 24,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: Colors.grey[300]!),
                   ),
                   child: const Icon(
                     Icons.g_mobiledata,
                     color: Color(0xFF4285F4),
-                    size: 20,
+                    size: 28,
                   ),
                 );
               },
@@ -199,7 +199,7 @@ class SocialLoginButtons extends StatelessWidget {
     
     return SizedBox(
       width: buttonWidth,
-      height: 50,
+      height: 56,
       child: ElevatedButton(
         onPressed: isLoading ? null : onApplePressed,
         style: ElevatedButton.styleFrom(
@@ -214,11 +214,11 @@ class SocialLoginButtons extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 애플 로고
+            // 애플 로고 (크게)
             Icon(
               Icons.apple,
               color: isDark ? Colors.black : Colors.white,
-              size: 28,
+              size: 36,
             ),
             const SizedBox(width: 12),
             Text(
