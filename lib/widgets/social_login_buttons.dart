@@ -3,15 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
 import '../config/kakao_config.dart';
 
-/// 소셜 로그인 버튼 위젯 (공식 디자인 가이드 준수)
+/// 소셜 로그인 버튼 위젯 (로고만 표시)
 /// 
 /// 플랫폼별 소셜 로그인 버튼 제공:
 /// - 웹 플랫폼: Kakao + Google + Apple (3개)
 /// - iOS 플랫폼: Kakao + Google + Apple (3개)
 /// - Android 플랫폼: Kakao + Google + Apple (3개)
 /// 
-/// 각 소셜 플랫폼의 공식 디자인 가이드라인을 준수하여
-/// 유통되는 공식 이미지와 동일한 스타일로 구현
+/// 각 소셜 플랫폼의 공식 로고만 표시 (텍스트 없음)
 class SocialLoginButtons extends StatelessWidget {
   final Function()? onGooglePressed;
   final Function()? onKakaoPressed;
@@ -52,21 +51,22 @@ class SocialLoginButtons extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
-        Column(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 카카오 로그인 버튼 (웹에서도 표시)
+            // 카카오 로그인 (웹에서도 표시)
             if (kIsWeb ? KakaoConfig.isWebLoginEnabled : true)
               _buildKakaoLoginButton(context, screenWidth, isDark),
             
             if (kIsWeb ? KakaoConfig.isWebLoginEnabled : true)
-              const SizedBox(height: 12),
+              const SizedBox(width: 16),
             
-            // 구글 로그인 버튼
+            // 구글 로그인
             _buildGoogleLoginButton(context, screenWidth, isDark),
             
-            const SizedBox(height: 12),
+            const SizedBox(width: 16),
             
-            // 애플 로그인 버튼
+            // 애플 로그인
             _buildAppleLoginButton(context, screenWidth, isDark),
           ],
         ),
@@ -74,162 +74,141 @@ class SocialLoginButtons extends StatelessWidget {
     );
   }
 
-  /// 카카오 로그인 버튼 (공식 디자인)
+  /// 카카오 로그인 버튼 (로고만)
   Widget _buildKakaoLoginButton(BuildContext context, double screenWidth, bool isDark) {
-    final buttonWidth = screenWidth > 600 ? 300.0 : screenWidth * 0.8;
+    final buttonSize = screenWidth > 600 ? 64.0 : 56.0;
     
-    return SizedBox(
-      width: buttonWidth,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onKakaoPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFFEE500), // 카카오 공식 노란색
-          foregroundColor: Colors.black87,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Container(
+      width: buttonSize,
+      height: buttonSize,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEE500), // 카카오 공식 노란색
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          padding: EdgeInsets.zero,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 카카오 로고 (크게)
-            Image.asset(
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isLoading ? null : onKakaoPressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Center(
+            child: Image.asset(
               'assets/images/social/kakao_logo.png',
-              width: 36,
-              height: 36,
+              width: buttonSize * 0.6,
+              height: buttonSize * 0.6,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  width: 36,
-                  height: 36,
+                  width: buttonSize * 0.6,
+                  height: buttonSize * 0.6,
                   decoration: BoxDecoration(
                     color: Colors.black87,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(buttonSize * 0.3),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.chat_bubble,
-                    color: Color(0xFFFEE500),
-                    size: 24,
+                    color: const Color(0xFFFEE500),
+                    size: buttonSize * 0.4,
                   ),
                 );
               },
             ),
-            const SizedBox(width: 12),
-            const Text(
-              '카카오 로그인',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  /// 구글 로그인 버튼 (공식 디자인)
+  /// 구글 로그인 버튼 (로고만)
   Widget _buildGoogleLoginButton(BuildContext context, double screenWidth, bool isDark) {
-    final buttonWidth = screenWidth > 600 ? 300.0 : screenWidth * 0.8;
+    final buttonSize = screenWidth > 600 ? 64.0 : 56.0;
     
-    return SizedBox(
-      width: buttonWidth,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onGooglePressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isDark ? Colors.grey[850] : Colors.white,
-          foregroundColor: isDark ? Colors.white : Colors.black87,
-          elevation: 0,
-          side: BorderSide(
-            color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
-            width: 1,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: EdgeInsets.zero,
+    return Container(
+      width: buttonSize,
+      height: buttonSize,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+          width: 1,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 구글 로고 (크게)
-            Image.asset(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isLoading ? null : onGooglePressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Center(
+            child: Image.asset(
               'assets/images/social/google_logo.png',
-              width: 36,
-              height: 36,
+              width: buttonSize * 0.6,
+              height: buttonSize * 0.6,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  width: 36,
-                  height: 36,
+                  width: buttonSize * 0.6,
+                  height: buttonSize * 0.6,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(buttonSize * 0.3),
                     border: Border.all(color: Colors.grey[300]!),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.g_mobiledata,
-                    color: Color(0xFF4285F4),
-                    size: 28,
+                    color: const Color(0xFF4285F4),
+                    size: buttonSize * 0.5,
                   ),
                 );
               },
             ),
-            const SizedBox(width: 12),
-            Text(
-              'Google 로그인',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  /// 애플 로그인 버튼 (공식 디자인)
+  /// 애플 로그인 버튼 (로고만)
   Widget _buildAppleLoginButton(BuildContext context, double screenWidth, bool isDark) {
-    final buttonWidth = screenWidth > 600 ? 300.0 : screenWidth * 0.8;
+    final buttonSize = screenWidth > 600 ? 64.0 : 56.0;
     
-    return SizedBox(
-      width: buttonWidth,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onApplePressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isDark ? Colors.white : Colors.black,
-          foregroundColor: isDark ? Colors.black : Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Container(
+      width: buttonSize,
+      height: buttonSize,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white : Colors.black,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          padding: EdgeInsets.zero,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 애플 로고 (크게)
-            Icon(
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isLoading ? null : onApplePressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Center(
+            child: Icon(
               Icons.apple,
               color: isDark ? Colors.black : Colors.white,
-              size: 36,
+              size: buttonSize * 0.65,
             ),
-            const SizedBox(width: 12),
-            Text(
-              'Apple로 로그인',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.black : Colors.white,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
