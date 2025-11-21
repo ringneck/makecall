@@ -383,6 +383,16 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
 
   // Google 회원가입
   Future<void> _handleGoogleSignUp() async {
+    // 웹 플랫폼에서는 소셜 로그인 비활성화
+    if (_isWeb) {
+      await DialogUtils.showInfo(
+        context,
+        '소셜 로그인은 웹에서는 제공하지 않습니다.',
+        title: 'Google 회원가입',
+      );
+      return;
+    }
+    
     if (_isSocialLoginLoading) return;
     
     setState(() => _isSocialLoginLoading = true);
@@ -424,6 +434,16 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
 
   // Kakao 회원가입
   Future<void> _handleKakaoSignUp() async {
+    // 웹 플랫폼에서는 소셜 로그인 비활성화
+    if (_isWeb) {
+      await DialogUtils.showInfo(
+        context,
+        '소셜 로그인은 웹에서는 제공하지 않습니다.',
+        title: 'Kakao 회원가입',
+      );
+      return;
+    }
+    
     if (_isSocialLoginLoading) return;
     
     setState(() => _isSocialLoginLoading = true);
@@ -465,6 +485,16 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
 
   // Apple 회원가입 (모든 플랫폼)
   Future<void> _handleAppleSignUp() async {
+    // 웹 플랫폼에서는 소셜 로그인 비활성화
+    if (_isWeb) {
+      await DialogUtils.showInfo(
+        context,
+        '소셜 로그인은 웹에서는 제공하지 않습니다.',
+        title: 'Apple 회원가입',
+      );
+      return;
+    }
+    
     if (_isSocialLoginLoading) return;
     
     setState(() => _isSocialLoginLoading = true);

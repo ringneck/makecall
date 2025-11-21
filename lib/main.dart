@@ -131,15 +131,18 @@ void main() async {
   
   // 카카오 SDK 초기화
   // 설정 파일: lib/config/kakao_config.dart
-  // 
-  // 🔧 웹 로그인 활성화 방법:
-  // 1. lib/config/kakao_config.dart 파일 열기
-  // 2. javaScriptAppKey 값을 실제 JavaScript 키로 교체
-  // 3. 카카오 개발자 콘솔에서 웹 플랫폼 도메인 등록
+  
+  if (kDebugMode) {
+    print('🔑 [KAKAO] 초기화 시작...');
+    print('   - Native App Key: ${KakaoConfig.nativeAppKey.substring(0, 10)}...');
+    print('   - JavaScript Key: ${KakaoConfig.javaScriptAppKey.substring(0, 10)}...');
+    print('   - validateConfig(): ${KakaoConfig.validateConfig()}');
+    print('   - isWebLoginEnabled: ${KakaoConfig.isWebLoginEnabled}');
+  }
   
   if (!KakaoConfig.validateConfig()) {
     if (kDebugMode) {
-      print('⚠️ 카카오 SDK 설정 오류: Native App Key가 설정되지 않았습니다.');
+      print('⚠️ [KAKAO] 검증 실패했지만 초기화 진행');
     }
   }
   
@@ -149,7 +152,7 @@ void main() async {
   );
   
   if (kDebugMode) {
-    print('✅ 카카오 SDK 초기화 완료');
+    print('✅ [KAKAO] SDK 초기화 완료');
     print(KakaoConfig.getConfigInfo());
   }
   

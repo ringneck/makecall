@@ -365,6 +365,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   
   // 구글 로그인
   Future<void> _handleGoogleLogin() async {
+    // 웹 플랫폼에서는 소셜 로그인 비활성화
+    if (_isWeb) {
+      await DialogUtils.showInfo(
+        context,
+        '소셜 로그인은 웹에서는 제공하지 않습니다.',
+        title: 'Google 로그인',
+      );
+      return;
+    }
+    
     if (_isSocialLoginLoading) return;
     
     setState(() => _isSocialLoginLoading = true);
@@ -407,6 +417,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   
   // 카카오 로그인
   Future<void> _handleKakaoLogin() async {
+    // 웹 플랫폼에서는 소셜 로그인 비활성화
+    if (_isWeb) {
+      await DialogUtils.showInfo(
+        context,
+        '소셜 로그인은 웹에서는 제공하지 않습니다.',
+        title: 'Kakao 로그인',
+      );
+      return;
+    }
+    
     if (_isSocialLoginLoading) return;
     
     setState(() => _isSocialLoginLoading = true);
@@ -449,6 +469,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   
   // 애플 로그인 (모든 플랫폼)
   Future<void> _handleAppleLogin() async {
+    // 웹 플랫폼에서는 소셜 로그인 비활성화
+    if (_isWeb) {
+      await DialogUtils.showInfo(
+        context,
+        '소셜 로그인은 웹에서는 제공하지 않습니다.',
+        title: 'Apple 로그인',
+      );
+      return;
+    }
+    
     if (_isSocialLoginLoading) return;
     
     setState(() => _isSocialLoginLoading = true);
