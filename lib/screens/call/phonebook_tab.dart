@@ -224,14 +224,24 @@ class _PhonebookTabState extends State<PhonebookTab> {
       }
 
       if (myExtensionNumbers.isEmpty) {
-        throw Exception(
-          '⚠️ 등록된 단말번호가 없습니다\n\n'
-          '📋 단말번호 등록 방법:\n'
-          '1. 우측 상단 프로필 아이콘 클릭\n'
-          '2. "설정 및 단말 등록" 섹션에서 단말번호 등록\n'
-          '3. Phonebook 새로고침 버튼 클릭\n\n'
-          '💡 단말번호를 먼저 등록해야 Phonebook을 사용할 수 있습니다.'
-        );
+        // 단말번호가 없으면 안내 다이얼로그 표시 (Exception이 아님)
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _error = null; // 에러가 아님
+          });
+          
+          await DialogUtils.showInfo(
+            context,
+            '통화 기능을 사용하려면 단말번호를 먼저 등록해야 합니다.\n\n'
+            '📋 단말번호 등록 방법:\n'
+            '1. 우측 상단 프로필 아이콘 클릭\n'
+            '2. "설정 및 단말 등록" 섹션에서 단말번호 등록\n'
+            '3. Phonebook 새로고침 버튼 클릭',
+            title: '단말번호 등록 필요',
+          );
+        }
+        return; // Exception을 던지지 않고 return
       }
 
       // API Service 생성
@@ -331,9 +341,21 @@ class _PhonebookTabState extends State<PhonebookTab> {
           _error = e.toString();
         });
 
+        // 에러 메시지를 사용자 친화적으로 변환
+        String userMessage = e.toString();
+        
+        // REST API 관련 오류 메시지 변환
+        if (userMessage.contains('REST API') || 
+            userMessage.contains('Phonebook') ||
+            userMessage.contains('phonebook')) {
+          userMessage = 'REST API 서버 설정을 확인해주세요.\n\n'
+                       '왼쪽 상단 프로필 아이콘을 눌러\n'
+                       '설정 정보를 입력해주세요.';
+        }
+        
         await DialogUtils.showError(
           context,
-          'Phonebook 로드 실패: $e',
+          userMessage,
           duration: const Duration(seconds: 3),
         );
       }

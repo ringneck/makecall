@@ -443,10 +443,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                       await _showApiSettingsRequiredDialog();
                     }
                     
-                    // 3️⃣ AuthService 상태 업데이트
-                    authService.setSocialLoginSuccessMessageShown(true);
-                    
-                    // 4️⃣ 모든 navigation stack 제거하고 root로 돌아가기
+                    // 3️⃣ 모든 navigation stack 제거하고 root로 돌아가기
                     if (context.mounted && Navigator.of(context).canPop()) {
                       Navigator.of(context).popUntil((route) => route.isFirst);
                     }
@@ -455,10 +452,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                   }
                 }
                 
-                // 3️⃣ AuthService 상태 업데이트
-                authService.setSocialLoginSuccessMessageShown(true);
-                
-                // 4️⃣ 모든 navigation stack 제거하고 root로 돌아가기
+                // 3️⃣ 모든 navigation stack 제거하고 root로 돌아가기
                 // main.dart의 Consumer<AuthService>가 자동으로 적절한 화면 표시:
                 // - isWaitingForApproval == true → ApprovalWaitingScreen
                 // - 아니면 → MainScreen
