@@ -42,6 +42,18 @@
   <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
           integrity="sha384-TiCUE00h+gjGGMbXJtdvuYR7Vj2pOmpNHHxXeGXvNxtTZu2GHF1LaXNP9T0Qle0y"
           crossorigin="anonymous"></script>
+  
+  <script>
+    // 🔑 Kakao JavaScript SDK 초기화
+    if (window.Kakao) {
+      window.Kakao.init('de5d0c0b8b89bad57d4f60cc5ac70a7a');
+      console.log('✅ Kakao JavaScript SDK initialized');
+      console.log('   SDK version:', window.Kakao.VERSION);
+      console.log('   Is initialized:', window.Kakao.isInitialized());
+    } else {
+      console.error('❌ Kakao JavaScript SDK not loaded');
+    }
+  </script>
 
   <script>
     // 🚀 Service Worker 등록 (PWA 지원 + FCM)
