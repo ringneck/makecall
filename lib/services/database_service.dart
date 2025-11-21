@@ -1250,16 +1250,21 @@ class DatabaseService {
       // ignore: avoid_print
       print('   ✅ 재로그인 시 모든 데이터가 정상 로드됩니다');
     } catch (e) {
-      // ignore: avoid_print
-      print('❌ [DatabaseService] FCM 토큰 비활성화 실패: $e');
-      
-      // 🔧 문서가 없는 경우 (이미 삭제됨) - 오류로 처리하지 않음
-      if (e.toString().contains('NOT_FOUND')) {
+      // 🔧 문서가 없는 경우 (이미 삭제됨) - 정상으로 처리
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('not-found') || 
+          errorString.contains('not_found') ||
+          errorString.contains('no document to update')) {
         // ignore: avoid_print
-        print('   ℹ️  토큰 문서가 존재하지 않음 (이미 삭제되었거나 생성되지 않음)');
+        print('ℹ️  [DatabaseService] FCM 토큰 문서 없음 (이미 삭제되었거나 생성되지 않음)');
+        // ignore: avoid_print
+        print('   ✅ 정상: 비활성화할 토큰이 없으므로 비활성화 완료로 처리');
         return;
       }
       
+      // 다른 에러는 로그 출력 후 rethrow
+      // ignore: avoid_print
+      print('❌ [DatabaseService] FCM 토큰 비활성화 실패: $e');
       rethrow;
     }
   }
