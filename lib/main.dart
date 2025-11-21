@@ -625,7 +625,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         );
                       }
                       
-                      if (authService.isAuthenticated) {
+                      // ✅ 로그인 상태 체크: currentUser와 currentUserModel 존재 여부
+                      // isAuthenticated 대신 직접 체크 (승인 대기 상태와 독립적)
+                      if (authService.currentUser != null && 
+                          authService.currentUserModel != null &&
+                          !authService.isLoggingOut) {
                         // ⏱️ 사용자 활동 감지 (GestureDetector로 전체 앱 감싸기)
                         return GestureDetector(
                           key: ValueKey('gesture_${authService.currentUser?.uid}'),
