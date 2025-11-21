@@ -296,9 +296,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                       // AuthService가 이미 로그인 상태이므로 메인 화면으로 직접 이동
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(
-                          builder: (context) => const MainScreen(
-                            autoOpenProfileForNewUser: false,
-                          ),
+                          builder: (context) => const MainScreen(),
                         ),
                         (route) => false, // 모든 이전 route 제거
                       );
