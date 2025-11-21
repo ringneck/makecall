@@ -372,20 +372,38 @@ class SocialLoginService {
       }
 
       // CRITICAL: identityToken과 authorizationCode null 체크 + 타입 안전 처리
+      // 웹 플랫폼에서 JavaScript 객체 타입을 Dart String으로 안전하게 변환
       String? identityToken;
       String? authorizationCode;
       
       try {
-        identityToken = credential.identityToken?.toString();
-        authorizationCode = credential.authorizationCode?.toString();
+        // 웹 플랫폼 특별 처리: dynamic 타입으로 먼저 받은 후 String 변환
+        final dynamic rawIdentityToken = credential.identityToken;
+        final dynamic rawAuthorizationCode = credential.authorizationCode;
+        
+        if (rawIdentityToken != null) {
+          identityToken = rawIdentityToken.toString();
+        }
+        
+        if (rawAuthorizationCode != null) {
+          authorizationCode = rawAuthorizationCode.toString();
+        }
+        
+        if (kDebugMode) {
+          debugPrint('🔍 [Apple] 타입 변환 성공');
+          debugPrint('   - identityToken type: ${rawIdentityToken.runtimeType}');
+          debugPrint('   - authorizationCode type: ${rawAuthorizationCode.runtimeType}');
+        }
       } catch (e) {
         if (kDebugMode) {
           debugPrint('❌ [Apple] 인증 정보 타입 변환 실패: $e');
+          debugPrint('   - Error Type: ${e.runtimeType}');
+          debugPrint('   - Stack Trace: ${StackTrace.current}');
         }
         return SocialLoginResult(
           success: false,
           errorMessage: 'Apple 로그인 인증 정보 처리 오류\n\n'
-              '타입 변환에 실패했습니다.\n'
+              '웹 플랫폼에서 타입 변환에 실패했습니다.\n'
               '다시 시도해주세요.\n\n'
               '오류: ${e.toString()}',
           provider: SocialLoginProvider.apple,

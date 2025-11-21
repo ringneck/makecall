@@ -33,17 +33,9 @@ class SocialLoginButtons extends StatelessWidget {
     final spacing = SizedBox(width: screenWidth > 600 ? 20 : 16);
     
     if (kIsWeb) {
-      // 🌐 웹 플랫폼: Kakao + Google + Apple (3개)
+      // 🌐 웹 플랫폼: Google + Apple (2개)
+      // 카카오는 웹에서 JavaScript Key 설정이 필요하므로 제외
       return [
-        _buildIconButton(
-          context: context,
-          onPressed: isLoading ? null : onKakaoPressed,
-          backgroundColor: const Color(0xFFFEE500),
-          icon: _buildKakaoIcon(iconSize),
-          size: buttonSize,
-          isDark: isDark,
-        ),
-        spacing,
         _buildIconButton(
           context: context,
           onPressed: isLoading ? null : onGooglePressed,
