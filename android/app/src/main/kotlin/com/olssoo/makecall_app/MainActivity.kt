@@ -29,8 +29,22 @@ class MainActivity : FlutterActivity() {
                     val md = MessageDigest.getInstance("SHA")
                     md.update(signature.toByteArray())
                     val keyHash = Base64.encodeToString(md.digest(), Base64.NO_WRAP)
-                    Log.d("KAKAO_KEY_HASH", "Key Hash: $keyHash")
+                    
+                    // 🔑 카카오 Key Hash 출력 (개발자 콘솔 등록용)
+                    Log.i("KAKAO_KEY_HASH", "========================================")
+                    Log.i("KAKAO_KEY_HASH", "📱 Kakao Android Key Hash")
+                    Log.i("KAKAO_KEY_HASH", "========================================")
+                    Log.i("KAKAO_KEY_HASH", "Key Hash: $keyHash")
+                    Log.i("KAKAO_KEY_HASH", "========================================")
+                    Log.i("KAKAO_KEY_HASH", "🔗 등록 방법:")
+                    Log.i("KAKAO_KEY_HASH", "1. https://developers.kakao.com 접속")
+                    Log.i("KAKAO_KEY_HASH", "2. 내 애플리케이션 > 앱 설정 > 플랫폼")
+                    Log.i("KAKAO_KEY_HASH", "3. Android 플랫폼 > 키 해시 등록")
+                    Log.i("KAKAO_KEY_HASH", "4. 위의 Key Hash 값을 복사하여 등록")
+                    Log.i("KAKAO_KEY_HASH", "========================================")
+                    
                     println("🔑 [KAKAO] Key Hash: $keyHash")
+                    println("🔗 [KAKAO] 카카오 개발자 콘솔에 위 Key Hash를 등록하세요!")
                 }
             } ?: run {
                 Log.w("KAKAO_KEY_HASH", "No signatures found")
