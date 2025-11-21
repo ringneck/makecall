@@ -130,40 +130,15 @@ void main() async {
   }
   
   // 카카오 SDK 초기화
-  // 설정 파일: lib/config/kakao_config.dart
-  
-  if (kDebugMode) {
-    print('🔑 [KAKAO] 초기화 시작...');
-    print('   - Native App Key: ${KakaoConfig.nativeAppKey.substring(0, 10)}...');
-    print('   - JavaScript Key: ${KakaoConfig.javaScriptAppKey.substring(0, 10)}...');
-    
-    // 🔍 상세 디버깅
-    final jsKey = KakaoConfig.javaScriptAppKey;
-    print('   🔍 JavaScript Key 상세 분석:');
-    print('      - 전체 길이: ${jsKey.length}');
-    print('      - 첫 10자: ${jsKey.substring(0, 10)}');
-    print('      - != "YOUR_KAKAO_JAVASCRIPT_KEY": ${jsKey != 'YOUR_KAKAO_JAVASCRIPT_KEY'}');
-    print('      - isNotEmpty: ${jsKey.isNotEmpty}');
-    print('      - 두 조건 AND: ${(jsKey != 'YOUR_KAKAO_JAVASCRIPT_KEY') && jsKey.isNotEmpty}');
-    
-    print('   - validateConfig(): ${KakaoConfig.validateConfig()}');
-    print('   - isWebLoginEnabled: ${KakaoConfig.isWebLoginEnabled}');
-  }
-  
-  if (!KakaoConfig.validateConfig()) {
+  try {
+    KakaoSdk.init(
+      nativeAppKey: KakaoConfig.nativeAppKey,
+      javaScriptAppKey: KakaoConfig.javaScriptAppKey,
+    );
+  } catch (e) {
     if (kDebugMode) {
-      print('⚠️ [KAKAO] 검증 실패했지만 초기화 진행');
+      debugPrint('❌ Kakao SDK 초기화 실패: $e');
     }
-  }
-  
-  KakaoSdk.init(
-    nativeAppKey: KakaoConfig.nativeAppKey,
-    javaScriptAppKey: KakaoConfig.javaScriptAppKey,
-  );
-  
-  if (kDebugMode) {
-    print('✅ [KAKAO] SDK 초기화 완료');
-    print(KakaoConfig.getConfigInfo());
   }
   
   // ✅ iOS Method Channel 설정 (포그라운드 FCM 메시지 수신용)
