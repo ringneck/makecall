@@ -12,6 +12,7 @@ import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'firebase_options.dart';
+import 'config/kakao_config.dart';
 import 'services/auth_service.dart';
 import 'services/fcm_service.dart';
 import 'services/user_session_manager.dart';
@@ -128,14 +129,29 @@ void main() async {
     }
   }
   
-  // 카카오 SDK 초기화 (Native App Key 사용)
-  // Android: strings.xml에서 kakao_app_key 설정
-  // iOS: Info.plist에서 KAKAO_APP_KEY 설정
+  // 카카오 SDK 초기화
+  // 설정 파일: lib/config/kakao_config.dart
+  // 
+  // 🔧 웹 로그인 활성화 방법:
+  // 1. lib/config/kakao_config.dart 파일 열기
+  // 2. javaScriptAppKey 값을 실제 JavaScript 키로 교체
+  // 3. 카카오 개발자 콘솔에서 웹 플랫폼 도메인 등록
+  
+  if (!KakaoConfig.validateConfig()) {
+    if (kDebugMode) {
+      print('⚠️ 카카오 SDK 설정 오류: Native App Key가 설정되지 않았습니다.');
+    }
+  }
+  
   KakaoSdk.init(
-    nativeAppKey: '737f26c4d0d81077b35b8f0313ec3536', // 카카오 Native App Key
-    javaScriptAppKey: 'YOUR_KAKAO_JAVASCRIPT_KEY', // Web용 (선택사항, 추후 설정)
+    nativeAppKey: KakaoConfig.nativeAppKey,
+    javaScriptAppKey: KakaoConfig.javaScriptAppKey,
   );
-  // Kakao SDK initialized
+  
+  if (kDebugMode) {
+    print('✅ 카카오 SDK 초기화 완료');
+    print(KakaoConfig.getConfigInfo());
+  }
   
   // ✅ iOS Method Channel 설정 (포그라운드 FCM 메시지 수신용)
   // 🔧 CRITICAL FIX: Web 플랫폼에서는 Platform.isIOS 체크 불가

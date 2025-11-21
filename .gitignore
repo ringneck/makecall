@@ -72,6 +72,10 @@ Podfile.lock
 **/google-services.json
 firebase-admin-sdk.json
 
+# Kakao SDK configuration (optional - uncomment to exclude from Git)
+# 실제 JavaScript Key를 설정한 후 아래 주석을 해제하여 Git 커밋 제외
+# lib/config/kakao_config.dart
+
 # Temporary development scripts
 *.py
 *.sh
