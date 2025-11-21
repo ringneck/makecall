@@ -100,6 +100,12 @@
     }
   </style>
 
+  <script>
+    // 🔧 Flutter Service Worker 설정 (타임아웃 경고 방지)
+    window.flutterConfiguration = {
+      serviceWorkerVersion: null, // null로 설정하여 Flutter Service Worker 비활성화
+    };
+  </script>
   <script src="flutter_bootstrap.js" async></script>
   <script>
     // 🚀 로딩 완료 후 스피너 제거
