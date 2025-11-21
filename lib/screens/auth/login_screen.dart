@@ -419,8 +419,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       final result = await _socialLoginService.signInWithGoogle();
       
-      // 진행 상황 오버레이 제거
-      if (mounted) {
+      // 진행 상황 오버레이 제거 (성공 시에는 _handleSocialLoginSuccess에서 제거)
+      if (!result.success && mounted) {
         SocialLoginProgressHelper.hide();
       }
       
@@ -489,8 +489,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       final result = await _socialLoginService.signInWithKakao();
       
-      // 진행 상황 오버레이 제거
-      if (mounted) {
+      // 진행 상황 오버레이 제거 (성공 시에는 _handleSocialLoginSuccess에서 제거)
+      if (!result.success && mounted) {
         SocialLoginProgressHelper.hide();
       }
       
@@ -559,8 +559,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       final result = await _socialLoginService.signInWithApple();
       
-      // 진행 상황 오버레이 제거
-      if (mounted) {
+      // 진행 상황 오버레이 제거 (성공 시에는 _handleSocialLoginSuccess에서 제거)
+      if (!result.success && mounted) {
         SocialLoginProgressHelper.hide();
       }
       
