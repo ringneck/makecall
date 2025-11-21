@@ -426,16 +426,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   Future<void> _handleKakaoSignUp() async {
     if (_isSocialLoginLoading) return;
     
-    // 웹 플랫폼 체크
-    if (kIsWeb) {
-      await DialogUtils.showInfo(
-        context,
-        'Kakao 회원가입은 모바일 앱에서만 사용할 수 있습니다.\n\n웹에서는 Google 회원가입을 사용해 주세요.',
-        title: 'Kakao 회원가입 안내',
-      );
-      return;
-    }
-    
     setState(() => _isSocialLoginLoading = true);
     
     try {
