@@ -33,7 +33,7 @@ class KakaoConfig {
   /// 3. 웹 플랫폼 도메인 등록:
   ///    - 카카오 개발자 콘솔 > 내 애플리케이션 > 플랫폼 > Web
   ///    - 사이트 도메인 추가 (예: https://makecallio.web.app)
-  static const String javaScriptAppKey = 'YOUR_KAKAO_JAVASCRIPT_KEY';
+  static const String javaScriptAppKey = '12345a4e42b60f3b5e001aef92f16e72'; // 웹 로그인 활성화됨
   
   /// 웹 플랫폼 카카오 로그인 활성화 여부
   /// 
