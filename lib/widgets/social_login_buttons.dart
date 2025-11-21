@@ -100,12 +100,12 @@ class SocialLoginButtons extends StatelessWidget {
           child: Center(
             child: Image.asset(
               'assets/images/social/kakao_talk_logo.png',
-              width: buttonSize * 0.6,
-              height: buttonSize * 0.6,
+              width: buttonSize * 0.75,
+              height: buttonSize * 0.75,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  width: buttonSize * 0.6,
-                  height: buttonSize * 0.6,
+                  width: buttonSize * 0.75,
+                  height: buttonSize * 0.75,
                   decoration: BoxDecoration(
                     color: Colors.black87,
                     borderRadius: BorderRadius.circular(buttonSize * 0.3),
