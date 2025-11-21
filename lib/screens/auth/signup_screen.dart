@@ -275,16 +275,19 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                 
                 // 1️⃣ "기존 계정 확인" 다이얼로그 닫기
                 Navigator.of(context).pop();
-                await Future.delayed(const Duration(milliseconds: 200));
                 
+                // 2️⃣ 회원가입 화면 닫기 (모든 auth 관련 화면 제거)
                 if (context.mounted) {
-                  // 2️⃣ 회원가입 화면 닫기 (LoginScreen으로 돌아감)
                   Navigator.of(context).pop();
                   
-                  // 3️⃣ AuthService 상태만 업데이트 (main.dart Consumer가 자동 전환)
-                  // setSocialLoginSuccessMessageShown(true) 호출하면
-                  // main.dart의 Consumer가 MainScreen으로 자동 전환함
+                  // 3️⃣ AuthService 상태 업데이트 후 딜레이
+                  // main.dart Consumer가 자동으로 적절한 화면 표시
+                  // - isWaitingForApproval == true → ApprovalWaitingScreen
+                  // - 아니면 → MainScreen
                   authService.setSocialLoginSuccessMessageShown(true);
+                  
+                  // 4️⃣ AuthService 상태 전파를 위한 짧은 딜레이
+                  await Future.delayed(const Duration(milliseconds: 100));
                 }
               }
             },
