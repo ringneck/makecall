@@ -271,37 +271,20 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           ElevatedButton(
             onPressed: () async {
               if (context.mounted) {
+                final authService = context.read<AuthService>();
+                
                 // 1️⃣ "기존 계정 확인" 다이얼로그 닫기
                 Navigator.of(context).pop();
-                await Future.delayed(const Duration(milliseconds: 300));
+                await Future.delayed(const Duration(milliseconds: 200));
                 
                 if (context.mounted) {
-                  // 2️⃣ 회원가입 화면 닫기
+                  // 2️⃣ 회원가입 화면 닫기 (LoginScreen으로 돌아감)
                   Navigator.of(context).pop();
-                  await Future.delayed(const Duration(milliseconds: 300));
                   
-                  if (context.mounted) {
-                    // 3️⃣ 성공 메시지 표시 (2초 자동 닫힘)
-                    await DialogUtils.showSuccess(
-                      context,
-                      '기존 계정으로 로그인합니다',
-                    );
-                    
-                    // 4️⃣ 성공 메시지 표시 완료 플래그 설정
-                    if (context.mounted) {
-                      final authService = context.read<AuthService>();
-                      authService.setSocialLoginSuccessMessageShown(true);
-                      
-                      // 5️⃣ 메인 화면으로 이동 (기존 계정 로그인 완료)
-                      // AuthService가 이미 로그인 상태이므로 메인 화면으로 직접 이동
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) => const MainScreen(),
-                        ),
-                        (route) => false, // 모든 이전 route 제거
-                      );
-                    }
-                  }
+                  // 3️⃣ AuthService 상태만 업데이트 (main.dart Consumer가 자동 전환)
+                  // setSocialLoginSuccessMessageShown(true) 호출하면
+                  // main.dart의 Consumer가 MainScreen으로 자동 전환함
+                  authService.setSocialLoginSuccessMessageShown(true);
                 }
               }
             },
