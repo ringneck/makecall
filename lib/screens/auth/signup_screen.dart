@@ -281,7 +281,10 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                 // - isWaitingForApproval == true → ApprovalWaitingScreen
                 // - 아니면 → MainScreen
                 if (context.mounted) {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
+                  // 🔒 안전성 체크: navigation history가 있는지 확인
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
                 }
               }
             },

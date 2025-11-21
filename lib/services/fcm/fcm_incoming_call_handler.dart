@@ -397,11 +397,17 @@ class FCMIncomingCallHandler {
         // ignore: avoid_print
         print('🔄 [FCM-SCREEN] 기존 IncomingCallScreen 감지 - 교체 모드');
         
-        // 기존 화면 제거
-        navigator.popUntil((route) => route.isFirst || route.settings.name != '/incoming_call');
-        
-        // ignore: avoid_print
-        print('✅ [FCM-SCREEN] 기존 화면 제거 완료');
+        // 기존 화면 제거 (안전성 체크)
+        if (navigator.canPop()) {
+          try {
+            navigator.popUntil((route) => route.isFirst || route.settings.name != '/incoming_call');
+            // ignore: avoid_print
+            print('✅ [FCM-SCREEN] 기존 화면 제거 완료');
+          } catch (e) {
+            // ignore: avoid_print
+            print('⚠️ [FCM-SCREEN] popUntil 오류: $e');
+          }
+        }
       }
       
       // 수신 전화 화면 표시 (fullscreenDialog로 전체 화면)
