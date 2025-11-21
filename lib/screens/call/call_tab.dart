@@ -208,7 +208,6 @@ class _CallTabState extends State<CallTab> {
       if (kDebugMode) {
         debugPrint('🔔 [이벤트] 기기 승인 대기 상태 감지됨');
         debugPrint('   → isWaitingForApproval: ${_authService?.isWaitingForApproval}');
-        debugPrint('   → Approval Request ID: ${_authService?.approvalRequestId}');
         debugPrint('   → ProfileDrawer 자동 열기 취소');
       }
       
@@ -325,21 +324,15 @@ class _CallTabState extends State<CallTab> {
       if (provider.selectedExtension == null) {
         provider.setSelectedExtension(extensions.first);
         if (kDebugMode) {
-          debugPrint('✅ 단말번호 자동 초기화 완료: ${extensions.first.extension}');
-          debugPrint('   - 이름: ${extensions.first.name}');
-          debugPrint('   - 총 ${extensions.length}개 단말번호 중 첫 번째 선택');
         }
       } else {
         if (kDebugMode) {
-          debugPrint('ℹ️ 단말번호 이미 설정됨: ${provider.selectedExtension!.extension}');
         }
       }
     } catch (e) {
       // 🔒 Fail Silent: 단말번호 초기화 실패는 치명적이지 않음
       // ExtensionDrawer에서 수동으로 선택 가능
       if (kDebugMode) {
-        debugPrint('⚠️ 단말번호 자동 초기화 실패: $e');
-        debugPrint('   → ExtensionDrawer에서 수동 선택 필요');
       }
     }
   }
@@ -365,43 +358,22 @@ class _CallTabState extends State<CallTab> {
         return;
       }
       
-      // 🚀 고급 패턴: FCM 초기화 완료 대기 (이벤트 기반)
-      // FCM 초기화가 완료되지 않았으면 스킵 → 완료 후 _onAuthServiceStateChanged에서 재실행
+      // FCM 초기화 완료 대기 (이벤트 기반)
       if (!(_authService?.isFcmInitialized ?? false)) {
-        if (kDebugMode) {
-          debugPrint('⏳ [고급패턴] 신규 사용자 체크 대기: FCM 초기화 미완료');
-          debugPrint('   → FCM 초기화 완료 후 자동 재실행 (이벤트 기반)');
-        }
-        // _hasCheckedNewUser를 true로 설정하지 않음 → 재실행 허용
-        return;
+        return; // FCM 완료 후 _onAuthServiceStateChanged에서 재실행
       }
       
-      // FCM 초기화가 완료되었으므로 이제 체크 완료 플래그 설정
       _hasCheckedNewUser = true;
       
-      if (kDebugMode) {
-        debugPrint('🚀 [고급패턴] FCM 초기화 완료 확인 - 신규 사용자 체크 진행');
-      }
-      
-      // 🔐 CRITICAL: 기기 승인 대기 중인 경우 ProfileDrawer 열지 않음
-      // ✅ 이벤트 기반 방식: 시간 대기 없이 현재 상태만 체크
+      // 기기 승인 대기 중인 경우 ProfileDrawer 열지 않음
       if ((_authService?.isWaitingForApproval ?? false) || _authService?.approvalRequestId != null) {
-        if (kDebugMode) {
-          debugPrint('⏳ 신규 사용자 체크 스킵: 기기 승인 대기 중');
-          debugPrint('   → 기기 승인 화면이 우선 표시되어야 함');
-          debugPrint('   → isWaitingForApproval: ${_authService?.isWaitingForApproval}');
-          debugPrint('   → Approval Request ID: ${_authService?.approvalRequestId}');
-        }
         return;
       }
       
       final userId = _authService?.currentUser?.uid;
       if (userId == null) return;
 
-      // 🔐 CRITICAL: userModel 로드 완료까지 대기 (소셜 로그인 시 필수)
-      // 소셜 로그인 직후에는 userModel이 null일 수 있으므로 최대 3초 대기
-      if (kDebugMode) debugPrint('⏳ [신규사용자체크] userModel 로드 대기 시작...');
-      
+      // userModel 로드 완료까지 대기 (최대 3초)
       int waitCount = 0;
       while (_authService?.currentUserModel == null && waitCount < 30) {
         await Future.delayed(const Duration(milliseconds: 100));
@@ -410,72 +382,32 @@ class _CallTabState extends State<CallTab> {
       
       final userModel = _authService?.currentUserModel;
       if (userModel == null) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [신규사용자체크] userModel 로드 타임아웃 (3초)');
-          debugPrint('   → 신규 사용자 체크 건너뜀 (나중에 _onAuthServiceStateChanged에서 재시도)');
-        }
-        _hasCheckedNewUser = false; // 재시도 가능하도록 플래그 리셋
+        _hasCheckedNewUser = false;
         return;
       }
-      
-      if (kDebugMode) {
-        debugPrint('✅ [신규사용자체크] userModel 로드 완료 (${waitCount * 100}ms)');
-      }
 
-      // 🔒 CRITICAL: 소셜 로그인 직후(5분 이내)인 경우 설정 체크 건너뛰기
-      // 소셜 로그인 시에는 빈 사용자 문서가 생성되어 "설정 미완료"로 오판될 수 있음
+      // 소셜 로그인 직후(5분 이내)인 경우 설정 체크 건너뛰기
       if (userModel.lastLoginAt != null) {
-        final now = DateTime.now();
-        final lastLogin = userModel.lastLoginAt!;
-        final timeSinceLogin = now.difference(lastLogin);
-        
+        final timeSinceLogin = DateTime.now().difference(userModel.lastLoginAt!);
         if (timeSinceLogin.inMinutes < 5) {
-          if (kDebugMode) {
-            debugPrint('');
-            debugPrint('='*60);
-            debugPrint('🆕 소셜 로그인 직후 감지 (${timeSinceLogin.inSeconds}초 경과)');
-            debugPrint('='*60);
-            debugPrint('   → 설정 체크 건너뜀 (사용자가 직접 설정할 시간 제공)');
-            debugPrint('   → ProfileDrawer 자동 열기 비활성화');
-            debugPrint('='*60);
-            debugPrint('');
-          }
           _hasCheckedSettings = true;
           return;
         }
       }
 
-      // 🔒 필수 설정 확인
+      // 필수 설정 확인
       final hasApiSettings = (userModel.apiBaseUrl?.isNotEmpty ?? false) &&
                             (userModel.companyId?.isNotEmpty ?? false) &&
                             (userModel.appKey?.isNotEmpty ?? false);
-      
       final hasWebSocketSettings = userModel.websocketServerUrl?.isNotEmpty ?? false;
-      
-      // 🔒 등록된 단말번호 확인
       final extensions = await _databaseService.getMyExtensions(userId).first;
       final hasExtensions = extensions.isNotEmpty;
 
-      if (kDebugMode) {
-        debugPrint('');
-        debugPrint('='*60);
-        debugPrint('🔍 신규 사용자 체크');
-        debugPrint('='*60);
-        debugPrint('   사용자 ID: $userId');
-        debugPrint('   - API 설정: $hasApiSettings');
-        debugPrint('   - WebSocket: $hasWebSocketSettings');
-        debugPrint('   - 단말번호: $hasExtensions (${extensions.length}개)');
-        debugPrint('='*60);
-      }
-
       if (!mounted) return;
 
-      // 🔒 모든 설정 완료 시 ProfileDrawer 열지 않음
+      // 모든 설정 완료 시 ProfileDrawer 열지 않음
       if (hasApiSettings && hasWebSocketSettings && hasExtensions) {
-        if (kDebugMode) {
-          debugPrint('✅ 모든 설정 완료 - ProfileDrawer 열지 않고 키패드 화면 유지');
-        }
-        _hasCheckedSettings = true; // 안내 팝업도 표시하지 않음
+        _hasCheckedSettings = true;
         return;
       }
 
@@ -530,16 +462,12 @@ class _CallTabState extends State<CallTab> {
     
     // 🔒 Early Return: 인증 상태 검증 (CRITICAL FIX for blank screen issue)
     if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
-      if (kDebugMode) debugPrint('⚠️ 설정 체크 스킵: 로그아웃 상태');
       return;
     }
     
     // 🔐 CRITICAL: 기기 승인 대기 중인 경우 초기 등록 팝업 표시 안 함
     if (_authService?.approvalRequestId != null) {
       if (kDebugMode) {
-        debugPrint('⏳ 설정 체크 스킵: 기기 승인 대기 중');
-        debugPrint('   → 기기 승인 화면이 우선 표시되어야 함');
-        debugPrint('   → Approval Request ID: ${_authService?.approvalRequestId}');
       }
       _hasCheckedSettings = true; // 승인 후 재실행 방지
       return;
@@ -547,7 +475,6 @@ class _CallTabState extends State<CallTab> {
     
     // 🔐 CRITICAL: userModel 로드 완료까지 대기 (소셜 로그인 시 필수)
     // 소셜 로그인 직후에는 userModel이 null일 수 있으므로 최대 5초 대기
-    if (kDebugMode) debugPrint('⏳ [설정체크] userModel 로드 대기 시작...');
     
     int waitCount = 0;
     while (_authService?.currentUserModel == null && waitCount < 50) {
@@ -558,15 +485,12 @@ class _CallTabState extends State<CallTab> {
     final userModel = _authService?.currentUserModel;
     if (userModel == null) {
       if (kDebugMode) {
-        debugPrint('⚠️ [설정체크] userModel 로드 타임아웃 (5초)');
-        debugPrint('   → 설정 체크 건너뜀 (나중에 _onAuthServiceStateChanged에서 재시도)');
       }
       _hasCheckedSettings = false; // 재시도 가능하도록 플래그 리셋
       return;
     }
     
     if (kDebugMode) {
-      debugPrint('✅ [설정체크] userModel 로드 완료 (${waitCount * 100}ms)');
     }
     
     final userId = _authService?.currentUser?.uid ?? '';
@@ -581,9 +505,6 @@ class _CallTabState extends State<CallTab> {
     final hasExtensions = extensions.isNotEmpty;
     
     if (kDebugMode) {
-      debugPrint('🔍 설정 체크:');
-      debugPrint('   - REST API 설정: $hasApiSettings');
-      debugPrint('   - 단말번호: $hasExtensions (${extensions.length}개)');
     }
     
     // 🔒 REST API 설정 완료 시 체크 종료
