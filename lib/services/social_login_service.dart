@@ -48,6 +48,7 @@ class SocialLoginService {
     try {
       if (kDebugMode) {
         debugPrint('🔵 [Google] 로그인 시작');
+        debugPrint('   플랫폼: ${kIsWeb ? "Web" : "Mobile"}');
       }
 
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -61,9 +62,33 @@ class SocialLoginService {
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      
+      // 웹 플랫폼 타입 안전 처리
+      String? accessToken;
+      String? idToken;
+      
+      try {
+        accessToken = googleAuth.accessToken?.toString();
+        idToken = googleAuth.idToken?.toString();
+        
+        if (kDebugMode) {
+          debugPrint('   - accessToken: ${accessToken != null ? "있음" : "null"}');
+          debugPrint('   - idToken: ${idToken != null ? "있음" : "null"}');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [Google] 토큰 타입 변환 실패: $e');
+        }
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '구글 로그인 인증 정보 처리 오류\n\n다시 시도해주세요.',
+          provider: SocialLoginProvider.google,
+        );
+      }
+      
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+        accessToken: accessToken,
+        idToken: idToken,
       );
 
       final UserCredential userCredential = await _auth.signInWithCredential(credential);
@@ -303,6 +328,14 @@ class SocialLoginService {
     try {
       if (kDebugMode) {
         debugPrint('🍎 [Apple] 로그인 시작');
+        debugPrint('   플랫폼: ${kIsWeb ? "Web" : "Mobile"}');
+      }
+      
+      // 웹 플랫폼 체크 및 추가 안전 조치
+      if (kIsWeb) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [Apple] 웹 플랫폼 감지 - 타입 안전 처리 적용');
+        }
       }
       
       final credential = await SignInWithApple.getAppleIDCredential(
@@ -318,15 +351,48 @@ class SocialLoginService {
 
       if (kDebugMode) {
         debugPrint('✅ [Apple] Apple 인증 정보 수신 완료');
-        debugPrint('   - identityToken: ${credential.identityToken != null ? "있음 (${credential.identityToken!.length}자)" : "null"}');
-        debugPrint('   - authorizationCode: ${credential.authorizationCode != null ? "있음 (${credential.authorizationCode!.length}자)" : "null"}');
+        debugPrint('   - Credential Type: ${credential.runtimeType}');
+        
+        // 안전한 타입 체크
+        try {
+          debugPrint('   - identityToken: ${credential.identityToken != null ? "있음 (${credential.identityToken!.length}자)" : "null"}');
+        } catch (e) {
+          debugPrint('   - identityToken: 타입 변환 에러 - $e');
+        }
+        
+        try {
+          debugPrint('   - authorizationCode: ${credential.authorizationCode != null ? "있음 (${credential.authorizationCode!.length}자)" : "null"}');
+        } catch (e) {
+          debugPrint('   - authorizationCode: 타입 변환 에러 - $e');
+        }
+        
         debugPrint('   - email: ${credential.email ?? "null"}');
         debugPrint('   - givenName: ${credential.givenName ?? "null"}');
         debugPrint('   - familyName: ${credential.familyName ?? "null"}');
       }
 
-      // CRITICAL: identityToken과 authorizationCode null 체크
-      if (credential.identityToken == null) {
+      // CRITICAL: identityToken과 authorizationCode null 체크 + 타입 안전 처리
+      String? identityToken;
+      String? authorizationCode;
+      
+      try {
+        identityToken = credential.identityToken?.toString();
+        authorizationCode = credential.authorizationCode?.toString();
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [Apple] 인증 정보 타입 변환 실패: $e');
+        }
+        return SocialLoginResult(
+          success: false,
+          errorMessage: 'Apple 로그인 인증 정보 처리 오류\n\n'
+              '타입 변환에 실패했습니다.\n'
+              '다시 시도해주세요.\n\n'
+              '오류: ${e.toString()}',
+          provider: SocialLoginProvider.apple,
+        );
+      }
+      
+      if (identityToken == null) {
         if (kDebugMode) {
           debugPrint('❌ [Apple] identityToken이 null입니다');
         }
@@ -339,7 +405,7 @@ class SocialLoginService {
         );
       }
 
-      if (credential.authorizationCode == null) {
+      if (authorizationCode == null) {
         if (kDebugMode) {
           debugPrint('❌ [Apple] authorizationCode가 null입니다');
         }
@@ -354,12 +420,14 @@ class SocialLoginService {
 
       if (kDebugMode) {
         debugPrint('🔄 [Apple] Firebase 자격증명 생성 중...');
+        debugPrint('   - identityToken 길이: ${identityToken.length}');
+        debugPrint('   - authorizationCode 길이: ${authorizationCode.length}');
       }
 
       final oAuthProvider = OAuthProvider('apple.com');
       final firebaseCredential = oAuthProvider.credential(
-        idToken: credential.identityToken,
-        accessToken: credential.authorizationCode,
+        idToken: identityToken,
+        accessToken: authorizationCode,
       );
 
       if (kDebugMode) {
