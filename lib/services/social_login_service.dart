@@ -338,16 +338,26 @@ class SocialLoginService {
         }
       }
       
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-        webAuthenticationOptions: WebAuthenticationOptions(
-          clientId: 'com.olssoo.makecall.signin',
-          redirectUri: Uri.parse('https://makecallio.web.app/auth/callback'),
-        ),
-      );
+      // 플랫폼별 설정 분리
+      final credential = kIsWeb
+          ? await SignInWithApple.getAppleIDCredential(
+              scopes: [
+                AppleIDAuthorizationScopes.email,
+                AppleIDAuthorizationScopes.fullName,
+              ],
+              webAuthenticationOptions: WebAuthenticationOptions(
+                clientId: 'com.olssoo.makecall.signin',
+                redirectUri: Uri.parse('https://makecallio.web.app/auth/callback'),
+              ),
+            )
+          : await SignInWithApple.getAppleIDCredential(
+              scopes: [
+                AppleIDAuthorizationScopes.email,
+                AppleIDAuthorizationScopes.fullName,
+              ],
+              // 안드로이드/iOS: 네이티브 리다이렉트 사용 (webAuthenticationOptions 없음)
+              // AndroidManifest.xml의 signinwithapple://callback 사용
+            );
 
       if (kDebugMode) {
         debugPrint('✅ [Apple] Apple 인증 정보 수신 완료');
