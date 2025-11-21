@@ -134,14 +134,20 @@ void main() async {
   
   if (kDebugMode) {
     print('🔑 [KAKAO] 초기화 시작...');
-    print('   - Native App Key (full): ${KakaoConfig.nativeAppKey}');
-    print('   - JavaScript Key (full): ${KakaoConfig.javaScriptAppKey}');
-    print('   - Native App Key (substr): ${KakaoConfig.nativeAppKey.substring(0, 10)}...');
-    print('   - JavaScript Key (substr): ${KakaoConfig.javaScriptAppKey.substring(0, 10)}...');
+    print('   - Native App Key: ${KakaoConfig.nativeAppKey.substring(0, 10)}...');
+    print('   - JavaScript Key: ${KakaoConfig.javaScriptAppKey.substring(0, 10)}...');
+    
+    // 🔍 상세 디버깅
+    final jsKey = KakaoConfig.javaScriptAppKey;
+    print('   🔍 JavaScript Key 상세 분석:');
+    print('      - 전체 길이: ${jsKey.length}');
+    print('      - 첫 10자: ${jsKey.substring(0, 10)}');
+    print('      - != "YOUR_KAKAO_JAVASCRIPT_KEY": ${jsKey != 'YOUR_KAKAO_JAVASCRIPT_KEY'}');
+    print('      - isNotEmpty: ${jsKey.isNotEmpty}');
+    print('      - 두 조건 AND: ${(jsKey != 'YOUR_KAKAO_JAVASCRIPT_KEY') && jsKey.isNotEmpty}');
+    
     print('   - validateConfig(): ${KakaoConfig.validateConfig()}');
     print('   - isWebLoginEnabled: ${KakaoConfig.isWebLoginEnabled}');
-    print('   - javaScriptAppKey != "YOUR_KAKAO_JAVASCRIPT_KEY": ${KakaoConfig.javaScriptAppKey != 'YOUR_KAKAO_JAVASCRIPT_KEY'}');
-    print('   - javaScriptAppKey.isNotEmpty: ${KakaoConfig.javaScriptAppKey.isNotEmpty}');
   }
   
   if (!KakaoConfig.validateConfig()) {
