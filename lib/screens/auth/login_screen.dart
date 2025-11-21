@@ -10,6 +10,7 @@ import '../../services/account_manager_service.dart';
 import '../../services/social_login_service.dart';
 import '../../utils/dialog_utils.dart';
 import '../../widgets/social_login_buttons.dart';
+import '../../widgets/social_login_progress_overlay.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -246,6 +247,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // 소셜 로그인 성공 시 Firestore 사용자 정보를 먼저 업데이트하고
       // 업데이트가 완전히 완료된 후에야 AuthService가 userModel을 로드하도록 함
       if (result.success && result.userId != null) {
+        // 1️⃣ 사용자 정보 업데이트 중
+        if (mounted) {
+          SocialLoginProgressHelper.show(
+            context,
+            message: '사용자 정보 업데이트 중...',
+            subMessage: 'Firebase에 프로필 정보를 저장하고 있습니다',
+          );
+        }
+        
         if (kDebugMode) {
           debugPrint('🔄 [SOCIAL LOGIN] Firestore 업데이트 시작...');
         }
@@ -259,6 +269,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         
         if (kDebugMode) {
           debugPrint('✅ [SOCIAL LOGIN] Firestore 업데이트 완료');
+        }
+        
+        // 2️⃣ 계정 정보 로드 중
+        if (mounted) {
+          SocialLoginProgressHelper.update(
+            context,
+            message: '계정 정보 로드 중...',
+            subMessage: '잠시만 기다려주세요',
+          );
         }
         
         // 🔐 CRITICAL: AuthService의 userModel 로드 완료까지 대기
@@ -284,6 +303,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('⚠️ [SOCIAL LOGIN] AuthService userModel 로드 타임아웃 (5초)');
           }
         }
+        
+        // 진행 상황 오버레이 제거
+        if (mounted) {
+          SocialLoginProgressHelper.hide();
+        }
       }
       
       // 🎯 모든 비동기 처리 완료 후 홈 화면으로 이동
@@ -292,6 +316,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ [SOCIAL LOGIN] 후처리 오류: $e');
+      }
+      // 에러 시 오버레이 제거
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
       }
       if (mounted) {
         await DialogUtils.showError(

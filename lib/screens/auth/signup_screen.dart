@@ -9,6 +9,7 @@ import '../../services/auth_service.dart';
 import '../../services/social_login_service.dart';
 import '../../utils/dialog_utils.dart';
 import '../../widgets/social_login_buttons.dart';
+import '../../widgets/social_login_progress_overlay.dart';
 import '../home/main_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -135,11 +136,27 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     try {
       if (!result.success || result.userId == null) return;
       
+      // 1️⃣ 사용자 정보 확인 중
+      if (mounted) {
+        SocialLoginProgressHelper.show(
+          context,
+          message: '사용자 정보 확인 중...',
+          subMessage: '잠시만 기다려주세요',
+        );
+      }
+      
+      await Future.delayed(const Duration(milliseconds: 500));
+      
       // 🔍 기존 계정 확인
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(result.userId!)
           .get();
+      
+      // 진행 상황 오버레이 제거
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+      }
       
       if (userDoc.exists) {
         // ✅ 기존 계정이 있음 - 안내 다이얼로그 표시
@@ -152,6 +169,17 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         return;
       }
       
+      // 2️⃣ 신규 가입 - 프로필 생성 중
+      if (mounted) {
+        SocialLoginProgressHelper.show(
+          context,
+          message: '계정 생성 중...',
+          subMessage: 'Firebase 프로필을 생성하고 있습니다',
+        );
+      }
+      
+      await Future.delayed(const Duration(milliseconds: 300));
+      
       // 🆕 신규 가입 - Firestore 프로필 업데이트
       await _updateFirestoreUserProfile(
         userId: result.userId!,
@@ -159,6 +187,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         photoUrl: result.photoUrl,
         provider: result.provider,
       );
+      
+      // 진행 상황 오버레이 제거
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+      }
       
       if (mounted) {
         Navigator.pop(context);
@@ -170,6 +203,10 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ 소셜 로그인 성공 처리 오류: $e');
+      }
+      // 에러 시 오버레이 제거
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
       }
     }
   }
