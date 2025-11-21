@@ -632,11 +632,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           authService.currentUserModel != null &&
                           !authService.isLoggingOut) {
                         
-                        // 🔄 개인정보보호법 준수: 동의 만료 체크 (2년 주기)
-                        final userModel = authService.currentUserModel!;
-                        if (userModel.needsConsentRenewal) {
-                          return const ConsentRenewalScreen();
-                        }
+                        // 🔄 개인정보보호법 준수: 동의 만료 체크 (2년 주기) - 현재 비활성화
+                        // final userModel = authService.currentUserModel!;
+                        // if (userModel.needsConsentRenewal) {
+                        //   return const ConsentRenewalScreen();
+                        // }
                         
                         // ⏱️ 사용자 활동 감지 (GestureDetector로 전체 앱 감싸기)
                         return GestureDetector(

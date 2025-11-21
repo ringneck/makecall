@@ -416,19 +416,9 @@ class _ConsentRenewalScreenState extends State<ConsentRenewalScreen> {
       // AuthService의 사용자 정보 갱신
       await authService.reloadCurrentUser();
 
-      // ✅ 성공 메시지 표시 (SnackBar 사용 - 다이얼로그 대신)
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('약관 동의가 완료되었습니다.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-        
-        // ✅ 화면을 닫지 않음 - AuthService.notifyListeners()가 자동으로 화면 전환
-        // main.dart의 Consumer<AuthService>가 rebuild되면서 자동으로 MainScreen으로 이동
-      }
+      // ✅ 메시지 없이 자동 화면 전환
+      // AuthService.notifyListeners()가 호출되면
+      // main.dart의 Consumer<AuthService>가 rebuild되면서 자동으로 MainScreen으로 이동
     } catch (e) {
       if (mounted) {
         await DialogUtils.showError(

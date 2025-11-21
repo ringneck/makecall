@@ -370,7 +370,7 @@ class DialogUtils {
     BuildContext context,
     String message, {
     String? title,
-    Duration? duration = const Duration(seconds: 2),
+    Duration? duration, // 기본값 제거 - 사용자가 확인 버튼을 눌러야 닫힘
   }) {
     return showMessage(
       context,
