@@ -20,18 +20,19 @@ class SocialLoginProgressOverlay extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Container(
-      color: (isDark ? Colors.black : Colors.white).withOpacity(0.9),
+      color: (isDark ? Colors.black : Colors.white).withOpacity(0.85),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.all(32),
-          margin: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.all(24),
+          margin: const EdgeInsets.symmetric(horizontal: 40),
           decoration: BoxDecoration(
             color: isDark ? Colors.grey[850] : Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withOpacity(isDark ? 0.4 : 0.1),
                 blurRadius: 20,
+                spreadRadius: 0,
                 offset: const Offset(0, 10),
               ),
             ],
@@ -39,41 +40,93 @@ class SocialLoginProgressOverlay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 로딩 인디케이터
-              if (progress == null)
-                const CircularProgressIndicator()
-              else
-                SizedBox(
-                  width: 60,
-                  height: 60,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    strokeWidth: 6,
-                  ),
+              // 아이콘과 로딩 인디케이터
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark 
+                      ? Colors.blue[900]!.withAlpha(77)
+                      : const Color(0xFF2196F3).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // 로딩 인디케이터
+                    if (progress == null)
+                      const SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 3,
+                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+                        ),
+                      ),
+                    
+                    // 중앙 아이콘
+                    Icon(
+                      Icons.sync,
+                      size: 24,
+                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                    ),
+                  ],
+                ),
+              ),
               
               const SizedBox(height: 24),
               
-              // 메인 메시지
-              Text(
-                message,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
+              // 메인 메시지 (다이얼로그 타이틀 스타일)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      message,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
               ),
               
-              // 서브 메시지
+              // 서브 메시지 (다이얼로그 컨텐츠 스타일)
               if (subMessage != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  subMessage!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey[800] : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  textAlign: TextAlign.center,
+                  child: Text(
+                    subMessage!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey[300] : Colors.black87,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ],
             ],
