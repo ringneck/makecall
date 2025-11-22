@@ -144,6 +144,12 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     try {
       if (!result.success || result.userId == null) return;
       
+      // 🎯 즉시 소셜 로그인 플래그 설정 (main.dart의 자동 화면 전환 차단)
+      if (mounted) {
+        final authService = context.read<AuthService>();
+        authService.setInSocialLoginFlow(true);
+      }
+      
       // 1️⃣ 사용자 정보 확인 중
       if (mounted) {
         SocialLoginProgressHelper.show(
@@ -328,11 +334,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   }) async {
     if (!mounted) return;
     
-    // 🎯 소셜 로그인 진행 중 플래그 설정 (이벤트 기반)
-    // "기존 계정 확인" 다이얼로그가 표시되는 동안 초기 설정 팝업 표시 안 함
-    final authService = context.read<AuthService>();
-    authService.setInSocialLoginFlow(true);
+    // ℹ️ 소셜 로그인 플래그는 _handleSocialLoginSuccess에서 이미 설정됨
     
+    final authService = context.read<AuthService>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     await showDialog(
