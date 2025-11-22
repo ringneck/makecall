@@ -48,6 +48,7 @@ class ContactManager {
   bool _isLoadingDeviceContacts = false;
   bool _showDeviceContacts = false;
   List<ContactModel> _deviceContacts = [];
+  bool _isTogglingFavorite = false;
   
   ContactManager({
     required this.databaseService,
@@ -191,31 +192,47 @@ class ContactManager {
     BuildContext context,
     ContactModel contact,
   ) async {
+    // 중복 실행 방지
+    if (_isTogglingFavorite) {
+      if (kDebugMode) {
+        debugPrint('⚠️ toggleFavorite already in progress, ignoring');
+      }
+      return;
+    }
+    
+    _isTogglingFavorite = true;
+    
     try {
       await databaseService.updateContact(
         contact.id,
         {'isFavorite': !contact.isFavorite},
       );
 
-      // 성공 메시지
+      // SnackBar로 변경 (다이얼로그 쌓임 방지)
       if (context.mounted) {
         final message = contact.isFavorite
             ? '즐겨찾기에서 제거되었습니다'
             : '즐겨찾기에 추가되었습니다';
-        await DialogUtils.showSuccess(
-          context,
-          message,
-          duration: const Duration(seconds: 2),
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: const Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
+          ),
         );
       }
     } catch (e) {
-      // 에러 메시지
+      // 에러는 다이얼로그로 표시 (중요한 정보)
       if (context.mounted) {
         await DialogUtils.showError(
           context,
           '오류 발생: $e',
         );
       }
+    } finally {
+      _isTogglingFavorite = false;
     }
   }
   
