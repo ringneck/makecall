@@ -207,10 +207,11 @@ class ContactManager {
       
       if (kDebugMode) {
         debugPrint('');
-        debugPrint('⭐ ===== toggleFavorite START =====');
-        debugPrint('  Contact: ${contact.name}');
-        debugPrint('  Current isFavorite: ${contact.isFavorite}');
-        debugPrint('  New isFavorite: $newFavoriteStatus');
+        debugPrint('⭐ ===== 연락처 탭 즐겨찾기 토글 START =====');
+        debugPrint('  연락처: ${contact.name}');
+        debugPrint('  전화번호: ${contact.phoneNumber}');
+        debugPrint('  현재 isFavorite: ${contact.isFavorite}');
+        debugPrint('  새로운 isFavorite: $newFavoriteStatus');
         debugPrint('  Contact ID: ${contact.id}');
       }
       
@@ -219,6 +220,9 @@ class ContactManager {
         contact.id,
         {'isFavorite': newFavoriteStatus},
       );
+      
+      // StreamBuilder가 변경을 감지할 시간 제공
+      await Future.delayed(const Duration(milliseconds: 50));
 
       // 🎯 다이얼로그/SnackBar 제거 - 조용한 업데이트
       // StreamBuilder가 자동으로 UI를 업데이트하므로 별도 피드백 불필요
@@ -226,7 +230,10 @@ class ContactManager {
       if (kDebugMode) {
         final action = newFavoriteStatus ? '추가' : '제거';
         debugPrint('✅ Firestore 업데이트 완료: 즐겨찾기 $action');
-        debugPrint('⭐ ===== toggleFavorite END =====');
+        debugPrint('  StreamBuilder가 자동으로 UI 업데이트 예정');
+        debugPrint('  예상 아이콘: ${newFavoriteStatus ? "Icons.star (채워진 별)" : "Icons.star_border (빈 별)"}');
+        debugPrint('  예상 색상: ${newFavoriteStatus ? "노란색 (amber)" : "회색 (grey)"}');
+        debugPrint('⭐ ===== 연락처 탭 즐겨찾기 토글 END =====');
         debugPrint('');
       }
     } catch (e) {
