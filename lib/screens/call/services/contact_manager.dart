@@ -203,33 +203,47 @@ class ContactManager {
     _isTogglingFavorite = true;
     
     try {
+      final newFavoriteStatus = !contact.isFavorite;
+      
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('⭐ ===== toggleFavorite START =====');
+        debugPrint('  Contact: ${contact.name}');
+        debugPrint('  Current isFavorite: ${contact.isFavorite}');
+        debugPrint('  New isFavorite: $newFavoriteStatus');
+        debugPrint('  Contact ID: ${contact.id}');
+      }
+      
+      // Firestore 업데이트 (StreamBuilder가 자동으로 UI 업데이트함)
       await databaseService.updateContact(
         contact.id,
-        {'isFavorite': !contact.isFavorite},
+        {'isFavorite': newFavoriteStatus},
       );
 
-      // SnackBar로 변경 (다이얼로그 쌓임 방지)
+      // 🎯 다이얼로그/SnackBar 제거 - 조용한 업데이트
+      // StreamBuilder가 자동으로 UI를 업데이트하므로 별도 피드백 불필요
+      
+      if (kDebugMode) {
+        final action = newFavoriteStatus ? '추가' : '제거';
+        debugPrint('✅ Firestore 업데이트 완료: 즐겨찾기 $action');
+        debugPrint('⭐ ===== toggleFavorite END =====');
+        debugPrint('');
+      }
+    } catch (e) {
+      // 에러만 SnackBar로 간단히 표시
       if (context.mounted) {
-        final message = contact.isFavorite
-            ? '즐겨찾기에서 제거되었습니다'
-            : '즐겨찾기에 추가되었습니다';
-        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message),
-            duration: const Duration(seconds: 1),
+            content: Text('즐겨찾기 변경 실패'),
+            duration: const Duration(milliseconds: 1500),
             behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
           ),
         );
       }
-    } catch (e) {
-      // 에러는 다이얼로그로 표시 (중요한 정보)
-      if (context.mounted) {
-        await DialogUtils.showError(
-          context,
-          '오류 발생: $e',
-        );
+      
+      if (kDebugMode) {
+        debugPrint('❌ 즐겨찾기 변경 실패: $e');
+        debugPrint('');
       }
     } finally {
       _isTogglingFavorite = false;
