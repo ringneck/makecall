@@ -212,9 +212,19 @@ class _CallTabState extends State<CallTab> {
       return;
     }
     
-    // 3️⃣ 소셜 로그인 성공 메시지 완료 이벤트 감지 (REMOVED)
-    // 🚫 자동 진행 방지: 사용자가 "기존 계정으로 로그인" 버튼을 클릭해야만 진행
-    // socialLoginSuccessMessageShown 플래그는 더 이상 사용하지 않음
+    // 3️⃣ 소셜 로그인 플래그 해제 이벤트 감지 (사용자가 "로그인/닫기" 버튼 클릭)
+    if (!(_authService?.isInSocialLoginFlow ?? true) && !_hasCheckedSettings) {
+      if (kDebugMode) {
+        debugPrint('🔔 [이벤트] 소셜 로그인 완료 감지 → 설정 체크 실행');
+      }
+      
+      // 설정 체크 실행 (API 설정 및 단말번호)
+      Future.microtask(() async {
+        if (mounted) {
+          await _checkSettingsAndShowGuide();
+        }
+      });
+    }
   }
   
 
