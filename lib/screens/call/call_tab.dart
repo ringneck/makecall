@@ -1924,6 +1924,13 @@ class _CallTabState extends State<CallTab> {
     try {
       final userId = context.read<AuthService>().currentUser?.uid ?? '';
       
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('📱 ===== 장치 연락처 → 즐겨찾기 추가 START =====');
+        debugPrint('  연락처: ${contact.name}');
+        debugPrint('  전화번호: ${contact.phoneNumber}');
+      }
+      
       // 🔥 중복 체크: 전화번호 기준으로 이미 존재하는 연락처 확인
       final existingContact = await _databaseService.findContactByPhone(
         userId, 
@@ -1932,12 +1939,17 @@ class _CallTabState extends State<CallTab> {
       
       if (existingContact != null) {
         // 중복된 연락처가 이미 존재하는 경우
+        if (kDebugMode) {
+          debugPrint('⚠️  중복된 연락처: ${contact.phoneNumber}');
+          debugPrint('📱 ===== 장치 연락처 → 즐겨찾기 추가 END (중복) =====');
+          debugPrint('');
+        }
+        
         if (mounted) {
           await DialogUtils.showInfo(
             context,
-            '이미 추가된 연락처입니다\n\n${contact.phoneNumber}는 이미 즐겨찾기에 저장되어 있습니다.',
-            title: '중복 연락처',
-            duration: const Duration(seconds: 4),
+            '이미 추가된 연락처입니다',
+            duration: const Duration(milliseconds: 1500),
           );
         }
         return; // 중복이므로 추가하지 않음
@@ -1951,19 +1963,33 @@ class _CallTabState extends State<CallTab> {
       );
 
       await _databaseService.addContact(newContact);
+      
+      // StreamBuilder가 변경을 감지할 시간 제공
+      await Future.delayed(const Duration(milliseconds: 50));
 
-      if (mounted) {
-        await DialogUtils.showSuccess(
-          context,
-          '${contact.name}을(를) 즐겨찾기에 추가했습니다',
-          duration: const Duration(seconds: 1),
-        );
+      if (kDebugMode) {
+        debugPrint('✅ Firestore에 즐겨찾기로 추가 완료');
+        debugPrint('  StreamBuilder가 자동으로 연락처 탭 UI 업데이트');
+        debugPrint('  장치 연락처 목록은 변경 없음 (메모리에만 존재)');
+        debugPrint('📱 ===== 장치 연락처 → 즐겨찾기 추가 END =====');
+        debugPrint('');
       }
-    } catch (e) {
+
+      // 🎯 다이얼로그 제거 - StreamBuilder가 자동으로 UI 업데이트
+      // 사용자는 연락처 탭에서 추가된 항목을 확인 가능
+      
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('❌ 장치 연락처 추가 실패: $e');
+        debugPrint('스택 트레이스: $stackTrace');
+        debugPrint('');
+      }
+      
       if (mounted) {
         await DialogUtils.showError(
           context,
-          '오류 발생: $e',
+          '즐겨찾기 추가 실패',
+          duration: const Duration(milliseconds: 1500),
         );
       }
     }
