@@ -1,11 +1,23 @@
 #!/usr/bin/env python3
 """Firestore 데이터 상태 확인 스크립트"""
 
-import firebase_admin
-from firebase_admin import credentials, firestore
+import warnings
 import sys
 import os
 from pathlib import Path
+
+# Suppress Python version and SSL warnings
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', message='urllib3 v2 only supports OpenSSL')
+
+try:
+    import firebase_admin
+    from firebase_admin import credentials, firestore
+except ImportError as e:
+    print(f"❌ Firebase Admin SDK import 실패: {e}")
+    print("\n📦 Firebase Admin SDK 설치 필요:")
+    print("   pip3 install --upgrade firebase-admin")
+    sys.exit(1)
 
 try:
     # Firebase Admin SDK 파일 경로 찾기
@@ -53,7 +65,7 @@ try:
     
     # 1. FCM 토큰 확인
     print("\n1️⃣ FCM 토큰 (norman@olssoo.com):")
-    tokens = db.collection('fcm_tokens').where('userId', '==', '00UZFjXMjnSj0ThUnGlgkn8cgVy2').stream()
+    tokens = db.collection('fcm_tokens').where(filter=firestore.FieldFilter('userId', '==', '00UZFjXMjnSj0ThUnGlgkn8cgVy2')).stream()
     token_count = 0
     for token in tokens:
         token_count += 1

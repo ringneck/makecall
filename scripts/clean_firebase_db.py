@@ -7,6 +7,11 @@ Firebase Firestore 데이터베이스 청소 스크립트
 
 import sys
 import os
+import warnings
+
+# Suppress Python version and SSL warnings
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', message='urllib3 v2 only supports OpenSSL')
 
 # Firebase Admin SDK 임포트
 try:
@@ -76,21 +81,21 @@ def delete_user_data(db, user_id):
         print(f"   ⚠️  users/{user_id} 삭제 실패: {e}")
     
     # fcm_tokens 컬렉션 (userId로 시작하는 문서들)
-    fcm_docs = db.collection('fcm_tokens').where('userId', '==', user_id).stream()
+    fcm_docs = db.collection('fcm_tokens').where(filter=firestore.FieldFilter('userId', '==', user_id)).stream()
     for doc in fcm_docs:
         doc.reference.delete()
         print(f"   ✅ fcm_tokens/{doc.id} 삭제")
         total_deleted += 1
     
     # fcm_approval_requests 컬렉션
-    approval_docs = db.collection('fcm_approval_requests').where('userId', '==', user_id).stream()
+    approval_docs = db.collection('fcm_approval_requests').where(filter=firestore.FieldFilter('userId', '==', user_id)).stream()
     for doc in approval_docs:
         doc.reference.delete()
         print(f"   ✅ fcm_approval_requests/{doc.id} 삭제")
         total_deleted += 1
     
     # fcm_approval_notification_queue 컬렉션
-    queue_docs = db.collection('fcm_approval_notification_queue').where('userId', '==', user_id).stream()
+    queue_docs = db.collection('fcm_approval_notification_queue').where(filter=firestore.FieldFilter('userId', '==', user_id)).stream()
     for doc in queue_docs:
         doc.reference.delete()
         print(f"   ✅ fcm_approval_notification_queue/{doc.id} 삭제")
