@@ -417,15 +417,21 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           TextButton(
             onPressed: () async {
               if (context.mounted) {
-                // 1️⃣ 먼저 플래그 해제 (MainScreen으로 전환 허용)
                 final authService = context.read<AuthService>();
+                
+                // 1️⃣ 먼저 Firebase 로그아웃 (기존 계정 사용 거부)
+                await FirebaseAuth.instance.signOut();
+                
+                // 2️⃣ 플래그 해제 (LoginScreen으로 복귀 허용)
                 authService.setInSocialLoginFlow(false);
                 
-                // 2️⃣ 다이얼로그 닫기
+                // 3️⃣ 다이얼로그 닫기
                 Navigator.of(context).pop();
                 
-                // 3️⃣ Firebase 로그아웃 (기존 계정 세션 제거)
-                await FirebaseAuth.instance.signOut();
+                // 4️⃣ Navigator stack 정리 (LoginScreen으로 돌아가기)
+                if (context.mounted && Navigator.of(context).canPop()) {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                }
               }
             },
             child: const Text('닫기'),
