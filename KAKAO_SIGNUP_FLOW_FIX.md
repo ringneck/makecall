@@ -195,3 +195,69 @@ Consumer<AuthService>(
 ---
 
 **수정 완료 ✅**
+
+---
+
+## 🔧 추가 수정 (2025-11-22 - 두 번째 이슈)
+
+### 문제 2: "기존 계정 발견" 다이얼로그가 잘못된 화면에 표시됨
+
+**증상:**
+- "기존 계정 발견" 다이얼로그가 SignupScreen이 아닌 MainScreen 위에 표시됨
+- 회원가입 페이지에서 나간 후 다이얼로그가 나타남
+
+**근본 원인:**
+```dart
+1. 사용자가 SignupScreen에서 카카오 로그인
+2. Firebase 로그인 성공 → authService.currentUser != null
+3. 🚨 main.dart의 Consumer가 즉시 MainScreen으로 전환!
+4. _showExistingAccountDialog() 호출 시도
+5. 이미 context가 MainScreen을 가리킴
+6. 다이얼로그가 MainScreen 위에 표시됨
+```
+
+**해결책:**
+`setInSocialLoginFlow(true)`를 **Firebase 로그인 직후, Firestore 확인 전**에 호출
+
+**코드 변경:**
+```dart
+// ❌ BEFORE
+Future<void> _handleSocialLoginSuccess(SocialLoginResult result) async {
+  // ... Firebase 로그인 완료 ...
+  final userDoc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(result.userId!)
+      .get();
+  
+  if (userDoc.exists) {
+    await _showExistingAccountDialog(...);  // 이미 MainScreen으로 전환된 후!
+  }
+}
+
+// ✅ AFTER
+Future<void> _handleSocialLoginSuccess(SocialLoginResult result) async {
+  // 🎯 즉시 플래그 설정 (화면 전환 차단)
+  authService.setInSocialLoginFlow(true);
+  
+  // ... Firebase 로그인 완료 ...
+  final userDoc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(result.userId!)
+      .get();
+  
+  if (userDoc.exists) {
+    await _showExistingAccountDialog(...);  // SignupScreen에서 표시됨!
+  }
+}
+```
+
+**효과:**
+- ✅ "기존 계정 발견" 다이얼로그가 SignupScreen에서 표시됨
+- ✅ main.dart의 자동 화면 전환이 차단됨
+- ✅ 사용자가 로그인 결정을 내릴 때까지 SignupScreen에 머무름
+
+**커밋:**
+```
+47888df - 🔧 Fix: Set social login flag BEFORE screen transition
+```
+
