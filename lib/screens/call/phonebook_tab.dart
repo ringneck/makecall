@@ -720,24 +720,6 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
               var contacts = snapshot.data ?? [];
 
-              if (kDebugMode) {
-                debugPrint('');
-                debugPrint('🔄 ===== StreamBuilder 업데이트 =====');
-                debugPrint('📋 Firestore에서 가져온 총 연락처 수: ${contacts.length}');
-                
-                // 즐겨찾기 상태 확인 (처음 5개만)
-                final favoriteContacts = contacts.where((c) => c.isFavorite).toList();
-                debugPrint('⭐ 즐겨찾기 연락처 수: ${favoriteContacts.length}');
-                if (favoriteContacts.isNotEmpty) {
-                  debugPrint('   즐겨찾기 목록 (최대 5개):');
-                  for (var contact in favoriteContacts.take(5)) {
-                    debugPrint('   - ${contact.name} (${contact.telephone})');
-                  }
-                }
-                debugPrint('🔄 =============================');
-                debugPrint('');
-              }
-
               return StreamBuilder<List<MyExtensionModel>>(
                 stream: _databaseService.getMyExtensions(userId),
                 builder: (context, myExtensionsSnapshot) {
@@ -745,19 +727,11 @@ class _PhonebookTabState extends State<PhonebookTab> {
                   final myExtensions = myExtensionsSnapshot.data ?? [];
                   final myExtensionNumbers = myExtensions.map((e) => e.extension).toList();
                   
-                  if (kDebugMode && myExtensionNumbers.isNotEmpty) {
-                    debugPrint('📝 my_extensions 컬렉션에서 가져온 단말번호: ${myExtensionNumbers.length}개 - $myExtensionNumbers');
-                  }
-                  
                   return FutureBuilder<UserModel?>(
                     future: _databaseService.getUserById(userId),
                     builder: (context, userSnapshot) {
                       // users 문서에서 myExtensions 필드 가져오기
                       final userMyExtensions = userSnapshot.data?.myExtensions ?? [];
-                      
-                      if (kDebugMode && userMyExtensions.isNotEmpty) {
-                        debugPrint('👤 users.myExtensions에서 가져온 단말번호: ${userMyExtensions.length}개 - $userMyExtensions');
-                      }
                       
                       // 내 단말번호 = my_extensions 컬렉션 + users.myExtensions (합집합)
                       final allMyExtensions = <String>{
@@ -765,22 +739,10 @@ class _PhonebookTabState extends State<PhonebookTab> {
                         if (userMyExtensions.isNotEmpty) ...userMyExtensions,
                       }.toList();
                       
-                      if (kDebugMode) {
-                        debugPrint('🎯 필터링할 내 단말번호 전체: ${allMyExtensions.length}개 - $allMyExtensions');
-                      }
-                      
                       // Phonebook 연락처에서 내 단말번호 제외
                       contacts = contacts.where((contact) {
-                        final shouldExclude = allMyExtensions.contains(contact.telephone);
-                        if (shouldExclude && kDebugMode) {
-                          debugPrint('⏭️  Phonebook에서 제외: ${contact.name} (${contact.telephone}) - 내 단말번호');
-                        }
-                        return !shouldExclude;
+                        return !allMyExtensions.contains(contact.telephone);
                       }).toList();
-                      
-                      if (kDebugMode) {
-                        debugPrint('✅ 내 단말번호 제외 후 연락처 수: ${contacts.length}');
-                      }
                       
                       return FutureBuilder<List<String>>(
                         future: _databaseService.getAllRegisteredExtensions(),
@@ -794,9 +756,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                               .toList();
                           
                           if (kDebugMode) {
-                            debugPrint('🔒 전체 등록된 단말번호 (모든 사용자): ${allRegisteredExtensions.length}개');
-                            debugPrint('📱 내 단말번호: ${allMyExtensions.length}개 - $allMyExtensions');
-                            debugPrint('👥 다른 사람이 등록한 단말번호: ${otherUsersExtensions.length}개 - $otherUsersExtensions');
+                            debugPrint('📋 전체: ${allRegisteredExtensions.length}, 내 단말: ${allMyExtensions.length}, 타인: ${otherUsersExtensions.length}');
                           }
 
                       // 검색 필터링
@@ -1413,38 +1373,16 @@ class _PhonebookTabState extends State<PhonebookTab> {
                     IconButton(
                       onPressed: () async {
                         try {
-                          if (kDebugMode) {
-                            debugPrint('');
-                            debugPrint('⭐ ===== Modal 즐겨찾기 토글 START =====');
-                            debugPrint('   연락처: ${contact.name}');
-                            debugPrint('   Contact ID: ${contact.id}');
-                            debugPrint('   현재 isFavorite: ${contact.isFavorite}');
-                            debugPrint('   예상 새 값: ${!contact.isFavorite}');
-                          }
-                          
-                          // 🔥 이벤트 기반 동기화: Firestore 변경 완료 대기
+                          // 이벤트 기반 동기화: Firestore 변경 완료 대기
                           await _databaseService.togglePhonebookContactFavoriteAndWaitForSync(
                             contact.id,
                             contact.isFavorite,
                           );
                           
-                          if (kDebugMode) {
-                            debugPrint('✅ Firestore 변경 감지 완료 - Modal 닫기');
-                            debugPrint('⭐ ===== Modal 즐겨찾기 토글 END =====');
-                            debugPrint('');
-                          }
-                          
-                          // ✅ Modal 닫기 - StreamBuilder가 갱신된 데이터로 UI 업데이트
+                          // Modal 닫기 - StreamBuilder가 갱신된 데이터로 UI 업데이트
                           if (mounted) {
                             Navigator.pop(context);
-                            
-                            // 🔄 명시적 setState 호출로 부모 위젯 강제 리빌드
-                            if (kDebugMode) {
-                              debugPrint('🔄 부모 위젯 setState() 호출 - 강제 리빌드');
-                            }
-                            setState(() {
-                              // StreamBuilder 리빌드 트리거
-                            });
+                            setState(() {});
                           }
                         } catch (e) {
                           if (kDebugMode) {
