@@ -54,7 +54,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM',
-    appId: '1:793164633643:android:c2f267d67b908274ccfc6e',
+    appId: '1:793164633643:android:efd6f648b54f7a15ccfc6e',
     messagingSenderId: '793164633643',
     projectId: 'makecallio',
     storageBucket: 'makecallio.firebasestorage.app',
