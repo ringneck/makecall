@@ -85,3 +85,4 @@ android/.kotlin/
 
 # 유틸리티 스크립트는 포함
 !scripts/*.py
+android_backup/
