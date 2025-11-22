@@ -29,12 +29,23 @@ import FirebaseMessaging
     // Flutter 플러그인 등록
     GeneratedPluginRegistrant.register(with: self)
     
-    // Flutter Method Channel 설정
-    let controller = window?.rootViewController as! FlutterViewController
-    fcmChannel = FlutterMethodChannel(
-      name: "com.makecall.app/fcm",
-      binaryMessenger: controller.binaryMessenger
-    )
+    // Flutter Method Channel 설정 (FlutterViewController 직접 생성)
+    if let windowScene = application.connectedScenes.first as? UIWindowScene,
+       let window = windowScene.windows.first,
+       let controller = window.rootViewController as? FlutterViewController {
+      fcmChannel = FlutterMethodChannel(
+        name: "com.makecall.app/fcm",
+        binaryMessenger: controller.binaryMessenger
+      )
+    } else {
+      // Fallback for older iOS versions
+      if let controller = window?.rootViewController as? FlutterViewController {
+        fcmChannel = FlutterMethodChannel(
+          name: "com.makecall.app/fcm",
+          binaryMessenger: controller.binaryMessenger
+        )
+      }
+    }
     
     // iOS 알림 설정
     if #available(iOS 10.0, *) {
