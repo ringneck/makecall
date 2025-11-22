@@ -40,6 +40,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
   DateTime? _lastUpdateTime; // 마지막 업데이트 시간
   bool _isGridView = false; // false: 리스트뷰, true: 그리드뷰
   bool _isFullScreen = false; // 전체화면 모드
+  bool _isTogglingFavorite = false; // 즐겨찾기 토글 중복 방지
 
   // ✅ 리팩토링: 번역 매핑 테이블 제거 (PhonebookTranslationService로 이동)
   // 아래 _nameTranslations는 삭제되었습니다.
@@ -977,28 +978,54 @@ class _PhonebookTabState extends State<PhonebookTab> {
 
   // 즐겨찾기 토글 (연락처와 동일한 동작)
   Future<void> _toggleFavorite(PhonebookContactModel contact) async {
+    // 🚨 Debouncing: 중복 클릭 방지
+    if (_isTogglingFavorite) {
+      if (kDebugMode) {
+        debugPrint('⚠️ Phonebook 즐겨찾기 토글 이미 실행 중, 무시');
+      }
+      return;
+    }
+    
+    _isTogglingFavorite = true;
+    
     try {
+      final newFavoriteStatus = !contact.isFavorite;
+      
+      if (kDebugMode) {
+        debugPrint('⭐ ===== Phonebook 즐겨찾기 토글 START =====');
+        debugPrint('  연락처: ${contact.name}');
+        debugPrint('  현재 isFavorite: ${contact.isFavorite}');
+        debugPrint('  새로운 isFavorite: $newFavoriteStatus');
+      }
+      
       await _databaseService.togglePhonebookContactFavorite(
         contact.id,
         contact.isFavorite,
       );
-
-      if (mounted) {
-        await DialogUtils.showSuccess(
-          context,
-          contact.isFavorite
-              ? '즐겨찾기에서 제거되었습니다'
-              : '즐겨찾기에 추가되었습니다',
-          duration: const Duration(seconds: 1),
-        );
+      
+      if (kDebugMode) {
+        debugPrint('✅ Phonebook 즐겨찾기 업데이트 완료');
+        debugPrint('  StreamBuilder가 자동으로 UI 업데이트 예정');
+        debugPrint('⭐ ===== Phonebook 즐겨찾기 토글 END =====');
       }
+      
+      // 🎯 No dialog/snackbar - StreamBuilder handles UI update
+      
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Phonebook 즐겨찾기 변경 실패: $e');
+      }
+      
+      // 에러 발생 시에만 다이얼로그 표시
       if (mounted) {
         await DialogUtils.showError(
           context,
-          '즐겨찾기 변경 실패: $e',
+          '즐겨찾기 변경 실패',
+          duration: const Duration(milliseconds: 1500),
         );
       }
+    } finally {
+      _isTogglingFavorite = false;
     }
   }
 
