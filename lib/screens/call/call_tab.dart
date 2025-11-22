@@ -138,7 +138,11 @@ class _CallTabState extends State<CallTab> {
       // CallManager 초기화
       _callManager = CallManager(
         databaseService: _databaseService,
-        onTabChanged: (index) => setState(() => _currentTabIndex = index),
+        onTabChanged: (index) {
+          setState(() {
+            _currentTabIndex = index;
+          });
+        },
       );
       
       // 로그아웃 상태 체크
@@ -1191,23 +1195,23 @@ class _CallTabState extends State<CallTab> {
               // 장치 연락처 토글 버튼
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _isLoadingDeviceContacts ? null : _toggleDeviceContacts,
-                  icon: _isLoadingDeviceContacts
+                  onPressed: _contactManager.isLoadingDeviceContacts ? null : _toggleDeviceContacts,
+                  icon: _contactManager.isLoadingDeviceContacts
                       ? const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Icon(_showDeviceContacts ? Icons.cloud_done : Icons.smartphone),
+                      : Icon(_contactManager.showDeviceContacts ? Icons.cloud_done : Icons.smartphone),
                   label: Text(
-                    _showDeviceContacts ? '저장된 연락처' : '장치 연락처',
+                    _contactManager.showDeviceContacts ? '저장된 연락처' : '장치 연락처',
                     style: const TextStyle(fontSize: 13),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _showDeviceContacts
+                    backgroundColor: _contactManager.showDeviceContacts
                         ? const Color(0xFF2196F3)
                         : (isDark ? Colors.grey[800] : Colors.white),
-                    foregroundColor: _showDeviceContacts
+                    foregroundColor: _contactManager.showDeviceContacts
                         ? Colors.white
                         : const Color(0xFF2196F3),
                     elevation: 2,
@@ -1263,7 +1267,7 @@ class _CallTabState extends State<CallTab> {
 
         // 연락처 목록
         Expanded(
-          child: _showDeviceContacts
+          child: _contactManager.showDeviceContacts
               ? _buildDeviceContactsList()
               : _buildSavedContactsList(userId),
         ),

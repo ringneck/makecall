@@ -37,7 +37,7 @@ import '../../../widgets/call_method_dialog.dart';
 /// ```
 class CallManager {
   final DatabaseService databaseService;
-  final VoidCallback Function(int) onTabChanged;
+  final void Function(int) onTabChanged;
   
   CallManager({
     required this.databaseService,
