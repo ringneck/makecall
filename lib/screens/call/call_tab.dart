@@ -20,11 +20,11 @@ import '../../widgets/add_contact_dialog.dart';
 import '../../widgets/call_detail_dialog.dart';
 import '../../widgets/profile_drawer.dart';
 import '../../widgets/extension_drawer.dart';
-import '../../widgets/cached_network_image_widget.dart';
 import '../../widgets/safe_circle_avatar.dart';
 import '../../widgets/social_login_progress_overlay.dart';
 import '../../theme/call_theme_extension.dart';
 import 'call_tab/widgets/extension_info_widget.dart';
+import 'services/settings_checker.dart';
 
 class CallTab extends StatefulWidget {
   final bool autoOpenProfileForNewUser; // 신규 사용자 자동 ProfileDrawer 열기
@@ -50,12 +50,14 @@ class _CallTabState extends State<CallTab> {
   bool _isLoadingDeviceContacts = false;
   bool _showDeviceContacts = false;
   List<ContactModel> _deviceContacts = [];
-  bool _hasCheckedSettings = false; // 설정 체크 완료 플래그
   bool _hasCheckedNewUser = false; // 신규 사용자 체크 완료 플래그
   
   // 🔒 고급 개발자 패턴: AuthService 참조를 안전하게 저장
   // dispose()에서 context 사용을 피하기 위한 전략
   AuthService? _authService;
+  
+  // 설정 체크 서비스
+  late SettingsChecker _settingsChecker;
   
   // 🔔 DCMIWS 이벤트 구독
   StreamSubscription? _dcmiwsEventSubscription;
@@ -92,6 +94,13 @@ class _CallTabState extends State<CallTab> {
       
       // 🔒 AuthService 참조를 안전하게 저장 (dispose에서 사용)
       _authService = context.read<AuthService>();
+      
+      // SettingsChecker 초기화
+      _settingsChecker = SettingsChecker(
+        authService: _authService!,
+        databaseService: _databaseService,
+        scaffoldKey: _scaffoldKey,
+      );
       
       // 로그아웃 상태 체크
       if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
@@ -403,380 +412,12 @@ class _CallTabState extends State<CallTab> {
   /// - Idempotent: _hasCheckedSettings 플래그로 중복 실행 방지
   /// - Lazy Loading: userModel 로드 전에는 실행하지 않음
   Future<void> _checkSettingsAndShowGuide() async {
-    // 🔒 중복 실행 방지
-    if (_hasCheckedSettings) {
-      if (kDebugMode) debugPrint('✅ 설정 체크 이미 완료됨');
-      return;
-    }
-    
-    // 🔒 Early Return: 인증 상태 검증 (CRITICAL FIX for blank screen issue)
-    if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
-      return;
-    }
-    
-    // 🔐 CRITICAL: 기기 승인 대기 중인 경우 초기 등록 팝업 표시 안 함
-    if (_authService?.approvalRequestId != null) {
-      if (kDebugMode) {
-      }
-      _hasCheckedSettings = true; // 승인 후 재실행 방지
-      return;
-    }
-    
-    // 🔐 CRITICAL: userModel 로드 완료까지 대기 (소셜 로그인 시 필수)
-    // 소셜 로그인 직후에는 userModel이 null일 수 있으므로 최대 5초 대기
-    
-    int waitCount = 0;
-    while (_authService?.currentUserModel == null && waitCount < 50) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      waitCount++;
-    }
-    
-    final userModel = _authService?.currentUserModel;
-    if (userModel == null) {
-      if (kDebugMode) {
-      }
-      _hasCheckedSettings = false; // 재시도 가능하도록 플래그 리셋
-      return;
-    }
-    
-    // 🔐 CRITICAL: 소셜 로그인 진행 중인 경우 설정 체크 건너뛰기 (이벤트 기반)
-    // "기존 계정 확인" 다이얼로그가 표시되는 동안 "초기 등록 필요"가 표시되는 것을 방지
-    if (_authService?.isInSocialLoginFlow ?? false) {
-      if (kDebugMode) {
-        debugPrint('⏭️ 소셜 로그인 진행 중 - 초기 등록 팝업 건너뛰기');
-      }
-      return; // 플래그를 설정하지 않고 return (다음에 다시 체크 가능)
-    }
-    
-    if (kDebugMode) {
-    }
-    
-    final userId = _authService?.currentUser?.uid ?? '';
-    
-    // 🔒 필수 설정 확인 (REST API만 체크)
-    final hasApiSettings = (userModel.apiBaseUrl?.isNotEmpty ?? false) &&
-                          (userModel.companyId?.isNotEmpty ?? false) &&
-                          (userModel.appKey?.isNotEmpty ?? false);
-    
-    // 🔒 등록된 단말번호 확인
-    final extensions = await _databaseService.getMyExtensions(userId).first;
-    final hasExtensions = extensions.isNotEmpty;
-    
-    if (kDebugMode) {
-    }
-    
-    // 🔒 REST API 설정 완료 시 체크 종료
-    if (hasApiSettings && hasExtensions) {
-      _hasCheckedSettings = true;
-      if (kDebugMode) debugPrint('✅ REST API 설정 완료');
-      return;
-    }
-    
-    // 🔒 REST API 설정 미완료 시 안내 다이얼로그
-    if (!hasApiSettings) {
-      _hasCheckedSettings = true; // 1회만 표시
-      
-      if (mounted) {
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogContext) {
-            final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-            return AlertDialog(
-              title: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
-                    size: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  const Text('초기 등록 필요'),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 계정 정보 표시
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.grey[850] : Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.account_circle,
-                          size: 24,
-                          color: isDark ? Colors.grey[400] : Colors.grey[700],
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            userModel.email.isNotEmpty ? userModel.email : (_authService?.currentUser?.email ?? '사용자'),
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.grey[200] : Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '통화 기능을 사용하기 위해서는\nREST API 서버 설정이 필요합니다.',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.grey[200] : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '※ WebSocket 설정은 선택사항입니다',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.grey[500] : Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.blue[900]!.withAlpha(77)
-                          : const Color(0xFF2196F3).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.blue[700]!
-                            : const Color(0xFF2196F3).withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.touch_app,
-                          size: 20,
-                          color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '왼쪽 상단 프로필 아이콘을 눌러\n설정 정보를 입력해주세요.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? Colors.blue[300] : const Color(0xFF1976D2),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  if (!mounted) return;
-                  _hasCheckedSettings = true;
-                  Navigator.pop(dialogContext);
-                },
-                child: const Text('나중에'),
-              ),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  if (!mounted) return;
-                  _hasCheckedSettings = true;
-                  Navigator.pop(dialogContext);
-                  
-                  // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
-                  await Future.delayed(const Duration(milliseconds: 300));
-                  
-                  if (mounted && _scaffoldKey.currentState != null) {
-                    _scaffoldKey.currentState!.openDrawer();
-                  }
-                },
-                icon: const Icon(Icons.settings, size: 18),
-                label: const Text('설정하기'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    }
-    return;
-    }
-    
-    // 🔒 단말번호 미등록 시 안내 다이얼로그
-    if (!hasExtensions) {
-      _hasCheckedSettings = true; // 1회만 표시
-      if (mounted) {
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogContext) {
-            final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-            return AlertDialog(
-              title: Row(
-                children: [
-                  Icon(
-                    Icons.phone_disabled,
-                    color: isDark ? Colors.orange[300] : Colors.orange,
-                    size: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  const Text('단말번호 등록 필요'),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 계정 정보 표시
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.grey[850] : Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.account_circle,
-                          size: 24,
-                          color: isDark ? Colors.grey[400] : Colors.grey[700],
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            userModel.email.isNotEmpty ? userModel.email : (_authService?.currentUser?.email ?? '사용자'),
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.grey[200] : Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '등록된 단말번호가 없습니다.',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.grey[200] : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '통화 기능을 사용하려면 단말번호를 조회하고 등록해야 합니다.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.grey[400] : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.orange[900]!.withAlpha(77)
-                          : Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.orange[700]!
-                            : Colors.orange.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              size: 20,
-                              color: isDark ? Colors.orange[300] : Colors.orange,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '등록 방법:',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.orange[300] : Colors.orange,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '1. 왼쪽 상단 프로필 아이콘 클릭\n'
-                          '2. 단말번호 조회 및 등록\n',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? Colors.grey[400] : Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  if (!mounted) return;
-                  _hasCheckedSettings = true;
-                  Navigator.pop(dialogContext);
-                },
-                child: const Text('나중에'),
-              ),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  if (!mounted) return;
-                  _hasCheckedSettings = true;
-                  Navigator.pop(dialogContext);
-                  
-                  // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
-                  await Future.delayed(const Duration(milliseconds: 300));
-                  
-                  if (mounted && _scaffoldKey.currentState != null) {
-                    _scaffoldKey.currentState!.openDrawer();
-                  }
-                },
-                icon: const Icon(Icons.phone_in_talk, size: 18),
-                label: const Text('등록하기'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? Colors.orange[700] : Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          );
-        },
-      );
-      }
-    }
+    await _settingsChecker.checkAndShowGuide(context);
   }
+
+  /// 설정 체크 완료 여부 getter/setter (SettingsChecker 위임)
+  bool get _hasCheckedSettings => _settingsChecker.hasCheckedSettings;
+  set _hasCheckedSettings(bool value) => _settingsChecker.hasCheckedSettings = value;
 
 
 
