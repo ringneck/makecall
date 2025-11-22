@@ -1399,22 +1399,34 @@ class _PhonebookTabState extends State<PhonebookTab> {
                     IconButton(
                       onPressed: () async {
                         try {
-                          await _databaseService.togglePhonebookContactFavorite(
+                          if (kDebugMode) {
+                            debugPrint('⭐ Modal에서 즐겨찾기 토글: ${contact.name}');
+                            debugPrint('   현재 isFavorite: ${contact.isFavorite}');
+                          }
+                          
+                          // 🔥 이벤트 기반 동기화: Firestore 변경 완료 대기
+                          await _databaseService.togglePhonebookContactFavoriteAndWaitForSync(
                             contact.id,
                             contact.isFavorite,
                           );
+                          
+                          if (kDebugMode) {
+                            debugPrint('✅ Firestore 변경 감지 완료 - Modal 닫기');
+                          }
+                          
+                          // ✅ Modal 닫기 - StreamBuilder가 갱신된 데이터로 UI 업데이트
                           if (mounted) {
-                            await DialogUtils.showSuccess(
-                              context,
-                              contact.isFavorite ? '즐겨찾기에서 제거되었습니다' : '즐겨찾기에 추가되었습니다',
-                              duration: const Duration(seconds: 1),
-                            );
+                            Navigator.pop(context);
                           }
                         } catch (e) {
+                          if (kDebugMode) {
+                            debugPrint('❌ 즐겨찾기 변경 실패: $e');
+                          }
                           if (mounted) {
                             await DialogUtils.showError(
                               context,
                               '즐겨찾기 변경 실패: $e',
+                              duration: const Duration(seconds: 1),
                             );
                           }
                         }
