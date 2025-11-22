@@ -14,7 +14,7 @@
       },
       "oauth_client": [
         {
-          "client_id": "104853134327062216473",
+          "client_id": "793164633643-2n24giqmvf6e08dq5qhv1rj6vudigb4u.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -29,6 +29,13 @@
             {
               "client_id": "104853134327062216473",
               "client_type": 3
+            },
+            {
+              "client_id": "793164633643-urj0qb989v8l2bggj6h025plnbbshfg5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.olssoo.makecall"
+              }
             }
           ]
         }
