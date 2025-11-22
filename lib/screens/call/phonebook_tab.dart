@@ -690,6 +690,30 @@ class _PhonebookTabState extends State<PhonebookTab> {
           child: StreamBuilder<List<PhonebookContactModel>>(
             stream: _databaseService.getAllPhonebookContacts(userId),
             builder: (context, snapshot) {
+              // 🚨 에러 처리 추가
+              if (snapshot.hasError) {
+                if (kDebugMode) {
+                  debugPrint('❌ Phonebook StreamBuilder 에러: ${snapshot.error}');
+                }
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('데이터 로드 중 오류 발생', style: TextStyle(fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Text('${snapshot.error}', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => setState(() {}),
+                        child: const Text('다시 시도'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -992,8 +1016,11 @@ class _PhonebookTabState extends State<PhonebookTab> {
       final newFavoriteStatus = !contact.isFavorite;
       
       if (kDebugMode) {
+        debugPrint('');
         debugPrint('⭐ ===== Phonebook 즐겨찾기 토글 START =====');
         debugPrint('  연락처: ${contact.name}');
+        debugPrint('  전화번호: ${contact.telephone}');
+        debugPrint('  Contact ID: ${contact.id}');
         debugPrint('  현재 isFavorite: ${contact.isFavorite}');
         debugPrint('  새로운 isFavorite: $newFavoriteStatus');
       }
@@ -1003,24 +1030,31 @@ class _PhonebookTabState extends State<PhonebookTab> {
         contact.isFavorite,
       );
       
+      // StreamBuilder가 변경을 감지할 시간 제공
+      await Future.delayed(const Duration(milliseconds: 50));
+      
       if (kDebugMode) {
         debugPrint('✅ Phonebook 즐겨찾기 업데이트 완료');
         debugPrint('  StreamBuilder가 자동으로 UI 업데이트 예정');
+        debugPrint('  예상 아이콘: ${newFavoriteStatus ? "Icons.star (채워진 별)" : "Icons.star_border (빈 별)"}');
+        debugPrint('  예상 색상: ${newFavoriteStatus ? "노란색 (amber)" : "회색 (grey)"}');
         debugPrint('⭐ ===== Phonebook 즐겨찾기 토글 END =====');
+        debugPrint('');
       }
       
       // 🎯 No dialog/snackbar - StreamBuilder handles UI update
       
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         debugPrint('❌ Phonebook 즐겨찾기 변경 실패: $e');
+        debugPrint('스택 트레이스: $stackTrace');
       }
       
       // 에러 발생 시에만 다이얼로그 표시
       if (mounted) {
         await DialogUtils.showError(
           context,
-          '즐겨찾기 변경 실패',
+          '즐겨찾기 변경 실패: $e',
           duration: const Duration(milliseconds: 1500),
         );
       }
