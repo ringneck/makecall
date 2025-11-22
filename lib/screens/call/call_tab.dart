@@ -1353,7 +1353,14 @@ class _CallTabState extends State<CallTab> {
   }
 
   Widget _buildDeviceContactsList() {
-    if (_contactManager?.deviceContacts.isEmpty ?? true) {
+    // Early return if ContactManager is not initialized
+    if (_contactManager == null) {
+      return const Center(
+        child: Text('연락처 관리자를 초기화하는 중...'),
+      );
+    }
+    
+    if (_contactManager!.deviceContacts.isEmpty) {
       return const Center(
         child: Text('장치 연락처를 불러오는 중...'),
       );
