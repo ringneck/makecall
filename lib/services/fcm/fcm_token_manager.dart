@@ -93,10 +93,19 @@ class FCMTokenManager {
           .where((token) => '${token.deviceId}_${token.platform}' == currentDeviceKey)
           .toList();
       
+      // 🔒 CRITICAL: 같은 기기의 기존 토큰이 승인되지 않았는지 확인
+      bool hasUnapprovedToken = false;
       if (sameDeviceTokens.isNotEmpty) {
         // ignore: avoid_print
         print('🧹 [FCM-SAVE] 같은 기기의 기존 토큰 ${sameDeviceTokens.length}개 발견 - 비활성화 중...');
         for (var oldToken in sameDeviceTokens) {
+          // 🔒 승인되지 않은 토큰 감지
+          if (!oldToken.isApproved) {
+            hasUnapprovedToken = true;
+            // ignore: avoid_print
+            print('   ⚠️ 승인되지 않은 기존 토큰 발견: ${oldToken.fcmToken.substring(0, 20)}...');
+          }
+          
           // Firestore에서 직접 비활성화
           await _firestore
               .collection('fcm_tokens')
@@ -110,6 +119,31 @@ class FCMTokenManager {
           // ignore: avoid_print
           print('   ✅ 비활성화 완료: ${oldToken.fcmToken.substring(0, 20)}...');
         }
+      }
+      
+      // 🚫 CRITICAL: 승인되지 않은 토큰이 있으면 로그인 차단
+      if (hasUnapprovedToken) {
+        // ignore: avoid_print
+        print('');
+        // ignore: avoid_print
+        print('🚫 [FCM-SAVE] ========================================');
+        // ignore: avoid_print
+        print('🚫 [FCM-SAVE] 승인되지 않은 기기입니다!');
+        // ignore: avoid_print
+        print('🚫 [FCM-SAVE] ========================================');
+        // ignore: avoid_print
+        print('   - Device: $deviceName ($platform)');
+        // ignore: avoid_print
+        print('   - Device Key: $currentDeviceKey');
+        // ignore: avoid_print
+        print('   - 이 기기는 승인 대기 상태입니다.');
+        // ignore: avoid_print
+        print('   - 다른 기기에서 승인을 완료해주세요.');
+        // ignore: avoid_print
+        print('🚫 [FCM-SAVE] ========================================');
+        // ignore: avoid_print
+        print('');
+        throw Exception('Device approval pending - Please approve from another device');
       }
       
       // 현재 기기를 제외한 다른 기기들 필터링
