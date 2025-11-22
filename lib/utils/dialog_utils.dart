@@ -54,7 +54,7 @@ class DialogUtils {
           // 자동 닫힘 설정
           if (duration != null) {
             Future.delayed(duration, () {
-              if (dialogContext.mounted) {
+              if (dialogContext.mounted && Navigator.of(dialogContext).canPop()) {
                 Navigator.of(dialogContext).pop();
               }
             });
@@ -97,7 +97,7 @@ class DialogUtils {
           // 자동 닫힘 설정
           if (duration != null) {
             Future.delayed(duration, () {
-              if (dialogContext.mounted) {
+              if (dialogContext.mounted && Navigator.of(dialogContext).canPop()) {
                 Navigator.of(dialogContext).pop();
               }
             });
