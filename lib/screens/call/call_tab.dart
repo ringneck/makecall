@@ -3,7 +3,6 @@ import '../../utils/dialog_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/mobile_contacts_service.dart';
@@ -26,6 +25,7 @@ import '../../theme/call_theme_extension.dart';
 import 'call_tab/widgets/extension_info_widget.dart';
 import 'services/settings_checker.dart';
 import 'services/extension_initializer.dart';
+import 'services/permission_handler.dart';
 
 class CallTab extends StatefulWidget {
   final bool autoOpenProfileForNewUser; // 신규 사용자 자동 ProfileDrawer 열기
@@ -62,6 +62,9 @@ class _CallTabState extends State<CallTab> {
   
   // 단말번호 초기화 서비스
   late ExtensionInitializer _extensionInitializer;
+  
+  // 권한 처리 서비스
+  late PermissionHandler _permissionHandler;
   
   // 🔔 DCMIWS 이벤트 구독
   StreamSubscription? _dcmiwsEventSubscription;
@@ -111,6 +114,11 @@ class _CallTabState extends State<CallTab> {
         authService: _authService!,
         databaseService: _databaseService,
         scaffoldKey: _scaffoldKey,
+      );
+      
+      // PermissionHandler 초기화
+      _permissionHandler = PermissionHandler(
+        mobileContactsService: _mobileContactsService,
       );
       
       // 로그아웃 상태 체크
@@ -1962,55 +1970,26 @@ class _CallTabState extends State<CallTab> {
         debugPrint('🔍 ===== _toggleDeviceContacts START =====');
       }
       
-      // 🎯 STEP 1: 현재 권한 상태 확인 (flutter_contacts 사용)
-      final hasPermission = await _mobileContactsService.hasContactsPermission();
-      
-      if (kDebugMode) {
-        debugPrint('🔍 _toggleDeviceContacts: hasPermission = $hasPermission');
-      }
-      
-      // 🎯 STEP 2: 권한이 없으면 권한 요청
-      if (!hasPermission) {
-        if (kDebugMode) {
-          debugPrint('⚠️ _toggleDeviceContacts: 권한 없음 - 사용자에게 권한 요청');
-        }
+      // 🎯 STEP 1 & 2: 권한 확인 및 요청 (PermissionHandler 사용)
+      if (mounted) {
+        setState(() => _isLoadingDeviceContacts = false);
         
-        if (mounted) {
-          setState(() => _isLoadingDeviceContacts = false);
-          
-          // 사용자에게 권한 요청 의사 확인
-          final shouldRequest = await _showPermissionRequestDialog();
-          if (shouldRequest != true) {
-            return;
-          }
-          
-          setState(() => _isLoadingDeviceContacts = true);
-          
-          // 시스템 권한 다이얼로그 표시 (flutter_contacts 사용)
-          final permissionStatus = await _mobileContactsService.requestContactsPermission();
-          
+        final hasPermission = await _permissionHandler.checkAndRequestPermission(context);
+        
+        if (!hasPermission) {
           if (kDebugMode) {
-            debugPrint('📱 _toggleDeviceContacts: requestContactsPermission 결과');
-            debugPrint('   - permissionStatus: $permissionStatus');
-            debugPrint('   - isGranted: ${permissionStatus.isGranted}');
+            debugPrint('❌ _toggleDeviceContacts: 권한 거부됨 또는 취소됨');
           }
-          
-          // 권한 거부 시 설정으로 이동 안내
-          if (!permissionStatus.isGranted) {
-            if (kDebugMode) {
-              debugPrint('❌ _toggleDeviceContacts: 권한 거부됨');
-            }
-            setState(() => _isLoadingDeviceContacts = false);
-            
-            if (mounted) {
-              _showPermissionDeniedDialog();
-            }
-            return;
-          }
-        } else {
-          setState(() => _isLoadingDeviceContacts = false);
           return;
         }
+        
+        if (kDebugMode) {
+          debugPrint('✅ _toggleDeviceContacts: 권한 확인 완료');
+        }
+        
+        setState(() => _isLoadingDeviceContacts = true);
+      } else {
+        return;
       }
 
       // 🎯 STEP 3: 연락처 가져오기
@@ -2062,116 +2041,7 @@ class _CallTabState extends State<CallTab> {
     }
   }
 
-  /// 권한 요청 다이얼로그 표시 (초기 요청)
-  Future<bool?> _showPermissionRequestDialog() {
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(
-                Icons.contacts,
-                color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(child: Text('연락처 권한 필요')),
-            ],
-          ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '장치 연락처를 불러오려면 연락처 접근 권한이 필요합니다.',
-              style: TextStyle(fontSize: 15),
-            ),
-            SizedBox(height: 12),
-            Text(
-              '다음 화면에서 "허용"을 선택해주세요.',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2196F3),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2196F3),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('권한 요청'),
-          ),
-        ],
-      );
-      },
-    );
-  }
 
-  /// 권한 거부 다이얼로그 표시 (설정으로 이동)
-  void _showPermissionDeniedDialog() {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                color: isDark ? Colors.orange[300] : Colors.orange,
-              ),
-              const SizedBox(width: 12),
-              const Expanded(child: Text('연락처 권한 거부됨')),
-            ],
-          ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '연락처 권한이 거부되었습니다.',
-              style: TextStyle(fontSize: 15),
-            ),
-            SizedBox(height: 12),
-            Text(
-              '장치 연락처를 사용하려면 설정에서 권한을 허용해주세요.',
-              style: TextStyle(fontSize: 14),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              // permission_handler의 openAppSettings 사용
-              await openAppSettings();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? Colors.orange[700] : Colors.orange,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('설정 열기'),
-          ),
-        ],
-      );
-      },
-    );
-  }
 
   void _showAddContactDialog(String userId) {
     showDialog(
