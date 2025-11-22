@@ -25,6 +25,7 @@ import '../../widgets/social_login_progress_overlay.dart';
 import '../../theme/call_theme_extension.dart';
 import 'call_tab/widgets/extension_info_widget.dart';
 import 'services/settings_checker.dart';
+import 'services/extension_initializer.dart';
 
 class CallTab extends StatefulWidget {
   final bool autoOpenProfileForNewUser; // 신규 사용자 자동 ProfileDrawer 열기
@@ -50,7 +51,7 @@ class _CallTabState extends State<CallTab> {
   bool _isLoadingDeviceContacts = false;
   bool _showDeviceContacts = false;
   List<ContactModel> _deviceContacts = [];
-  bool _hasCheckedNewUser = false; // 신규 사용자 체크 완료 플래그
+  // Note: _hasCheckedNewUser는 ExtensionInitializer에서 관리됨
   
   // 🔒 고급 개발자 패턴: AuthService 참조를 안전하게 저장
   // dispose()에서 context 사용을 피하기 위한 전략
@@ -58,6 +59,9 @@ class _CallTabState extends State<CallTab> {
   
   // 설정 체크 서비스
   late SettingsChecker _settingsChecker;
+  
+  // 단말번호 초기화 서비스
+  late ExtensionInitializer _extensionInitializer;
   
   // 🔔 DCMIWS 이벤트 구독
   StreamSubscription? _dcmiwsEventSubscription;
@@ -102,6 +106,13 @@ class _CallTabState extends State<CallTab> {
         scaffoldKey: _scaffoldKey,
       );
       
+      // ExtensionInitializer 초기화
+      _extensionInitializer = ExtensionInitializer(
+        authService: _authService!,
+        databaseService: _databaseService,
+        scaffoldKey: _scaffoldKey,
+      );
+      
       // 로그아웃 상태 체크
       if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
         return;
@@ -136,9 +147,13 @@ class _CallTabState extends State<CallTab> {
         }
       });
       
-      // 🎉 신규 사용자 체크 및 ProfileDrawer 자동 열기
+      // 🎉 신규 사용자 체크 및 ProfileDrawer 자동 열기 (ExtensionInitializer 사용)
       if (widget.autoOpenProfileForNewUser) {
-        await _checkAndOpenProfileDrawerForNewUser();
+        await _extensionInitializer.checkAndOpenProfileDrawerForNewUser(
+          context,
+          () => _hasCheckedSettings,
+          (value) => _hasCheckedSettings = value,
+        );
       }
       
       // 순차적 초기화 실행
@@ -151,9 +166,9 @@ class _CallTabState extends State<CallTab> {
   Future<void> _initializeSequentially() async {
     if (!mounted) return;
     
-    // 🎯 STEP 1: 단말번호 자동 초기화 (최우선)
+    // 🎯 STEP 1: 단말번호 자동 초기화 (ExtensionInitializer 사용)
     // 클릭투콜 기능을 위해 로그인 즉시 단말번호 설정
-    await _initializeExtensions();
+    await _extensionInitializer.initializeExtensions(context);
     
     if (!mounted) return;
     
@@ -199,14 +214,18 @@ class _CallTabState extends State<CallTab> {
     }
     
     // 1️⃣ FCM 초기화 완료 이벤트 감지
-    if ((_authService?.isFcmInitialized ?? false) && !_hasCheckedNewUser && widget.autoOpenProfileForNewUser) {
+    if ((_authService?.isFcmInitialized ?? false) && !_extensionInitializer.hasCheckedNewUser && widget.autoOpenProfileForNewUser) {
       if (kDebugMode) {
         debugPrint('🚀 [이벤트] FCM 초기화 완료 감지됨 → 신규 사용자 체크 재실행');
       }
       
       Future.microtask(() {
         if (mounted) {
-          _checkAndOpenProfileDrawerForNewUser();
+          _extensionInitializer.checkAndOpenProfileDrawerForNewUser(
+            context,
+            () => _hasCheckedSettings,
+            (value) => _hasCheckedSettings = value,
+          );
         }
       });
       return;
@@ -217,7 +236,7 @@ class _CallTabState extends State<CallTab> {
       if (kDebugMode) {
         debugPrint('🔔 [이벤트] 기기 승인 대기 상태 감지됨 → ProfileDrawer 자동 열기 취소');
       }
-      _hasCheckedNewUser = true;
+      _extensionInitializer.hasCheckedNewUser = true;
       return;
     }
     
@@ -235,172 +254,7 @@ class _CallTabState extends State<CallTab> {
       });
     }
   }
-  
 
-  /// 🎯 단말번호 자동 초기화 (로그인 직후 실행)
-  /// 
-  /// **핵심 기능**: 클릭투콜을 위한 단말번호 자동 설정
-  /// - 로그인 즉시 첫 번째 단말번호를 SelectedExtensionProvider에 설정
-  /// - ExtensionDrawer 열기 전에도 클릭투콜 사용 가능
-  /// 
-  /// **최적화 전략**:
-  /// - Early Return: 조건 미충족 시 즉시 반환
-  /// - Idempotent: 이미 설정된 경우 재설정하지 않음
-  /// - Fail Silent: 에러 시 조용히 처리 (사용자 경험 저해 방지)
-  Future<void> _initializeExtensions() async {
-    // 🔒 Early Return: 인증 상태 검증 (CRITICAL FIX for blank screen issue)
-    if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
-      if (kDebugMode) debugPrint('⚠️ 단말번호 초기화 스킵: 로그아웃 상태');
-      return;
-    }
-    
-    // 🔒 Early Return: userId 검증
-    final userId = _authService?.currentUser?.uid;
-    if (userId == null || userId.isEmpty) {
-      if (kDebugMode) debugPrint('⚠️ 단말번호 초기화 스킵: userId 없음');
-      return;
-    }
-    
-    try {
-      if (kDebugMode) debugPrint('🔄 단말번호 자동 초기화 시작...');
-      
-      // 🔒 단말번호 조회 (Firestore Stream)
-      final extensions = await _databaseService.getMyExtensions(userId).first;
-      
-      if (extensions.isEmpty) {
-        if (kDebugMode) {
-          debugPrint('ℹ️ 등록된 단말번호 없음 - 설정에서 단말번호를 조회하세요');
-        }
-        return;
-      }
-      
-      if (!mounted) return;
-      
-      // 🔒 Provider 상태 업데이트 (Idempotent)
-      final provider = context.read<SelectedExtensionProvider>();
-      
-      // 이미 설정된 경우 재설정하지 않음 (성능 최적화)
-      if (provider.selectedExtension == null) {
-        provider.setSelectedExtension(extensions.first);
-        if (kDebugMode) {
-        }
-      } else {
-        if (kDebugMode) {
-        }
-      }
-    } catch (e) {
-      // 🔒 Fail Silent: 단말번호 초기화 실패는 치명적이지 않음
-      // ExtensionDrawer에서 수동으로 선택 가능
-      if (kDebugMode) {
-      }
-    }
-  }
-  
-  /// 🎉 신규 사용자 감지 및 ProfileDrawer 자동 열기 (고급 이벤트 기반 패턴)
-  /// 
-  /// **기능**: 회원가입 직후 기본 설정이 필요한 신규 사용자를 감지하고 ProfileDrawer를 자동으로 엽니다
-  /// - API 설정, WebSocket 설정, 단말번호 모두 완료된 경우 ProfileDrawer 열지 않음
-  /// - 설정이 부족한 경우에만 ProfileDrawer 자동 열기
-  /// - 안내 메시지 없이 바로 ProfileDrawer 열기
-  /// - 최초 1회만 실행 (중복 열기 방지)
-  /// 
-  /// **고급 패턴**:
-  /// - FCM 초기화 완료 대기 (이벤트 기반)
-  /// - 초기화 미완료 시 스킵 → FCM 완료 후 재실행 (_onAuthServiceStateChanged에서)
-  Future<void> _checkAndOpenProfileDrawerForNewUser() async {
-    if (_hasCheckedNewUser) return;
-
-    try {
-      // 🔒 Early Return: 인증 상태 검증 (CRITICAL FIX for blank screen issue)
-      if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
-        if (kDebugMode) debugPrint('⚠️ 신규 사용자 체크 스킵: 로그아웃 상태');
-        return;
-      }
-      
-      // FCM 초기화 완료 대기 (이벤트 기반)
-      if (!(_authService?.isFcmInitialized ?? false)) {
-        return; // FCM 완료 후 _onAuthServiceStateChanged에서 재실행
-      }
-      
-      _hasCheckedNewUser = true;
-      
-      // 기기 승인 대기 중인 경우 ProfileDrawer 열지 않음
-      if ((_authService?.isWaitingForApproval ?? false) || _authService?.approvalRequestId != null) {
-        return;
-      }
-      
-      final userId = _authService?.currentUser?.uid;
-      if (userId == null) return;
-
-      // userModel 로드 완료까지 대기 (최대 3초)
-      int waitCount = 0;
-      while (_authService?.currentUserModel == null && waitCount < 30) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        waitCount++;
-      }
-      
-      final userModel = _authService?.currentUserModel;
-      if (userModel == null) {
-        _hasCheckedNewUser = false;
-        return;
-      }
-
-      // 🔐 소셜 로그인 진행 중인 경우 설정 체크 건너뛰기 (이벤트 기반)
-      if (_authService?.isInSocialLoginFlow ?? false) {
-        if (kDebugMode) {
-          debugPrint('⏭️ 소셜 로그인 진행 중 - ProfileDrawer 자동 열기 건너뛰기');
-        }
-        return; // 플래그를 설정하지 않고 return
-      }
-
-      // 필수 설정 확인
-      final hasApiSettings = (userModel.apiBaseUrl?.isNotEmpty ?? false) &&
-                            (userModel.companyId?.isNotEmpty ?? false) &&
-                            (userModel.appKey?.isNotEmpty ?? false);
-      final hasWebSocketSettings = userModel.websocketServerUrl?.isNotEmpty ?? false;
-      final extensions = await _databaseService.getMyExtensions(userId).first;
-      final hasExtensions = extensions.isNotEmpty;
-
-      if (!mounted) return;
-
-      // 모든 설정 완료 시 ProfileDrawer 열지 않음
-      if (hasApiSettings && hasWebSocketSettings && hasExtensions) {
-        _hasCheckedSettings = true;
-        return;
-      }
-
-      // 🔒 설정이 부족한 경우 ProfileDrawer 자동 열기
-      if (kDebugMode) {
-        debugPrint('');
-        debugPrint('='*60);
-        debugPrint('⚠️ 설정 미완료 감지!');
-        debugPrint('='*60);
-        debugPrint('   → ProfileDrawer 자동 열기 실행');
-        debugPrint('   → 초기 등록 안내 팝업 비활성화');
-        debugPrint('='*60);
-        debugPrint('');
-      }
-
-      // 🔒 설정 미완료 사용자는 초기 등록 안내 팝업을 표시하지 않음
-      _hasCheckedSettings = true;
-
-      // 약간의 지연 후 ProfileDrawer 자동 열기 (UI가 완전히 로드된 후)
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      if (!mounted) return;
-      
-      // ProfileDrawer 열기
-      _scaffoldKey.currentState?.openDrawer();
-      
-      if (kDebugMode) {
-        debugPrint('✅ ProfileDrawer 자동 열기 완료');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ 신규 사용자 체크 오류: $e');
-      }
-    }
-  }
   
   /// 🔍 설정 확인 및 안내 (선택적 실행)
   /// 
