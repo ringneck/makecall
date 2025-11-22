@@ -1025,17 +1025,16 @@ class _PhonebookTabState extends State<PhonebookTab> {
         debugPrint('  새로운 isFavorite: $newFavoriteStatus');
       }
       
-      await _databaseService.togglePhonebookContactFavorite(
+      // 🔥 이벤트 기반 Firestore 업데이트: 변경 완료 대기
+      // StreamBuilder가 변경을 감지한 후에만 debounce 해제
+      await _databaseService.togglePhonebookContactFavoriteAndWaitForSync(
         contact.id,
         contact.isFavorite,
       );
       
-      // StreamBuilder가 변경을 감지할 시간 제공
-      await Future.delayed(const Duration(milliseconds: 50));
-      
       if (kDebugMode) {
-        debugPrint('✅ Phonebook 즐겨찾기 업데이트 완료');
-        debugPrint('  StreamBuilder가 자동으로 UI 업데이트 예정');
+        debugPrint('✅ Phonebook Firestore 변경 감지 완료');
+        debugPrint('  StreamBuilder가 이미 UI 업데이트 완료');
         debugPrint('  예상 아이콘: ${newFavoriteStatus ? "Icons.star (채워진 별)" : "Icons.star_border (빈 별)"}');
         debugPrint('  예상 색상: ${newFavoriteStatus ? "노란색 (amber)" : "회색 (grey)"}');
         debugPrint('⭐ ===== Phonebook 즐겨찾기 토글 END =====');

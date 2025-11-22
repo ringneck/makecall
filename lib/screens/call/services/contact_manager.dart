@@ -215,14 +215,12 @@ class ContactManager {
         debugPrint('  Contact ID: ${contact.id}');
       }
       
-      // Firestore 업데이트 (StreamBuilder가 자동으로 UI 업데이트함)
-      await databaseService.updateContact(
+      // 🔥 이벤트 기반 Firestore 업데이트: 변경 완료 대기
+      // StreamBuilder가 변경을 감지한 후에만 debounce 해제
+      await databaseService.updateContactAndWaitForSync(
         contact.id,
         {'isFavorite': newFavoriteStatus},
       );
-      
-      // StreamBuilder가 변경을 감지할 시간 제공
-      await Future.delayed(const Duration(milliseconds: 50));
 
       // 🎯 다이얼로그/SnackBar 제거 - 조용한 업데이트
       // StreamBuilder가 자동으로 UI를 업데이트하므로 별도 피드백 불필요

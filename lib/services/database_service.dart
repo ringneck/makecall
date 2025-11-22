@@ -318,6 +318,76 @@ class DatabaseService {
     }
   }
   
+  /// 🔥 이벤트 기반 업데이트: Firestore 변경 완료 대기
+  /// 
+  /// **기능**: 문서 업데이트 후 실시간 스냅샷으로 변경 확인
+  /// - 낙관적 업데이트 대신 실제 Firestore 반영 대기
+  /// - StreamBuilder가 변경을 감지하기 전 debounce 해제 방지
+  /// 
+  /// **사용 예시**:
+  /// ```dart
+  /// await _databaseService.updateContactAndWaitForSync(
+  ///   contact.id,
+  ///   {'isFavorite': newValue},
+  /// );
+  /// // 이 시점에서 Firestore 변경 확인됨
+  /// ```
+  Future<void> updateContactAndWaitForSync(
+    String id, 
+    Map<String, dynamic> data,
+  ) async {
+    final docRef = _firestore.collection('contacts').doc(id);
+    final completer = Completer<void>();
+    StreamSubscription? subscription;
+    
+    try {
+      // 1. 변경 감지 리스너 설정
+      subscription = docRef.snapshots().listen((snapshot) {
+        if (!snapshot.exists) return;
+        
+        // 2. 업데이트된 값이 반영되었는지 확인
+        final docData = snapshot.data();
+        if (docData == null) return;
+        
+        bool allFieldsMatch = true;
+        for (final entry in data.entries) {
+          if (docData[entry.key] != entry.value) {
+            allFieldsMatch = false;
+            break;
+          }
+        }
+        
+        if (allFieldsMatch && !completer.isCompleted) {
+          if (kDebugMode) {
+            debugPrint('✅ Firestore 변경 감지 완료: $id');
+          }
+          completer.complete();
+        }
+      });
+      
+      // 3. 업데이트 실행
+      await docRef.update(data);
+      
+      // 4. 변경 완료 대기 (최대 2초)
+      await completer.future.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          if (kDebugMode) {
+            debugPrint('⚠️ Firestore 동기화 타임아웃 (2초 초과)');
+          }
+        },
+      );
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Update contact with sync error: $e');
+      }
+      rethrow;
+    } finally {
+      await subscription?.cancel();
+    }
+  }
+  
   // 연락처 삭제
   Future<void> deleteContact(String id) async {
     try {
@@ -744,6 +814,56 @@ class DatabaseService {
         debugPrint('❌ Toggle favorite error: $e');
       }
       rethrow;
+    }
+  }
+  
+  /// 🔥 이벤트 기반 Phonebook 즐겨찾기 토글: Firestore 변경 완료 대기
+  Future<void> togglePhonebookContactFavoriteAndWaitForSync(
+    String contactDocId, 
+    bool currentFavoriteState,
+  ) async {
+    final docRef = _firestore.collection('phonebook_contacts').doc(contactDocId);
+    final newFavoriteState = !currentFavoriteState;
+    final completer = Completer<void>();
+    StreamSubscription? subscription;
+    
+    try {
+      // 1. 변경 감지 리스너 설정
+      subscription = docRef.snapshots().listen((snapshot) {
+        if (!snapshot.exists) return;
+        
+        final isFavorite = snapshot.data()?['isFavorite'] as bool?;
+        if (isFavorite == newFavoriteState && !completer.isCompleted) {
+          if (kDebugMode) {
+            debugPrint('✅ Phonebook Firestore 변경 감지 완료: $contactDocId -> $newFavoriteState');
+          }
+          completer.complete();
+        }
+      });
+      
+      // 2. 업데이트 실행
+      await docRef.update({'isFavorite': newFavoriteState});
+      if (kDebugMode) {
+        debugPrint('📤 Phonebook Firestore 업데이트 요청: $contactDocId -> $newFavoriteState');
+      }
+      
+      // 3. 변경 완료 대기 (최대 2초)
+      await completer.future.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          if (kDebugMode) {
+            debugPrint('⚠️ Phonebook Firestore 동기화 타임아웃 (2초 초과)');
+          }
+        },
+      );
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Toggle phonebook favorite with sync error: $e');
+      }
+      rethrow;
+    } finally {
+      await subscription?.cancel();
     }
   }
   
@@ -1547,6 +1667,43 @@ class DatabaseService {
         debugPrint('❌ [DatabaseService] 사용자 필드 업데이트 실패: $e');
       }
       rethrow;
+    }
+  }
+
+  /// 🔥 이벤트 기반 연락처 추가 대기
+  /// 
+  /// 새 연락처가 Firestore에 추가되고 스냅샷에 나타날 때까지 대기
+  /// 
+  /// @param userId 사용자 ID
+  /// @param contactId 추가된 연락처 문서 ID
+  Future<void> waitForContactAdded(String userId, String contactId) async {
+    final docRef = _firestore.collection('contacts').doc(contactId);
+    final completer = Completer<void>();
+    StreamSubscription? subscription;
+    
+    try {
+      // 1. 스냅샷 리스너 설정 (문서 존재 확인)
+      subscription = docRef.snapshots().listen((snapshot) {
+        if (snapshot.exists && !completer.isCompleted) {
+          if (kDebugMode) {
+            debugPrint('✅ Firestore 신규 연락처 감지 완료: $contactId');
+          }
+          completer.complete();
+        }
+      });
+      
+      // 2. 변경 확인 대기 (최대 2초)
+      await completer.future.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          if (kDebugMode) {
+            debugPrint('⚠️ Firestore 신규 연락처 감지 타임아웃 (2초 초과)');
+          }
+        },
+      );
+      
+    } finally {
+      await subscription?.cancel();
     }
   }
 }

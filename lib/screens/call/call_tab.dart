@@ -1962,14 +1962,16 @@ class _CallTabState extends State<CallTab> {
         isDeviceContact: false, // 이제 저장된 연락처
       );
 
-      await _databaseService.addContact(newContact);
+      // 🔥 이벤트 기반 Firestore 업데이트: addContact → 변경 완료 대기
+      // StreamBuilder가 새 문서를 감지한 후에만 함수 종료
+      final docId = await _databaseService.addContact(newContact);
       
-      // StreamBuilder가 변경을 감지할 시간 제공
-      await Future.delayed(const Duration(milliseconds: 50));
+      // 🔄 Firestore 변경 확인: 새 문서가 스냅샷에 나타날 때까지 대기
+      await _databaseService.waitForContactAdded(userId, docId);
 
       if (kDebugMode) {
-        debugPrint('✅ Firestore에 즐겨찾기로 추가 완료');
-        debugPrint('  StreamBuilder가 자동으로 연락처 탭 UI 업데이트');
+        debugPrint('✅ Firestore 변경 감지 완료 (새 연락처 추가됨)');
+        debugPrint('  StreamBuilder가 이미 연락처 탭 UI 업데이트 완료');
         debugPrint('  장치 연락처 목록은 변경 없음 (메모리에만 존재)');
         debugPrint('📱 ===== 장치 연락처 → 즐겨찾기 추가 END =====');
         debugPrint('');
