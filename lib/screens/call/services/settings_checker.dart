@@ -184,7 +184,7 @@ class SettingsChecker {
                         ),
                       ],
                     ),
-                    if (userModel.name != null) ...[
+                    if (userModel.organizationName != null) ...[
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -195,7 +195,7 @@ class SettingsChecker {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            userModel.name!,
+                            userModel.organizationName!,
                             style: TextStyle(
                               fontSize: 13,
                               color: isDark ? Colors.grey[400] : Colors.grey[700],
