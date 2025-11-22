@@ -67,10 +67,10 @@ class _CallTabState extends State<CallTab> {
   late PermissionHandler _permissionHandler;
   
   // 연락처 관리 서비스
-  late ContactManager _contactManager;
+  ContactManager? _contactManager;
   
   // 통화 관리 서비스
-  late CallManager _callManager;
+  CallManager? _callManager;
   
   // 🔔 DCMIWS 이벤트 구독
   StreamSubscription? _dcmiwsEventSubscription;
@@ -1195,23 +1195,23 @@ class _CallTabState extends State<CallTab> {
               // 장치 연락처 토글 버튼
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _contactManager.isLoadingDeviceContacts ? null : _toggleDeviceContacts,
-                  icon: _contactManager.isLoadingDeviceContacts
+                  onPressed: (_contactManager?.isLoadingDeviceContacts ?? false) ? null : _toggleDeviceContacts,
+                  icon: (_contactManager?.isLoadingDeviceContacts ?? false)
                       ? const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Icon(_contactManager.showDeviceContacts ? Icons.cloud_done : Icons.smartphone),
+                      : Icon((_contactManager?.showDeviceContacts ?? false) ? Icons.cloud_done : Icons.smartphone),
                   label: Text(
-                    _contactManager.showDeviceContacts ? '저장된 연락처' : '장치 연락처',
+                    (_contactManager?.showDeviceContacts ?? false) ? '저장된 연락처' : '장치 연락처',
                     style: const TextStyle(fontSize: 13),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _contactManager.showDeviceContacts
+                    backgroundColor: (_contactManager?.showDeviceContacts ?? false)
                         ? const Color(0xFF2196F3)
                         : (isDark ? Colors.grey[800] : Colors.white),
-                    foregroundColor: _contactManager.showDeviceContacts
+                    foregroundColor: (_contactManager?.showDeviceContacts ?? false)
                         ? Colors.white
                         : const Color(0xFF2196F3),
                     elevation: 2,
@@ -1267,7 +1267,7 @@ class _CallTabState extends State<CallTab> {
 
         // 연락처 목록
         Expanded(
-          child: _contactManager.showDeviceContacts
+          child: (_contactManager?.showDeviceContacts ?? false)
               ? _buildDeviceContactsList()
               : _buildSavedContactsList(userId),
         ),
@@ -1353,13 +1353,13 @@ class _CallTabState extends State<CallTab> {
   }
 
   Widget _buildDeviceContactsList() {
-    if (_contactManager.deviceContacts.isEmpty) {
+    if (_contactManager?.deviceContacts.isEmpty ?? true) {
       return const Center(
         child: Text('장치 연락처를 불러오는 중...'),
       );
     }
 
-    var contacts = _contactManager.deviceContacts;
+    var contacts = _contactManager!.deviceContacts;
 
     // 검색 필터링
     if (_searchController.text.isNotEmpty) {
@@ -1626,7 +1626,7 @@ class _CallTabState extends State<CallTab> {
   // 기능번호 판별 (즐겨찾기, 최근통화 전용)
   /// 통화 방법 다이얼로그 (CallManager 위임)
   Future<void> _showCallMethodDialog(String phoneNumber) async {
-    await _callManager.showCallMethodDialog(context, _authService!, phoneNumber);
+    await _callManager?.showCallMethodDialog(context, _authService!, phoneNumber);
   }
   
 
@@ -1635,7 +1635,7 @@ class _CallTabState extends State<CallTab> {
 
   /// 기능번호 자동 발신 (CallManager 위임)
   Future<void> _handleFeatureCodeCall(String phoneNumber) async {
-    await _callManager.handleFeatureCodeCall(context, _authService!, phoneNumber);
+    await _callManager?.handleFeatureCodeCall(context, _authService!, phoneNumber);
   }
 
   /// 기능번호 자동 발신 (LEGACY - 삭제 예정)
@@ -1823,12 +1823,12 @@ class _CallTabState extends State<CallTab> {
 
   /// 즐겨찾기 토글 (ContactManager 위임)
   Future<void> _toggleFavorite(ContactModel contact) async {
-    await _contactManager.toggleFavorite(context, contact);
+    await _contactManager?.toggleFavorite(context, contact);
   }
 
   /// 장치 연락처 토글 (ContactManager 위임)
   Future<void> _toggleDeviceContacts() async {
-    await _contactManager.toggleDeviceContacts(context, _authService!);
+    await _contactManager?.toggleDeviceContacts(context, _authService!);
   }
 
 
