@@ -138,19 +138,24 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
       final userId = context.read<AuthService>().currentUser?.uid ?? '';
       final success = await _callService.makeLocalCall(widget.phoneNumber, userId);
 
-      if (mounted) {
+      if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
-        if (success) {
-          await DialogUtils.showInfo(
-            context,
-            '전화를 거는 중입니다...',
-            duration: const Duration(seconds: 1),
-          );
-        } else {
-          await DialogUtils.showError(
-            context,
-            '전화를 걸 수 없습니다',
-          );
+        // Navigator.pop 후 약간의 딜레이를 주어 안전하게 새 다이얼로그 표시
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (mounted) {
+          if (success) {
+            await DialogUtils.showInfo(
+              context,
+              '전화를 거는 중입니다...',
+              duration: const Duration(seconds: 1),
+            );
+          } else {
+            await DialogUtils.showError(
+              context,
+              '전화를 걸 수 없습니다',
+            );
+          }
         }
       }
     } finally {
@@ -348,21 +353,25 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
         debugPrint('   → Newchannel 이벤트 대기 중... (Pending Storage 준비 완료)');
       }
 
-      if (mounted) {
+      if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
+        // Navigator.pop 후 약간의 딜레이를 주어 안전하게 새 다이얼로그 표시
+        await Future.delayed(const Duration(milliseconds: 100));
         
-        final extensionDisplay = selectedExtension.name.isEmpty 
-            ? selectedExtension.extension 
-            : selectedExtension.name;
-        
-        await DialogUtils.showSuccess(
-          context,
-          '✅ Click to Call 요청 전송 완료\n\n단말: $extensionDisplay\n번호: ${selectedExtension.extension}\nCOS ID: ${selectedExtension.classOfServicesId}',
-          duration: const Duration(seconds: 4),
-        );
-        
-        // 🔄 클릭투콜 성공 콜백 호출 (최근통화 탭으로 전환)
-        widget.onClickToCallSuccess?.call();
+        if (mounted) {
+          final extensionDisplay = selectedExtension.name.isEmpty 
+              ? selectedExtension.extension 
+              : selectedExtension.name;
+          
+          await DialogUtils.showSuccess(
+            context,
+            '✅ Click to Call 요청 전송 완료\n\n단말: $extensionDisplay\n번호: ${selectedExtension.extension}\nCOS ID: ${selectedExtension.classOfServicesId}',
+            duration: const Duration(seconds: 4),
+          );
+          
+          // 🔄 클릭투콜 성공 콜백 호출 (최근통화 탭으로 전환)
+          widget.onClickToCallSuccess?.call();
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -118,12 +118,17 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         password: _passwordController.text,
       );
       
-      if (mounted) {
+      if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
-        await DialogUtils.showSuccess(
-          context,
-          '회원가입이 완료되었습니다',
-        );
+        // Navigator.pop 후 약간의 딜레이를 주어 안전하게 새 다이얼로그 표시
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (mounted) {
+          await DialogUtils.showSuccess(
+            context,
+            '회원가입이 완료되었습니다',
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {

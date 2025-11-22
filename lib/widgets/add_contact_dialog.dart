@@ -328,9 +328,14 @@ class _AddContactDialogState extends State<AddContactDialog> {
           },
         );
 
-        if (context.mounted) {
+        if (context.mounted && Navigator.canPop(context)) {
           Navigator.pop(context, true);
-          await DialogUtils.showSuccess(context, '연락처가 수정되었습니다', duration: const Duration(seconds: 1));
+          // Navigator.pop 후 약간의 딜레이를 주어 안전하게 새 다이얼로그 표시
+          await Future.delayed(const Duration(milliseconds: 100));
+          
+          if (context.mounted) {
+            await DialogUtils.showSuccess(context, '연락처가 수정되었습니다', duration: const Duration(seconds: 1));
+          }
         }
       } else {
         // 추가
@@ -354,14 +359,19 @@ class _AddContactDialogState extends State<AddContactDialog> {
 
         await dbService.addContact(contact);
 
-        if (context.mounted) {
+        if (context.mounted && Navigator.canPop(context)) {
           Navigator.pop(context, true);
-          await DialogUtils.showSuccess(
-            context,
-            _isFavorite
-                ? '연락처가 추가되었습니다\n즐겨찾기에 추가됨'
-                : '연락처가 추가되었습니다',
-          );
+          // Navigator.pop 후 약간의 딜레이를 주어 안전하게 새 다이얼로그 표시
+          await Future.delayed(const Duration(milliseconds: 100));
+          
+          if (context.mounted) {
+            await DialogUtils.showSuccess(
+              context,
+              _isFavorite
+                  ? '연락처가 추가되었습니다\n즐겨찾기에 추가됨'
+                  : '연락처가 추가되었습니다',
+            );
+          }
         }
       }
     } catch (e) {

@@ -401,9 +401,11 @@ class ProfileImageUtils {
       }
       
       try {
-        Navigator.pop(context);
-        if (kDebugMode) {
-          debugPrint('✅ [ProfileImageUtils] Loading dialog closed');
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+          if (kDebugMode) {
+            debugPrint('✅ [ProfileImageUtils] Loading dialog closed');
+          }
         }
       } catch (e) {
         if (kDebugMode) {
@@ -411,17 +413,22 @@ class ProfileImageUtils {
         }
       }
 
+      // Navigator.pop 후 약간의 딜레이를 주어 안전하게 새 다이얼로그 표시
+      await Future.delayed(const Duration(milliseconds: 100));
+
       // 성공 메시지
       if (kDebugMode) {
         debugPrint('✅ [ProfileImageUtils] Showing success message');
       }
       
       try {
-        await DialogUtils.showSuccess(
-          context,
-          '프로필 사진이 업데이트되었습니다',
-          duration: const Duration(seconds: 1),
-        );
+        if (context.mounted) {
+          await DialogUtils.showSuccess(
+            context,
+            '프로필 사진이 업데이트되었습니다',
+            duration: const Duration(seconds: 1),
+          );
+        }
       } catch (e) {
         if (kDebugMode) {
           debugPrint('⚠️ [ProfileImageUtils] Failed to show success message: $e');
@@ -523,7 +530,14 @@ class ProfileImageUtils {
       if (!context.mounted) return;
 
       // 로딩 다이얼로그 닫기
-      Navigator.pop(context);
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      // Navigator.pop 후 약간의 딜레이를 주어 안전하게 새 다이얼로그 표시
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (!context.mounted) return;
 
       // 성공 메시지
       await DialogUtils.showSuccess(
@@ -539,7 +553,14 @@ class ProfileImageUtils {
       if (!context.mounted) return;
 
       // 로딩 다이얼로그 닫기
-      Navigator.pop(context);
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      // Navigator.pop 후 약간의 딜레이를 주어 안전하게 새 다이얼로그 표시
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (!context.mounted) return;
 
       await DialogUtils.showError(
         context,

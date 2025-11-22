@@ -154,12 +154,17 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
             amiServerId: 1,
           );
 
-      if (mounted) {
+      if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
-        await DialogUtils.showSuccess(
-          context,
-          '기본 설정이 저장되었습니다',
-        );
+        // Navigator.pop 후 약간의 딜레이를 주어 안전하게 새 다이얼로그 표시
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (mounted) {
+          await DialogUtils.showSuccess(
+            context,
+            '기본 설정이 저장되었습니다',
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
