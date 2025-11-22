@@ -1,11 +1,26 @@
 #!/usr/bin/env python3
 """이전 테스트 데이터 정리 스크립트"""
 
-import firebase_admin
-from firebase_admin import credentials, firestore
+import warnings
 import sys
 import os
 from pathlib import Path
+
+# Suppress Python version and SSL warnings
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', message='urllib3 v2 only supports OpenSSL')
+
+try:
+    import firebase_admin
+    from firebase_admin import credentials, firestore
+except ImportError as e:
+    print(f"❌ Firebase Admin SDK import 실패: {e}")
+    print("\n📦 Firebase Admin SDK 설치 필요:")
+    print("   pip3 install --upgrade firebase-admin")
+    print("\n💡 Python 버전 업그레이드 권장:")
+    print("   현재 Python 3.9.6은 EOL(End of Life) 버전입니다.")
+    print("   Python 3.10 이상으로 업그레이드를 권장합니다.")
+    sys.exit(1)
 
 try:
     # Firebase Admin SDK 파일 경로 찾기
