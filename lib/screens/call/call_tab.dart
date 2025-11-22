@@ -27,6 +27,7 @@ import 'services/settings_checker.dart';
 import 'services/extension_initializer.dart';
 import 'services/permission_handler.dart';
 import 'services/contact_manager.dart';
+import 'services/call_manager.dart';
 
 class CallTab extends StatefulWidget {
   final bool autoOpenProfileForNewUser; // 신규 사용자 자동 ProfileDrawer 열기
@@ -67,6 +68,9 @@ class _CallTabState extends State<CallTab> {
   
   // 연락처 관리 서비스
   late ContactManager _contactManager;
+  
+  // 통화 관리 서비스
+  late CallManager _callManager;
   
   // 🔔 DCMIWS 이벤트 구독
   StreamSubscription? _dcmiwsEventSubscription;
@@ -129,6 +133,12 @@ class _CallTabState extends State<CallTab> {
         mobileContactsService: _mobileContactsService,
         permissionHandler: _permissionHandler,
         onStateChanged: () => setState(() {}),
+      );
+      
+      // CallManager 초기화
+      _callManager = CallManager(
+        databaseService: _databaseService,
+        onTabChanged: (index) => setState(() => _currentTabIndex = index),
       );
       
       // 로그아웃 상태 체크
@@ -1610,148 +1620,22 @@ class _CallTabState extends State<CallTab> {
   }
 
   // 기능번호 판별 (즐겨찾기, 최근통화 전용)
-  bool _isFeatureCode(String phoneNumber) {
-    // *로 시작하는 번호는 기능번호로 판별
-    return phoneNumber.startsWith('*');
-  }
-
-  /// 🔥 착신전환 상태를 확인하여 발신 방법 결정
-  /// - 착신전환 비활성화: 즉시 클릭투콜 실행
-  /// - 착신전환 활성화: 발신 방법 선택 다이얼로그 표시
+  /// 통화 방법 다이얼로그 (CallManager 위임)
   Future<void> _showCallMethodDialog(String phoneNumber) async {
-    // 기능번호는 다이얼로그 없이 바로 Click to Call
-    if (_isFeatureCode(phoneNumber)) {
-      if (kDebugMode) {
-        debugPrint('🌟 즐곊/최근통화 기능번호 감지: $phoneNumber');
-      }
-      _handleFeatureCodeCall(phoneNumber);
-      return;
-    }
+    await _callManager.showCallMethodDialog(context, _authService!, phoneNumber);
+  }
+  
 
-    // 5자리 이하 숫자만 있는 단말번호는 자동으로 클릭투콜 실행 (다이얼로그 없음)
-    final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
-    if (cleanNumber.length > 0 && cleanNumber.length <= 5 && cleanNumber == phoneNumber) {
-      if (kDebugMode) {
-        debugPrint('🔥 5자리 이하 내선번호 감지: $phoneNumber');
-        debugPrint('📞 자동으로 클릭투콜 실행 (다이얼로그 건너뛰기)');
-      }
-      _handleFeatureCodeCall(phoneNumber);
-      return;
-    }
 
-    // 🔍 착신전환 상태 확인 (현재 선택된 단말번호 기준)
-    try {
-      final authService = context.read<AuthService>();
-      final userId = authService.currentUser?.uid ?? '';
-      final userModel = authService.currentUserModel;
-      final selectedExtension = context.read<SelectedExtensionProvider>().selectedExtension;
-      
-      if (selectedExtension == null) {
-        throw Exception('선택된 단말번호가 없습니다.\n왼쪽 상단 프로필에서 단말번호를 등록해주세요.');
-      }
 
-      // 🔥 CRITICAL: DB에 단말번호가 실제로 존재하는지 확인
-      final dbExtensions = await _databaseService.getMyExtensions(userId).first;
-      final extensionExists = dbExtensions.any((ext) => ext.extension == selectedExtension.extension);
-      
-      if (!extensionExists) {
-        if (kDebugMode) {
-          debugPrint('❌ 단말번호가 DB에서 삭제됨: ${selectedExtension.extension}');
-          debugPrint('🔄 착신전환 비활성화 시도');
-        }
-        
-        // 착신전환 비활성화 시도 (DCMIWS 웹소켓으로 전송)
-        try {
-          if (userModel != null &&
-              userModel.amiServerId != null && 
-              userModel.tenantId != null && 
-              selectedExtension.extension.isNotEmpty) {
-            final dcmiws = DCMIWSService();
-            await dcmiws.setCallForwardEnabled(
-              amiServerId: userModel.amiServerId!,
-              tenantId: userModel.tenantId!,
-              extensionId: selectedExtension.extension,  // ← 단말번호 사용
-              enabled: false,
-              diversionType: 'CFI',
-            );
-            
-            if (kDebugMode) {
-              debugPrint('✅ 착신전환 비활성화 요청 전송 완료');
-            }
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('⚠️  착신전환 비활성화 실패: $e');
-          }
-        }
-        
-        throw Exception('등록된 단말번호가 없습니다.\n\n프로필 드로어에서 단말번호가 삭제되었습니다.\n다시 등록해주세요.');
-      }
 
-      final callForwardInfo = await _databaseService
-          .getCallForwardInfoOnce(userId, selectedExtension.extension);
-      
-      final isForwardEnabled = callForwardInfo?.isEnabled ?? false;
-
-      if (kDebugMode) {
-        debugPrint('');
-        debugPrint('🔍 ========== 최근통화 발신 방법 결정 ==========');
-        debugPrint('   📞 발신 대상: $phoneNumber');
-        debugPrint('   📱 단말번호: ${selectedExtension.extension}');
-        debugPrint('   🔄 착신전환 상태: ${isForwardEnabled ? "활성화" : "비활성화"}');
-        if (isForwardEnabled) {
-          debugPrint('   ➡️  착신번호: ${callForwardInfo?.destinationNumber ?? "미설정"}');
-        }
-        debugPrint('================================================');
-        debugPrint('');
-      }
-
-      // 🎯 착신전환 비활성화 시: 즉시 클릭투콜 실행
-      if (!isForwardEnabled) {
-        if (kDebugMode) {
-          debugPrint('✅ 착신전환 비활성화 → 즉시 클릭투콜 실행');
-        }
-        _handleFeatureCodeCall(phoneNumber);
-        return;
-      }
-
-      // 🎯 착신전환 활성화 시: 발신 방법 선택 다이얼로그 표시
-      if (kDebugMode) {
-        debugPrint('⚠️  착신전환 활성화 → 발신 방법 선택 다이얼로그 표시');
-      }
-
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ 착신전환 상태 확인 실패: $e');
-        debugPrint('   → 기본 동작: 발신 방법 선택 다이얼로그 표시');
-      }
-    }
-
-    // 일반 전화번호는 발신 방법 선택 다이얼로그 표시
-    showDialog(
-      context: context,
-      builder: (context) => CallMethodDialog(
-        phoneNumber: phoneNumber, 
-        autoCallShortExtension: false,
-        onClickToCallSuccess: () {
-          // 🔄 클릭투콜 성공 시 최근통화 탭으로 전환
-          if (mounted) {
-            setState(() {
-              _currentTabIndex = 1; // 최근통화 탭
-            });
-            if (kDebugMode) {
-              debugPrint('✅ 클릭투콜 성공 → 최근통화 탭으로 전환');
-            }
-          }
-        },
-      ),
-    );
+  /// 기능번호 자동 발신 (CallManager 위임)
+  Future<void> _handleFeatureCodeCall(String phoneNumber) async {
+    await _callManager.handleFeatureCodeCall(context, _authService!, phoneNumber);
   }
 
-
-
-  // 기능번호 자동 발신 (Click to Call API 직접 호출)
-  Future<void> _handleFeatureCodeCall(String phoneNumber) async {
+  /// 기능번호 자동 발신 (LEGACY - 삭제 예정)
+  Future<void> _handleFeatureCodeCallLegacy(String phoneNumber) async {
     try {
       final authService = context.read<AuthService>();
       final userId = authService.currentUser?.uid ?? '';
