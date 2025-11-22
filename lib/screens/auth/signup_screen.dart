@@ -416,18 +416,16 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         actions: [
           TextButton(
             onPressed: () async {
-              // Firebase 로그아웃 (기존 계정 세션 제거)
-              await FirebaseAuth.instance.signOut();
-              
               if (context.mounted) {
-                Navigator.of(context).pop(); // 다이얼로그 닫기
-                
-                // ⏰ Navigator 정리 후 플래그 해제
-                await Future.delayed(const Duration(milliseconds: 300));
-                
-                // 소셜 로그인 진행 취소 (이벤트 기반)
+                // 1️⃣ 먼저 플래그 해제 (MainScreen으로 전환 허용)
                 final authService = context.read<AuthService>();
                 authService.setInSocialLoginFlow(false);
+                
+                // 2️⃣ 다이얼로그 닫기
+                Navigator.of(context).pop();
+                
+                // 3️⃣ Firebase 로그아웃 (기존 계정 세션 제거)
+                await FirebaseAuth.instance.signOut();
               }
             },
             child: const Text('닫기'),
@@ -437,55 +435,17 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
               if (context.mounted) {
                 final authService = context.read<AuthService>();
                 
-                // 1️⃣ REST API 설정 확인 (기존 계정 로그인 시에만 체크)
-                final userModel = authService.currentUserModel;
-                
-                // 🔍 REST API 설정이 없는 경우 안내 다이얼로그 표시
-                if (userModel != null) {
-                  final hasApiSettings = (userModel.apiBaseUrl?.isNotEmpty ?? false) &&
-                                        (userModel.companyId?.isNotEmpty ?? false) &&
-                                        (userModel.appKey?.isNotEmpty ?? false);
-                  
-                  if (!hasApiSettings && context.mounted) {
-                    // 다이얼로그 닫기
-                    Navigator.of(context).pop();
-                    
-                    // 약간의 지연 후 REST API 설정 안내 다이얼로그 표시
-                    await Future.delayed(const Duration(milliseconds: 300));
-                    
-                    if (context.mounted) {
-                      await _showApiSettingsRequiredDialog();
-                    }
-                    
-                    // 2️⃣ 모든 navigation stack 제거하고 root로 돌아가기
-                    if (context.mounted && Navigator.of(context).canPop()) {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    }
-                    
-                    // 3️⃣ 소셜 로그인 진행 완료 (Navigator 정리 후 - 이벤트 기반)
-                    // ⏰ 약간의 지연을 추가하여 UI가 안정화된 후 플래그 해제
-                    await Future.delayed(const Duration(milliseconds: 500));
-                    authService.setInSocialLoginFlow(false);
-                    
-                    return;
-                  }
-                }
-                
-                // 2️⃣ 모든 navigation stack 제거하고 root로 돌아가기
-                // main.dart의 Consumer<AuthService>가 자동으로 적절한 화면 표시:
-                // - isWaitingForApproval == true → ApprovalWaitingScreen
-                // - 아니면 → MainScreen
-                if (context.mounted) {
-                  // 🔒 안전성 체크: navigation history가 있는지 확인
-                  if (Navigator.of(context).canPop()) {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                  }
-                }
-                
-                // 3️⃣ 소셜 로그인 진행 완료 (Navigator 정리 후 - 이벤트 기반)
-                // ⏰ 약간의 지연을 추가하여 UI가 안정화된 후 플래그 해제
-                await Future.delayed(const Duration(milliseconds: 500));
+                // 1️⃣ 먼저 플래그 해제 (MainScreen으로 전환 허용)
                 authService.setInSocialLoginFlow(false);
+                
+                // 2️⃣ 다이얼로그 닫기
+                Navigator.of(context).pop();
+                
+                // 3️⃣ Navigator stack 정리 (root로 돌아가기)
+                // main.dart의 Consumer<AuthService>가 자동으로 MainScreen 표시
+                if (context.mounted && Navigator.of(context).canPop()) {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                }
               }
             },
             style: ElevatedButton.styleFrom(

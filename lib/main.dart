@@ -626,16 +626,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         );
                       }
                       
-                      // 🎯 소셜 로그인 진행 중이면 LoginScreen 유지
-                      // (SignupScreen에서 다이얼로그 처리가 끝날 때까지 화면 전환 방지)
-                      if (authService.isInSocialLoginFlow) {
-                        return WebLoginWrapper(
-                          child: LoginScreen(
-                            key: ValueKey('login_social_${DateTime.now().millisecondsSinceEpoch}'),
-                          ),
-                        );
-                      }
-                      
                       // ✅ 로그인 상태 체크: currentUser와 currentUserModel 존재 여부
                       // isAuthenticated 대신 직접 체크 (승인 대기 상태와 독립적)
                       if (authService.currentUser != null && 
