@@ -13,5 +13,10 @@
 	<array>
 		<string>$(AppIdentifierPrefix)com.olssoo.makecall</string>
 	</array>
+	<!-- Sign in with Apple (필수) -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 </dict>
 </plist>
