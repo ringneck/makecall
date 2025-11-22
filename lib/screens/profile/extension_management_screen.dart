@@ -319,7 +319,7 @@ class _ExtensionManagementScreenState extends State<ExtensionManagementScreen> {
       }
 
       if (mounted) {
-        await DialogUtils.showInfo(context, '단말번호를 불러왔습니다', duration: const Duration(seconds: 2));
+        await DialogUtils.showInfo(context, '단말번호를 불러왔습니다', duration: const Duration(seconds: 1));
       }
     } catch (e) {
       if (mounted) {

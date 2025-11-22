@@ -144,7 +144,7 @@ class _CallMethodDialogState extends State<CallMethodDialog> {
           await DialogUtils.showInfo(
             context,
             '전화를 거는 중입니다...',
-            duration: const Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           );
         } else {
           await DialogUtils.showError(

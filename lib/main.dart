@@ -338,7 +338,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugPrint('🚀 [스플래시] 앱 초기화 시작');
       
       // Firebase Auth 세션 확인 대기 (최대 2초)
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 1));
       
       debugPrint('✅ [스플래시] Firebase Auth 세션 확인 완료');
       

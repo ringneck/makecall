@@ -1070,7 +1070,7 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
       }
 
       if (mounted && context.mounted) {
-        await DialogUtils.showSuccess(context, '단말번호가 등록되었습니다', duration: const Duration(seconds: 2));
+        await DialogUtils.showSuccess(context, '단말번호가 등록되었습니다', duration: const Duration(seconds: 1));
       }
     } catch (e) {
       if (kDebugMode) {
@@ -1138,7 +1138,7 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
         await dbService.unregisterExtension(extension.extension);
         
         if (mounted && context.mounted) {
-          await DialogUtils.showInfo(context, '단말번호가 삭제되었습니다', duration: const Duration(seconds: 2));
+          await DialogUtils.showInfo(context, '단말번호가 삭제되었습니다', duration: const Duration(seconds: 1));
         }
       } catch (e) {
         if (kDebugMode) {
@@ -1216,7 +1216,7 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
         }
         
         if (mounted && context.mounted) {
-          await DialogUtils.showInfo(context, '모든 단말번호가 삭제되었습니다', duration: const Duration(seconds: 2));
+          await DialogUtils.showInfo(context, '모든 단말번호가 삭제되었습니다', duration: const Duration(seconds: 1));
         }
       } catch (e) {
         if (kDebugMode) {

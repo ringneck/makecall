@@ -57,7 +57,7 @@ class _DeviceApprovalScreenState extends State<DeviceApprovalScreen> with Ticker
     
     // 펄스 애니메이션 설정
     _pulseController = AnimationController(
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 1),
       vsync: this,
     )..repeat(reverse: true);
     
@@ -143,7 +143,7 @@ class _DeviceApprovalScreenState extends State<DeviceApprovalScreen> with Ticker
     await DialogUtils.showSuccess(
       context,
       '기기 승인 완료!',
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 1),
     );
     
     // 🔥 CRITICAL FIX: Navigator 조작 대신 AuthService 상태만 변경
@@ -276,7 +276,7 @@ class _DeviceApprovalScreenState extends State<DeviceApprovalScreen> with Ticker
         await DialogUtils.showInfo(
           context,
           '이메일로 인증 코드를 전송했습니다 (1-3분 소요)',
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 1),
         );
       }
       

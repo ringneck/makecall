@@ -1015,7 +1015,7 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
           await DialogUtils.showSuccess(
             context,
             '다운로드 시작\n\n$filename',
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 1),
           );
         }
       } else {
@@ -1025,7 +1025,7 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
           await DialogUtils.showInfo(
             context,
             '파일 다운로드 중...',
-            duration: const Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           );
         }
         
@@ -1036,7 +1036,7 @@ class _CallDetailDialogState extends State<CallDetailDialog> {
           await DialogUtils.showSuccess(
             context,
             '파일 공유\n\n$filename',
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 1),
           );
         }
       }

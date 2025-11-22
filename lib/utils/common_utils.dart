@@ -87,7 +87,7 @@ class CommonUtils {
         await DialogUtils.showSuccess(
           context,
           '정보가 업데이트되었습니다',
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         );
       }
 

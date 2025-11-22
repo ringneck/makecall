@@ -439,7 +439,7 @@ class DialogUtils {
     BuildContext context,
     String label,
     String value, {
-    Duration duration = const Duration(seconds: 2),
+    Duration duration = const Duration(seconds: 1),
   }) {
     return showSuccess(
       context,

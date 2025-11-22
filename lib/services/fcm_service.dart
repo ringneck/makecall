@@ -755,7 +755,7 @@ class FCMService {
       await DialogUtils.showSuccess(
         context,
         '$deviceName에서 승인되었습니다',
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 1),
       );
     } else {
       debugPrint('❌ [FCM] 기기 승인 거부됨 - 로그인 취소');
@@ -764,7 +764,7 @@ class FCMService {
       await DialogUtils.showError(
         context,
         '$deviceName에서 거부되었습니다',
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 1),
       );
       
       // 로그아웃 처리
@@ -823,7 +823,7 @@ class FCMService {
           DialogUtils.showSuccess(
             context,
             '다른 기기에서 승인이 완료되었습니다',
-            duration: const Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           );
         }
       });
@@ -1205,7 +1205,7 @@ class FCMService {
                   await DialogUtils.showSuccess(
                     context,
                     '✅ 승인 요청을 다시 전송했습니다',
-                    duration: const Duration(seconds: 2),
+                    duration: const Duration(seconds: 1),
                   );
                 }
               } catch (e) {
@@ -1216,7 +1216,7 @@ class FCMService {
                   await DialogUtils.showError(
                     context,
                     '❌ 재전송 실패: $e',
-                    duration: const Duration(seconds: 3),
+                    duration: const Duration(seconds: 1),
                   );
                 }
               }

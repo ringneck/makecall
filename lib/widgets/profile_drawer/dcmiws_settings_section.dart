@@ -143,7 +143,7 @@ class _DcmiwsSettingsSectionState extends State<DcmiwsSettingsSection> {
             await DialogUtils.showSuccess(
               context,
               'DCMIWS 착신전화 수신이 활성화되었습니다\n\n웹소켓 연결이 시작됩니다',
-              duration: const Duration(seconds: 2),
+              duration: const Duration(seconds: 1),
             );
           }
         } else {
@@ -158,7 +158,7 @@ class _DcmiwsSettingsSectionState extends State<DcmiwsSettingsSection> {
             await DialogUtils.showSuccess(
               context,
               'DCMIWS 착신전화 수신이 비활성화되었습니다\n\nPUSH(FCM) 방식으로 착신전화를 수신합니다',
-              duration: const Duration(seconds: 2),
+              duration: const Duration(seconds: 1),
             );
           }
         }

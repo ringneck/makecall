@@ -1476,7 +1476,7 @@ class _CallTabState extends State<CallTab> {
             await DialogUtils.showSuccess(
               context,
               '${contact.name} 연락처가 삭제되었습니다',
-              duration: const Duration(seconds: 2),
+              duration: const Duration(seconds: 1),
             );
           }
         } catch (e) {
@@ -1727,7 +1727,7 @@ class _CallTabState extends State<CallTab> {
         await DialogUtils.showInfo(
           context,
           '기능번호 발신 중...',
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         );
       }
 
@@ -1797,7 +1797,7 @@ class _CallTabState extends State<CallTab> {
         await DialogUtils.showSuccess(
           context,
           '🌟 기능번호 발신 완료\n\n단말: $extensionDisplay\n기능번호: $phoneNumber',
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 1),
         );
       }
       
@@ -1956,7 +1956,7 @@ class _CallTabState extends State<CallTab> {
         await DialogUtils.showSuccess(
           context,
           '${contact.name}을(를) 즐겨찾기에 추가했습니다',
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 1),
         );
       }
     } catch (e) {

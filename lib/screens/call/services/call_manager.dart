@@ -294,7 +294,7 @@ class CallManager {
         await DialogUtils.showInfo(
           context,
           '기능번호 발신 중...',
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         );
       }
 
@@ -362,7 +362,7 @@ class CallManager {
         await DialogUtils.showSuccess(
           context,
           '🌟 기능번호 발신 완료\n\n단말: $extensionDisplay\n기능번호: $phoneNumber',
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 1),
         );
       }
       

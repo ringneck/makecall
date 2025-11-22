@@ -117,7 +117,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
         await DialogUtils.showInfo(
           context,
           '클립보드가 비어있습니다\n\n💡 iOS Tip: 입력 필드를 길게 눌러\n"붙여넣기" 메뉴를 사용하세요',
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 1),
         );
       }
     } catch (e) {
@@ -125,7 +125,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
         await DialogUtils.showInfo(
           context,
           'iOS에서는 입력 필드를 길게 눌러\n"붙여넣기" 메뉴를 사용하세요\n\n오류: $e',
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 1),
         );
       }
     }

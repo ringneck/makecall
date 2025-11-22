@@ -155,13 +155,13 @@ class ContactManager {
         await DialogUtils.showWarning(
           context,
           '장치에 저장된 연락처가 없습니다.',
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         );
       } else {
         await DialogUtils.showSuccess(
           context,
           '${contacts.length}개의 연락처를 불러왔습니다.',
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         );
       }
       

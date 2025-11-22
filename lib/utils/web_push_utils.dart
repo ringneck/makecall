@@ -34,7 +34,7 @@ class WebPushUtils {
       
       if (userId == null) {
         if (context.mounted) {
-          await DialogUtils.showError(context, '로그인이 필요합니다', duration: const Duration(seconds: 3));
+          await DialogUtils.showError(context, '로그인이 필요합니다', duration: const Duration(seconds: 1));
         }
         return;
       }

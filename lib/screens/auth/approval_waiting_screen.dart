@@ -70,7 +70,7 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
       await DialogUtils.showError(
         context,
         '승인 대기 시간이 초과되었습니다.\n다시 로그인해주세요.',
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 1),
       );
     } catch (e) {
       if (kDebugMode) {
@@ -160,7 +160,7 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
         await DialogUtils.showSuccess(
           context,
           '✅ 승인 요청을 다시 전송했습니다',
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         );
       }
     } catch (e) {
@@ -172,7 +172,7 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
         await DialogUtils.showError(
           context,
           '❌ 재전송 실패: $e',
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 1),
         );
       }
     } finally {

@@ -338,7 +338,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
         await DialogUtils.showSuccess(
           context,
           '${internalPhonebooks.length}개 phonebook, 연락처 목록을 불러왔습니다',
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         );
       }
     } catch (e) {
@@ -367,7 +367,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
         await DialogUtils.showError(
           context,
           userMessage,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 1),
         );
       }
     }
@@ -989,7 +989,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
           contact.isFavorite
               ? '즐겨찾기에서 제거되었습니다'
               : '즐겨찾기에 추가되었습니다',
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         );
       }
     } catch (e) {
@@ -1148,7 +1148,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
         await DialogUtils.showInfo(
           context,
           '기능번호 발신 중...',
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         );
       }
 
@@ -1215,7 +1215,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
         await DialogUtils.showSuccess(
           context,
           '🌟 기능번호 발신 완료\n\n단말: $extensionDisplay\n기능번호: $phoneNumber',
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 1),
         );
         
         // 🔄 기능번호 발신 성공 시 콜백 호출 (그리드뷰 상태 전달)
@@ -1347,7 +1347,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
                             await DialogUtils.showSuccess(
                               context,
                               contact.isFavorite ? '즐겨찾기에서 제거되었습니다' : '즐겨찾기에 추가되었습니다',
-                              duration: const Duration(seconds: 2),
+                              duration: const Duration(seconds: 1),
                             );
                           }
                         } catch (e) {
@@ -1808,7 +1808,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
       await DialogUtils.showSuccess(
         context,
         '복사됨: $text',
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 1),
       );
     }
   }
@@ -1821,7 +1821,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
         await launchUrl(uri);
       } else {
         if (mounted) {
-          await DialogUtils.showError(context, 'SMS 앱을 실행할 수 없습니다', duration: const Duration(seconds: 3));
+          await DialogUtils.showError(context, 'SMS 앱을 실행할 수 없습니다', duration: const Duration(seconds: 1));
         }
       }
     } catch (e) {
@@ -1845,7 +1845,7 @@ class _PhonebookTabState extends State<PhonebookTab> {
         await launchUrl(uri);
       } else {
         if (mounted) {
-          await DialogUtils.showError(context, '이메일 앱을 실행할 수 없습니다', duration: const Duration(seconds: 3));
+          await DialogUtils.showError(context, '이메일 앱을 실행할 수 없습니다', duration: const Duration(seconds: 1));
         }
       }
     } catch (e) {

@@ -39,7 +39,7 @@ class DCMIWSService {
   Timer? _reconnectTimer;
   int _reconnectAttempts = 0;
   static const int _maxReconnectAttempts = 5;
-  static const Duration _reconnectDelay = Duration(seconds: 3);
+  static const Duration _reconnectDelay = Duration(seconds: 1);
   
   // HTTP Basic Authentication 저장 (재연결 시 사용)
   String? _httpAuthId;

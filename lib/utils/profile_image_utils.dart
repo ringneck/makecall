@@ -420,7 +420,7 @@ class ProfileImageUtils {
         await DialogUtils.showSuccess(
           context,
           '프로필 사진이 업데이트되었습니다',
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 1),
         );
       } catch (e) {
         if (kDebugMode) {
@@ -529,7 +529,7 @@ class ProfileImageUtils {
       await DialogUtils.showSuccess(
         context,
         '프로필 사진이 삭제되었습니다',
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 1),
       );
     } catch (e) {
       if (kDebugMode) {

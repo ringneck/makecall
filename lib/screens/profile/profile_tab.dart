@@ -1054,7 +1054,7 @@ class _ProfileTabState extends State<ProfileTab> {
               await DialogUtils.showWarning(
                 context,
                 '이미 내 계정에 등록된 단말번호입니다.',
-                duration: const Duration(seconds: 2),
+                duration: const Duration(seconds: 1),
               );
             }
             return;
@@ -1220,7 +1220,7 @@ class _ProfileTabState extends State<ProfileTab> {
           await DialogUtils.showSuccess(
             context,
             '단말번호 "$selected"이(가) 등록되었습니다.',
-            duration: const Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           );
         }
       } catch (e) {
@@ -1301,7 +1301,7 @@ class _ProfileTabState extends State<ProfileTab> {
         }
         
         if (context.mounted) {
-          await DialogUtils.showSuccess(context, '단말번호가 삭제되었습니다.', duration: const Duration(seconds: 2));
+          await DialogUtils.showSuccess(context, '단말번호가 삭제되었습니다.', duration: const Duration(seconds: 1));
         }
       } catch (e) {
         if (kDebugMode) {
@@ -1384,7 +1384,7 @@ class _ProfileTabState extends State<ProfileTab> {
         }
         
         if (context.mounted) {
-          await DialogUtils.showSuccess(context, '모든 단말번호가 삭제되었습니다.', duration: const Duration(seconds: 2));
+          await DialogUtils.showSuccess(context, '모든 단말번호가 삭제되었습니다.', duration: const Duration(seconds: 1));
         }
       } catch (e) {
         if (kDebugMode) {
@@ -1580,7 +1580,7 @@ class _ProfileTabState extends State<ProfileTab> {
               await DialogUtils.showSuccess(
                 context,
                 'SIP secret이 클립보드에 복사되었습니다',
-                duration: const Duration(seconds: 2),
+                duration: const Duration(seconds: 1),
               );
             },
             tooltip: '복사',

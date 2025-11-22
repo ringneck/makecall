@@ -215,7 +215,7 @@ class AccountManagementUtils {
             result.isEmpty 
                 ? '조직명이 삭제되었습니다' 
                 : '조직명이 업데이트되었습니다',
-            duration: const Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           );
         }
       } catch (e) {
@@ -410,7 +410,7 @@ class AccountManagementUtils {
           await DialogUtils.showSuccess(
             context,
             '계정이 삭제되었습니다',
-            duration: const Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           );
         }
       } catch (e) {

@@ -330,7 +330,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
 
         if (context.mounted) {
           Navigator.pop(context, true);
-          await DialogUtils.showSuccess(context, '연락처가 수정되었습니다', duration: const Duration(seconds: 2));
+          await DialogUtils.showSuccess(context, '연락처가 수정되었습니다', duration: const Duration(seconds: 1));
         }
       } else {
         // 추가
