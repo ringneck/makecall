@@ -272,4 +272,7 @@ class UserModel {
   
   // TenantID getter (companyId와 동일)
   String? get tenantId => companyId;
+  
+  // Name getter (조직명 또는 이메일 반환)
+  String get name => organizationName ?? email.split('@').first;
 }
