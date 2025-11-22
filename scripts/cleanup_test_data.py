@@ -67,7 +67,7 @@ try:
     
     # 1. Norman의 FCM 토큰 모두 비활성화
     print("\n1️⃣ FCM 토큰 비활성화 중...")
-    tokens = db.collection('fcm_tokens').where('userId', '==', '00UZFjXMjnSj0ThUnGlgkn8cgVy2').stream()
+    tokens = db.collection('fcm_tokens').where(filter=firestore.FieldFilter('userId', '==', '00UZFjXMjnSj0ThUnGlgkn8cgVy2')).stream()
     token_count = 0
     for token in tokens:
         token.reference.update({'isActive': False})
