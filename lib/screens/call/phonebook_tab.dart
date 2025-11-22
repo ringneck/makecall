@@ -721,7 +721,21 @@ class _PhonebookTabState extends State<PhonebookTab> {
               var contacts = snapshot.data ?? [];
 
               if (kDebugMode) {
+                debugPrint('');
+                debugPrint('🔄 ===== StreamBuilder 업데이트 =====');
                 debugPrint('📋 Firestore에서 가져온 총 연락처 수: ${contacts.length}');
+                
+                // 즐겨찾기 상태 확인 (처음 5개만)
+                final favoriteContacts = contacts.where((c) => c.isFavorite).toList();
+                debugPrint('⭐ 즐겨찾기 연락처 수: ${favoriteContacts.length}');
+                if (favoriteContacts.isNotEmpty) {
+                  debugPrint('   즐겨찾기 목록 (최대 5개):');
+                  for (var contact in favoriteContacts.take(5)) {
+                    debugPrint('   - ${contact.name} (${contact.telephone})');
+                  }
+                }
+                debugPrint('🔄 =============================');
+                debugPrint('');
               }
 
               return StreamBuilder<List<MyExtensionModel>>(
@@ -1400,8 +1414,12 @@ class _PhonebookTabState extends State<PhonebookTab> {
                       onPressed: () async {
                         try {
                           if (kDebugMode) {
-                            debugPrint('⭐ Modal에서 즐겨찾기 토글: ${contact.name}');
+                            debugPrint('');
+                            debugPrint('⭐ ===== Modal 즐겨찾기 토글 START =====');
+                            debugPrint('   연락처: ${contact.name}');
+                            debugPrint('   Contact ID: ${contact.id}');
                             debugPrint('   현재 isFavorite: ${contact.isFavorite}');
+                            debugPrint('   예상 새 값: ${!contact.isFavorite}');
                           }
                           
                           // 🔥 이벤트 기반 동기화: Firestore 변경 완료 대기
@@ -1412,11 +1430,21 @@ class _PhonebookTabState extends State<PhonebookTab> {
                           
                           if (kDebugMode) {
                             debugPrint('✅ Firestore 변경 감지 완료 - Modal 닫기');
+                            debugPrint('⭐ ===== Modal 즐겨찾기 토글 END =====');
+                            debugPrint('');
                           }
                           
                           // ✅ Modal 닫기 - StreamBuilder가 갱신된 데이터로 UI 업데이트
                           if (mounted) {
                             Navigator.pop(context);
+                            
+                            // 🔄 명시적 setState 호출로 부모 위젯 강제 리빌드
+                            if (kDebugMode) {
+                              debugPrint('🔄 부모 위젯 setState() 호출 - 강제 리빌드');
+                            }
+                            setState(() {
+                              // StreamBuilder 리빌드 트리거
+                            });
                           }
                         } catch (e) {
                           if (kDebugMode) {
