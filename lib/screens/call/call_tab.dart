@@ -26,6 +26,7 @@ import 'call_tab/widgets/extension_info_widget.dart';
 import 'services/settings_checker.dart';
 import 'services/extension_initializer.dart';
 import 'services/permission_handler.dart';
+import 'services/contact_manager.dart';
 
 class CallTab extends StatefulWidget {
   final bool autoOpenProfileForNewUser; // 신규 사용자 자동 ProfileDrawer 열기
@@ -48,9 +49,7 @@ class _CallTabState extends State<CallTab> {
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
-  bool _isLoadingDeviceContacts = false;
-  bool _showDeviceContacts = false;
-  List<ContactModel> _deviceContacts = [];
+  // Note: Device contacts state는 ContactManager에서 관리됨
   // Note: _hasCheckedNewUser는 ExtensionInitializer에서 관리됨
   
   // 🔒 고급 개발자 패턴: AuthService 참조를 안전하게 저장
@@ -65,6 +64,9 @@ class _CallTabState extends State<CallTab> {
   
   // 권한 처리 서비스
   late PermissionHandler _permissionHandler;
+  
+  // 연락처 관리 서비스
+  late ContactManager _contactManager;
   
   // 🔔 DCMIWS 이벤트 구독
   StreamSubscription? _dcmiwsEventSubscription;
@@ -119,6 +121,14 @@ class _CallTabState extends State<CallTab> {
       // PermissionHandler 초기화
       _permissionHandler = PermissionHandler(
         mobileContactsService: _mobileContactsService,
+      );
+      
+      // ContactManager 초기화
+      _contactManager = ContactManager(
+        databaseService: _databaseService,
+        mobileContactsService: _mobileContactsService,
+        permissionHandler: _permissionHandler,
+        onStateChanged: () => setState(() {}),
       );
       
       // 로그아웃 상태 체크
@@ -1329,13 +1339,13 @@ class _CallTabState extends State<CallTab> {
   }
 
   Widget _buildDeviceContactsList() {
-    if (_deviceContacts.isEmpty) {
+    if (_contactManager.deviceContacts.isEmpty) {
       return const Center(
         child: Text('장치 연락처를 불러오는 중...'),
       );
     }
 
-    var contacts = _deviceContacts;
+    var contacts = _contactManager.deviceContacts;
 
     // 검색 필터링
     if (_searchController.text.isNotEmpty) {
@@ -1923,122 +1933,14 @@ class _CallTabState extends State<CallTab> {
     }
   }
 
+  /// 즐겨찾기 토글 (ContactManager 위임)
   Future<void> _toggleFavorite(ContactModel contact) async {
-    try {
-      await _databaseService.updateContact(
-        contact.id,
-        {'isFavorite': !contact.isFavorite},
-      );
-
-      // 성공 메시지 (DialogUtils로 변환)
-      if (mounted) {
-        final message = contact.isFavorite
-            ? '즐겨찾기에서 제거되었습니다'
-            : '즐겨찾기에 추가되었습니다';
-        await DialogUtils.showSuccess(
-          context,
-          message,
-          duration: const Duration(seconds: 2),
-        );
-      }
-    } catch (e) {
-      // 에러 메시지 (DialogUtils로 변환)
-      if (mounted) {
-        await DialogUtils.showError(
-          context,
-          '오류 발생: $e',
-        );
-      }
-    }
+    await _contactManager.toggleFavorite(context, contact);
   }
 
+  /// 장치 연락처 토글 (ContactManager 위임)
   Future<void> _toggleDeviceContacts() async {
-    // 이미 장치 연락처를 표시 중이면 숨김
-    if (_showDeviceContacts) {
-      setState(() {
-        _showDeviceContacts = false;
-        _deviceContacts = [];
-      });
-      return;
-    }
-
-    setState(() => _isLoadingDeviceContacts = true);
-
-    try {
-      if (kDebugMode) {
-        debugPrint('');
-        debugPrint('🔍 ===== _toggleDeviceContacts START =====');
-      }
-      
-      // 🎯 STEP 1 & 2: 권한 확인 및 요청 (PermissionHandler 사용)
-      if (mounted) {
-        setState(() => _isLoadingDeviceContacts = false);
-        
-        final hasPermission = await _permissionHandler.checkAndRequestPermission(context);
-        
-        if (!hasPermission) {
-          if (kDebugMode) {
-            debugPrint('❌ _toggleDeviceContacts: 권한 거부됨 또는 취소됨');
-          }
-          return;
-        }
-        
-        if (kDebugMode) {
-          debugPrint('✅ _toggleDeviceContacts: 권한 확인 완료');
-        }
-        
-        setState(() => _isLoadingDeviceContacts = true);
-      } else {
-        return;
-      }
-
-      // 🎯 STEP 3: 연락처 가져오기
-      if (mounted) {
-        if (kDebugMode) {
-          debugPrint('✅ _toggleDeviceContacts: 권한 확인 완료 - 연락처 가져오기 시작');
-        }
-        
-        final userId = context.read<AuthService>().currentUser?.uid ?? '';
-        final contacts = await _mobileContactsService.getDeviceContacts(userId);
-        
-        if (kDebugMode) {
-          debugPrint('📱 _toggleDeviceContacts: 연락처 ${contacts.length}개 가져옴');
-          debugPrint('🔍 ===== _toggleDeviceContacts END =====');
-          debugPrint('');
-        }
-
-        if (mounted) {
-          setState(() {
-            _deviceContacts = contacts;
-            _showDeviceContacts = true;
-            _isLoadingDeviceContacts = false;
-          });
-
-          if (contacts.isEmpty) {
-            await DialogUtils.showWarning(
-              context,
-              '장치에 저장된 연락처가 없습니다.',
-              duration: const Duration(seconds: 2),
-            );
-          } else {
-            await DialogUtils.showSuccess(
-              context,
-              '${contacts.length}개의 연락처를 불러왔습니다.',
-              duration: const Duration(seconds: 2),
-            );
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingDeviceContacts = false);
-        
-        await DialogUtils.showError(
-          context,
-          '연락처 불러오기 실패: ${e.toString().split(':').last.trim()}',
-        );
-      }
-    }
+    await _contactManager.toggleDeviceContacts(context, _authService!);
   }
 
 
