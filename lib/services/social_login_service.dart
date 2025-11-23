@@ -135,77 +135,22 @@ class SocialLoginService {
   /// ===== 2. 카카오 로그인 =====
   Future<SocialLoginResult> signInWithKakao() async {
     try {
-      if (kDebugMode) {
-        debugPrint('🟡 [Kakao] 로그인 시작');
-        
-        // 🔑 Android KeyHash 자동 출력 (카카오 개발자 콘솔 등록용)
-        if (!kIsWeb && Platform.isAndroid) {
-          try {
-            final keyHash = await kakao.KakaoSdk.origin;
-            debugPrint('');
-            debugPrint('🔑 ========== [Kakao] Android KeyHash ==========');
-            debugPrint('   KeyHash: $keyHash');
-            debugPrint('   💡 이 KeyHash를 카카오 개발자 콘솔에 등록해주세요!');
-            debugPrint('   👉 https://developers.kakao.com/console/app');
-            debugPrint('   위치: 내 애플리케이션 > 앱 설정 > 플랫폼 > Android');
-            debugPrint('================================================');
-            debugPrint('');
-          } catch (e) {
-            debugPrint('⚠️  [Kakao] KeyHash 추출 실패: $e');
-          }
-        }
-      }
-
-      // 🔍 기존 토큰 확인
+      // 기존 토큰 확인 및 재사용
       bool hasToken = false;
       try {
         hasToken = await kakao.AuthApi.instance.hasToken();
-        if (kDebugMode) {
-          debugPrint('');
-          debugPrint('🔍 ========== [Kakao] 토큰 확인 시작 ==========');
-          debugPrint('   기존 토큰 존재 여부: $hasToken');
-          if (!hasToken) {
-            debugPrint('   ⚠️  앱 내부에 저장된 카카오 토큰이 없습니다');
-            debugPrint('   💡 카카오톡 앱 로그인을 시도하면 자동으로 토큰을 받아옵니다');
-          }
-          debugPrint('================================================');
-          debugPrint('');
-        }
         
         if (hasToken) {
-          // 토큰 유효성 검사
           try {
-            final tokenInfo = await kakao.UserApi.instance.accessTokenInfo();
-            if (kDebugMode) {
-              debugPrint('✅ [Kakao] 기존 토큰 유효 (만료: ${tokenInfo.expiresIn}초 후)');
-              debugPrint('🔄 [Kakao] 기존 토큰으로 사용자 정보 조회 중...');
-            }
-            
-            // 기존 토큰으로 바로 사용자 정보 조회
+            await kakao.UserApi.instance.accessTokenInfo();
             final user = await kakao.UserApi.instance.me();
-            
-            if (kDebugMode) {
-              debugPrint('✅ [Kakao] 기존 토큰으로 사용자 정보 조회 성공');
-              debugPrint('   - User ID: ${user.id}');
-              debugPrint('   - Email: ${user.kakaoAccount?.email}');
-              debugPrint('   - Nickname: ${user.kakaoAccount?.profile?.nickname}');
-            }
-            
-            // Firebase 인증으로 바로 진행
             return await _kakaoFirebaseAuth(user);
-            
           } catch (e) {
-            if (kDebugMode) {
-              debugPrint('⚠️  [Kakao] 기존 토큰 무효 또는 만료: $e');
-              debugPrint('🔄 [Kakao] 새로운 로그인 진행...');
-            }
+            // 토큰 무효 시 새로운 로그인 진행
             hasToken = false;
           }
         }
       } catch (e) {
-        if (kDebugMode) {
-          debugPrint('⚠️  [Kakao] 토큰 확인 실패: $e');
-        }
         hasToken = false;
       }
 
@@ -226,119 +171,32 @@ class SocialLoginService {
         }
       }
       
+      // 카카오톡 앱 또는 웹뷰로 로그인
       kakao.OAuthToken token;
-      
-      if (kDebugMode) {
-        debugPrint('🔄 [Kakao] 카카오톡 설치 여부: $isKakaoTalkInstalled');
-      }
-      
-      // 카카오톡 앱 로그인 시도
       if (isKakaoTalkInstalled) {
         try {
-          if (kDebugMode) {
-            debugPrint('🔄 [Kakao] 카카오톡 앱 로그인 시도...');
-            debugPrint('   💡 카카오톡 앱이 이미 로그인되어 있다면 자동으로 토큰을 받아옵니다');
-          }
           token = await kakao.UserApi.instance.loginWithKakaoTalk();
-          if (kDebugMode) {
-            debugPrint('✅ [Kakao] 카카오톡 앱 로그인 성공');
-            debugPrint('   - Access Token: ${token.accessToken.substring(0, 20)}...');
-            debugPrint('   - Refresh Token: ${token.refreshToken?.substring(0, 20) ?? "null"}...');
-          }
         } on PlatformException catch (e) {
-          if (kDebugMode) {
-            debugPrint('');
-            debugPrint('⚠️  ========== [Kakao] 카카오톡 앱 로그인 실패 ==========');
-            debugPrint('   에러 코드: ${e.code}');
-            debugPrint('   에러 메시지: ${e.message}');
-            debugPrint('   에러 상세: ${e.details}');
-            debugPrint('================================================');
-            debugPrint('');
-          }
-          
-          // CANCELED인 경우 예외 재발생 (최상위 catch에서 처리)
           if (e.code == 'CANCELED') {
-            if (kDebugMode) {
-              debugPrint('ℹ️  [Kakao] 사용자가 카카오톡 앱 로그인을 취소 → 예외 재발생');
-            }
             rethrow;
           }
-          
-          // 기타 오류는 웹뷰로 전환
-          if (kDebugMode) {
-            debugPrint('🔄 [Kakao] 웹뷰 로그인으로 전환 시도...');
-          }
+          // 카카오톡 로그인 실패 시 웹뷰로 폴백
           token = await kakao.UserApi.instance.loginWithKakaoAccount();
-          if (kDebugMode) {
-            debugPrint('✅ [Kakao] 웹뷰 로그인 성공');
-          }
         } catch (e) {
-          if (kDebugMode) {
-            debugPrint('⚠️  [Kakao] 카카오톡 앱 로그인 실패 (일반 예외), 웹뷰로 전환: $e');
-            
-            // 🔑 KeyHash 검증 실패 감지
-            final errorStr = e.toString().toLowerCase();
-            if (errorStr.contains('keyhash') || errorStr.contains('key hash')) {
-              debugPrint('');
-              debugPrint('🚨 ========== [Kakao] KeyHash 검증 실패 ==========');
-              debugPrint('   Android KeyHash가 카카오 개발자 콘솔에 등록되지 않았습니다!');
-              debugPrint('   위의 🔑 KeyHash 로그를 확인하고 등록해주세요.');
-              debugPrint('   등록 위치: https://developers.kakao.com/console/app');
-              debugPrint('   내 애플리케이션 > 앱 설정 > 플랫폼 > Android');
-              debugPrint('   💡 Debug와 Release KeyHash가 다를 수 있으니 둘 다 등록하세요!');
-              debugPrint('================================================');
-              debugPrint('');
-            }
-          }
+          // 기타 오류 시 웹뷰로 폴백
           token = await kakao.UserApi.instance.loginWithKakaoAccount();
-          if (kDebugMode) {
-            debugPrint('✅ [Kakao] 웹뷰 로그인 성공');
-          }
         }
       } else {
-        if (kDebugMode) {
-          debugPrint('🔄 [Kakao] 카카오톡 미설치 → 웹뷰 로그인 시도...');
-        }
         token = await kakao.UserApi.instance.loginWithKakaoAccount();
-        if (kDebugMode) {
-          debugPrint('✅ [Kakao] 웹뷰 로그인 성공');
-        }
       }
 
-      if (kDebugMode) {
-        debugPrint('✅ [Kakao] OAuth 토큰 획득 완료');
-        debugPrint('🔄 [Kakao] 사용자 정보 조회 중...');
-      }
-
-      kakao.User user = await kakao.UserApi.instance.me();
-      
-      if (kDebugMode) {
-        debugPrint('✅ [Kakao] 사용자 정보 조회 완료');
-        debugPrint('   - User ID: ${user.id}');
-        debugPrint('   - Email: ${user.kakaoAccount?.email}');
-        debugPrint('   - Nickname: ${user.kakaoAccount?.profile?.nickname}');
-      }
-
-      // Firebase 인증 진행
+      // 사용자 정보 조회 및 Firebase 인증
+      final user = await kakao.UserApi.instance.me();
       return await _kakaoFirebaseAuth(user);
 
     } on PlatformException catch (e) {
-      if (kDebugMode) {
-        debugPrint('');
-        debugPrint('❌ ========== [Kakao] PlatformException 발생 ==========');
-        debugPrint('   에러 코드: ${e.code}');
-        debugPrint('   에러 메시지: ${e.message}');
-        debugPrint('   에러 상세: ${e.details}');
-        debugPrint('   전체 에러: $e');
-        debugPrint('================================================');
-        debugPrint('');
-      }
-      
-      // CANCELED - 사용자가 로그인 취소
+      // 사용자 로그인 취소
       if (e.code == 'CANCELED') {
-        if (kDebugMode) {
-          debugPrint('ℹ️  [Kakao] 사용자가 로그인을 취소했습니다');
-        }
         return SocialLoginResult(
           success: false,
           errorMessage: '카카오 로그인이 취소되었습니다',
@@ -346,11 +204,8 @@ class SocialLoginService {
         );
       }
       
-      // NOT_SUPPORTED - 카카오톡이 설치되지 않았거나 버전이 낮음
+      // 카카오톡 미설치 또는 버전 낮음
       if (e.code == 'NOT_SUPPORTED') {
-        if (kDebugMode) {
-          debugPrint('⚠️  [Kakao] 카카오톡 미설치 또는 버전 낮음 → 웹뷰로 재시도 필요');
-        }
         return SocialLoginResult(
           success: false,
           errorMessage: '카카오톡 앱이 설치되지 않았거나\n버전이 낮습니다.\n\n웹 로그인으로 다시 시도해주세요.',
@@ -358,11 +213,8 @@ class SocialLoginService {
         );
       }
       
-      // UNKNOWN - 알 수 없는 오류
+      // 알 수 없는 오류
       if (e.code == 'UNKNOWN') {
-        if (kDebugMode) {
-          debugPrint('❌ [Kakao] 알 수 없는 오류 발생');
-        }
         return SocialLoginResult(
           success: false,
           errorMessage: '카카오 로그인 중 알 수 없는 오류가 발생했습니다.\n\n다시 시도해주세요.',
@@ -370,10 +222,7 @@ class SocialLoginService {
         );
       }
       
-      // 기타 PlatformException
-      if (kDebugMode) {
-        debugPrint('⚠️  [Kakao] 기타 PlatformException: ${e.code}');
-      }
+      // 기타 플랫폼 예외
       return SocialLoginResult(
         success: false,
         errorMessage: '카카오 로그인 오류\n\n에러 코드: ${e.code}\n${e.message ?? ""}',
@@ -381,20 +230,9 @@ class SocialLoginService {
       );
       
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('');
-        debugPrint('❌ ========== [Kakao] 일반 예외 발생 ==========');
-        debugPrint('   에러 타입: ${e.runtimeType}');
-        debugPrint('   에러 내용: $e');
-        debugPrint('================================================');
-        debugPrint('');
-      }
-      
+      // 취소 관련 예외 처리
       final errorString = e.toString().toLowerCase();
       if (errorString.contains('cancel') || errorString.contains('취소')) {
-        if (kDebugMode) {
-          debugPrint('ℹ️  [Kakao] 취소 키워드 감지');
-        }
         return SocialLoginResult(
           success: false,
           errorMessage: '카카오 로그인이 취소되었습니다',
@@ -402,6 +240,7 @@ class SocialLoginService {
         );
       }
       
+      // 일반 예외
       return SocialLoginResult(
         success: false,
         errorMessage: '카카오 로그인 오류\n\n$e',
@@ -668,11 +507,6 @@ class SocialLoginService {
   /// Kakao 사용자 정보를 받아 Firebase Custom Token을 생성하고 로그인 처리
   Future<SocialLoginResult> _kakaoFirebaseAuth(kakao.User user) async {
     try {
-      if (kDebugMode) {
-        debugPrint('🔄 [Kakao] Firebase 인증 시작');
-        debugPrint('   - Kakao User ID: ${user.id}');
-      }
-
       // Firebase Functions를 통한 Custom Token 생성
       final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
       final callable = functions.httpsCallable('createCustomTokenForKakao');
@@ -684,27 +518,11 @@ class SocialLoginService {
         'photoUrl': user.kakaoAccount?.profile?.profileImageUrl,
       };
 
-      if (kDebugMode) {
-        debugPrint('🔄 [Kakao] Firebase Functions 호출 중...');
-        debugPrint('   - Function: createCustomTokenForKakao');
-        debugPrint('   - Region: asia-northeast3');
-      }
-
       final response = await callable.call(requestData);
       final customToken = response.data['customToken'] as String;
 
-      if (kDebugMode) {
-        debugPrint('✅ [Kakao] Custom Token 수신 완료');
-        debugPrint('🔄 [Kakao] Firebase 로그인 중...');
-      }
-
       // Custom Token으로 Firebase 로그인
       final userCredential = await _auth.signInWithCustomToken(customToken);
-
-      if (kDebugMode) {
-        debugPrint('✅ [Kakao] Firebase 로그인 성공');
-        debugPrint('   - Firebase UID: ${userCredential.user?.uid}');
-      }
 
       return SocialLoginResult(
         success: true,
@@ -716,17 +534,8 @@ class SocialLoginService {
       );
 
     } on FirebaseFunctionsException catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ [Kakao] Firebase Functions 에러');
-        debugPrint('   에러 코드: ${e.code}');
-        debugPrint('   에러 메시지: ${e.message}');
-        debugPrint('   에러 상세: ${e.details}');
-      }
-
-      final errorString = e.toString().toLowerCase();
-
-      // PERMISSION_DENIED 에러 감지
-      if (errorString.contains('permission-denied') || e.code == 'permission-denied') {
+      // PERMISSION_DENIED 에러
+      if (e.code == 'permission-denied') {
         return SocialLoginResult(
           success: false,
           errorMessage: 'Firebase Functions 권한 오류\n\n'
@@ -744,10 +553,6 @@ class SocialLoginService {
       );
 
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ [Kakao] Firebase 인증 중 예외 발생: $e');
-      }
-
       return SocialLoginResult(
         success: false,
         errorMessage: 'Firebase 인증 오류\n\n$e',

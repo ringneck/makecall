@@ -153,17 +153,9 @@ class SocialLoginProgressHelper {
     String? subMessage,
     double? progress,
   }) {
-    if (kDebugMode) {
-      debugPrint('🔄 [OVERLAY] Showing: $message');
-    }
-    
     // 기존 오버레이 즉시 제거
     _currentOverlay?.remove();
     _currentOverlay = null;
-
-    if (kDebugMode) {
-      debugPrint('✅ [OVERLAY] Creating new overlay: $message');
-    }
 
     // 새 오버레이 즉시 생성 및 삽입
     _currentOverlay = OverlayEntry(
@@ -175,40 +167,18 @@ class SocialLoginProgressHelper {
     );
 
     Overlay.of(context).insert(_currentOverlay!);
-    
-    if (kDebugMode) {
-      debugPrint('✅ [OVERLAY] Overlay inserted: $message');
-    }
   }
 
   /// 오버레이 숨기기 (이벤트 기반 - 마이크로태스크 큐 사용)
   static void hide() {
-    if (kDebugMode) {
-      debugPrint('❌ [OVERLAY] Scheduling hide via microtask');
-    }
-    
-    // 오버레이가 없으면 즉시 종료
-    if (_currentOverlay == null) {
-      if (kDebugMode) {
-        debugPrint('ℹ️  [OVERLAY] No overlay to hide');
-      }
-      return;
-    }
+    if (_currentOverlay == null) return;
     
     // Microtask를 사용해 현재 실행 스택이 완료된 직후 오버레이 제거
-    // WidgetsBinding.addPostFrameCallback보다 빠르고 확실하게 실행됨
-    // 앱 라이프사이클 변경이나 다이얼로그 표시와 무관하게 동작
     scheduleMicrotask(() {
-      if (kDebugMode) {
-        debugPrint('✅ [OVERLAY] Executing hide via microtask');
-      }
       try {
         _currentOverlay?.remove();
         _currentOverlay = null;
       } catch (e) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [OVERLAY] Error during hide (expected if context disposed): $e');
-        }
         _currentOverlay = null;
       }
     });
@@ -216,16 +186,11 @@ class SocialLoginProgressHelper {
   
   /// 강제 오버레이 제거 (화면 전환 시 안전장치)
   static void forceHide() {
-    if (kDebugMode) {
-      debugPrint('🚨 [OVERLAY] Force hiding overlay (safety net)');
-    }
     try {
       _currentOverlay?.remove();
       _currentOverlay = null;
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('⚠️ [OVERLAY] Force hide error (expected during navigation): $e');
-      }
+      // 무시
     }
   }
 

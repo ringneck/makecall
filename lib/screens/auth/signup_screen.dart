@@ -667,16 +667,8 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       
       final result = await _socialLoginService.signInWithKakao();
       
-      if (kDebugMode) {
-        debugPrint('🔍 [Kakao SignUp] Result: success=${result.success}, error=${result.errorMessage}');
-      }
-      
       // 진행 상황 오버레이 제거 (성공 시에는 _handleSocialLoginSuccess에서 제거)
       if (!result.success && mounted) {
-        if (kDebugMode) {
-          debugPrint('❌ [Kakao SignUp] Hiding overlay (login failed)');
-        }
-        // 이벤트 기반 오버레이 제거 (다음 프레임에서 실행)
         SocialLoginProgressHelper.hide();
       }
       
@@ -685,18 +677,12 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       } else {
         if (mounted) {
           if (result.errorMessage?.contains('취소') ?? false) {
-            if (kDebugMode) {
-              debugPrint('ℹ️  [Kakao SignUp] Showing cancel dialog');
-            }
             await DialogUtils.showInfo(
               context,
               'Kakao 회원가입이 취소되었습니다.',
               title: 'Kakao 회원가입',
             );
           } else {
-            if (kDebugMode) {
-              debugPrint('❌ [Kakao SignUp] Showing error dialog: ${result.errorMessage}');
-            }
             await DialogUtils.showError(
               context,
               result.errorMessage ?? 'Kakao 회원가입에 실패했습니다.',
