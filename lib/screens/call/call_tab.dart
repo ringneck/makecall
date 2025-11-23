@@ -1580,14 +1580,19 @@ class _CallTabState extends State<CallTab> {
             ),
           ],
           if (isDeviceContact)
-            // 장치 연락처에서 즐겨찾기 추가 버튼
+            // 장치 연락처에서 즐겨찾기 토글 버튼 (이벤트 기반)
             IconButton(
               icon: Icon(
-                Icons.star_border,
-                color: isDark ? Colors.amber[300] : Colors.amber,
+                contact.isFavorite ? Icons.star : Icons.star_border,
+                color: contact.isFavorite
+                    ? (isDark ? Colors.amber[400] : Colors.amber)
+                    : (isDark ? Colors.grey[500] : Colors.grey),
               ),
-              onPressed: () => _addDeviceContactToFavorites(contact),
-              tooltip: '즐겨찾기에 추가',
+              onPressed: () async {
+                // ✅ ContactManager의 toggleFavorite 사용 (통일된 로직)
+                await _contactManager?.toggleFavorite(context, contact);
+              },
+              tooltip: contact.isFavorite ? '즐겨찾기 제거' : '즐겨찾기에 추가',
             ),
           // 전화 버튼
           IconButton(
