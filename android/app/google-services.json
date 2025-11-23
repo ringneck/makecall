@@ -22,6 +22,30 @@
           }
         },
         {
+          "client_id": "793164633643-ccm1o83kofcimprtldrn1728h16uu3n4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.olssoo.makecall_app",
+            "certificate_hash": "4b6600fc6c8c4e45d12fbe6a96c2740c5cd5ac84"
+          }
+        },
+        {
+          "client_id": "793164633643-g65itfao0bagheqshj8ikl14p13rf052.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.olssoo.makecall_app",
+            "certificate_hash": "52ebbef7c4bfba1bbc7d5e0fe3aaea909ee5d548"
+          }
+        },
+        {
+          "client_id": "793164633643-omnqdcsuaf96gkhtf45i094m7hjsb9ni.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.olssoo.makecall_app",
+            "certificate_hash": "c95df9ee12d54510f1349e779aa4f5d183358663"
+          }
+        },
+        {
           "client_id": "793164633643-2n24giqmvf6e08dq5qhv1rj6vudigb4u.apps.googleusercontent.com",
           "client_type": 3
         }
