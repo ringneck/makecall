@@ -42,11 +42,10 @@ class SocialLoginResult {
 /// - Apple (iOS 전용)
 class SocialLoginService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  // 🔧 CRITICAL: Android Google Sign In을 위한 Web Client ID 명시적 설정
-  // google-services.json의 "client_type": 3 (웹 클라이언트)
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '793164633643-2n24giqmvf6e08dq5qhv1rj6vudigb4u.apps.googleusercontent.com',
-  );
+  // 🔧 Android Google Sign In 설정
+  // google-services.json이 있으면 자동으로 Android OAuth Client 사용
+  // serverClientId는 필요 없음 (Android Native는 google-services.json에서 자동 처리)
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   /// ===== 1. 구글 로그인 =====
   Future<SocialLoginResult> signInWithGoogle() async {
