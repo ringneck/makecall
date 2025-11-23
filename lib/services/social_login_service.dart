@@ -144,7 +144,15 @@ class SocialLoginService {
       try {
         hasToken = await kakao.AuthApi.instance.hasToken();
         if (kDebugMode) {
-          debugPrint('🔍 [Kakao] 기존 토큰 존재 여부: $hasToken');
+          debugPrint('');
+          debugPrint('🔍 ========== [Kakao] 토큰 확인 시작 ==========');
+          debugPrint('   기존 토큰 존재 여부: $hasToken');
+          if (!hasToken) {
+            debugPrint('   ⚠️  앱 내부에 저장된 카카오 토큰이 없습니다');
+            debugPrint('   💡 카카오톡 앱 로그인을 시도하면 자동으로 토큰을 받아옵니다');
+          }
+          debugPrint('================================================');
+          debugPrint('');
         }
         
         if (hasToken) {
@@ -212,10 +220,13 @@ class SocialLoginService {
         try {
           if (kDebugMode) {
             debugPrint('🔄 [Kakao] 카카오톡 앱 로그인 시도...');
+            debugPrint('   💡 카카오톡 앱이 이미 로그인되어 있다면 자동으로 토큰을 받아옵니다');
           }
           token = await kakao.UserApi.instance.loginWithKakaoTalk();
           if (kDebugMode) {
             debugPrint('✅ [Kakao] 카카오톡 앱 로그인 성공');
+            debugPrint('   - Access Token: ${token.accessToken.substring(0, 20)}...');
+            debugPrint('   - Refresh Token: ${token.refreshToken?.substring(0, 20) ?? "null"}...');
           }
         } on PlatformException catch (e) {
           if (kDebugMode) {
