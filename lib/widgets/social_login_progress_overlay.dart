@@ -1,6 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
 /// 소셜 로그인 진행 상황 오버레이
 /// 
@@ -180,20 +181,36 @@ class SocialLoginProgressHelper {
     }
   }
 
-  /// 오버레이 숨기기 (이벤트 기반 - 다음 프레임에서 실행)
+  /// 오버레이 숨기기 (이벤트 기반 - 마이크로태스크 큐 사용)
   static void hide() {
     if (kDebugMode) {
-      debugPrint('❌ [OVERLAY] Scheduling hide for next frame');
+      debugPrint('❌ [OVERLAY] Scheduling hide via microtask');
     }
     
-    // SchedulerBinding을 사용해 다음 프레임에서 오버레이 제거
-    // 이는 현재 프레임의 모든 UI 업데이트가 완료된 후 실행됨
-    SchedulerBinding.instance.addPostFrameCallback((_) {
+    // 오버레이가 없으면 즉시 종료
+    if (_currentOverlay == null) {
       if (kDebugMode) {
-        debugPrint('✅ [OVERLAY] Executing hide after frame completion');
+        debugPrint('ℹ️  [OVERLAY] No overlay to hide');
       }
-      _currentOverlay?.remove();
-      _currentOverlay = null;
+      return;
+    }
+    
+    // Microtask를 사용해 현재 실행 스택이 완료된 직후 오버레이 제거
+    // WidgetsBinding.addPostFrameCallback보다 빠르고 확실하게 실행됨
+    // 앱 라이프사이클 변경이나 다이얼로그 표시와 무관하게 동작
+    scheduleMicrotask(() {
+      if (kDebugMode) {
+        debugPrint('✅ [OVERLAY] Executing hide via microtask');
+      }
+      try {
+        _currentOverlay?.remove();
+        _currentOverlay = null;
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [OVERLAY] Error during hide (expected if context disposed): $e');
+        }
+        _currentOverlay = null;
+      }
     });
   }
   
