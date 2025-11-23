@@ -139,6 +139,51 @@ class SocialLoginService {
         debugPrint('🟡 [Kakao] 로그인 시작');
       }
 
+      // 🔍 기존 토큰 확인
+      bool hasToken = false;
+      try {
+        hasToken = await kakao.AuthApi.instance.hasToken();
+        if (kDebugMode) {
+          debugPrint('🔍 [Kakao] 기존 토큰 존재 여부: $hasToken');
+        }
+        
+        if (hasToken) {
+          // 토큰 유효성 검사
+          try {
+            final tokenInfo = await kakao.UserApi.instance.accessTokenInfo();
+            if (kDebugMode) {
+              debugPrint('✅ [Kakao] 기존 토큰 유효 (만료: ${tokenInfo.expiresIn}초 후)');
+              debugPrint('🔄 [Kakao] 기존 토큰으로 사용자 정보 조회 중...');
+            }
+            
+            // 기존 토큰으로 바로 사용자 정보 조회
+            final user = await kakao.UserApi.instance.me();
+            
+            if (kDebugMode) {
+              debugPrint('✅ [Kakao] 기존 토큰으로 사용자 정보 조회 성공');
+              debugPrint('   - User ID: ${user.id}');
+              debugPrint('   - Email: ${user.kakaoAccount?.email}');
+              debugPrint('   - Nickname: ${user.kakaoAccount?.profile?.nickname}');
+            }
+            
+            // Firebase 인증으로 바로 진행
+            return await _kakaoFirebaseAuth(user);
+            
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('⚠️  [Kakao] 기존 토큰 무효 또는 만료: $e');
+              debugPrint('🔄 [Kakao] 새로운 로그인 진행...');
+            }
+            hasToken = false;
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('⚠️  [Kakao] 토큰 확인 실패: $e');
+        }
+        hasToken = false;
+      }
+
       // 카카오톡 설치 여부 확인
       bool isKakaoTalkInstalled = false;
       
@@ -232,106 +277,8 @@ class SocialLoginService {
         debugPrint('   - Nickname: ${user.kakaoAccount?.profile?.nickname}');
       }
 
-      // Firebase Custom Token 생성 및 로그인
-      try {
-        final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
-        final callable = functions.httpsCallable('createCustomTokenForKakao');
-        
-        final requestData = {
-          'kakaoUid': user.id.toString(),
-          'email': user.kakaoAccount?.email,
-          'displayName': user.kakaoAccount?.profile?.nickname,
-          'photoUrl': user.kakaoAccount?.profile?.profileImageUrl,
-        };
-        
-        final response = await callable.call(requestData);
-        final customToken = response.data['customToken'] as String;
-        final userCredential = await FirebaseAuth.instance.signInWithCustomToken(customToken);
-        
-        if (kDebugMode) {
-          debugPrint('[Kakao] Firebase 로그인 성공');
-        }
-        
-        return SocialLoginResult(
-          success: true,
-          userId: userCredential.user?.uid,
-          email: user.kakaoAccount?.email,
-          displayName: user.kakaoAccount?.profile?.nickname,
-          photoUrl: user.kakaoAccount?.profile?.profileImageUrl,
-          provider: SocialLoginProvider.kakao,
-        );
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('❌ [Kakao] Firebase 인증 실패');
-          debugPrint('   에러 타입: ${e.runtimeType}');
-          debugPrint('   에러 메시지: $e');
-          
-          // FirebaseFunctionsException인 경우 추가 정보 출력
-          if (e is FirebaseFunctionsException) {
-            debugPrint('   Functions 에러 코드: ${e.code}');
-            debugPrint('   Functions 에러 메시지: ${e.message}');
-            debugPrint('   Functions 에러 상세: ${e.details}');
-          }
-        }
-        
-        final errorString = e.toString().toLowerCase();
-        
-        // PERMISSION_DENIED 에러 감지
-        if (errorString.contains('permission') || 
-            (e is FirebaseFunctionsException && e.code == 'permission-denied')) {
-          return SocialLoginResult(
-            success: false,
-            errorMessage: 'IAM 권한 오류\n\n'
-                'Firebase Functions 서비스 계정에\n'
-                'IAM 권한이 올바르게 설정되지 않았습니다.\n\n'
-                'KAKAO_LOGIN_IAM_FIX.md 문서를 참고하여\n'
-                'IAM 권한을 다시 확인해주세요.',
-            provider: SocialLoginProvider.kakao,
-          );
-        }
-        
-        // INTERNAL 에러 감지
-        if (errorString.contains('internal') || errorString.contains('missing data')) {
-          if (kDebugMode) {
-            debugPrint('🔍 [Kakao] INTERNAL 에러 상세 분석:');
-            debugPrint('   에러 메시지: $e');
-            if (e is FirebaseFunctionsException) {
-              debugPrint('   에러 코드: ${e.code}');
-              debugPrint('   에러 상세: ${e.details}');
-            }
-          }
-          
-          return SocialLoginResult(
-            success: false,
-            errorMessage: '서버 설정 오류\n\n'
-                '카카오 로그인 서버가 준비 중입니다.\n'
-                '관리자에게 문의해주세요.\n\n'
-                '에러: ${e is FirebaseFunctionsException ? e.message : e.toString()}',
-            provider: SocialLoginProvider.kakao,
-          );
-        }
-        
-        // NOT_FOUND 에러 감지 (함수가 배포되지 않음)
-        if (errorString.contains('not-found') || errorString.contains('not found')) {
-          return SocialLoginResult(
-            success: false,
-            errorMessage: '함수 배포 오류\n\n'
-                'createCustomTokenForKakao 함수가\n'
-                'Firebase에 배포되지 않았습니다.\n\n'
-                'Firebase Console에서 Functions 배포를\n'
-                '확인해주세요.',
-            provider: SocialLoginProvider.kakao,
-          );
-        }
-        
-        return SocialLoginResult(
-          success: false,
-          errorMessage: 'Firebase 인증 실패\n\n'
-              '잠시 후 다시 시도해주세요.\n\n'
-              '에러: ${e is FirebaseFunctionsException ? e.message : e.toString()}',
-          provider: SocialLoginProvider.kakao,
-        );
-      }
+      // Firebase 인증 진행
+      return await _kakaoFirebaseAuth(user);
 
     } on PlatformException catch (e) {
       if (kDebugMode) {
@@ -671,6 +618,98 @@ class SocialLoginService {
         errorMessage: 'Apple 로그인 오류\n\n'
             '${errorString.length > 150 ? errorString.substring(0, 150) : errorString}',
         provider: SocialLoginProvider.apple,
+      );
+    }
+  }
+
+  /// ===== Kakao Firebase 인증 헬퍼 메서드 =====
+  /// Kakao 사용자 정보를 받아 Firebase Custom Token을 생성하고 로그인 처리
+  Future<SocialLoginResult> _kakaoFirebaseAuth(kakao.User user) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔄 [Kakao] Firebase 인증 시작');
+        debugPrint('   - Kakao User ID: ${user.id}');
+      }
+
+      // Firebase Functions를 통한 Custom Token 생성
+      final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
+      final callable = functions.httpsCallable('createCustomTokenForKakao');
+
+      final requestData = {
+        'kakaoUid': user.id.toString(),
+        'email': user.kakaoAccount?.email,
+        'displayName': user.kakaoAccount?.profile?.nickname,
+        'photoUrl': user.kakaoAccount?.profile?.profileImageUrl,
+      };
+
+      if (kDebugMode) {
+        debugPrint('🔄 [Kakao] Firebase Functions 호출 중...');
+        debugPrint('   - Function: createCustomTokenForKakao');
+        debugPrint('   - Region: asia-northeast3');
+      }
+
+      final response = await callable.call(requestData);
+      final customToken = response.data['customToken'] as String;
+
+      if (kDebugMode) {
+        debugPrint('✅ [Kakao] Custom Token 수신 완료');
+        debugPrint('🔄 [Kakao] Firebase 로그인 중...');
+      }
+
+      // Custom Token으로 Firebase 로그인
+      final userCredential = await _auth.signInWithCustomToken(customToken);
+
+      if (kDebugMode) {
+        debugPrint('✅ [Kakao] Firebase 로그인 성공');
+        debugPrint('   - Firebase UID: ${userCredential.user?.uid}');
+      }
+
+      return SocialLoginResult(
+        success: true,
+        userId: userCredential.user?.uid,
+        email: user.kakaoAccount?.email,
+        displayName: user.kakaoAccount?.profile?.nickname,
+        photoUrl: user.kakaoAccount?.profile?.profileImageUrl,
+        provider: SocialLoginProvider.kakao,
+      );
+
+    } on FirebaseFunctionsException catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [Kakao] Firebase Functions 에러');
+        debugPrint('   에러 코드: ${e.code}');
+        debugPrint('   에러 메시지: ${e.message}');
+        debugPrint('   에러 상세: ${e.details}');
+      }
+
+      final errorString = e.toString().toLowerCase();
+
+      // PERMISSION_DENIED 에러 감지
+      if (errorString.contains('permission-denied') || e.code == 'permission-denied') {
+        return SocialLoginResult(
+          success: false,
+          errorMessage: 'Firebase Functions 권한 오류\n\n'
+              'createCustomTokenForKakao 함수가\n'
+              '배포되지 않았거나 권한이 없습니다.\n\n'
+              '관리자에게 문의해주세요.',
+          provider: SocialLoginProvider.kakao,
+        );
+      }
+
+      return SocialLoginResult(
+        success: false,
+        errorMessage: 'Firebase 인증 오류\n\n${e.message ?? e.code}',
+        provider: SocialLoginProvider.kakao,
+      );
+
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [Kakao] Firebase 인증 중 예외 발생: $e');
+      }
+
+      return SocialLoginResult(
+        success: false,
+        errorMessage: 'Firebase 인증 오류\n\n$e',
+        provider: SocialLoginProvider.kakao,
       );
     }
   }

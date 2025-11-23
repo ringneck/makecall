@@ -676,6 +676,8 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         if (kDebugMode) {
           debugPrint('❌ [Kakao SignUp] Hiding overlay (login failed)');
         }
+        // UI 스레드 동기화를 위해 약간의 지연 후 제거
+        await Future.delayed(const Duration(milliseconds: 100));
         SocialLoginProgressHelper.hide();
       }
       
@@ -706,6 +708,8 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     } catch (e) {
       // 에러 시 오버레이 제거
       if (mounted) {
+        // UI 스레드 동기화를 위해 약간의 지연 후 제거
+        await Future.delayed(const Duration(milliseconds: 100));
         SocialLoginProgressHelper.hide();
       }
       if (mounted) {
