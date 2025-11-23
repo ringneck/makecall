@@ -137,6 +137,23 @@ class SocialLoginService {
     try {
       if (kDebugMode) {
         debugPrint('🟡 [Kakao] 로그인 시작');
+        
+        // 🔑 Android KeyHash 자동 출력 (카카오 개발자 콘솔 등록용)
+        if (!kIsWeb && Platform.isAndroid) {
+          try {
+            final keyHash = await kakao.KakaoSdk.origin;
+            debugPrint('');
+            debugPrint('🔑 ========== [Kakao] Android KeyHash ==========');
+            debugPrint('   KeyHash: $keyHash');
+            debugPrint('   💡 이 KeyHash를 카카오 개발자 콘솔에 등록해주세요!');
+            debugPrint('   👉 https://developers.kakao.com/console/app');
+            debugPrint('   위치: 내 애플리케이션 > 앱 설정 > 플랫폼 > Android');
+            debugPrint('================================================');
+            debugPrint('');
+          } catch (e) {
+            debugPrint('⚠️  [Kakao] KeyHash 추출 실패: $e');
+          }
+        }
       }
 
       // 🔍 기존 토큰 확인
@@ -258,6 +275,20 @@ class SocialLoginService {
         } catch (e) {
           if (kDebugMode) {
             debugPrint('⚠️  [Kakao] 카카오톡 앱 로그인 실패 (일반 예외), 웹뷰로 전환: $e');
+            
+            // 🔑 KeyHash 검증 실패 감지
+            final errorStr = e.toString().toLowerCase();
+            if (errorStr.contains('keyhash') || errorStr.contains('key hash')) {
+              debugPrint('');
+              debugPrint('🚨 ========== [Kakao] KeyHash 검증 실패 ==========');
+              debugPrint('   Android KeyHash가 카카오 개발자 콘솔에 등록되지 않았습니다!');
+              debugPrint('   위의 🔑 KeyHash 로그를 확인하고 등록해주세요.');
+              debugPrint('   등록 위치: https://developers.kakao.com/console/app');
+              debugPrint('   내 애플리케이션 > 앱 설정 > 플랫폼 > Android');
+              debugPrint('   💡 Debug와 Release KeyHash가 다를 수 있으니 둘 다 등록하세요!');
+              debugPrint('================================================');
+              debugPrint('');
+            }
           }
           token = await kakao.UserApi.instance.loginWithKakaoAccount();
           if (kDebugMode) {
