@@ -58,6 +58,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Debug 빌드도 release keystore 사용 (Google Sign-In SHA-1 문제 해결)
+            signingConfig = signingConfigs.getByName("release")
+        }
         release {
             // ✅ Use release signing config
             signingConfig = signingConfigs.getByName("release")
