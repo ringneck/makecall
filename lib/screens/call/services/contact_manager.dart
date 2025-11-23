@@ -222,6 +222,32 @@ class ContactManager {
         {'isFavorite': newFavoriteStatus},
       );
 
+      // 🎯 장치 연락처 모드: 로컬 메모리 즉시 업데이트
+      // Firestore 업데이트 후 로컬 _deviceContacts 리스트도 수동 업데이트
+      if (_showDeviceContacts && _deviceContacts.isNotEmpty) {
+        // 로컬 리스트에서 해당 연락처 찾아서 즉시 업데이트
+        final index = _deviceContacts.indexWhere((c) => c.id == contact.id);
+        if (index != -1) {
+          // 기존 연락처 객체를 복사하여 isFavorite만 변경
+          _deviceContacts[index] = ContactModel(
+            id: _deviceContacts[index].id,
+            name: _deviceContacts[index].name,
+            phoneNumber: _deviceContacts[index].phoneNumber,
+            isFavorite: newFavoriteStatus, // 새로운 즐겨찾기 상태 적용
+            userId: _deviceContacts[index].userId,
+            createdAt: _deviceContacts[index].createdAt,
+            updatedAt: DateTime.now(),
+          );
+          
+          // UI 즉시 업데이트
+          onStateChanged();
+          
+          if (kDebugMode) {
+            debugPrint('🔄 로컬 장치 연락처 리스트 즉시 업데이트 완료 (index: $index)');
+          }
+        }
+      }
+
       // 🎯 다이얼로그/SnackBar 제거 - 조용한 업데이트
       // StreamBuilder가 자동으로 UI를 업데이트하므로 별도 피드백 불필요
       
