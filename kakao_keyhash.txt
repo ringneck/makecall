@@ -1,0 +1,14 @@
+Kakao Android KeyHash
+=====================
+
+Package Name: com.olssoo.makecall_app
+
+Debug KeyHash:
+S2YA/GyMTkXRL75qlsJ0DFzVrIQ=
+
+Release KeyHash:
+GB7JD7zR/QQ4D+F6b42zKSDMrKY=
+
+카카오 개발자 콘솔: https://developers.kakao.com/console/app
+
+생성 일시: Sun Nov 23 13:37:25 UTC 2025
