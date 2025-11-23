@@ -89,6 +89,9 @@ dependencies:
   # File Download & Share (for recording downloads on mobile)
   share_plus: 7.2.2  # Native share functionality for iOS/Android
   path_provider: 2.1.4  # Access to device file system
+  
+  # Date Formatting
+  intl: ^0.19.0  # Date and time formatting for consent history
 
 dev_dependencies:
   flutter_test:

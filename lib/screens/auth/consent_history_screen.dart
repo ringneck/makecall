@@ -128,7 +128,7 @@ class ConsentHistoryScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     userModel.nextConsentCheckDue != null
-                        ? dateFormat.format(userModel.nextConsentCheckDue!.toDate())
+                        ? dateFormat.format(userModel.nextConsentCheckDue!)
                         : '정보 없음',
                     style: TextStyle(
                       fontSize: 16,
