@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 /// 소셜 로그인 진행 상황 오버레이
 /// 
@@ -179,13 +180,21 @@ class SocialLoginProgressHelper {
     }
   }
 
-  /// 오버레이 숨기기
+  /// 오버레이 숨기기 (이벤트 기반 - 다음 프레임에서 실행)
   static void hide() {
     if (kDebugMode) {
-      debugPrint('❌ [OVERLAY] Hiding overlay');
+      debugPrint('❌ [OVERLAY] Scheduling hide for next frame');
     }
-    _currentOverlay?.remove();
-    _currentOverlay = null;
+    
+    // SchedulerBinding을 사용해 다음 프레임에서 오버레이 제거
+    // 이는 현재 프레임의 모든 UI 업데이트가 완료된 후 실행됨
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (kDebugMode) {
+        debugPrint('✅ [OVERLAY] Executing hide after frame completion');
+      }
+      _currentOverlay?.remove();
+      _currentOverlay = null;
+    });
   }
   
   /// 강제 오버레이 제거 (화면 전환 시 안전장치)
