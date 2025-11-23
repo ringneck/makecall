@@ -171,9 +171,36 @@ class SocialLoginService {
           if (kDebugMode) {
             debugPrint('✅ [Kakao] 카카오톡 앱 로그인 성공');
           }
+        } on PlatformException catch (e) {
+          if (kDebugMode) {
+            debugPrint('');
+            debugPrint('⚠️  ========== [Kakao] 카카오톡 앱 로그인 실패 ==========');
+            debugPrint('   에러 코드: ${e.code}');
+            debugPrint('   에러 메시지: ${e.message}');
+            debugPrint('   에러 상세: ${e.details}');
+            debugPrint('================================================');
+            debugPrint('');
+          }
+          
+          // CANCELED인 경우 예외 재발생 (최상위 catch에서 처리)
+          if (e.code == 'CANCELED') {
+            if (kDebugMode) {
+              debugPrint('ℹ️  [Kakao] 사용자가 카카오톡 앱 로그인을 취소 → 예외 재발생');
+            }
+            rethrow;
+          }
+          
+          // 기타 오류는 웹뷰로 전환
+          if (kDebugMode) {
+            debugPrint('🔄 [Kakao] 웹뷰 로그인으로 전환 시도...');
+          }
+          token = await kakao.UserApi.instance.loginWithKakaoAccount();
+          if (kDebugMode) {
+            debugPrint('✅ [Kakao] 웹뷰 로그인 성공');
+          }
         } catch (e) {
           if (kDebugMode) {
-            debugPrint('⚠️ [Kakao] 카카오톡 앱 로그인 실패, 웹뷰로 전환: $e');
+            debugPrint('⚠️  [Kakao] 카카오톡 앱 로그인 실패 (일반 예외), 웹뷰로 전환: $e');
           }
           token = await kakao.UserApi.instance.loginWithKakaoAccount();
           if (kDebugMode) {
@@ -182,7 +209,7 @@ class SocialLoginService {
         }
       } else {
         if (kDebugMode) {
-          debugPrint('🔄 [Kakao] 웹뷰 로그인 시도...');
+          debugPrint('🔄 [Kakao] 카카오톡 미설치 → 웹뷰 로그인 시도...');
         }
         token = await kakao.UserApi.instance.loginWithKakaoAccount();
         if (kDebugMode) {
@@ -305,13 +332,79 @@ class SocialLoginService {
         );
       }
 
+    } on PlatformException catch (e) {
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('❌ ========== [Kakao] PlatformException 발생 ==========');
+        debugPrint('   에러 코드: ${e.code}');
+        debugPrint('   에러 메시지: ${e.message}');
+        debugPrint('   에러 상세: ${e.details}');
+        debugPrint('   전체 에러: $e');
+        debugPrint('================================================');
+        debugPrint('');
+      }
+      
+      // CANCELED - 사용자가 로그인 취소
+      if (e.code == 'CANCELED') {
+        if (kDebugMode) {
+          debugPrint('ℹ️  [Kakao] 사용자가 로그인을 취소했습니다');
+        }
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '카카오 로그인이 취소되었습니다',
+          provider: SocialLoginProvider.kakao,
+        );
+      }
+      
+      // NOT_SUPPORTED - 카카오톡이 설치되지 않았거나 버전이 낮음
+      if (e.code == 'NOT_SUPPORTED') {
+        if (kDebugMode) {
+          debugPrint('⚠️  [Kakao] 카카오톡 미설치 또는 버전 낮음 → 웹뷰로 재시도 필요');
+        }
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '카카오톡 앱이 설치되지 않았거나\n버전이 낮습니다.\n\n웹 로그인으로 다시 시도해주세요.',
+          provider: SocialLoginProvider.kakao,
+        );
+      }
+      
+      // UNKNOWN - 알 수 없는 오류
+      if (e.code == 'UNKNOWN') {
+        if (kDebugMode) {
+          debugPrint('❌ [Kakao] 알 수 없는 오류 발생');
+        }
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '카카오 로그인 중 알 수 없는 오류가 발생했습니다.\n\n다시 시도해주세요.',
+          provider: SocialLoginProvider.kakao,
+        );
+      }
+      
+      // 기타 PlatformException
+      if (kDebugMode) {
+        debugPrint('⚠️  [Kakao] 기타 PlatformException: ${e.code}');
+      }
+      return SocialLoginResult(
+        success: false,
+        errorMessage: '카카오 로그인 오류\n\n에러 코드: ${e.code}\n${e.message ?? ""}',
+        provider: SocialLoginProvider.kakao,
+      );
+      
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ [Kakao] 로그인 오류: $e');
+        debugPrint('');
+        debugPrint('❌ ========== [Kakao] 일반 예외 발생 ==========');
+        debugPrint('   에러 타입: ${e.runtimeType}');
+        debugPrint('   에러 내용: $e');
+        debugPrint('================================================');
+        debugPrint('');
       }
       
       final errorString = e.toString().toLowerCase();
       if (errorString.contains('cancel') || errorString.contains('취소')) {
+        if (kDebugMode) {
+          debugPrint('ℹ️  [Kakao] 취소 키워드 감지');
+        }
         return SocialLoginResult(
           success: false,
           errorMessage: '카카오 로그인이 취소되었습니다',
@@ -321,7 +414,7 @@ class SocialLoginService {
       
       return SocialLoginResult(
         success: false,
-        errorMessage: '카카오 로그인 오류',
+        errorMessage: '카카오 로그인 오류\n\n$e',
         provider: SocialLoginProvider.kakao,
       );
     }
