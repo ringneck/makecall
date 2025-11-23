@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "793164633643-2e3bdnkju75qkf1bvm7fevr921frt0q9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.olssoo.makecall_app",
+            "certificate_hash": "181ec90fbcd1fd04380fe17a6f8db32920ccaca6"
+          }
+        },
+        {
           "client_id": "793164633643-2n24giqmvf6e08dq5qhv1rj6vudigb4u.apps.googleusercontent.com",
           "client_type": 3
         }
