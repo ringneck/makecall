@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../services/database_service.dart';
 import '../../../services/mobile_contacts_service.dart';
@@ -215,6 +216,113 @@ class ContactManager {
         debugPrint('  Contact ID: ${contact.id}');
       }
       
+      // 🔍 ID 검증: 장치 연락처가 Firestore에 저장되었는지 확인
+      if (contact.id.isEmpty) {
+        // ❌ 장치 연락처가 아직 Firestore에 저장되지 않음
+        if (kDebugMode) {
+          debugPrint('📱 장치 연락처가 Firestore에 미저장 상태');
+          debugPrint('  → 새 문서로 추가 진행');
+        }
+        
+        // userId 가져오기
+        final userId = _getUserId(context);
+        if (userId == null || userId.isEmpty) {
+          throw Exception('사용자 ID를 찾을 수 없습니다');
+        }
+        
+        // 🔥 중복 체크: 전화번호 기준으로 이미 존재하는 연락처 확인
+        final existingContact = await databaseService.findContactByPhone(
+          userId, 
+          contact.phoneNumber,
+        );
+        
+        if (existingContact != null) {
+          // 중복된 연락처가 이미 존재하는 경우 → 기존 문서의 즐겨찾기 상태만 업데이트
+          if (kDebugMode) {
+            debugPrint('⚠️  중복된 연락처 발견: ${contact.phoneNumber}');
+            debugPrint('  기존 문서 ID: ${existingContact.id}');
+            debugPrint('  → 기존 문서의 즐겨찾기 상태 업데이트');
+          }
+          
+          // 기존 문서 업데이트
+          await databaseService.updateContactAndWaitForSync(
+            existingContact.id,
+            {'isFavorite': newFavoriteStatus},
+          );
+          
+          // 로컬 메모리 업데이트 (기존 문서 ID로)
+          if (_showDeviceContacts && _deviceContacts.isNotEmpty) {
+            final index = _deviceContacts.indexWhere((c) => 
+              c.phoneNumber == contact.phoneNumber);
+            if (index != -1) {
+              _deviceContacts[index] = ContactModel(
+                id: existingContact.id, // 기존 문서 ID 사용
+                name: _deviceContacts[index].name,
+                phoneNumber: _deviceContacts[index].phoneNumber,
+                isFavorite: newFavoriteStatus,
+                userId: _deviceContacts[index].userId,
+                createdAt: _deviceContacts[index].createdAt,
+                updatedAt: DateTime.now(),
+              );
+              onStateChanged();
+            }
+          }
+          
+          if (kDebugMode) {
+            debugPrint('✅ 기존 문서 업데이트 완료');
+          }
+          return;
+        }
+        
+        // 중복이 아니면 새 문서로 Firestore에 저장
+        final newContact = contact.copyWith(
+          userId: userId,
+          isFavorite: newFavoriteStatus, // 토글된 상태로 저장
+          isDeviceContact: false, // 이제 저장된 연락처
+        );
+        
+        // 🔥 이벤트 기반 Firestore 업데이트: addContact → 변경 완료 대기
+        final docId = await databaseService.addContact(newContact);
+        
+        // 🔄 Firestore 변경 확인: 새 문서가 스냅샷에 나타날 때까지 대기
+        await databaseService.waitForContactAdded(userId, docId);
+        
+        // 🎯 장치 연락처 모드: 로컬 메모리 즉시 업데이트 (새 문서 ID로)
+        if (_showDeviceContacts && _deviceContacts.isNotEmpty) {
+          final index = _deviceContacts.indexWhere((c) => 
+            c.phoneNumber == contact.phoneNumber);
+          if (index != -1) {
+            _deviceContacts[index] = ContactModel(
+              id: docId, // 새로 생성된 문서 ID
+              name: _deviceContacts[index].name,
+              phoneNumber: _deviceContacts[index].phoneNumber,
+              isFavorite: newFavoriteStatus,
+              userId: userId,
+              createdAt: _deviceContacts[index].createdAt,
+              updatedAt: DateTime.now(),
+            );
+            onStateChanged();
+            
+            if (kDebugMode) {
+              debugPrint('🔄 로컬 장치 연락처 리스트 즉시 업데이트 완료 (새 문서 ID: $docId)');
+            }
+          }
+        }
+        
+        if (kDebugMode) {
+          debugPrint('✅ 새 문서 생성 완료');
+          debugPrint('  새 문서 ID: $docId');
+          debugPrint('  즐겨찾기 상태: $newFavoriteStatus');
+        }
+        return;
+      }
+      
+      // ✅ 기존 Firestore 연락처 → 문서 업데이트
+      if (kDebugMode) {
+        debugPrint('💾 기존 Firestore 연락처');
+        debugPrint('  → 문서 업데이트 진행');
+      }
+      
       // 🔥 이벤트 기반 Firestore 업데이트: 변경 완료 대기
       // StreamBuilder가 변경을 감지한 후에만 debounce 해제
       await databaseService.updateContactAndWaitForSync(
@@ -278,6 +386,27 @@ class ContactManager {
       }
     } finally {
       _isTogglingFavorite = false;
+    }
+  }
+  
+  /// 현재 사용자 ID 가져오기 (내부 헬퍼 메서드)
+  String? _getUserId(BuildContext context) {
+    try {
+      // Provider를 통해 AuthService에서 현재 사용자 ID 가져오기
+      final userId = context.read<AuthService>().currentUser?.uid;
+      
+      if (userId == null || userId.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('❌ 사용자 ID를 찾을 수 없습니다');
+        }
+      }
+      
+      return userId;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 사용자 ID 가져오기 실패: $e');
+      }
+      return null;
     }
   }
   
