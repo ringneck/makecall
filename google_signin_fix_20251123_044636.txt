@@ -1,0 +1,39 @@
+Google Sign-In Error 12500 진단 보고서
+생성 시간: Sun Nov 23 04:46:36 UTC 2025
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Package Name: com.olssoo.makecall_app
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Debug Keystore:
+  SHA-1:   4B:66:00:FC:6C:8C:4E:45:D1:2F:BE:6A:96:C2:74:0C:5C:D5:AC:84
+  SHA-256: 45:AC:F3:B0:10:16:9F:91:31:95:C2:AF:08:4D:D1:92:C7:31:54:FB:9C:56:DE:F8:15:4E:FE:B8:CB:11:10:6F
+
+Release Keystore:
+  SHA-1:   18:1E:C9:0F:BC:D1:FD:04:38:0F:E1:7A:6F:8D:B3:29:20:CC:AC:A6
+  SHA-256: EF:6E:7E:3F:AA:91:B7:FB:1E:46:81:55:CD:76:FA:F6:E5:85:1A:50:7D:6E:D5:23:01:E0:CE:04:AB:A5:F9:71
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Firebase Console 작업:
+1. https://console.firebase.google.com/ 접속
+2. Project Settings → Your apps → Android
+3. SHA certificate fingerprints → Add fingerprint
+4. 위의 모든 SHA-1/SHA-256 값 추가
+5. google-services.json 다운로드 및 교체
+
+Google Cloud Console 작업:
+1. https://console.cloud.google.com/ 접속
+2. API 및 서비스 → 사용자 인증 정보
+3. Android OAuth 클라이언트 ID 생성/편집
+4. Package name: com.olssoo.makecall_app
+5. SHA-1 추가: 18:1E:C9:0F:BC:D1:FD:04:38:0F:E1:7A:6F:8D:B3:29:20:CC:AC:A6
+
+재빌드:
+flutter clean
+flutter pub get
+flutter build apk --release
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

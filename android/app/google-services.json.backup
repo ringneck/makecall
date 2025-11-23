@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "793164633643",
+    "project_id": "makecallio",
+    "storage_bucket": "makecallio.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:793164633643:android:efd6f648b54f7a15ccfc6e",
+        "android_client_info": {
+          "package_name": "com.olssoo.makecall_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "793164633643-2e3bdnkju75qkf1bvm7fevr921frt0q9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.olssoo.makecall_app",
+            "certificate_hash": "181ec90fbcd1fd04380fe17a6f8db32920ccaca6"
+          }
+        },
+        {
+          "client_id": "793164633643-2n24giqmvf6e08dq5qhv1rj6vudigb4u.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "104853134327062216473",
+              "client_type": 3
+            },
+            {
+              "client_id": "793164633643-urj0qb989v8l2bggj6h025plnbbshfg5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.olssoo.makecall"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

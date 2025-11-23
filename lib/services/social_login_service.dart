@@ -359,7 +359,7 @@ class SocialLoginService {
               ],
               webAuthenticationOptions: WebAuthenticationOptions(
                 clientId: 'com.olssoo.makecall.signin',
-                redirectUri: Uri.parse('https://makecallio.web.app/auth/callback'),
+                redirectUri: Uri.parse('https://makecallio.firebaseapp.com/__/auth/handler'),
               ),
               // Android & Web: Web-based authentication via WebView/Browser
             );
