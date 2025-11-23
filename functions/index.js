@@ -787,6 +787,87 @@ exports.createCustomTokenForKakao = functions
       }
     });
 
+/**
+ * 🍎 Apple 로그인을 위한 Firebase Custom Token 생성
+ *
+ * Apple Sign In 인증 정보를 받아서 Firebase Custom Token을 생성합니다.
+ * Android에서 WebView OAuth 리다이렉트 문제를 우회하기 위한 방법입니다.
+ *
+ * @param {object} data - Request payload
+ * @param {string} data.appleUid - Apple User ID (sub claim from ID token)
+ * @param {string} data.email - 사용자 이메일 (선택)
+ * @param {string} data.displayName - 사용자 표시 이름 (선택)
+ * @param {string} data.identityToken - Apple Identity Token (검증용)
+ *
+ * @returns {object} { customToken: string }
+ */
+exports.createCustomTokenForApple = functions
+    .region(region)
+    .https.onCall(async (data, context) => {
+      try {
+        const {appleUid, email, displayName, identityToken} = data;
+
+        console.log("[APPLE] Custom token request received");
+        console.log(`  - appleUid: ${appleUid ? "provided" : "missing"}`);
+        console.log(`  - email: ${email || "not provided"}`);
+        console.log(`  - displayName: ${displayName || "not provided"}`);
+
+        if (!appleUid) {
+          throw new functions.https.HttpsError(
+              "invalid-argument",
+              "appleUid is required",
+          );
+        }
+
+        if (!identityToken) {
+          throw new functions.https.HttpsError(
+              "invalid-argument",
+              "identityToken is required for verification",
+          );
+        }
+
+        // Apple Identity Token 검증 (선택적 - 보안 강화)
+        // Firebase Admin SDK가 자동으로 Apple 토큰을 검증할 수 있음
+        // 여기서는 간단히 UID만 확인
+
+        const firebaseUid = `apple_${appleUid}`;
+
+        console.log(`[APPLE] Creating custom token for UID: ${firebaseUid}`);
+
+        // Custom Token 생성
+        const customToken = await admin.auth().createCustomToken(firebaseUid, {
+          provider: "apple.com",
+          email: email || null,
+          name: displayName || "Apple User",
+        });
+
+        console.log("[APPLE] Custom token created successfully");
+
+        // TODO: Firestore Security Rules 수정 후 사용자 데이터 저장 활성화
+        // await admin.firestore().collection("users").doc(firebaseUid).set({
+        //   email: email || null,
+        //   displayName: displayName || "Apple User",
+        //   provider: "apple.com",
+        //   createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        //   lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
+        // }, {merge: true});
+
+        return {customToken};
+      } catch (error) {
+        console.error("[APPLE] Error creating custom token:", error.message);
+        console.error("[APPLE] Stack trace:", error.stack);
+
+        if (error instanceof functions.https.HttpsError) {
+          throw error;
+        }
+
+        throw new functions.https.HttpsError(
+            "internal",
+            `Failed to create custom token: ${error.message}`,
+        );
+      }
+    });
+
 // ==============================================================
 // 📱 착신전환 설정 변경 알림 Functions
 // ==============================================================

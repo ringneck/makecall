@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -250,29 +251,20 @@ class SocialLoginService {
   }
 
   /// ===== 3. 애플 로그인 =====
+  /// 
+  /// 플랫폼별 로그인 방식:
+  /// - iOS: Native Apple Sign In → Firebase Custom Token
+  /// - Android: WebView OAuth → Firebase Custom Token (sessionStorage 문제 우회)
+  /// - Web: WebView OAuth → Firebase Custom Token
   Future<SocialLoginResult> signInWithApple() async {
     try {
-      if (kDebugMode) {
-        debugPrint('🍎 [Apple] 로그인 시작');
-        if (kIsWeb) {
-          debugPrint('   플랫폼: Web (webAuthenticationOptions 사용)');
-        } else if (Platform.isIOS) {
-          debugPrint('   플랫폼: iOS (Native Sign In)');
-        } else if (Platform.isAndroid) {
-          debugPrint('   플랫폼: Android (webAuthenticationOptions 사용)');
-        }
-      }
-      
-      // 플랫폼별 설정 분리
-      // iOS: Native Apple Sign In (webAuthenticationOptions 불필요)
-      // Android & Web: Web-based authentication (webAuthenticationOptions 필수)
+      // Apple 인증 정보 가져오기
       final credential = (!kIsWeb && Platform.isIOS)
           ? await SignInWithApple.getAppleIDCredential(
               scopes: [
                 AppleIDAuthorizationScopes.email,
                 AppleIDAuthorizationScopes.fullName,
               ],
-              // iOS: Native Sign In - no webAuthenticationOptions needed
             )
           : await SignInWithApple.getAppleIDCredential(
               scopes: [
@@ -283,151 +275,53 @@ class SocialLoginService {
                 clientId: 'com.olssoo.makecall.signin',
                 redirectUri: Uri.parse('https://makecallio.firebaseapp.com/__/auth/handler'),
               ),
-              // Android & Web: Web-based authentication via WebView/Browser
             );
 
-      if (kDebugMode) {
-        debugPrint('✅ [Apple] Apple 인증 정보 수신 완료');
-        debugPrint('   - Credential Type: ${credential.runtimeType}');
-        
-        // 안전한 타입 체크
-        try {
-          debugPrint('   - identityToken: ${credential.identityToken != null ? "있음 (${credential.identityToken!.length}자)" : "null"}');
-        } catch (e) {
-          debugPrint('   - identityToken: 타입 변환 에러 - $e');
-        }
-        
-        try {
-          debugPrint('   - authorizationCode: ${credential.authorizationCode != null ? "있음 (${credential.authorizationCode!.length}자)" : "null"}');
-        } catch (e) {
-          debugPrint('   - authorizationCode: 타입 변환 에러 - $e');
-        }
-        
-        debugPrint('   - email: ${credential.email ?? "null"}');
-        debugPrint('   - givenName: ${credential.givenName ?? "null"}');
-        debugPrint('   - familyName: ${credential.familyName ?? "null"}');
-      }
-
-      // CRITICAL: identityToken과 authorizationCode null 체크 + 타입 안전 처리
-      // 웹 플랫폼에서 JavaScript 객체 타입을 Dart String으로 안전하게 변환
+      // identityToken 추출 및 타입 안전 처리
       String? identityToken;
-      String? authorizationCode;
-      
       try {
-        // 웹 플랫폼 특별 처리: dynamic 타입으로 먼저 받은 후 String 변환
-        final dynamic rawIdentityToken = credential.identityToken;
-        final dynamic rawAuthorizationCode = credential.authorizationCode;
-        
-        if (rawIdentityToken != null) {
-          identityToken = rawIdentityToken.toString();
-        }
-        
-        if (rawAuthorizationCode != null) {
-          authorizationCode = rawAuthorizationCode.toString();
-        }
-        
-        if (kDebugMode) {
-          debugPrint('🔍 [Apple] 타입 변환 성공');
-          debugPrint('   - identityToken type: ${rawIdentityToken.runtimeType}');
-          debugPrint('   - authorizationCode type: ${rawAuthorizationCode.runtimeType}');
+        final dynamic rawToken = credential.identityToken;
+        if (rawToken != null) {
+          identityToken = rawToken.toString();
         }
       } catch (e) {
-        if (kDebugMode) {
-          debugPrint('❌ [Apple] 인증 정보 타입 변환 실패: $e');
-          debugPrint('   - Error Type: ${e.runtimeType}');
-          debugPrint('   - Stack Trace: ${StackTrace.current}');
-        }
         return SocialLoginResult(
           success: false,
-          errorMessage: 'Apple 로그인 인증 정보 처리 오류\n\n'
-              '웹 플랫폼에서 타입 변환에 실패했습니다.\n'
-              '다시 시도해주세요.\n\n'
-              '오류: ${e.toString()}',
+          errorMessage: 'Apple 로그인 인증 정보 처리 오류',
           provider: SocialLoginProvider.apple,
         );
       }
       
       if (identityToken == null) {
-        if (kDebugMode) {
-          debugPrint('❌ [Apple] identityToken이 null입니다');
-        }
         return SocialLoginResult(
           success: false,
-          errorMessage: 'Apple 로그인 인증 정보를 받지 못했습니다.\n\n'
-              'identityToken이 null입니다.\n'
-              '다시 시도해주세요.',
+          errorMessage: 'Apple 로그인 인증 정보를 받지 못했습니다',
           provider: SocialLoginProvider.apple,
         );
       }
 
-      if (authorizationCode == null) {
-        if (kDebugMode) {
-          debugPrint('❌ [Apple] authorizationCode가 null입니다');
-        }
+      // identityToken에서 Apple User ID 추출 (JWT의 sub claim)
+      final appleUid = _extractAppleUidFromToken(identityToken);
+      if (appleUid == null) {
         return SocialLoginResult(
           success: false,
-          errorMessage: 'Apple 로그인 인증 정보를 받지 못했습니다.\n\n'
-              'authorizationCode가 null입니다.\n'
-              '다시 시도해주세요.',
+          errorMessage: 'Apple 사용자 ID를 추출할 수 없습니다',
           provider: SocialLoginProvider.apple,
         );
       }
 
-      if (kDebugMode) {
-        debugPrint('🔄 [Apple] Firebase 자격증명 생성 중...');
-        debugPrint('   - identityToken 길이: ${identityToken.length}');
-        debugPrint('   - authorizationCode 길이: ${authorizationCode.length}');
+      // 사용자 정보 준비
+      String? displayName;
+      if (credential.givenName != null || credential.familyName != null) {
+        displayName = '${credential.familyName ?? ''}${credential.givenName ?? ''}'.trim();
       }
 
-      final oAuthProvider = OAuthProvider('apple.com');
-      final firebaseCredential = oAuthProvider.credential(
-        idToken: identityToken,
-        accessToken: authorizationCode,
-      );
-
-      if (kDebugMode) {
-        debugPrint('🔄 [Apple] Firebase 로그인 시도 중...');
-      }
-
-      final UserCredential userCredential = await _auth.signInWithCredential(firebaseCredential);
-      
-      if (kDebugMode) {
-        debugPrint('✅ [Apple] Firebase 로그인 완료');
-        debugPrint('   - userCredential.user: ${userCredential.user != null ? "있음" : "null"}');
-      }
-      
-      final User? user = userCredential.user;
-
-      if (user != null) {
-        if (kDebugMode) {
-          debugPrint('✅ [Apple] 로그인 성공');
-          debugPrint('   - UID: ${user.uid}');
-          debugPrint('   - Email: ${user.email ?? "null"}');
-          debugPrint('   - DisplayName: ${user.displayName ?? "null"}');
-        }
-
-        String? displayName = user.displayName;
-        if (displayName == null || displayName.isEmpty) {
-          if (credential.givenName != null || credential.familyName != null) {
-            displayName = '${credential.familyName ?? ''}${credential.givenName ?? ''}'.trim();
-            await user.updateDisplayName(displayName);
-          }
-        }
-
-        return SocialLoginResult(
-          success: true,
-          userId: user.uid,
-          email: user.email ?? credential.email,
-          displayName: displayName,
-          photoUrl: user.photoURL,
-          provider: SocialLoginProvider.apple,
-        );
-      }
-
-      return SocialLoginResult(
-        success: false,
-        errorMessage: 'Firebase 로그인 실패',
-        provider: SocialLoginProvider.apple,
+      // Firebase Custom Token 생성 요청
+      return await _appleFirebaseAuth(
+        appleUid: appleUid,
+        email: credential.email,
+        displayName: displayName,
+        identityToken: identityToken,
       );
 
     } on SignInWithAppleAuthorizationException catch (e) {
@@ -438,10 +332,19 @@ class SocialLoginService {
           provider: SocialLoginProvider.apple,
         );
       }
-      
       return SocialLoginResult(
         success: false,
         errorMessage: 'Apple 로그인 오류',
+        provider: SocialLoginProvider.apple,
+      );
+    } on FirebaseFunctionsException catch (e) {
+      String errorMessage = 'Apple 로그인 처리 중 오류가 발생했습니다';
+      if (e.code == 'unavailable') {
+        errorMessage = 'Firebase Functions 서버에 연결할 수 없습니다';
+      }
+      return SocialLoginResult(
+        success: false,
+        errorMessage: errorMessage,
         provider: SocialLoginProvider.apple,
       );
     } catch (e) {
@@ -558,6 +461,120 @@ class SocialLoginService {
         errorMessage: 'Firebase 인증 오류\n\n$e',
         provider: SocialLoginProvider.kakao,
       );
+    }
+  }
+
+  /// ===== Apple Firebase 인증 헬퍼 메서드 =====
+  /// Apple 사용자 정보를 받아 Firebase Custom Token을 생성하고 로그인 처리
+  /// 
+  /// Android WebView OAuth 리다이렉트 문제를 우회하기 위해
+  /// Firebase Functions를 통해 Custom Token을 생성합니다.
+  Future<SocialLoginResult> _appleFirebaseAuth({
+    required String appleUid,
+    String? email,
+    String? displayName,
+    required String identityToken,
+  }) async {
+    try {
+      final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
+      final callable = functions.httpsCallable('createCustomTokenForApple');
+
+      final requestData = {
+        'appleUid': appleUid,
+        'email': email,
+        'displayName': displayName,
+        'identityToken': identityToken,
+      };
+
+      final response = await callable.call(requestData);
+      final customToken = response.data['customToken'] as String;
+
+      // Custom Token으로 Firebase 로그인
+      final userCredential = await _auth.signInWithCustomToken(customToken);
+
+      return SocialLoginResult(
+        success: true,
+        userId: userCredential.user?.uid,
+        email: email,
+        displayName: displayName,
+        photoUrl: null,
+        provider: SocialLoginProvider.apple,
+      );
+
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'permission-denied') {
+        return SocialLoginResult(
+          success: false,
+          errorMessage: 'Firebase Functions 권한 오류\n\n'
+              'createCustomTokenForApple 함수가\n'
+              '배포되지 않았거나 권한이 없습니다.\n\n'
+              '관리자에게 문의해주세요.',
+          provider: SocialLoginProvider.apple,
+        );
+      }
+
+      return SocialLoginResult(
+        success: false,
+        errorMessage: 'Firebase 인증 오류\n\n${e.message ?? e.code}',
+        provider: SocialLoginProvider.apple,
+      );
+
+    } catch (e) {
+      return SocialLoginResult(
+        success: false,
+        errorMessage: 'Firebase 인증 오류\n\n$e',
+        provider: SocialLoginProvider.apple,
+      );
+    }
+  }
+
+  /// ===== JWT에서 Apple User ID 추출 =====
+  /// Apple Identity Token (JWT)의 payload에서 sub claim을 추출합니다.
+  /// 
+  /// JWT 구조: header.payload.signature
+  /// payload는 Base64 URL-safe 인코딩된 JSON입니다.
+  String? _extractAppleUidFromToken(String identityToken) {
+    try {
+      // JWT를 '.'으로 분할 (header.payload.signature)
+      final parts = identityToken.split('.');
+      if (parts.length != 3) {
+        return null;
+      }
+
+      // Payload 파트 추출 (인덱스 1)
+      String payload = parts[1];
+      
+      // Base64 URL-safe 디코딩을 위한 패딩 추가
+      // JWT는 패딩을 생략하므로 수동으로 추가해야 함
+      switch (payload.length % 4) {
+        case 0:
+          break; // 패딩 불필요
+        case 2:
+          payload += '==';
+          break;
+        case 3:
+          payload += '=';
+          break;
+        default:
+          return null; // 잘못된 길이
+      }
+
+      // Base64 URL-safe 디코딩
+      // '-' → '+', '_' → '/' 변환
+      final normalized = payload.replaceAll('-', '+').replaceAll('_', '/');
+      final decoded = utf8.decode(base64.decode(normalized));
+      
+      // JSON 파싱
+      final Map<String, dynamic> json = jsonDecode(decoded);
+      
+      // 'sub' claim 추출 (Apple User ID)
+      return json['sub'] as String?;
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [Apple] JWT 파싱 오류: $e');
+      }
+      return null;
     }
   }
 
