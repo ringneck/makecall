@@ -278,9 +278,27 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       }
       
       if (kDebugMode) {
-        debugPrint('✅ [SIGNUP] 회원가입 완료 - AuthService가 자동으로 홈 화면으로 이동');
+        debugPrint('✅ [SIGNUP] 회원가입 완료 - LoginScreen으로 복귀');
         debugPrint('   - Provider: ${result.provider.name}');
         debugPrint('   - Email: ${result.email}');
+      }
+      
+      // 🔙 CRITICAL: SignupScreen 닫고 LoginScreen으로 복귀
+      if (mounted) {
+        // 소셜 로그인 진행 중 플래그 해제
+        final authService = context.read<AuthService>();
+        authService.setInSocialLoginFlow(false);
+        
+        // SignupScreen 닫기
+        Navigator.of(context).pop();
+        
+        // 짧은 지연 후 성공 메시지 표시 (LoginScreen에서)
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        if (mounted && Navigator.canPop(context)) {
+          // 이미 LoginScreen으로 돌아왔으므로 성공 메시지만 표시
+          // (AuthService의 authStateChanges가 자동으로 MainScreen으로 전환)
+        }
       }
     } catch (e) {
       if (kDebugMode) {
