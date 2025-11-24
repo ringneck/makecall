@@ -60,7 +60,8 @@ class _SocialLoginConsentScreenState extends State<SocialLoginConsentScreen> {
     try {
       // Firestore 사용자 문서 생성
       final now = FieldValue.serverTimestamp();
-      final twoYearsLater = DateTime.now().add(const Duration(days: 730));
+      final nowDateTime = DateTime.now(); // 배열에 사용할 DateTime
+      final twoYearsLater = nowDateTime.add(const Duration(days: 730));
 
       final userData = {
         'uid': widget.userId,
@@ -84,10 +85,12 @@ class _SocialLoginConsentScreenState extends State<SocialLoginConsentScreen> {
         'marketingConsentAt': _marketingConsent ? now : null,
         'lastConsentCheckAt': now,
         'nextConsentCheckDue': Timestamp.fromDate(twoYearsLater),
+        // 🔧 FIX: 배열 안에는 serverTimestamp 사용 불가 - DateTime.now() 사용
         'consentHistory': [
           {
             'version': '1.0',
-            'agreedAt': now,
+            'agreedAt': Timestamp.fromDate(nowDateTime), // DateTime → Timestamp 변환
+            'type': 'initial',
             'termsAgreed': _termsAgreed,
             'privacyPolicyAgreed': _privacyPolicyAgreed,
             'marketingConsent': _marketingConsent,

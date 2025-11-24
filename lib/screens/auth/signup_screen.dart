@@ -582,8 +582,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                                    data?['privacyPolicyAgreed'] == null;
       
       if (needsConsentUpdate) {
-        final now = Timestamp.now();
-        final twoYearsLater = DateTime.now().add(const Duration(days: 730));
+        final nowDateTime = DateTime.now();
+        final now = Timestamp.fromDate(nowDateTime);
+        final twoYearsLater = nowDateTime.add(const Duration(days: 730));
         
         updateData['consentVersion'] = '1.0';
         updateData['termsAgreed'] = _termsAgreed;
@@ -594,10 +595,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         updateData['marketingConsentAt'] = _marketingConsent ? now : null;
         updateData['lastConsentCheckAt'] = now;
         updateData['nextConsentCheckDue'] = Timestamp.fromDate(twoYearsLater);
+        // 🔧 FIX: arrayUnion 안에도 Timestamp 사용 (FieldValue.serverTimestamp 사용 불가)
         updateData['consentHistory'] = FieldValue.arrayUnion([
           {
             'version': '1.0',
-            'agreedAt': now,
+            'agreedAt': now, // Timestamp (DateTime에서 변환)
             'type': 'initial',
           }
         ]);
