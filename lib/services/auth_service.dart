@@ -213,11 +213,26 @@ class AuthService extends ChangeNotifier {
         if (currentUser != null) {
           // 소셜 로그인 사용자인지 확인 (providerData 체크)
           final providerIds = currentUser.providerData.map((p) => p.providerId).toList();
+          
+          if (kDebugMode) {
+            debugPrint('🔍 [AUTH] Provider 정보 확인:');
+            debugPrint('   - Provider IDs: ${providerIds.join(", ")}');
+            debugPrint('   - UID: $uid');
+            debugPrint('   - UID starts with "apple_": ${uid.startsWith("apple_")}');
+            debugPrint('   - UID starts with "kakao_": ${uid.startsWith("kakao_")}');
+            debugPrint('   - UID starts with "google_": ${uid.startsWith("google_")}');
+          }
+          
+          // 소셜 로그인 감지 (providerData 또는 UID 패턴으로 확인)
           final isSocialLogin = providerIds.any((id) => 
             id == 'google.com' || 
             id == 'apple.com' || 
             id.startsWith('kakao')
-          );
+          ) || uid.startsWith('apple_') || uid.startsWith('kakao_') || uid.startsWith('google_');
+          
+          if (kDebugMode) {
+            debugPrint('   - Is Social Login: $isSocialLogin');
+          }
           
           if (isSocialLogin) {
             // ✅ 소셜 로그인 사용자 - 자동으로 Firestore 문서 생성
