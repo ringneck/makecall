@@ -598,7 +598,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     if (!mounted) return false;
     
     try {
-      // 🔍 방법 1: 입력된 이메일로 조회
+      // 🔍 방법 1: AccountManagerService에서 저장된 계정 확인
+      final accountManager = AccountManagerService();
+      final savedAccounts = await accountManager.getSavedAccounts();
+      
+      // Apple 로그인 계정 중 이메일이 있는 계정 찾기 (UID가 apple_로 시작)
+      for (final account in savedAccounts) {
+        if (account.uid.startsWith('apple_') && 
+            account.email.isNotEmpty) {
+          if (kDebugMode) {
+            debugPrint('✅ [Apple] 저장된 계정에서 이메일 확인됨 - 안내 스킵: ${account.email}');
+          }
+          return true;
+        }
+      }
+      
+      // 🔍 방법 2: 입력된 이메일로 Firestore 조회
       final inputEmail = _emailController.text.trim();
       
       if (inputEmail.isNotEmpty) {
@@ -614,23 +629,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           final userEmail = userData['email'] as String?;
           
           if (userEmail != null && userEmail.isNotEmpty) {
-            // 이메일이 이미 있는 사용자 - 안내 스킵
             if (kDebugMode) {
-              debugPrint('✅ [Apple] 이메일 확인됨 - 안내 스킵: $userEmail');
+              debugPrint('✅ [Apple] Firestore에서 이메일 확인됨 - 안내 스킵: $userEmail');
             }
             return true;
           }
         }
       }
       
-      // 🔍 방법 2: AuthService에서 현재 사용자 모델 확인
+      // 🔍 방법 3: AuthService에서 현재 사용자 모델 확인
       final authService = context.read<AuthService>();
       final currentUser = authService.currentUserModel;
       
       if (currentUser != null && 
           currentUser.loginProvider == 'apple' && 
           currentUser.email.isNotEmpty) {
-        // 이메일이 이미 있는 사용자 - 안내 스킵
         if (kDebugMode) {
           debugPrint('✅ [Apple] AuthService에서 이메일 확인됨 - 안내 스킵: ${currentUser.email}');
         }
@@ -640,6 +653,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // 이메일이 없거나 신규 사용자 - 안내 표시
       if (kDebugMode) {
         debugPrint('⚠️ [Apple] 이메일 없음 - 안내 표시');
+        debugPrint('   - 저장된 Apple 계정: ${savedAccounts.where((a) => a.uid.startsWith('apple_')).length}개');
+        debugPrint('   - 입력된 이메일: $inputEmail');
+        debugPrint('   - 현재 사용자: ${currentUser?.email ?? "null"}');
       }
       return await _showAppleEmailNotice();
       
