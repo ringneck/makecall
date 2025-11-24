@@ -11,6 +11,7 @@ import '../../utils/dialog_utils.dart';
 import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
 import '../home/main_screen.dart';
+import 'social_login_consent_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -188,34 +189,85 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         return;
       }
       
-      // 2️⃣ 신규 가입 - 프로필 생성 중
+      // 🆕 신규 사용자 - 동의 화면으로 이동
+      if (kDebugMode) {
+        debugPrint('🆕 [SIGNUP] 신규 사용자 - 동의 화면으로 이동');
+      }
+      
+      // 오버레이 제거 (이미 제거되었지만 확실하게)
+      SocialLoginProgressHelper.hide();
+      
+      if (!mounted) return;
+      
+      // 동의 화면으로 이동
+      final consentResult = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SocialLoginConsentScreen(
+            userId: result.userId!,
+            email: result.email,
+            displayName: result.displayName,
+            photoUrl: result.photoUrl,
+            provider: result.provider,
+          ),
+        ),
+      );
+      
+      if (!mounted) return;
+      
+      // 동의 완료 여부 확인
+      if (consentResult != true) {
+        // 동의하지 않음 - 로그아웃
+        if (kDebugMode) {
+          debugPrint('❌ [SIGNUP] 사용자가 동의하지 않음 - 로그아웃');
+        }
+        await FirebaseAuth.instance.signOut();
+        return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ [SIGNUP] 동의 완료 - 계속 진행');
+      }
+      
+      // 2️⃣ 계정 정보 로드 중
       if (mounted) {
         SocialLoginProgressHelper.show(
           context,
-          message: '계정 생성 중...',
-          subMessage: 'Firebase 프로필을 생성하고 있습니다',
+          message: '계정 정보 로드 중...',
+          subMessage: '잠시만 기다려주세요',
         );
       }
       
-      await Future.delayed(const Duration(milliseconds: 300));
-      
-      // 🆕 신규 가입 - Firestore 프로필 업데이트
-      await _updateFirestoreUserProfile(
-        userId: result.userId!,
-        displayName: result.displayName,
-        photoUrl: result.photoUrl,
-        provider: result.provider,
-      );
+      // 🔐 CRITICAL: AuthService의 userModel 강제 재로드
+      if (mounted) {
+        try {
+          final authService = context.read<AuthService>();
+          await authService.loadNewUserModel(result.userId!);
+          
+          if (kDebugMode) {
+            debugPrint('✅ [SIGNUP] 신규 사용자 모델 로드 완료');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('❌ [SIGNUP] 신규 사용자 모델 로드 실패: $e');
+          }
+          
+          // 실패 시 오버레이 제거 및 에러 표시
+          if (mounted) {
+            SocialLoginProgressHelper.hide();
+            await DialogUtils.showError(
+              context,
+              '계정 정보 로드에 실패했습니다.\n다시 시도해주세요.',
+            );
+          }
+          return;
+        }
+      }
       
       // 진행 상황 오버레이 제거
       if (mounted) {
         SocialLoginProgressHelper.hide();
       }
-      
-      // 🎯 AuthService의 user stream이 자동으로 홈 화면으로 네비게이션
-      // Success 다이얼로그 제거 - 자연스러운 화면 전환을 위해
-      // Firebase 로그인이 완료되면 main.dart의 Consumer<AuthService>가
-      // 자동으로 LoginScreen → MainScreen으로 전환
       
       if (kDebugMode) {
         debugPrint('✅ [SIGNUP] 회원가입 완료 - AuthService가 자동으로 홈 화면으로 이동');
