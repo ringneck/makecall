@@ -233,6 +233,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   // 소셜 로그인 성공 처리
   Future<void> _handleSocialLoginSuccess(SocialLoginResult result) async {
     try {
+      // 🔒 CRITICAL: mounted 체크 - 비동기 작업 전 위젯이 마운트되어 있는지 확인
+      if (!mounted) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [SOCIAL LOGIN] Widget unmounted - 후처리 중단');
+        }
+        return;
+      }
+      
       final authService = context.read<AuthService>();
       
       if (kDebugMode) {
@@ -256,17 +264,23 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         // 짧은 지연 후 새 오버레이 표시 (UI 업데이트 보장)
         await Future.delayed(const Duration(milliseconds: 50));
         
-        // 1️⃣ 사용자 정보 업데이트 중
-        if (mounted) {
+        // 🔒 mounted 재확인 (비동기 지연 후)
+        if (!mounted) {
           if (kDebugMode) {
-            debugPrint('🔄 [OVERLAY] 새 오버레이 표시: 사용자 정보 업데이트 중...');
+            debugPrint('⚠️ [SOCIAL LOGIN] Widget unmounted after delay - 후처리 중단');
           }
-          SocialLoginProgressHelper.show(
-            context,
-            message: '사용자 정보 업데이트 중...',
-            subMessage: 'Firebase에 프로필 정보를 저장하고 있습니다',
-          );
+          return;
         }
+        
+        // 1️⃣ 사용자 정보 업데이트 중
+        if (kDebugMode) {
+          debugPrint('🔄 [OVERLAY] 새 오버레이 표시: 사용자 정보 업데이트 중...');
+        }
+        SocialLoginProgressHelper.show(
+          context,
+          message: '사용자 정보 업데이트 중...',
+          subMessage: 'Firebase에 프로필 정보를 저장하고 있습니다',
+        );
         
         if (kDebugMode) {
           debugPrint('🔄 [SOCIAL LOGIN] Firestore 업데이트 시작...');
@@ -279,58 +293,87 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           provider: result.provider,
         );
         
+        // 🔒 mounted 재확인 (Firestore 업데이트 후)
+        if (!mounted) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [SOCIAL LOGIN] Widget unmounted after Firestore update - 후처리 중단');
+          }
+          return;
+        }
+        
         if (kDebugMode) {
           debugPrint('✅ [SOCIAL LOGIN] Firestore 업데이트 완료');
         }
         
         // 2️⃣ 계정 정보 로드 중
-        if (mounted) {
-          if (kDebugMode) {
-            debugPrint('🔄 [OVERLAY] 오버레이 업데이트: 계정 정보 로드 중...');
-          }
-          // 짧은 지연으로 UI 업데이트 보장
-          await Future.delayed(const Duration(milliseconds: 50));
-          SocialLoginProgressHelper.update(
-            context,
-            message: '계정 정보 로드 중...',
-            subMessage: '잠시만 기다려주세요',
-          );
-        }
-        
-        // 🔐 CRITICAL: AuthService의 userModel 로드 완료까지 대기
-        // Firebase Authentication이 이미 완료되었지만,
-        // AuthService의 _loadUserModel()이 완료될 때까지 추가 대기
         if (kDebugMode) {
-          debugPrint('⏳ [SOCIAL LOGIN] AuthService userModel 로드 대기...');
+          debugPrint('🔄 [OVERLAY] 오버레이 업데이트: 계정 정보 로드 중...');
+        }
+        // 짧은 지연으로 UI 업데이트 보장
+        await Future.delayed(const Duration(milliseconds: 50));
+        
+        // 🔒 mounted 재확인 (UI 업데이트 전)
+        if (!mounted) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [SOCIAL LOGIN] Widget unmounted before overlay update - 후처리 중단');
+          }
+          return;
         }
         
-        // 🔄 CRITICAL: 오버레이를 먼저 제거하고 userModel 로드 대기
+        SocialLoginProgressHelper.update(
+          context,
+          message: '계정 정보 로드 중...',
+          subMessage: '잠시만 기다려주세요',
+        );
+        
+        // 🔐 CRITICAL: AuthService의 userModel 강제 재로드
+        // Firestore 문서 생성 후 AuthService가 authStateChanges만으로는
+        // 재로드하지 않을 수 있으므로 명시적 재로드 호출
+        if (kDebugMode) {
+          debugPrint('🔄 [SOCIAL LOGIN] AuthService userModel 강제 재로드 시작...');
+        }
+        
+        try {
+          // refreshUserModel()을 사용하여 완전한 재로드
+          await authService.refreshUserModel();
+          
+          if (kDebugMode) {
+            debugPrint('✅ [SOCIAL LOGIN] AuthService userModel 재로드 완료');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [SOCIAL LOGIN] AuthService userModel 재로드 실패: $e');
+          }
+          // 재로드 실패 시 폴백: 기존 대기 로직 사용
+          if (kDebugMode) {
+            debugPrint('🔄 [SOCIAL LOGIN] 폴백: userModel 로드 대기 시작...');
+          }
+          
+          int waitCount = 0;
+          while (authService.currentUserModel == null && waitCount < 50) {
+            await Future.delayed(const Duration(milliseconds: 100));
+            waitCount++;
+          }
+          
+          if (authService.currentUserModel != null) {
+            if (kDebugMode) {
+              debugPrint('✅ [SOCIAL LOGIN] userModel 로드 완료 (${waitCount * 100}ms)');
+            }
+          } else {
+            if (kDebugMode) {
+              debugPrint('⚠️ [SOCIAL LOGIN] userModel 로드 타임아웃 (5초)');
+            }
+          }
+        }
+        
+        // 🔄 CRITICAL: 오버레이 제거
         // AuthService의 user stream이 업데이트되면 화면이 자동 전환되므로
         // 오버레이는 최대한 빨리 제거해야 함
-        if (kDebugMode) {
-          debugPrint('🔄 [OVERLAY] userModel 로드 전 오버레이 제거');
-        }
-        SocialLoginProgressHelper.hide();
-        
-        // userModel이 로드될 때까지 최대 5초 대기
-        if (kDebugMode) {
-          debugPrint('⏳ [SOCIAL LOGIN] AuthService userModel 로드 대기...');
-        }
-        
-        int waitCount = 0;
-        while (authService.currentUserModel == null && waitCount < 50) {
-          await Future.delayed(const Duration(milliseconds: 100));
-          waitCount++;
-        }
-        
-        if (authService.currentUserModel != null) {
+        if (mounted) {
           if (kDebugMode) {
-            debugPrint('✅ [SOCIAL LOGIN] AuthService userModel 로드 완료 (${waitCount * 100}ms)');
+            debugPrint('🔄 [OVERLAY] 로그인 완료 - 오버레이 제거');
           }
-        } else {
-          if (kDebugMode) {
-            debugPrint('⚠️ [SOCIAL LOGIN] AuthService userModel 로드 타임아웃 (5초)');
-          }
+          SocialLoginProgressHelper.hide();
         }
       }
       
@@ -341,20 +384,23 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (kDebugMode) {
         debugPrint('❌ [SOCIAL LOGIN] 후처리 오류: $e');
       }
-      // 에러 시 오버레이 제거
+      
+      // 에러 시 오버레이 제거 (mounted 체크)
       if (mounted) {
         SocialLoginProgressHelper.hide();
-      }
-      if (mounted) {
-        await DialogUtils.showError(
-          context,
-          '소셜 로그인 후 처리 중 오류가 발생했습니다: ${e.toString()}',
-        );
+        
+        // 에러 다이얼로그 표시 (mounted 재확인)
+        if (mounted) {
+          await DialogUtils.showError(
+            context,
+            '소셜 로그인 후 처리 중 오류가 발생했습니다: ${e.toString()}',
+          );
+        }
       }
     }
   }
   
-  // Firestore 사용자 프로필 업데이트 (카카오 닉네임 → 조직명, 프로필사진 → 썸네일)
+  // Firestore 사용자 문서 생성 또는 업데이트 (신규 소셜 로그인 사용자 지원)
   Future<void> _updateFirestoreUserProfile({
     required String userId,
     String? displayName,
@@ -364,6 +410,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     try {
       if (kDebugMode) {
         debugPrint('🔄 [PROFILE UPDATE] Firestore 사용자 정보 업데이트 시작');
+        debugPrint('   - User ID: $userId');
         debugPrint('   - Provider: ${provider.name}');
         debugPrint('   - DisplayName: ${displayName ?? "null"}');
         debugPrint('   - PhotoUrl: ${photoUrl ?? "null"}');
@@ -372,46 +419,82 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
       final docSnapshot = await userDoc.get();
       
-      // 업데이트할 필드 준비
-      final Map<String, dynamic> updateData = {};
-      
-      // 카카오 닉네임 → organizationName (조직명이 비어있을 때만)
-      if (displayName != null && displayName.isNotEmpty) {
-        if (!docSnapshot.exists || docSnapshot.data()?['organizationName'] == null) {
-          updateData['organizationName'] = displayName;
-          if (kDebugMode) {
-            debugPrint('   ✅ organizationName 설정: $displayName');
-          }
-        }
-      }
-      
-      // 카카오 프로필사진 → profileImageUrl (썸네일, 비어있을 때만)
-      if (photoUrl != null && photoUrl.isNotEmpty) {
-        if (!docSnapshot.exists || docSnapshot.data()?['profileImageUrl'] == null) {
-          updateData['profileImageUrl'] = photoUrl;
-          if (kDebugMode) {
-            debugPrint('   ✅ profileImageUrl 설정: $photoUrl');
-          }
-        }
-      }
-      
-      // 업데이트 실행
-      if (updateData.isNotEmpty) {
-        await userDoc.set(updateData, SetOptions(merge: true));
+      if (!docSnapshot.exists) {
+        // 🆕 신규 사용자 - Firestore 문서 생성
         if (kDebugMode) {
-          debugPrint('✅ [PROFILE UPDATE] Firestore 업데이트 완료');
+          debugPrint('🆕 [PROFILE UPDATE] 신규 사용자 문서 생성');
+        }
+        
+        final now = FieldValue.serverTimestamp();
+        final userData = {
+          'uid': userId,
+          'email': FirebaseAuth.instance.currentUser?.email ?? '',
+          'organizationName': displayName ?? '소셜 로그인 사용자',
+          'profileImageUrl': photoUrl,
+          'role': 'user',  // 기본 역할
+          'loginProvider': provider.name,  // 소셜 로그인 제공자
+          'createdAt': now,
+          'updatedAt': now,
+          'lastLoginAt': now,
+          'isActive': true,
+          'accountStatus': 'approved',  // 소셜 로그인은 자동 승인
+        };
+        
+        await userDoc.set(userData);
+        
+        if (kDebugMode) {
+          debugPrint('✅ [PROFILE UPDATE] 신규 사용자 문서 생성 완료');
         }
       } else {
+        // 🔄 기존 사용자 - 필드 업데이트
         if (kDebugMode) {
-          debugPrint('ℹ️ [PROFILE UPDATE] 업데이트할 필드 없음 (이미 설정됨)');
+          debugPrint('🔄 [PROFILE UPDATE] 기존 사용자 필드 업데이트');
+        }
+        
+        final Map<String, dynamic> updateData = {
+          'lastLoginAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        
+        // 소셜 로그인 제공자 정보 추가 (없으면)
+        if (docSnapshot.data()?['loginProvider'] == null) {
+          updateData['loginProvider'] = provider.name;
+        }
+        
+        // 조직명 업데이트 (비어있을 때만)
+        if (displayName != null && displayName.isNotEmpty) {
+          if (docSnapshot.data()?['organizationName'] == null || 
+              docSnapshot.data()?['organizationName'] == '') {
+            updateData['organizationName'] = displayName;
+            if (kDebugMode) {
+              debugPrint('   ✅ organizationName 설정: $displayName');
+            }
+          }
+        }
+        
+        // 프로필 이미지 업데이트 (비어있을 때만)
+        if (photoUrl != null && photoUrl.isNotEmpty) {
+          if (docSnapshot.data()?['profileImageUrl'] == null || 
+              docSnapshot.data()?['profileImageUrl'] == '') {
+            updateData['profileImageUrl'] = photoUrl;
+            if (kDebugMode) {
+              debugPrint('   ✅ profileImageUrl 설정: $photoUrl');
+            }
+          }
+        }
+        
+        await userDoc.update(updateData);
+        
+        if (kDebugMode) {
+          debugPrint('✅ [PROFILE UPDATE] 기존 사용자 업데이트 완료');
         }
       }
       
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ [PROFILE UPDATE] Firestore 업데이트 실패: $e');
+        debugPrint('❌ [PROFILE UPDATE] Firestore 작업 실패: $e');
       }
-      // 프로필 업데이트 실패는 치명적이지 않으므로 에러를 throw하지 않음
+      rethrow;  // 신규 사용자 생성 실패는 치명적이므로 에러를 전파
     }
   }
   
