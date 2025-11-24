@@ -342,6 +342,33 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               subMessage: '잠시만 기다려주세요',
             );
           }
+          
+          // 🆕 신규 사용자 - Firestore 문서가 방금 생성되었으므로 loadNewUserModel() 사용
+          if (kDebugMode) {
+            debugPrint('🔄 [SOCIAL LOGIN] 신규 사용자 모델 로드 시작...');
+          }
+          
+          try {
+            await authService.loadNewUserModel(result.userId!);
+            
+            if (kDebugMode) {
+              debugPrint('✅ [SOCIAL LOGIN] 신규 사용자 모델 로드 완료');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('❌ [SOCIAL LOGIN] 신규 사용자 모델 로드 실패: $e');
+            }
+            
+            // 실패 시 오버레이 제거 및 에러 표시
+            if (mounted) {
+              SocialLoginProgressHelper.hide();
+              await DialogUtils.showError(
+                context,
+                '계정 정보 로드에 실패했습니다.\n다시 시도해주세요.',
+              );
+            }
+            return;
+          }
         } else {
           // ♻️ 기존 사용자 - 프로필 정보 업데이트만 진행
           if (kDebugMode) {
@@ -358,6 +385,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           if (kDebugMode) {
             debugPrint('✅ [SOCIAL LOGIN] 프로필 업데이트 완료');
           }
+          
+          // 기존 사용자 모델 새로고침
+          try {
+            await authService.refreshUserModel();
+            
+            if (kDebugMode) {
+              debugPrint('✅ [SOCIAL LOGIN] 기존 사용자 모델 재로드 완료');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('⚠️ [SOCIAL LOGIN] 기존 사용자 모델 재로드 실패: $e');
+            }
+          }
         }
         
         // 🔒 mounted 재확인
@@ -366,67 +406,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('⚠️ [SOCIAL LOGIN] Widget unmounted after user check');
           }
           return;
-        }
-        
-        // 2️⃣ 계정 정보 로드 중
-        if (kDebugMode) {
-          debugPrint('🔄 [OVERLAY] 오버레이 업데이트: 계정 정보 로드 중...');
-        }
-        // 짧은 지연으로 UI 업데이트 보장
-        await Future.delayed(const Duration(milliseconds: 50));
-        
-        // 🔒 mounted 재확인 (UI 업데이트 전)
-        if (!mounted) {
-          if (kDebugMode) {
-            debugPrint('⚠️ [SOCIAL LOGIN] Widget unmounted before overlay update - 후처리 중단');
-          }
-          return;
-        }
-        
-        SocialLoginProgressHelper.update(
-          context,
-          message: '계정 정보 로드 중...',
-          subMessage: '잠시만 기다려주세요',
-        );
-        
-        // 🔐 CRITICAL: AuthService의 userModel 강제 재로드
-        // Firestore 문서 생성 후 AuthService가 authStateChanges만으로는
-        // 재로드하지 않을 수 있으므로 명시적 재로드 호출
-        if (kDebugMode) {
-          debugPrint('🔄 [SOCIAL LOGIN] AuthService userModel 강제 재로드 시작...');
-        }
-        
-        try {
-          // refreshUserModel()을 사용하여 완전한 재로드
-          await authService.refreshUserModel();
-          
-          if (kDebugMode) {
-            debugPrint('✅ [SOCIAL LOGIN] AuthService userModel 재로드 완료');
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('⚠️ [SOCIAL LOGIN] AuthService userModel 재로드 실패: $e');
-          }
-          // 재로드 실패 시 폴백: 기존 대기 로직 사용
-          if (kDebugMode) {
-            debugPrint('🔄 [SOCIAL LOGIN] 폴백: userModel 로드 대기 시작...');
-          }
-          
-          int waitCount = 0;
-          while (authService.currentUserModel == null && waitCount < 50) {
-            await Future.delayed(const Duration(milliseconds: 100));
-            waitCount++;
-          }
-          
-          if (authService.currentUserModel != null) {
-            if (kDebugMode) {
-              debugPrint('✅ [SOCIAL LOGIN] userModel 로드 완료 (${waitCount * 100}ms)');
-            }
-          } else {
-            if (kDebugMode) {
-              debugPrint('⚠️ [SOCIAL LOGIN] userModel 로드 타임아웃 (5초)');
-            }
-          }
         }
         
         // 🔄 CRITICAL: 오버레이 제거

@@ -235,69 +235,24 @@ class AuthService extends ChangeNotifier {
           }
           
           if (isSocialLogin) {
-            // ✅ 소셜 로그인 사용자 - 자동으로 Firestore 문서 생성
+            // 🆕 소셜 로그인 신규 사용자 - LoginScreen에서 동의 화면 표시 후 문서 생성
+            // ⚠️ CRITICAL FIX: 자동 문서 생성 제거 (LoginScreen에서 처리)
             if (kDebugMode) {
               debugPrint('');
               debugPrint('🆕 ========================================');
-              debugPrint('🆕 소셜 로그인 신규 사용자 - 자동 등록');
+              debugPrint('🆕 소셜 로그인 신규 사용자 감지');
               debugPrint('🆕 ========================================');
               debugPrint('   - UID: $uid');
               debugPrint('   - Email: ${currentUser.email}');
               debugPrint('   - Display Name: ${currentUser.displayName}');
               debugPrint('   - Providers: ${providerIds.join(", ")}');
               debugPrint('');
-              debugPrint('📝 Firestore에 사용자 문서 생성 중...');
+              debugPrint('⏸️ LoginScreen에서 동의 화면 표시 대기 중...');
+              debugPrint('   (문서는 동의 완료 후 LoginScreen에서 생성됩니다)');
             }
             
-            // 기본 사용자 문서 생성
-            final now = FieldValue.serverTimestamp();
-            final twoYearsLater = DateTime.now().add(const Duration(days: 730));
-            
-            final userData = {
-              'uid': uid,
-              'email': currentUser.email ?? '',
-              'displayName': currentUser.displayName ?? 'User',
-              'photoURL': currentUser.photoURL,
-              'providers': providerIds,
-              'createdAt': now,
-              'lastLoginAt': now,
-              'maxExtensions': 1, // 기본값: 단말 1개
-              'myExtensions': [], // 빈 배열
-              // API 서버 정보는 나중에 Profile에서 설정
-              'apiBaseUrl': null,
-              'apiHttpPort': null,
-              'apiHttpsPort': null,
-              'websocketServerUrl': null,
-              'websocketServerPort': null,
-              'websocketUseSSL': null,
-              'amiServerId': null,
-              'companyId': null,
-              'companyName': null,
-              'appKey': null,
-              // 🆕 개인정보보호법 준수 - 동의 관리 필드 (기본값)
-              // 실제 동의 데이터는 SignupScreen에서 업데이트
-              'consentVersion': '1.0',
-              'termsAgreed': false,
-              'termsAgreedAt': null,
-              'privacyPolicyAgreed': false,
-              'privacyPolicyAgreedAt': null,
-              'marketingConsent': false,
-              'marketingConsentAt': null,
-              'lastConsentCheckAt': null,
-              'nextConsentCheckDue': Timestamp.fromDate(twoYearsLater),
-              'consentHistory': [],
-            };
-            
-            await _firestore.collection('users').doc(uid).set(userData);
-            
-            if (kDebugMode) {
-              debugPrint('✅ Firestore 사용자 문서 생성 완료');
-              debugPrint('');
-              debugPrint('🔄 사용자 데이터 다시 로드 중...');
-            }
-            
-            // 재귀 호출로 생성된 문서 로드
-            await _loadUserModel(uid, password: password);
+            // 🔥 CRITICAL: 문서 생성하지 않고 반환
+            // LoginScreen에서 동의 화면을 표시한 후 문서를 생성합니다
             return;
           }
         }
@@ -363,6 +318,27 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Refresh user model error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 신규 소셜 로그인 사용자 모델 로드 (Firestore 문서 생성 직후 호출)
+  Future<void> loadNewUserModel(String uid) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔄 [AUTH] 신규 사용자 모델 로드 시작: $uid');
+      }
+      
+      // _loadUserModel 직접 호출 (update 없이 문서 읽기만)
+      await _loadUserModel(uid);
+      
+      if (kDebugMode) {
+        debugPrint('✅ [AUTH] 신규 사용자 모델 로드 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [AUTH] 신규 사용자 모델 로드 실패: $e');
       }
       rethrow;
     }
