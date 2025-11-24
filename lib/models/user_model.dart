@@ -27,6 +27,7 @@ class UserModel {
   final bool isPremium; // 프리미엄 사용자 여부 (하위 호환성 유지)
   final int maxExtensions; // 사용자별 단말번호 저장 가능 개수
   final List<String>? myExtensions; // 내 단말번호 목록
+  final String? loginProvider; // 로그인 제공자 (google, kakao, apple, email)
   
   // 🆕 개인정보보호법 준수 - 동의 관리 필드
   final String? consentVersion;              // 약관 버전 (예: "1.0")
@@ -67,6 +68,7 @@ class UserModel {
     this.isPremium = false, // 기본값: 무료 사용자 (하위 호환성)
     this.maxExtensions = 1, // 기본값: 1개
     this.myExtensions,
+    this.loginProvider,
     // 🆕 동의 관리 필드
     this.consentVersion,
     this.termsAgreed = false,
@@ -134,6 +136,7 @@ class UserModel {
       myExtensions: map['myExtensions'] != null 
           ? List<String>.from(map['myExtensions'] as List)
           : null,
+      loginProvider: map['loginProvider'] as String?,
       // 🆕 동의 관리 필드 파싱
       consentVersion: map['consentVersion'] as String?,
       termsAgreed: map['termsAgreed'] as bool? ?? false,
@@ -179,6 +182,7 @@ class UserModel {
       'isPremium': isPremium,
       'maxExtensions': maxExtensions,
       'myExtensions': myExtensions,
+      if (loginProvider != null) 'loginProvider': loginProvider,
       // 🆕 동의 관리 필드
       if (consentVersion != null) 'consentVersion': consentVersion,
       'termsAgreed': termsAgreed,

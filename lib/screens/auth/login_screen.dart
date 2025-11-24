@@ -293,109 +293,55 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             .get();
         
         if (!userDoc.exists) {
-          // 🆕 신규 사용자 - 동의 화면으로 이동
+          // 🆕 신규 사용자 - 회원가입 필요
           if (kDebugMode) {
-            debugPrint('🆕 [SOCIAL LOGIN] 신규 사용자 - 동의 화면으로 이동');
+            debugPrint('🆕 [SOCIAL LOGIN] 신규 사용자 - 회원가입 필요');
           }
           
           // 오버레이 제거
           SocialLoginProgressHelper.hide();
           
+          // 로그아웃 처리
+          await FirebaseAuth.instance.signOut();
+          
           if (!mounted) return;
           
-          // 동의 화면으로 이동
-          final consentResult = await Navigator.push<bool>(
+          // 회원가입 안내
+          await DialogUtils.showInfo(
             context,
-            MaterialPageRoute(
-              builder: (context) => SocialLoginConsentScreen(
-                userId: result.userId!,
-                email: result.email,
-                displayName: result.displayName,
-                photoUrl: result.photoUrl,
-                provider: result.provider,
-              ),
-            ),
+            '아직 가입되지 않은 계정입니다.\n\n회원가입 페이지에서 먼저 가입해주세요.',
+            title: '회원가입 필요',
           );
           
-          if (!mounted) return;
-          
-          // 동의 완료 여부 확인
-          if (consentResult != true) {
-            // 동의하지 않음 - 로그아웃
-            if (kDebugMode) {
-              debugPrint('❌ [SOCIAL LOGIN] 사용자가 동의하지 않음 - 로그아웃');
-            }
-            await FirebaseAuth.instance.signOut();
-            return;
-          }
-          
-          if (kDebugMode) {
-            debugPrint('✅ [SOCIAL LOGIN] 동의 완료 - 계속 진행');
-          }
-          
-          // 오버레이 다시 표시
-          if (mounted) {
-            SocialLoginProgressHelper.show(
-              context,
-              message: '계정 정보 로드 중...',
-              subMessage: '잠시만 기다려주세요',
-            );
-          }
-          
-          // 🆕 신규 사용자 - Firestore 문서가 방금 생성되었으므로 loadNewUserModel() 사용
-          if (kDebugMode) {
-            debugPrint('🔄 [SOCIAL LOGIN] 신규 사용자 모델 로드 시작...');
-          }
-          
-          try {
-            await authService.loadNewUserModel(result.userId!);
-            
-            if (kDebugMode) {
-              debugPrint('✅ [SOCIAL LOGIN] 신규 사용자 모델 로드 완료');
-            }
-          } catch (e) {
-            if (kDebugMode) {
-              debugPrint('❌ [SOCIAL LOGIN] 신규 사용자 모델 로드 실패: $e');
-            }
-            
-            // 실패 시 오버레이 제거 및 에러 표시
-            if (mounted) {
-              SocialLoginProgressHelper.hide();
-              await DialogUtils.showError(
-                context,
-                '계정 정보 로드에 실패했습니다.\n다시 시도해주세요.',
-              );
-            }
-            return;
-          }
-        } else {
-          // ♻️ 기존 사용자 - 프로필 정보 업데이트만 진행
-          if (kDebugMode) {
-            debugPrint('♻️ [SOCIAL LOGIN] 기존 사용자 - 프로필 업데이트');
-          }
-          
-          await _updateFirestoreUserProfile(
-            userId: result.userId!,
-            displayName: result.displayName,
-            photoUrl: result.photoUrl,
-            provider: result.provider,
-          );
+          return;
+        }
+        
+        // ♻️ 기존 사용자 - 프로필 정보 업데이트
+        if (kDebugMode) {
+          debugPrint('♻️ [SOCIAL LOGIN] 기존 사용자 - 프로필 업데이트');
+        }
+        
+        await _updateFirestoreUserProfile(
+          userId: result.userId!,
+          displayName: result.displayName,
+          photoUrl: result.photoUrl,
+          provider: result.provider,
+        );
+        
+        if (kDebugMode) {
+          debugPrint('✅ [SOCIAL LOGIN] 프로필 업데이트 완료');
+        }
+        
+        // 기존 사용자 모델 새로고침
+        try {
+          await authService.refreshUserModel();
           
           if (kDebugMode) {
-            debugPrint('✅ [SOCIAL LOGIN] 프로필 업데이트 완료');
+            debugPrint('✅ [SOCIAL LOGIN] 기존 사용자 모델 재로드 완료');
           }
-          
-          // 기존 사용자 모델 새로고침
-          try {
-            await authService.refreshUserModel();
-            
-            if (kDebugMode) {
-              debugPrint('✅ [SOCIAL LOGIN] 기존 사용자 모델 재로드 완료');
-            }
-          } catch (e) {
-            if (kDebugMode) {
-              debugPrint('⚠️ [SOCIAL LOGIN] 기존 사용자 모델 재로드 실패: $e');
-            }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [SOCIAL LOGIN] 기존 사용자 모델 재로드 실패: $e');
           }
         }
         
@@ -646,6 +592,150 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
   
+  // 📧 애플 로그인 이메일 안내 다이얼로그
+  Future<bool> _showAppleEmailNotice() async {
+    if (!mounted) return false;
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.apple,
+                color: isDark ? Colors.white : Colors.black,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Apple 로그인 안내',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Apple 로그인 시 다음 화면에서\n이메일 공유 여부를 선택할 수 있습니다.',
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark 
+                    ? Colors.blue[900]!.withValues(alpha: 0.3)
+                    : Colors.blue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? Colors.blue[700]! : Colors.blue.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.mail_outline,
+                        size: 20,
+                        color: isDark ? Colors.blue[300] : Colors.blue[700],
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '이메일 공유를 권장합니다',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.blue[300] : Colors.blue[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '• 계정 복구 및 중요 알림 수신\n• 고객 지원 시 원활한 소통\n• 더 나은 서비스 제공',
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.6,
+                      color: isDark ? Colors.grey[400] : Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: isDark ? Colors.grey[500] : Colors.grey[600],
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '이메일을 숨기셔도 로그인은 가능합니다',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              '취소',
+              style: TextStyle(
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDark ? Colors.white : Colors.black,
+              foregroundColor: isDark ? Colors.black : Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Apple로 계속하기'),
+          ),
+        ],
+      ),
+    );
+    
+    return result ?? false;
+  }
+  
   // 애플 로그인 (모든 플랫폼)
   Future<void> _handleAppleLogin() async {
     // 웹 플랫폼에서는 소셜 로그인 비활성화
@@ -657,6 +747,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
       return;
     }
+    
+    // 📧 애플 로그인 이메일 안내
+    final shouldContinue = await _showAppleEmailNotice();
+    if (!shouldContinue) return;
     
     if (_isSocialLoginLoading) return;
     

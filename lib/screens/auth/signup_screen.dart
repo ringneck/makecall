@@ -441,6 +441,150 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     );
   }
   
+  // 📧 애플 로그인 이메일 안내 다이얼로그
+  Future<bool> _showAppleEmailNotice() async {
+    if (!mounted) return false;
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.apple,
+                color: isDark ? Colors.white : Colors.black,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Apple 로그인 안내',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Apple 로그인 시 다음 화면에서\n이메일 공유 여부를 선택할 수 있습니다.',
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark 
+                    ? Colors.blue[900]!.withValues(alpha: 0.3)
+                    : Colors.blue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? Colors.blue[700]! : Colors.blue.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.mail_outline,
+                        size: 20,
+                        color: isDark ? Colors.blue[300] : Colors.blue[700],
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '이메일 공유를 권장합니다',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.blue[300] : Colors.blue[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '• 계정 복구 및 중요 알림 수신\n• 고객 지원 시 원활한 소통\n• 더 나은 서비스 제공',
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.6,
+                      color: isDark ? Colors.grey[400] : Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: isDark ? Colors.grey[500] : Colors.grey[600],
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '이메일을 숨기셔도 회원가입은 가능합니다',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              '취소',
+              style: TextStyle(
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDark ? Colors.white : Colors.black,
+              foregroundColor: isDark ? Colors.black : Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Apple로 계속하기'),
+          ),
+        ],
+      ),
+    );
+    
+    return result ?? false;
+  }
+  
   // 기존 계정 안내 다이얼로그
   Future<void> _showExistingAccountDialog({
     required String email,
@@ -858,6 +1002,10 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       );
       return;
     }
+    
+    // 📧 애플 로그인 이메일 안내
+    final shouldContinue = await _showAppleEmailNotice();
+    if (!shouldContinue) return;
     
     if (_isSocialLoginLoading) return;
     

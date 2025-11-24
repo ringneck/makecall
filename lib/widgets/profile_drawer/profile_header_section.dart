@@ -21,6 +21,64 @@ import '../safe_circle_avatar.dart';
 class ProfileHeaderSection extends StatelessWidget {
   const ProfileHeaderSection({super.key});
 
+  /// 소셜 로그인 제공자에 따른 배경색 반환
+  Color _getSocialProviderColor(String provider) {
+    switch (provider) {
+      case 'google':
+        return const Color(0xFFF5F5F5); // 구글 회색
+      case 'kakao':
+        return const Color(0xFFFEE500); // 카카오 노란색
+      case 'apple':
+        return Colors.black; // 애플 검정색
+      default:
+        return Colors.grey;
+    }
+  }
+
+  /// 소셜 로그인 제공자에 따른 아이콘 반환
+  Widget _getSocialProviderIcon(String provider) {
+    switch (provider) {
+      case 'google':
+        return Image.asset(
+          'assets/images/social/google_logo.png',
+          width: 12,
+          height: 12,
+          errorBuilder: (context, error, stackTrace) {
+            return const Icon(
+              Icons.g_mobiledata,
+              color: Color(0xFF4285F4),
+              size: 12,
+            );
+          },
+        );
+      case 'kakao':
+        return Image.asset(
+          'assets/images/social/kakao_talk_logo.png',
+          width: 12,
+          height: 12,
+          errorBuilder: (context, error, stackTrace) {
+            return const Icon(
+              Icons.chat_bubble,
+              color: Colors.black87,
+              size: 10,
+            );
+          },
+        );
+      case 'apple':
+        return const Icon(
+          Icons.apple,
+          color: Colors.white,
+          size: 12,
+        );
+      default:
+        return const Icon(
+          Icons.person,
+          color: Colors.white,
+          size: 12,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
@@ -49,26 +107,56 @@ class ProfileHeaderSection extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 프로필 아바타 (그림자 효과)
+          // 프로필 아바타 (그림자 효과 + 소셜 로그인 배지)
           InkWell(
             onTap: () => AccountManagementUtils.showProfileDetailDialog(context, authService),
             borderRadius: BorderRadius.circular(30),
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: SafeCircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.white,
-                imageUrl: userModel?.profileImageUrl,
-              ),
+                  child: SafeCircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.white,
+                    imageUrl: userModel?.profileImageUrl,
+                  ),
+                ),
+                // 소셜 로그인 배지
+                if (userModel?.loginProvider != null && 
+                    ['google', 'kakao', 'apple'].contains(userModel!.loginProvider))
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: _getSocialProviderColor(userModel.loginProvider!),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: _getSocialProviderIcon(userModel.loginProvider!),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(width: 16),
