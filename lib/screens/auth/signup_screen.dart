@@ -991,7 +991,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       return;
     }
     
-    // 📧 애플 로그인 이메일 안내
+    // 📧 애플 로그인 이메일 안내 (회원가입은 항상 표시)
     final shouldContinue = await _showAppleEmailNotice();
     if (!shouldContinue) return;
     

@@ -593,6 +593,48 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
   
   // 📧 애플 로그인 이메일 안내 다이얼로그
+  // 📧 애플 로그인 이메일 확인 및 안내
+  Future<bool> _checkAndShowAppleEmailNotice() async {
+    if (!mounted) return false;
+    
+    try {
+      // 현재 로그인한 사용자의 이메일 확인 (입력된 이메일로 조회)
+      final email = _emailController.text.trim();
+      
+      if (email.isNotEmpty) {
+        // 이메일로 사용자 문서 조회 (Apple 로그인 사용자)
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: email)
+            .where('loginProvider', isEqualTo: 'apple')
+            .limit(1)
+            .get();
+        
+        // 기존 사용자가 있고 이메일이 이미 있으면 안내 스킵
+        if (querySnapshot.docs.isNotEmpty) {
+          final userData = querySnapshot.docs.first.data();
+          final userEmail = userData['email'] as String?;
+          
+          if (userEmail != null && userEmail.isNotEmpty) {
+            // 이메일이 이미 있는 사용자 - 안내 스킵
+            return true;
+          }
+        }
+      }
+      
+      // 이메일이 없거나 신규 사용자 - 안내 표시
+      return await _showAppleEmailNotice();
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [Apple] 이메일 확인 오류: $e');
+      }
+      // 오류 발생 시에도 안내 표시
+      return await _showAppleEmailNotice();
+    }
+  }
+  
+  // 📧 애플 로그인 이메일 안내 다이얼로그
   Future<bool> _showAppleEmailNotice() async {
     if (!mounted) return false;
     
@@ -748,8 +790,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       return;
     }
     
-    // 📧 애플 로그인 이메일 안내
-    final shouldContinue = await _showAppleEmailNotice();
+    // 📧 애플 로그인 이메일 안내 (이메일 없는 사용자만)
+    final shouldContinue = await _checkAndShowAppleEmailNotice();
     if (!shouldContinue) return;
     
     if (_isSocialLoginLoading) return;
