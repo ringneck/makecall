@@ -13,7 +13,6 @@ import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
-import 'social_login_consent_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? prefilledEmail; // 계정 전환 시 자동으로 채울 이메일

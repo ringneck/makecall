@@ -119,174 +119,37 @@ class AuthService extends ChangeNotifier {
   
   Future<void> _loadUserModel(String uid, {String? password}) async {
     try {
-      // 🔥 CRITICAL FIX: 로그인 성공 시 로그아웃 플래그 해제
       _isLoggingOut = false;
-      
-      if (kDebugMode) {
-        debugPrint('');
-        debugPrint('🔄 ========== _loadUserModel 호출 ==========');
-        debugPrint('   🆔 UID: $uid');
-        debugPrint('   🔍 Firestore에서 users 문서 조회 중...');
-      }
-      
       final doc = await _firestore.collection('users').doc(uid).get();
-      
-      if (kDebugMode) {
-        debugPrint('   📄 문서 존재 여부: ${doc.exists}');
-      }
       
       if (doc.exists) {
         final data = doc.data()!;
-        
-        if (kDebugMode) {
-          debugPrint('   📦 Firestore Raw Data:');
-          debugPrint('      - 전체 필드 개수: ${data.keys.length}');
-          debugPrint('      - 필드 목록: ${data.keys.toList()}');
-          debugPrint('      - maxExtensions (raw): ${data['maxExtensions']}');
-          debugPrint('      - myExtensions (raw): ${data['myExtensions']}');
-        }
         _currentUserModel = UserModel.fromMap(data, uid);
         
-        if (kDebugMode) {
-          debugPrint('   ✅ UserModel 생성 완료:');
-          debugPrint('      - maxExtensions: ${_currentUserModel?.maxExtensions}');
-          debugPrint('      - myExtensions: ${_currentUserModel?.myExtensions}');
-          debugPrint('      - myExtensions length: ${_currentUserModel?.myExtensions?.length ?? 0}');
-        }
-        
-        // 계정 저장 (비밀번호 포함)
         await _accountManager.saveAccount(_currentUserModel!, password: password ?? _tempPassword);
-        
-        // 일시 비밀번호 삭제
         _tempPassword = null;
-        
-        // 🔍 확장된 디버그 로깅 (API 서버 및 WebSocket 정보 포함)
-        if (kDebugMode) {
-          debugPrint('');
-          debugPrint('📥 ========== Firestore 사용자 데이터 로드 ==========');
-          debugPrint('   📧 Email: ${data['email']}');
-          debugPrint('   🏢 Company: ${data['companyName'] ?? "(없음)"}');
-          debugPrint('   🆔 CompanyId: ${data['companyId'] ?? "(없음)"}');
-          debugPrint('   🔑 AppKey: ${data['appKey'] ?? "(없음)"}');
-          debugPrint('');
-          debugPrint('   🌐 API 서버 정보 (Firestore Raw):');
-          debugPrint('      - apiBaseUrl: ${data['apiBaseUrl'] ?? "(없음)"}');
-          debugPrint('      - apiHttpPort: ${data['apiHttpPort'] ?? "(없음)"}');
-          debugPrint('      - apiHttpsPort: ${data['apiHttpsPort'] ?? "(없음)"}');
-          debugPrint('');
-          debugPrint('   🔌 WebSocket 서버 정보 (Firestore Raw):');
-          debugPrint('      - websocketServerUrl: ${data['websocketServerUrl'] ?? "(없음)"}');
-          debugPrint('      - websocketServerPort: ${data['websocketServerPort'] ?? "(없음)"}');
-          debugPrint('      - websocketUseSSL: ${data['websocketUseSSL'] ?? "(없음)"}');
-          debugPrint('      - amiServerId: ${data['amiServerId'] ?? "(없음)"}');
-          debugPrint('');
-          debugPrint('   📱 단말번호 제한 정보:');
-          debugPrint('      - maxExtensions: ${data['maxExtensions'] ?? 1} (등록 가능한 최대 개수)');
-          debugPrint('      - myExtensions: ${data['myExtensions'] ?? "null"} (⚠️ 참고용 - 실제는 my_extensions 컬렉션에서 조회)');
-          debugPrint('');
-          debugPrint('   ✅ UserModel 생성 완료:');
-          debugPrint('      - apiBaseUrl: ${_currentUserModel?.apiBaseUrl ?? "(null)"}');
-          debugPrint('      - websocketServerUrl: ${_currentUserModel?.websocketServerUrl ?? "(null)"}');
-          debugPrint('');
-          debugPrint('   🔒 데이터 보존 검증:');
-          final hasApiConfig = _currentUserModel?.apiBaseUrl != null && _currentUserModel!.apiBaseUrl!.isNotEmpty;
-          final hasWebSocketConfig = _currentUserModel?.websocketServerUrl != null && _currentUserModel!.websocketServerUrl!.isNotEmpty;
-          debugPrint('      - API 설정 존재: ${hasApiConfig ? "✅ 정상" : "⚠️ 없음"}');
-          debugPrint('      - WebSocket 설정 존재: ${hasWebSocketConfig ? "✅ 정상" : "⚠️ 없음"}');
-          if (!hasApiConfig || !hasWebSocketConfig) {
-            debugPrint('');
-            debugPrint('   ⚠️⚠️⚠️ 경고: API/WebSocket 설정이 없습니다!');
-            debugPrint('      - 로그아웃 전에 데이터가 저장되지 않았을 가능성');
-            debugPrint('      - Profile 탭에서 API 서버 정보를 다시 입력하세요');
-          } else {
-            debugPrint('   ✅✅✅ 데이터 보존 성공: 모든 설정이 정상적으로 로드됨');
-          }
-          debugPrint('================================================');
-          debugPrint('');
-        }
         
         notifyListeners();
       } else {
-        // 🚫 Firestore에 사용자 문서가 없는 경우
         final currentUser = _auth.currentUser;
         
         if (currentUser != null) {
-          // 소셜 로그인 사용자인지 확인 (providerData 체크)
           final providerIds = currentUser.providerData.map((p) => p.providerId).toList();
-          
-          if (kDebugMode) {
-            debugPrint('🔍 [AUTH] Provider 정보 확인:');
-            debugPrint('   - Provider IDs: ${providerIds.join(", ")}');
-            debugPrint('   - UID: $uid');
-            debugPrint('   - UID starts with "apple_": ${uid.startsWith("apple_")}');
-            debugPrint('   - UID starts with "kakao_": ${uid.startsWith("kakao_")}');
-            debugPrint('   - UID starts with "google_": ${uid.startsWith("google_")}');
-          }
-          
-          // 소셜 로그인 감지 (providerData 또는 UID 패턴으로 확인)
           final isSocialLogin = providerIds.any((id) => 
             id == 'google.com' || 
             id == 'apple.com' || 
             id.startsWith('kakao')
           ) || uid.startsWith('apple_') || uid.startsWith('kakao_') || uid.startsWith('google_');
           
-          if (kDebugMode) {
-            debugPrint('   - Is Social Login: $isSocialLogin');
-          }
-          
           if (isSocialLogin) {
-            // 🆕 소셜 로그인 신규 사용자 - LoginScreen에서 동의 화면 표시 후 문서 생성
-            // ⚠️ CRITICAL FIX: 자동 문서 생성 제거 (LoginScreen에서 처리)
-            if (kDebugMode) {
-              debugPrint('');
-              debugPrint('🆕 ========================================');
-              debugPrint('🆕 소셜 로그인 신규 사용자 감지');
-              debugPrint('🆕 ========================================');
-              debugPrint('   - UID: $uid');
-              debugPrint('   - Email: ${currentUser.email}');
-              debugPrint('   - Display Name: ${currentUser.displayName}');
-              debugPrint('   - Providers: ${providerIds.join(", ")}');
-              debugPrint('');
-              debugPrint('⏸️ LoginScreen에서 동의 화면 표시 대기 중...');
-              debugPrint('   (문서는 동의 완료 후 LoginScreen에서 생성됩니다)');
-            }
-            
-            // 🔥 CRITICAL: 문서 생성하지 않고 반환
-            // LoginScreen에서 동의 화면을 표시한 후 문서를 생성합니다
+            // 소셜 로그인 신규 사용자 - SignupScreen에서 문서 생성
             return;
           }
         }
         
-        // 🚫 일반 로그인 사용자인데 문서 없음 - 로그인 거부
-        if (kDebugMode) {
-          debugPrint('');
-          debugPrint('❌ ========================================');
-          debugPrint('❌ Firestore에 사용자 문서 없음 - 로그인 거부');
-          debugPrint('❌ ========================================');
-          debugPrint('   - UID: $uid');
-          debugPrint('   - Email: ${_auth.currentUser?.email}');
-          debugPrint('');
-          debugPrint('🔒 보안 정책:');
-          debugPrint('   - 일반 로그인: 관리자가 먼저 사용자 계정을 생성해야 합니다');
-          debugPrint('   - Firebase Authentication만으로는 로그인 불가');
-          debugPrint('   - Firestore users 컬렉션에 문서 존재 필수');
-          debugPrint('');
-          debugPrint('🔄 Firebase Authentication 로그아웃 처리 중...');
-        }
-        
-        // Firebase Authentication 로그아웃
+        // 일반 로그인 사용자인데 문서 없음 - 로그인 거부
         await _auth.signOut();
-        
-        if (kDebugMode) {
-          debugPrint('✅ 로그아웃 완료');
-          debugPrint('❌ ========================================');
-          debugPrint('');
-        }
-        
-        // 일시 비밀번호 삭제
         _tempPassword = null;
-        
-        // 예외 발생 - UI에서 처리
         throw Exception('Account not authorized. Please contact administrator to create your account in the system.');
       }
     } catch (e) {

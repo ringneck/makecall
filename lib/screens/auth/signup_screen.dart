@@ -11,7 +11,6 @@ import '../../utils/dialog_utils.dart';
 import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
 import '../home/main_screen.dart';
-import 'social_login_consent_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
