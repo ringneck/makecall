@@ -13,6 +13,7 @@ import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
+import 'social_login_consent_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? prefilledEmail; // 계정 전환 시 자동으로 채울 이메일
@@ -283,26 +284,88 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         );
         
         if (kDebugMode) {
-          debugPrint('🔄 [SOCIAL LOGIN] Firestore 업데이트 시작...');
+          debugPrint('🔄 [SOCIAL LOGIN] 사용자 문서 확인 중...');
         }
         
-        await _updateFirestoreUserProfile(
-          userId: result.userId!,
-          displayName: result.displayName,
-          photoUrl: result.photoUrl,
-          provider: result.provider,
-        );
+        // 🔍 CRITICAL: 기존 사용자인지 신규 사용자인지 확인
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(result.userId!)
+            .get();
         
-        // 🔒 mounted 재확인 (Firestore 업데이트 후)
+        if (!userDoc.exists) {
+          // 🆕 신규 사용자 - 동의 화면으로 이동
+          if (kDebugMode) {
+            debugPrint('🆕 [SOCIAL LOGIN] 신규 사용자 - 동의 화면으로 이동');
+          }
+          
+          // 오버레이 제거
+          SocialLoginProgressHelper.hide();
+          
+          if (!mounted) return;
+          
+          // 동의 화면으로 이동
+          final consentResult = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SocialLoginConsentScreen(
+                userId: result.userId!,
+                email: result.email,
+                displayName: result.displayName,
+                photoUrl: result.photoUrl,
+                provider: result.provider,
+              ),
+            ),
+          );
+          
+          if (!mounted) return;
+          
+          // 동의 완료 여부 확인
+          if (consentResult != true) {
+            // 동의하지 않음 - 로그아웃
+            if (kDebugMode) {
+              debugPrint('❌ [SOCIAL LOGIN] 사용자가 동의하지 않음 - 로그아웃');
+            }
+            await FirebaseAuth.instance.signOut();
+            return;
+          }
+          
+          if (kDebugMode) {
+            debugPrint('✅ [SOCIAL LOGIN] 동의 완료 - 계속 진행');
+          }
+          
+          // 오버레이 다시 표시
+          if (mounted) {
+            SocialLoginProgressHelper.show(
+              context,
+              message: '계정 정보 로드 중...',
+              subMessage: '잠시만 기다려주세요',
+            );
+          }
+        } else {
+          // ♻️ 기존 사용자 - 프로필 정보 업데이트만 진행
+          if (kDebugMode) {
+            debugPrint('♻️ [SOCIAL LOGIN] 기존 사용자 - 프로필 업데이트');
+          }
+          
+          await _updateFirestoreUserProfile(
+            userId: result.userId!,
+            displayName: result.displayName,
+            photoUrl: result.photoUrl,
+            provider: result.provider,
+          );
+          
+          if (kDebugMode) {
+            debugPrint('✅ [SOCIAL LOGIN] 프로필 업데이트 완료');
+          }
+        }
+        
+        // 🔒 mounted 재확인
         if (!mounted) {
           if (kDebugMode) {
-            debugPrint('⚠️ [SOCIAL LOGIN] Widget unmounted after Firestore update - 후처리 중단');
+            debugPrint('⚠️ [SOCIAL LOGIN] Widget unmounted after user check');
           }
           return;
-        }
-        
-        if (kDebugMode) {
-          debugPrint('✅ [SOCIAL LOGIN] Firestore 업데이트 완료');
         }
         
         // 2️⃣ 계정 정보 로드 중
@@ -400,7 +463,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
   
-  // Firestore 사용자 문서 생성 또는 업데이트 (신규 소셜 로그인 사용자 지원)
+  // Firestore 기존 사용자 프로필 업데이트 (lastLoginAt, 프로필 정보)
   Future<void> _updateFirestoreUserProfile({
     required String userId,
     String? displayName,
@@ -409,92 +472,58 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }) async {
     try {
       if (kDebugMode) {
-        debugPrint('🔄 [PROFILE UPDATE] Firestore 사용자 정보 업데이트 시작');
+        debugPrint('🔄 [PROFILE UPDATE] 기존 사용자 프로필 업데이트 시작');
         debugPrint('   - User ID: $userId');
         debugPrint('   - Provider: ${provider.name}');
-        debugPrint('   - DisplayName: ${displayName ?? "null"}');
-        debugPrint('   - PhotoUrl: ${photoUrl ?? "null"}');
       }
       
       final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
       final docSnapshot = await userDoc.get();
       
       if (!docSnapshot.exists) {
-        // 🆕 신규 사용자 - Firestore 문서 생성
         if (kDebugMode) {
-          debugPrint('🆕 [PROFILE UPDATE] 신규 사용자 문서 생성');
+          debugPrint('⚠️ [PROFILE UPDATE] 사용자 문서 없음 - 업데이트 생략');
         }
-        
-        final now = FieldValue.serverTimestamp();
-        final userData = {
-          'uid': userId,
-          'email': FirebaseAuth.instance.currentUser?.email ?? '',
-          'organizationName': displayName ?? '소셜 로그인 사용자',
-          'profileImageUrl': photoUrl,
-          'role': 'user',  // 기본 역할
-          'loginProvider': provider.name,  // 소셜 로그인 제공자
-          'createdAt': now,
-          'updatedAt': now,
-          'lastLoginAt': now,
-          'isActive': true,
-          'accountStatus': 'approved',  // 소셜 로그인은 자동 승인
-        };
-        
-        await userDoc.set(userData);
-        
-        if (kDebugMode) {
-          debugPrint('✅ [PROFILE UPDATE] 신규 사용자 문서 생성 완료');
+        return;
+      }
+      
+      final Map<String, dynamic> updateData = {
+        'lastLoginAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      
+      // 소셜 로그인 제공자 정보 추가 (없으면)
+      if (docSnapshot.data()?['loginProvider'] == null) {
+        updateData['loginProvider'] = provider.name;
+      }
+      
+      // 조직명 업데이트 (비어있을 때만)
+      if (displayName != null && displayName.isNotEmpty) {
+        if (docSnapshot.data()?['organizationName'] == null || 
+            docSnapshot.data()?['organizationName'] == '') {
+          updateData['organizationName'] = displayName;
         }
-      } else {
-        // 🔄 기존 사용자 - 필드 업데이트
-        if (kDebugMode) {
-          debugPrint('🔄 [PROFILE UPDATE] 기존 사용자 필드 업데이트');
+      }
+      
+      // 프로필 이미지 업데이트 (비어있을 때만)
+      if (photoUrl != null && photoUrl.isNotEmpty) {
+        if (docSnapshot.data()?['profileImageUrl'] == null || 
+            docSnapshot.data()?['profileImageUrl'] == '') {
+          updateData['profileImageUrl'] = photoUrl;
         }
-        
-        final Map<String, dynamic> updateData = {
-          'lastLoginAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        };
-        
-        // 소셜 로그인 제공자 정보 추가 (없으면)
-        if (docSnapshot.data()?['loginProvider'] == null) {
-          updateData['loginProvider'] = provider.name;
-        }
-        
-        // 조직명 업데이트 (비어있을 때만)
-        if (displayName != null && displayName.isNotEmpty) {
-          if (docSnapshot.data()?['organizationName'] == null || 
-              docSnapshot.data()?['organizationName'] == '') {
-            updateData['organizationName'] = displayName;
-            if (kDebugMode) {
-              debugPrint('   ✅ organizationName 설정: $displayName');
-            }
-          }
-        }
-        
-        // 프로필 이미지 업데이트 (비어있을 때만)
-        if (photoUrl != null && photoUrl.isNotEmpty) {
-          if (docSnapshot.data()?['profileImageUrl'] == null || 
-              docSnapshot.data()?['profileImageUrl'] == '') {
-            updateData['profileImageUrl'] = photoUrl;
-            if (kDebugMode) {
-              debugPrint('   ✅ profileImageUrl 설정: $photoUrl');
-            }
-          }
-        }
-        
-        await userDoc.update(updateData);
-        
-        if (kDebugMode) {
-          debugPrint('✅ [PROFILE UPDATE] 기존 사용자 업데이트 완료');
-        }
+      }
+      
+      await userDoc.update(updateData);
+      
+      if (kDebugMode) {
+        debugPrint('✅ [PROFILE UPDATE] 기존 사용자 업데이트 완료');
       }
       
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ [PROFILE UPDATE] Firestore 작업 실패: $e');
+        debugPrint('❌ [PROFILE UPDATE] Firestore 업데이트 실패: $e');
       }
-      rethrow;  // 신규 사용자 생성 실패는 치명적이므로 에러를 전파
+      // 기존 사용자 업데이트 실패는 치명적이지 않으므로 에러를 throw하지 않음
     }
   }
   
