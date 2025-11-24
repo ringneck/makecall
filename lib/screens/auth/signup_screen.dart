@@ -180,12 +180,20 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       
       if (userDoc.exists) {
         // ✅ 기존 계정이 있음 - 안내 다이얼로그 표시
+        if (kDebugMode) {
+          debugPrint('⚠️ [SIGNUP] 기존 계정 발견 - 다이얼로그 표시');
+          debugPrint('   - Email: ${result.email ?? 'Unknown'}');
+        }
+        
         if (mounted) {
           await _showExistingAccountDialog(
             email: result.email ?? 'Unknown',
             provider: result.provider,
           );
         }
+        
+        // 🚨 CRITICAL: 기존 사용자는 프로필 업데이트하지 않음
+        // (동의 정보를 덮어쓰지 않기 위해)
         return;
       }
       
