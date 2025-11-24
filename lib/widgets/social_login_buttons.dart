@@ -6,9 +6,9 @@ import '../config/kakao_config.dart';
 /// 소셜 로그인 버튼 위젯 (로고만 표시)
 /// 
 /// 플랫폼별 소셜 로그인 버튼 제공:
-/// - 웹 플랫폼: Kakao + Google + Apple (3개)
+/// - 웹 플랫폼: Kakao + Google (Apple은 WebView sessionStorage 제한으로 미지원)
 /// - iOS 플랫폼: Kakao + Google + Apple (3개)
-/// - Android 플랫폼: Kakao + Google + Apple (3개)
+/// - Android 플랫폼: Kakao + Google (Apple은 WebView sessionStorage 문제로 비활성화)
 /// 
 /// 각 소셜 플랫폼의 공식 로고만 표시 (텍스트 없음)
 class SocialLoginButtons extends StatelessWidget {
@@ -64,10 +64,11 @@ class SocialLoginButtons extends StatelessWidget {
             // 구글 로그인
             _buildGoogleLoginButton(context, screenWidth, isDark),
             
-            const SizedBox(width: 16),
-            
-            // 애플 로그인
-            _buildAppleLoginButton(context, screenWidth, isDark),
+            // 애플 로그인 (iOS 전용 - Android는 WebView sessionStorage 문제로 비활성화)
+            if (!kIsWeb && Platform.isIOS) ...[
+              const SizedBox(width: 16),
+              _buildAppleLoginButton(context, screenWidth, isDark),
+            ],
           ],
         ),
       ],
