@@ -197,10 +197,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       }
       
       // 🆕 신규 사용자 - Firestore 문서 생성 (동의는 이미 완료됨)
-      if (kDebugMode) {
-        debugPrint('🆕 [SIGNUP] 신규 사용자 - Firestore 문서 생성');
-        debugPrint('   - 동의 정보: 이용약관=$_termsAgreed, 개인정보=$_privacyPolicyAgreed, 마케팅=$_marketingConsent');
-      }
       
       // Firestore 사용자 문서 생성
       final nowDateTime = DateTime.now();
@@ -247,9 +243,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
             .doc(result.userId!)
             .set(userData);
         
-        if (kDebugMode) {
-          debugPrint('✅ [SIGNUP] Firestore 문서 생성 완료');
-        }
+        // Firestore 문서 생성 완료
       } catch (e) {
         if (kDebugMode) {
           debugPrint('❌ [SIGNUP] Firestore 문서 생성 실패: $e');
@@ -283,9 +277,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           final authService = context.read<AuthService>();
           await authService.loadNewUserModel(result.userId!);
           
-          if (kDebugMode) {
-            debugPrint('✅ [SIGNUP] 신규 사용자 모델 로드 완료');
-          }
+          // 신규 사용자 모델 로드 완료
         } catch (e) {
           if (kDebugMode) {
             debugPrint('❌ [SIGNUP] 신규 사용자 모델 로드 실패: $e');
@@ -308,11 +300,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         SocialLoginProgressHelper.hide();
       }
       
-      if (kDebugMode) {
-        debugPrint('✅ [SIGNUP] 회원가입 완료 - LoginScreen으로 복귀');
-        debugPrint('   - Provider: ${result.provider.name}');
-        debugPrint('   - Email: ${result.email}');
-      }
+      // 회원가입 완료
       
       // 🔙 CRITICAL: SignupScreen 닫고 LoginScreen으로 복귀
       if (mounted) {

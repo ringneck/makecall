@@ -56,9 +56,6 @@ class AuthService extends ChangeNotifier {
   /// FCM 초기화 완료 상태 설정
   void setFcmInitialized(bool initialized) {
     _isFcmInitialized = initialized;
-    if (kDebugMode) {
-      debugPrint('🚀 [AUTH] FCM 초기화 상태 변경: $initialized');
-    }
     notifyListeners();
   }
   
@@ -66,21 +63,12 @@ class AuthService extends ChangeNotifier {
   void setWaitingForApproval(bool waiting, {String? approvalRequestId}) {
     _isWaitingForApproval = waiting;
     _approvalRequestId = approvalRequestId;
-    if (kDebugMode) {
-      debugPrint('🔐 [AUTH] 승인 대기 상태 변경: $waiting');
-      if (approvalRequestId != null) {
-        debugPrint('   - Approval Request ID: $approvalRequestId');
-      }
-    }
     notifyListeners();
   }
   
   /// 소셜 로그인 성공 메시지 표시 완료 설정
   void setSocialLoginSuccessMessageShown(bool shown) {
     _socialLoginSuccessMessageShown = shown;
-    if (kDebugMode) {
-      debugPrint('🎯 [AUTH] 소셜 로그인 성공 메시지 표시 완료: $shown');
-    }
     notifyListeners();
   }
   
@@ -88,9 +76,6 @@ class AuthService extends ChangeNotifier {
   /// SignupScreen에서 "기존 계정 확인" 다이얼로그 표시 전/후 호출
   void setInSocialLoginFlow(bool inFlow) {
     _isInSocialLoginFlow = inFlow;
-    if (kDebugMode) {
-      debugPrint('🎯 [AUTH] 소셜 로그인 진행 중: $inFlow');
-    }
     notifyListeners();
   }
   
