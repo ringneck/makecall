@@ -197,44 +197,76 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         return;
       }
       
-      // 🆕 신규 사용자 - 동의 화면으로 이동
+      // 🆕 신규 사용자 - Firestore 문서 생성 (동의는 이미 완료됨)
       if (kDebugMode) {
-        debugPrint('🆕 [SIGNUP] 신규 사용자 - 동의 화면으로 이동');
+        debugPrint('🆕 [SIGNUP] 신규 사용자 - Firestore 문서 생성');
+        debugPrint('   - 동의 정보: 이용약관=$_termsAgreed, 개인정보=$_privacyPolicyAgreed, 마케팅=$_marketingConsent');
       }
       
-      // 오버레이 제거 (이미 제거되었지만 확실하게)
-      SocialLoginProgressHelper.hide();
+      // Firestore 사용자 문서 생성
+      final nowDateTime = DateTime.now();
+      final now = FieldValue.serverTimestamp();
+      final twoYearsLater = nowDateTime.add(const Duration(days: 730));
       
-      if (!mounted) return;
+      final userData = {
+        'uid': result.userId,
+        'email': result.email ?? '',
+        'organizationName': result.displayName ?? '소셜 로그인 사용자',
+        'profileImageUrl': result.photoUrl,
+        'role': 'user',
+        'loginProvider': result.provider.name,
+        'createdAt': now,
+        'updatedAt': now,
+        'lastLoginAt': now,
+        'isActive': true,
+        'accountStatus': 'approved', // 소셜 로그인은 자동 승인
+        // 동의 정보 (SignupScreen에서 이미 수집됨)
+        'consentVersion': '1.0',
+        'termsAgreed': _termsAgreed,
+        'termsAgreedAt': _termsAgreed ? now : null,
+        'privacyPolicyAgreed': _privacyPolicyAgreed,
+        'privacyPolicyAgreedAt': _privacyPolicyAgreed ? now : null,
+        'marketingConsent': _marketingConsent,
+        'marketingConsentAt': _marketingConsent ? now : null,
+        'lastConsentCheckAt': now,
+        'nextConsentCheckDue': Timestamp.fromDate(twoYearsLater),
+        'consentHistory': [
+          {
+            'version': '1.0',
+            'agreedAt': Timestamp.fromDate(nowDateTime),
+            'type': 'initial',
+            'termsAgreed': _termsAgreed,
+            'privacyPolicyAgreed': _privacyPolicyAgreed,
+            'marketingConsent': _marketingConsent,
+          }
+        ],
+      };
       
-      // 동의 화면으로 이동
-      final consentResult = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SocialLoginConsentScreen(
-            userId: result.userId!,
-            email: result.email,
-            displayName: result.displayName,
-            photoUrl: result.photoUrl,
-            provider: result.provider,
-          ),
-        ),
-      );
-      
-      if (!mounted) return;
-      
-      // 동의 완료 여부 확인
-      if (consentResult != true) {
-        // 동의하지 않음 - 로그아웃
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(result.userId!)
+            .set(userData);
+        
         if (kDebugMode) {
-          debugPrint('❌ [SIGNUP] 사용자가 동의하지 않음 - 로그아웃');
+          debugPrint('✅ [SIGNUP] Firestore 문서 생성 완료');
         }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [SIGNUP] Firestore 문서 생성 실패: $e');
+        }
+        
+        // 실패 시 Firebase Authentication 로그아웃
         await FirebaseAuth.instance.signOut();
+        
+        if (mounted) {
+          SocialLoginProgressHelper.hide();
+          await DialogUtils.showError(
+            context,
+            '회원가입 처리 중 오류가 발생했습니다.\n다시 시도해주세요.',
+          );
+        }
         return;
-      }
-      
-      if (kDebugMode) {
-        debugPrint('✅ [SIGNUP] 동의 완료 - 계속 진행');
       }
       
       // 2️⃣ 계정 정보 로드 중
@@ -662,6 +694,15 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       return;
     }
     
+    // 🔒 CRITICAL: 동의 확인 (필수 항목)
+    if (!_termsAgreed || !_privacyPolicyAgreed) {
+      await DialogUtils.showWarning(
+        context,
+        '회원가입을 진행하려면\n필수 항목에 동의해주세요.\n\n✓ 이용약관\n✓ 개인정보처리방침',
+      );
+      return;
+    }
+    
     if (_isSocialLoginLoading) return;
     
     setState(() => _isSocialLoginLoading = true);
@@ -727,6 +768,15 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         context,
         '소셜 로그인은 웹에서는 제공하지 않습니다.',
         title: 'Kakao 회원가입',
+      );
+      return;
+    }
+    
+    // 🔒 CRITICAL: 동의 확인 (필수 항목)
+    if (!_termsAgreed || !_privacyPolicyAgreed) {
+      await DialogUtils.showWarning(
+        context,
+        '회원가입을 진행하려면\n필수 항목에 동의해주세요.\n\n✓ 이용약관\n✓ 개인정보처리방침',
       );
       return;
     }
@@ -797,6 +847,15 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         context,
         '소셜 로그인은 웹에서는 제공하지 않습니다.',
         title: 'Apple 회원가입',
+      );
+      return;
+    }
+    
+    // 🔒 CRITICAL: 동의 확인 (필수 항목)
+    if (!_termsAgreed || !_privacyPolicyAgreed) {
+      await DialogUtils.showWarning(
+        context,
+        '회원가입을 진행하려면\n필수 항목에 동의해주세요.\n\n✓ 이용약관\n✓ 개인정보처리방침',
       );
       return;
     }
