@@ -7,6 +7,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../screens/call/incoming_call_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import '../utils/contact_helper.dart';
 import 'database_service.dart';
 import 'package:http/http.dart' as http;
@@ -2062,8 +2063,9 @@ class DCMIWSService {
       // Firebase Functions URL (서울 리전: asia-northeast3)
       const functionsUrl = 'https://asia-northeast3-makecallio.cloudfunctions.net/sendIncomingCallNotification';
       
-      // 🔐 Firebase Web API Key (영구 사용 가능)
-      const firebaseApiKey = 'AIzaSyCB4mI5Kj61f6E532vg46GnmnnCfsI9XIM';
+      // 🔐 Firebase Web API Key (firebase_options.dart에서 동적으로 가져오기)
+      // 플랫폼별 API Key 자동 선택 (Android/Web/iOS)
+      final firebaseApiKey = Firebase.app().options.apiKey;
       
       final response = await http.post(
         Uri.parse(functionsUrl),
