@@ -186,7 +186,8 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         
         if (mounted) {
           await _showExistingAccountDialog(
-            email: result.email ?? 'Unknown',
+            email: result.email,
+            userId: result.userId!,
             provider: result.provider,
           );
         }
@@ -575,7 +576,8 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   
   // 기존 계정 안내 다이얼로그
   Future<void> _showExistingAccountDialog({
-    required String email,
+    required String? email,
+    required String userId,
     required SocialLoginProvider provider,
   }) async {
     if (!mounted) return;
@@ -626,7 +628,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
               child: Row(
                 children: [
                   Icon(
-                    Icons.email_outlined,
+                    email != null && email.isNotEmpty 
+                        ? Icons.email_outlined 
+                        : Icons.fingerprint,
                     size: 20,
                     color: isDark ? Colors.grey[400] : Colors.grey[600],
                   ),
@@ -636,7 +640,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '가입한 계정:',
+                          email != null && email.isNotEmpty 
+                              ? '가입한 계정:' 
+                              : '가입한 계정 UID:',
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -644,12 +650,16 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          email,
+                          email != null && email.isNotEmpty 
+                              ? email 
+                              : userId,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: email != null && email.isNotEmpty ? 14 : 12,
                             fontWeight: FontWeight.w600,
                             color: isDark ? Colors.white : Colors.black87,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
