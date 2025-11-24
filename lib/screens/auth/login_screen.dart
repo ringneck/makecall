@@ -598,31 +598,49 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     if (!mounted) return false;
     
     try {
-      // 현재 로그인한 사용자의 이메일 확인 (입력된 이메일로 조회)
-      final email = _emailController.text.trim();
+      // 🔍 방법 1: 입력된 이메일로 조회
+      final inputEmail = _emailController.text.trim();
       
-      if (email.isNotEmpty) {
-        // 이메일로 사용자 문서 조회 (Apple 로그인 사용자)
+      if (inputEmail.isNotEmpty) {
         final querySnapshot = await FirebaseFirestore.instance
             .collection('users')
-            .where('email', isEqualTo: email)
+            .where('email', isEqualTo: inputEmail)
             .where('loginProvider', isEqualTo: 'apple')
             .limit(1)
             .get();
         
-        // 기존 사용자가 있고 이메일이 이미 있으면 안내 스킵
         if (querySnapshot.docs.isNotEmpty) {
           final userData = querySnapshot.docs.first.data();
           final userEmail = userData['email'] as String?;
           
           if (userEmail != null && userEmail.isNotEmpty) {
             // 이메일이 이미 있는 사용자 - 안내 스킵
+            if (kDebugMode) {
+              debugPrint('✅ [Apple] 이메일 확인됨 - 안내 스킵: $userEmail');
+            }
             return true;
           }
         }
       }
       
+      // 🔍 방법 2: AuthService에서 현재 사용자 모델 확인
+      final authService = context.read<AuthService>();
+      final currentUser = authService.currentUserModel;
+      
+      if (currentUser != null && 
+          currentUser.loginProvider == 'apple' && 
+          currentUser.email.isNotEmpty) {
+        // 이메일이 이미 있는 사용자 - 안내 스킵
+        if (kDebugMode) {
+          debugPrint('✅ [Apple] AuthService에서 이메일 확인됨 - 안내 스킵: ${currentUser.email}');
+        }
+        return true;
+      }
+      
       // 이메일이 없거나 신규 사용자 - 안내 표시
+      if (kDebugMode) {
+        debugPrint('⚠️ [Apple] 이메일 없음 - 안내 표시');
+      }
       return await _showAppleEmailNotice();
       
     } catch (e) {
