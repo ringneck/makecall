@@ -83,4 +83,6 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     implementation("androidx.core:core-ktx:1.13.1")
+    // ✅ Google Play 권장: Edge-to-Edge API 지원
+    implementation("androidx.activity:activity-ktx:1.9.0")
 }

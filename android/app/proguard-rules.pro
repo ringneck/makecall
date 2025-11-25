@@ -41,10 +41,23 @@
 
 # ============================================================
 # Flutter 플랫폼 채널 호환성
+# PlatformPlugin의 setSystemChromeSystemUIOverlayStyle 메서드가
+# setStatusBarColor, setNavigationBarColor를 호출함
 # ============================================================
 -dontwarn io.flutter.plugin.platform.**
 -keep class io.flutter.plugin.platform.** { *; }
 -dontnote io.flutter.plugin.platform.**
+-dontnote io.flutter.plugin.platform.PlatformPlugin
+
+# Flutter PlatformPlugin의 지원 중단된 API 사용 억제
+-keep class io.flutter.plugin.platform.PlatformPlugin {
+    public void setSystemChromeSystemUIOverlayStyle(...);
+}
+-assumenosideeffects class android.view.Window {
+    public void setStatusBarColor(int);
+    public void setNavigationBarColor(int);
+    public void setNavigationBarDividerColor(int);
+}
 
 # ============================================================
 # 일반 지원 중단 API 경고 억제
@@ -52,6 +65,15 @@
 -dontwarn android.app.Notification
 -dontwarn android.support.**
 -dontwarn androidx.core.app.NotificationCompat$*
+
+# Google Play Console에서 보고된 난독화된 클래스 경고 억제
+# e.q.x, e.r.x, e.t.x, h3.a.r, r2.c, D0.c.q 등
+-dontwarn e.q.**
+-dontwarn e.r.**
+-dontwarn e.t.**
+-dontwarn h3.a.**
+-dontwarn r2.c.**
+-dontwarn D0.c.**
 
 # R8 최적화 설정
 -optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
