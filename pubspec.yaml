@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # UI
   cupertino_icons: ^1.0.8
@@ -91,7 +93,7 @@ dependencies:
   path_provider: 2.1.4  # Access to device file system
   
   # Date Formatting
-  intl: ^0.19.0  # Date and time formatting for consent history
+  intl: 0.20.2  # Date and time formatting (flutter_localizations dependency)
 
 dev_dependencies:
   flutter_test:
