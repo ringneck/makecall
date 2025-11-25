@@ -9,11 +9,27 @@ import android.util.Base64
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import java.security.MessageDigest
+import androidx.core.view.WindowCompat
+import android.view.WindowManager
 
 class MainActivity : FlutterActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Android 15 (SDK 35) Edge-to-Edge 지원
+        // Google Play Store 권장사항 준수
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            // Edge-to-edge 활성화
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            
+            // 지원 중단된 API 사용 방지
+            // setStatusBarColor, setNavigationBarColor 대신
+            // WindowInsetsController를 사용하여 시스템 바 제어
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+        }
         
         // 카카오 로그인용 키 해시 출력
         printKakaoKeyHash()

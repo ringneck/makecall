@@ -48,10 +48,11 @@
         </activity>
         
         <!-- UCrop Activity for image_cropper plugin -->
+        <!-- Android 16+ 대형 화면 호환성: screenOrientation 제한 제거 -->
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"/>
         
         <!-- 카카오 로그인 리다이렉트 Activity -->
         <activity
