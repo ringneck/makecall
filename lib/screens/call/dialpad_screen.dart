@@ -58,15 +58,31 @@ class _DialpadScreenState extends State<DialpadScreen> {
     final currentText = _phoneController.text;
     final selection = _phoneController.selection;
     
+    // selection이 유효하지 않은 경우 끝에 추가
+    if (!selection.isValid || selection.start < 0 || selection.end < 0) {
+      final newText = currentText + key;
+      _phoneController.text = newText;
+      _phoneController.selection = TextSelection.collapsed(
+        offset: newText.length,
+      );
+      setState(() {
+        _phoneNumber = newText;
+      });
+      return;
+    }
+    
     // 커서 위치에 삽입
-    final newText = currentText.substring(0, selection.start) + 
+    final start = selection.start.clamp(0, currentText.length);
+    final end = selection.end.clamp(0, currentText.length);
+    
+    final newText = currentText.substring(0, start) + 
                     key + 
-                    currentText.substring(selection.end);
+                    currentText.substring(end);
     
     _phoneController.text = newText;
     // 커서를 삽입된 문자 뒤로 이동
     _phoneController.selection = TextSelection.collapsed(
-      offset: selection.start + key.length,
+      offset: start + key.length,
     );
     
     setState(() {
@@ -79,6 +95,19 @@ class _DialpadScreenState extends State<DialpadScreen> {
     if (currentText.isEmpty) return;
     
     final selection = _phoneController.selection;
+    
+    // selection이 유효하지 않은 경우 마지막 문자 삭제
+    if (!selection.isValid || selection.start < 0 || selection.end < 0) {
+      final newText = currentText.substring(0, currentText.length - 1);
+      _phoneController.text = newText;
+      _phoneController.selection = TextSelection.collapsed(
+        offset: newText.length,
+      );
+      setState(() {
+        _phoneNumber = newText;
+      });
+      return;
+    }
     
     if (selection.start == selection.end && selection.start > 0) {
       // 커서가 있는 위치의 이전 문자 삭제
@@ -93,7 +122,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
       setState(() {
         _phoneNumber = newText;
       });
-    } else if (selection.start != selection.end) {
+    } else if (selection.start != selection.end && selection.start >= 0 && selection.end > 0) {
       // 선택된 텍스트 삭제
       final newText = currentText.substring(0, selection.start) + 
                       currentText.substring(selection.end);
