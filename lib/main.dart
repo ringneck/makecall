@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
@@ -402,6 +403,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 title: 'MAKECALL',
                 navigatorKey: navigatorKey, // ✅ GlobalKey 등록
                 debugShowCheckedModeBanner: false,
+                // 🌐 한국어 로케일 설정 (iOS 컨텍스트 메뉴 한국어 지원)
+                localizationsDelegates: const [
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                ],
+                supportedLocales: const [
+                  Locale('ko', 'KR'), // 한국어
+                  Locale('en', 'US'), // 영어 (fallback)
+                ],
+                locale: const Locale('ko', 'KR'), // 기본 로케일을 한국어로 설정
                 theme: ThemeData(
                   colorScheme: ColorScheme.fromSeed(
                     seedColor: const Color(0xFF2196F3),
