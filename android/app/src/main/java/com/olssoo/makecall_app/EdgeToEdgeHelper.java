@@ -1,7 +1,7 @@
 package com.olssoo.makecall_app;
 
-import android.app.Activity;
 import android.util.Log;
+import androidx.activity.ComponentActivity;
 
 /**
  * EdgeToEdge Helper for Google Play Console detection
@@ -16,10 +16,10 @@ public class EdgeToEdgeHelper {
     /**
      * Enable edge-to-edge display for the given activity
      * 
-     * @param activity The activity to enable edge-to-edge for
+     * @param activity The ComponentActivity to enable edge-to-edge for
      * @return true if successful, false if EdgeToEdge API is not available
      */
-    public static boolean enable(Activity activity) {
+    public static boolean enable(ComponentActivity activity) {
         try {
             // Direct call to EdgeToEdge.enable()
             // Google Play Console can detect this static call
