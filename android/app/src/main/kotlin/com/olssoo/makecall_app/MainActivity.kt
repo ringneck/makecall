@@ -14,11 +14,12 @@ import androidx.core.view.WindowCompat
 class MainActivity : FlutterActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
         // ✅ CRITICAL: Java helper로 EdgeToEdge.enable() 직접 호출
         // Google Play Console의 정적 분석이 감지 가능
+        // EdgeToEdgeHelper가 내부에서 타입 체크 및 캐스팅 처리
         EdgeToEdgeHelper.enable(this)
-        
-        super.onCreate(savedInstanceState)
         
         // ✅ 추가 안전망: WindowCompat으로도 설정
         WindowCompat.setDecorFitsSystemWindows(window, false)
