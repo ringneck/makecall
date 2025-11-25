@@ -14,9 +14,9 @@ import androidx.core.view.WindowCompat
 class MainActivity : FlutterActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
-        // ✅ CRITICAL: Edge-to-Edge를 super.onCreate() 이전에 활성화
-        // Google Play Console이 명시적으로 EdgeToEdge.enable() 호출 감지
-        enableEdgeToEdgeWithReflection()
+        // ✅ CRITICAL: Java helper로 EdgeToEdge.enable() 직접 호출
+        // Google Play Console의 정적 분석이 감지 가능
+        EdgeToEdgeHelper.enable(this)
         
         super.onCreate(savedInstanceState)
         
@@ -25,32 +25,6 @@ class MainActivity : FlutterActivity() {
         
         // 카카오 로그인용 키 해시 출력
         printKakaoKeyHash()
-    }
-    
-    /**
-     * 리플렉션을 사용하여 EdgeToEdge.enable() 호출
-     * androidx.activity:activity 1.9.3+에서 사용 가능
-     * Google Play Console이 이 API 호출을 감지
-     */
-    private fun enableEdgeToEdgeWithReflection() {
-        try {
-            // androidx.activity.EdgeToEdge 클래스 찾기
-            val edgeToEdgeClass = Class.forName("androidx.activity.EdgeToEdge")
-            
-            // enable(ComponentActivity) 메서드 찾기
-            val enableMethod = edgeToEdgeClass.getMethod("enable", android.app.Activity::class.java)
-            
-            // EdgeToEdge.enable(this) 호출
-            enableMethod.invoke(null, this)
-            
-            Log.i("EdgeToEdge", "✅ EdgeToEdge.enable() called successfully via reflection")
-        } catch (e: ClassNotFoundException) {
-            Log.w("EdgeToEdge", "⚠️ EdgeToEdge class not found - using WindowCompat fallback")
-        } catch (e: NoSuchMethodException) {
-            Log.w("EdgeToEdge", "⚠️ EdgeToEdge.enable() method not found - using WindowCompat fallback")
-        } catch (e: Exception) {
-            Log.e("EdgeToEdge", "❌ Failed to call EdgeToEdge.enable() via reflection", e)
-        }
     }
     
     /**
