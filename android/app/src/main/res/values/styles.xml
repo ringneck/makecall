@@ -6,7 +6,8 @@
              the Flutter engine draws its first frame -->
         <item name="android:windowBackground">@drawable/launch_background</item>
         <!-- Android 15 (SDK 35) Edge-to-Edge 지원 -->
-        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
+        <!-- shortEdges는 Android 15에서 always로 해석되므로 명시적으로 always 사용 -->
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">always</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
         <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>
     </style>
@@ -19,7 +20,8 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
         <!-- Android 15 (SDK 35) Edge-to-Edge 지원 -->
-        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
+        <!-- shortEdges는 Android 15에서 always로 해석되므로 명시적으로 always 사용 -->
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">always</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
         <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>
     </style>
