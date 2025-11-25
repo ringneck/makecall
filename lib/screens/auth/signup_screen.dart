@@ -149,6 +149,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     try {
       if (!result.success || result.userId == null) return;
       
+      // ⌨️ CRITICAL: 키보드 내리기 (소셜 회원가입 성공 시)
+      if (mounted) {
+        FocusScope.of(context).unfocus();
+      }
+      
       // 🎯 즉시 소셜 로그인 플래그 설정 (main.dart의 자동 화면 전환 차단)
       if (mounted) {
         final authService = context.read<AuthService>();

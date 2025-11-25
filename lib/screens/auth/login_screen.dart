@@ -241,6 +241,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         return;
       }
       
+      // ⌨️ CRITICAL: 키보드 내리기 (소셜 로그인 성공 시)
+      FocusScope.of(context).unfocus();
+      
       final authService = context.read<AuthService>();
       
       if (kDebugMode) {

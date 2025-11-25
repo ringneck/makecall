@@ -96,7 +96,11 @@ class SocialLoginButtons extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isLoading ? null : onKakaoPressed,
+          onTap: isLoading ? null : () {
+            // 키보드 내리기
+            FocusScope.of(context).unfocus();
+            onKakaoPressed?.call();
+          },
           borderRadius: BorderRadius.circular(12),
           child: Center(
             child: Image.asset(
@@ -150,7 +154,11 @@ class SocialLoginButtons extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isLoading ? null : onGooglePressed,
+          onTap: isLoading ? null : () {
+            // 키보드 내리기
+            FocusScope.of(context).unfocus();
+            onGooglePressed?.call();
+          },
           borderRadius: BorderRadius.circular(12),
           child: Center(
             child: Image.asset(
@@ -201,7 +209,11 @@ class SocialLoginButtons extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isLoading ? null : onApplePressed,
+          onTap: isLoading ? null : () {
+            // 키보드 내리기
+            FocusScope.of(context).unfocus();
+            onApplePressed?.call();
+          },
           borderRadius: BorderRadius.circular(12),
           child: Center(
             child: Icon(
