@@ -737,78 +737,84 @@ class _DialpadScreenState extends State<DialpadScreen> {
           size = constraints.maxWidth.clamp(60.0, 80.0);
         }
         
-        return GestureDetector(
-          onTap: () {
-            if (kDebugMode) {
-              debugPrint('🔢 키패드 버튼 눌림: $number');
-            }
-            _onKeyPressed(number);
-          },
-          behavior: HitTestBehavior.opaque,
-          child: SizedBox(
-            width: size,
-            height: size,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                // 다크모드 최적화 배경
-                color: isDark
-                    ? Colors.grey[800]!.withValues(alpha: 0.4)
-                    : (isIOS 
-                        ? Colors.grey[100] 
-                        : Colors.grey[50]),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.grey[700]!.withValues(alpha: 0.5)
-                      : Colors.grey.withValues(alpha: 0.2),
-                  width: isDark ? 1.5 : 1,
-                ),
-                // 다크모드에서 미묘한 그림자 효과
-                boxShadow: isDark ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ] : null,
+        final buttonColor = isDark
+            ? Colors.grey[800]!.withValues(alpha: 0.4)
+            : (isIOS ? Colors.grey[100] : Colors.grey[50]);
+        
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: isDark ? [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // 숫자
-                    Text(
-                      number,
-                      style: TextStyle(
-                        fontSize: isLandscape 
-                            ? 26 
-                            : (screenWidth > 400 ? 38 : 34),
-                        fontWeight: FontWeight.w300,
-                        color: isDark 
-                            ? Colors.white 
-                            : Colors.black87,
-                        height: 1.0,
-                      ),
-                    ),
-                    // 문자
-                    Padding(
-                      padding: const EdgeInsets.only(top: 3),
-                      child: Text(
-                        letters.isNotEmpty ? letters : 'ABC',
+            ] : null,
+          ),
+          child: Material(
+            color: buttonColor,
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: () {
+                if (kDebugMode) {
+                  debugPrint('🔢 키패드 버튼 눌림: $number');
+                }
+                _onKeyPressed(number);
+              },
+              customBorder: const CircleBorder(),
+              splashColor: Colors.blue.withValues(alpha: 0.3),
+              highlightColor: Colors.blue.withValues(alpha: 0.1),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.grey[700]!.withValues(alpha: 0.5)
+                        : Colors.grey.withValues(alpha: 0.2),
+                    width: isDark ? 1.5 : 1,
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 숫자
+                      Text(
+                        number,
                         style: TextStyle(
-                          fontSize: isLandscape ? 9 : 11,
-                          fontWeight: FontWeight.w500,
-                          color: letters.isNotEmpty 
-                              ? (isDark 
-                                  ? Colors.grey[400] 
-                                  : Colors.grey[600])
-                              : Colors.transparent,
-                          letterSpacing: 1.2,
+                          fontSize: isLandscape 
+                              ? 26 
+                              : (screenWidth > 400 ? 38 : 34),
+                          fontWeight: FontWeight.w300,
+                          color: isDark 
+                              ? Colors.white 
+                              : Colors.black87,
                           height: 1.0,
                         ),
                       ),
-                    ),
-                  ],
+                      // 문자
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(
+                          letters.isNotEmpty ? letters : 'ABC',
+                          style: TextStyle(
+                            fontSize: isLandscape ? 9 : 11,
+                            fontWeight: FontWeight.w500,
+                            color: letters.isNotEmpty 
+                                ? (isDark 
+                                    ? Colors.grey[400] 
+                                    : Colors.grey[600])
+                                : Colors.transparent,
+                            letterSpacing: 1.2,
+                            height: 1.0,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
