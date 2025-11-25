@@ -66,6 +66,16 @@
 -dontwarn android.support.**
 -dontwarn androidx.core.app.NotificationCompat$*
 
+# WindowManager.LayoutParams의 LAYOUT_IN_DISPLAY_CUTOUT_MODE 관련 경고 억제
+-dontwarn android.view.WindowManager$LayoutParams
+-keep class android.view.WindowManager$LayoutParams {
+    public int layoutInDisplayCutoutMode;
+    public static final int LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+    public static final int LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
+    public static final int LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT;
+    public static final int LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER;
+}
+
 # Google Play Console에서 보고된 난독화된 클래스 경고 억제
 # e.q.x, e.r.x, e.t.x, h3.a.r, r2.c, D0.c.q 등
 -dontwarn e.q.**
@@ -74,6 +84,11 @@
 -dontwarn h3.a.**
 -dontwarn r2.c.**
 -dontwarn D0.c.**
+-dontwarn D0.**
+
+# 모든 난독화된 클래스의 deprecated API 사용 억제 (포괄적 규칙)
+-dontwarn *.**.c.**
+-dontwarn *$*$*
 
 # R8 최적화 설정
 -optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
