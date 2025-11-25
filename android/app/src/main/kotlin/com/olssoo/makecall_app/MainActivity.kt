@@ -9,16 +9,18 @@ import android.util.Base64
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import java.security.MessageDigest
-import androidx.activity.ComponentActivity
-import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
 
 class MainActivity : FlutterActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
-        // ✅ CRITICAL: enableEdgeToEdge()를 super.onCreate() 이전에 호출
-        // Google Play Store 권장사항 준수 (Android 15+ Edge-to-Edge 지원)
-        // ComponentActivity의 확장 함수 직접 호출
-        (this as ComponentActivity).enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
+        
+        // ✅ Google Play Store 권장사항: Edge-to-Edge 지원 (Android 15+)
+        // WindowCompat.setDecorFitsSystemWindows(false)를 호출하여
+        // 시스템 바 뒤로 콘텐츠가 확장되도록 설정
+        // Flutter의 SafeArea와 함께 사용하여 인셋 처리
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         
         super.onCreate(savedInstanceState)
         
