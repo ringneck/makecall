@@ -10,29 +10,32 @@ import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import java.security.MessageDigest
 import androidx.core.view.WindowCompat
-import android.view.WindowManager
 
 class MainActivity : FlutterActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Android 15 (SDK 35) Edge-to-Edge 지원
-        // Google Play Store 권장사항 준수
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            // Edge-to-edge 활성화
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            
-            // 지원 중단된 API 사용 방지
-            // setStatusBarColor, setNavigationBarColor 대신
-            // WindowInsetsController를 사용하여 시스템 바 제어
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-        }
+        // ✅ Google Play Store 권장사항: Edge-to-Edge 지원 (Android 15+)
+        // enableEdgeToEdge() 확장 함수 사용 (권장 방법)
+        // 이전 버전과의 호환성을 위해 모든 Android 버전에 적용
+        enableEdgeToEdge()
         
         // 카카오 로그인용 키 해시 출력
         printKakaoKeyHash()
+    }
+    
+    /**
+     * Edge-to-Edge 활성화 확장 함수
+     * Google Play Store 권장사항 준수
+     * 
+     * Android 15 (SDK 35)부터는 기본적으로 더 넓은 화면이 표시됩니다.
+     * 이 함수는 앱이 시스템 바 인셋을 올바르게 처리하도록 설정합니다.
+     */
+    private fun enableEdgeToEdge() {
+        // WindowCompat.setDecorFitsSystemWindows(window, false)를 호출하여
+        // 앱 콘텐츠가 시스템 바 뒤로 확장되도록 설정
+        WindowCompat.setDecorFitsSystemWindows(window, false)
     }
     
     /**
