@@ -1829,6 +1829,69 @@ class DatabaseService {
     }
   }
   
+  /// 🔍 조직명으로만 모든 공유 API 설정 조회 (App-Key 필터 없음)
+  /// 일반 사용자가 조직의 모든 등록된 설정을 조회할 때 사용
+  Future<List<Map<String, dynamic>>> searchSharedApiSettingsByOrganization({
+    required String organizationName,
+  }) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔍 [DB] 조직명으로 모든 공유 API 설정 조회');
+        debugPrint('   조직명: $organizationName');
+      }
+      
+      // ⚡ 단일 where() 사용 (복합 인덱스 불필요)
+      final querySnapshot = await _firestore
+          .collection('shared_api_settings')
+          .where('organizationName', isEqualTo: organizationName)
+          .get();
+      
+      if (kDebugMode) {
+        debugPrint('   조회된 문서 수: ${querySnapshot.docs.length}');
+      }
+      
+      // Map으로 변환
+      final results = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+      
+      // lastUpdatedAt 또는 exportedAt으로 정렬 (최신순)
+      results.sort((a, b) {
+        final aTime = a['lastUpdatedAt'] ?? a['exportedAt'];
+        final bTime = b['lastUpdatedAt'] ?? b['exportedAt'];
+        
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return 1;
+        if (bTime == null) return -1;
+        
+        try {
+          final aDate = DateTime.parse(aTime as String);
+          final bDate = DateTime.parse(bTime as String);
+          return bDate.compareTo(aDate); // 내림차순 (최신순)
+        } catch (e) {
+          return 0;
+        }
+      });
+      
+      if (kDebugMode) {
+        debugPrint('✅ [DB] 조직명 기반 공유 API 설정 조회 완료');
+        debugPrint('   결과 개수: ${results.length}');
+        for (var result in results) {
+          debugPrint('   - App-Key: ${result['appKey']}, 등록자: ${result['exportedByEmail']}');
+        }
+      }
+      
+      return results;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [DB] 조직명 기반 공유 API 설정 조회 실패: $e');
+      }
+      rethrow;
+    }
+  }
+  
   /// 📥 공유 API 설정을 사용자 계정에 적용
   /// 선택한 공유 설정을 현재 사용자의 users 문서에 저장
   Future<void> importApiSettings({

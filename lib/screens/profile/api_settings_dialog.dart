@@ -270,22 +270,14 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
       return;
     }
     
-    // App-Key 입력 확인
-    final appKey = _appKeyController.text.trim();
-    if (appKey.isEmpty) {
-      await DialogUtils.showError(context, 'REST API App-Key를 먼저 입력해주세요.');
-      return;
-    }
-    
     setState(() => _isLoading = true);
     
     try {
       final dbService = DatabaseService();
       
-      // 공유 설정 조회
-      final sharedSettings = await dbService.searchSharedApiSettings(
+      // 조직명으로 모든 공유 설정 조회
+      final sharedSettings = await dbService.searchSharedApiSettingsByOrganization(
         organizationName: userModel.companyName!,
-        appKey: appKey,
       );
       
       if (mounted) {
@@ -296,7 +288,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
         if (mounted) {
           await DialogUtils.showInfo(
             context,
-            '조직명 "${userModel.companyName}"과 입력한 App-Key로\n내보낸 설정을 찾을 수 없습니다.\n\n관리자에게 먼저 설정을 내보내도록 요청해주세요.',
+            '조직명 "${userModel.companyName}"으로\n내보낸 설정을 찾을 수 없습니다.\n\n관리자에게 먼저 설정을 내보내도록 요청해주세요.',
             title: '설정을 찾을 수 없음',
           );
         }
@@ -329,19 +321,26 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
               itemCount: settings.length,
               itemBuilder: (context, index) {
                 final setting = settings[index];
+                final organizationName = setting['organizationName'] ?? '조직명 없음';
+                final appKey = setting['appKey'] ?? 'App-Key 없음';
+                final exportedByEmail = setting['exportedByEmail'] ?? '알 수 없음';
+                
                 final exportedAt = setting['lastUpdatedAt'] != null
                     ? DateTime.parse(setting['lastUpdatedAt'] as String)
                     : DateTime.parse(setting['exportedAt'] as String);
                 
+                final formattedDate = '${exportedAt.year}-${exportedAt.month.toString().padLeft(2, '0')}-${exportedAt.day.toString().padLeft(2, '0')} '
+                    '${exportedAt.hour.toString().padLeft(2, '0')}:${exportedAt.minute.toString().padLeft(2, '0')}';
+                
                 return ListTile(
                   title: Text(
-                    setting['apiBaseUrl'] ?? '설정 없음',
+                    '$organizationName: $appKey',
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(
-                    '내보낸 사람: ${setting['exportedByEmail']}\n'
-                    '업데이트: ${exportedAt.year}-${exportedAt.month.toString().padLeft(2, '0')}-${exportedAt.day.toString().padLeft(2, '0')} '
-                    '${exportedAt.hour.toString().padLeft(2, '0')}:${exportedAt.minute.toString().padLeft(2, '0')}',
+                    '등록 관리자: $exportedByEmail\n'
+                    'API 서버: ${setting['apiBaseUrl'] ?? '미설정'}\n'
+                    '업데이트: $formattedDate',
                     style: const TextStyle(fontSize: 12),
                   ),
                   onTap: () => Navigator.pop(context, setting),
