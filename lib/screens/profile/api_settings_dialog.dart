@@ -190,9 +190,9 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
       return;
     }
     
-    // 조직명 확인
-    if (userModel.organizationName == null || userModel.organizationName!.isEmpty) {
-      await DialogUtils.showError(context, '조직명이 설정되지 않았습니다.\n프로필에서 조직명을 먼저 설정해주세요.');
+    // 조직명(회사명) 확인
+    if (userModel.companyName == null || userModel.companyName!.isEmpty) {
+      await DialogUtils.showError(context, '조직명(회사명)이 설정되지 않았습니다.\n기본 API 설정에서 회사명을 먼저 입력하고 저장해주세요.');
       return;
     }
     
@@ -205,7 +205,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     // 확인 다이얼로그
     final confirmed = await DialogUtils.showConfirm(
       context,
-      '현재 설정을 내보내시겠습니까?\n\n조직명: ${userModel.organizationName}\nApp-Key: ${userModel.appKey}\n\n같은 조직의 다른 사용자가 이 설정을 가져올 수 있습니다.',
+      '현재 설정을 내보내시겠습니까?\n\n조직명: ${userModel.companyName}\nApp-Key: ${userModel.appKey}\n\n같은 조직의 다른 사용자가 이 설정을 가져올 수 있습니다.',
       title: 'API 설정 내보내기',
     );
     
@@ -219,7 +219,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
       await dbService.exportApiSettings(
         userId: userModel.uid,
         userEmail: userModel.email,
-        organizationName: userModel.organizationName!,
+        organizationName: userModel.companyName!,
         appKey: userModel.appKey!,
         companyName: userModel.companyName,
         companyId: userModel.companyId,
@@ -260,9 +260,13 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
       return;
     }
     
-    // 조직명 확인
-    if (userModel.organizationName == null || userModel.organizationName!.isEmpty) {
-      await DialogUtils.showError(context, '조직명이 설정되지 않았습니다.\n프로필에서 조직명을 먼저 설정해주세요.');
+    // 조직명(회사명) 확인 - 기본 다이얼로그로 안내
+    if (userModel.companyName == null || userModel.companyName!.isEmpty) {
+      await DialogUtils.showInfo(
+        context,
+        '조직명(회사명)이 설정되지 않았습니다.\n\n기본 API 설정에서 "회사명"을 먼저 입력하고 저장한 후\n설정을 가져올 수 있습니다.\n\n예: 회사명 = 우리회사',
+        title: '조직명 설정 필요',
+      );
       return;
     }
     
@@ -280,7 +284,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
       
       // 공유 설정 조회
       final sharedSettings = await dbService.searchSharedApiSettings(
-        organizationName: userModel.organizationName!,
+        organizationName: userModel.companyName!,
         appKey: appKey,
       );
       
@@ -292,7 +296,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
         if (mounted) {
           await DialogUtils.showInfo(
             context,
-            '조직명 "${userModel.organizationName}"과 입력한 App-Key로\n내보낸 설정을 찾을 수 없습니다.\n\n관리자에게 먼저 설정을 내보내도록 요청해주세요.',
+            '조직명 "${userModel.companyName}"과 입력한 App-Key로\n내보낸 설정을 찾을 수 없습니다.\n\n관리자에게 먼저 설정을 내보내도록 요청해주세요.',
             title: '설정을 찾을 수 없음',
           );
         }
@@ -409,7 +413,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     final dialogWidth = screenWidth > 600 ? 500.0 : screenWidth * 0.9;
     final userModel = context.watch<AuthService>().currentUserModel;
     final isAdmin = userModel?.isAdmin ?? false;
-    final organizationName = userModel?.organizationName;
+    final companyName = userModel?.companyName;
     
     return AlertDialog(
       title: Row(
@@ -417,8 +421,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
           const Expanded(
             child: Text('기본 API 설정', style: TextStyle(fontSize: 15)),
           ),
-          // 조직명이 있고 isAdmin인 경우 내보내기 버튼 표시
-          if (isAdmin && organizationName != null && organizationName.isNotEmpty)
+          // 조직명(회사명)이 있고 isAdmin인 경우 내보내기 버튼 표시
+          if (isAdmin && companyName != null && companyName.isNotEmpty)
             TextButton.icon(
               onPressed: _exportApiSettings,
               icon: const Icon(Icons.upload, size: 16),
@@ -427,8 +431,8 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
             ),
-          // 일반 사용자이고 조직명이 있는 경우 가져오기 버튼 표시
-          if (!isAdmin && organizationName != null && organizationName.isNotEmpty)
+          // 일반 사용자 - 항상 가져오기 버튼 표시 (조직명 없으면 안내 다이얼로그)
+          if (!isAdmin)
             TextButton.icon(
               onPressed: _showImportDialog,
               icon: const Icon(Icons.download, size: 16),
