@@ -196,6 +196,8 @@ class AuthService extends ChangeNotifier {
       if (kDebugMode) {
         debugPrint('❌ Failed to load user model: $e');
       }
+      // 🛑 CRITICAL: 예외를 rethrow하여 signIn()에서 처리할 수 있도록 함
+      rethrow;
     }
   }
   
