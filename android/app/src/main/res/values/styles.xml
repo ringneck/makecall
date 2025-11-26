@@ -5,9 +5,18 @@
         <!-- Show a splash screen on the activity. Automatically removed when
              the Flutter engine draws its first frame -->
         <item name="android:windowBackground">@drawable/launch_background</item>
-        <!-- Android 15 (SDK 35) Edge-to-Edge 지원 -->
-        <!-- shortEdges는 Android 15에서 always로 해석되므로 명시적으로 always 사용 -->
+        <!-- ========================================
+             ✅ Android 15 (SDK 35) Edge-to-Edge 지원
+             ========================================
+             Google Play Console 권장사항 준수:
+             ❌ 지원 중단: shortEdges (LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES)
+             ✅ Android 15 권장: always (LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS)
+             
+             노치/펀치홀 영역까지 콘텐츠 확장 허용
+             MainActivity.kt에서 프로그래매틱 설정으로 재확인
+             ======================================== -->
         <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">always</item>
+        <!-- 시스템 바 대비(contrast) 자동 조정 비활성화 (Edge-to-Edge용) -->
         <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
         <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>
     </style>
@@ -19,9 +28,18 @@
          This Theme is only used starting with V2 of Flutter's Android embedding. -->
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
-        <!-- Android 15 (SDK 35) Edge-to-Edge 지원 -->
-        <!-- shortEdges는 Android 15에서 always로 해석되므로 명시적으로 always 사용 -->
+        <!-- ========================================
+             ✅ Android 15 (SDK 35) Edge-to-Edge 지원
+             ========================================
+             Google Play Console 권장사항 준수:
+             ❌ 지원 중단: shortEdges (LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES)
+             ✅ Android 15 권장: always (LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS)
+             
+             노치/펀치홀 영역까지 콘텐츠 확장 허용
+             MainActivity.kt에서 프로그래매틱 설정으로 재확인
+             ======================================== -->
         <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">always</item>
+        <!-- 시스템 바 대비(contrast) 자동 조정 비활성화 (Edge-to-Edge용) -->
         <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
         <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>
     </style>

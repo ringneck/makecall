@@ -25,7 +25,8 @@ class MainActivity : FlutterActivity() {
         //
         // 1. EdgeToEdge.enable() - Google Play가 정적 분석으로 감지
         // 2. WindowCompat.setDecorFitsSystemWindows(false) - 시스템 바 뒤로 확장
-        // 3. Flutter 앱에서 SafeArea와 MediaQuery.padding으로 인셋 처리
+        // 3. Display Cutout Mode 설정 - Android 15 권장 API 사용
+        // 4. Flutter 앱에서 SafeArea와 MediaQuery.padding으로 인셋 처리
         // ========================================
         
         // ✅ METHOD 1: Java helper를 통한 EdgeToEdge.enable() 호출
@@ -45,10 +46,39 @@ class MainActivity : FlutterActivity() {
         Log.i("MainActivity", "✅ WindowCompat.setDecorFitsSystemWindows(false) 설정 완료")
         
         // ========================================
+        // ✅ METHOD 3: Display Cutout Mode 명시적 설정 (Android 15 권장)
+        // ========================================
+        // Google Play Console 경고 해결:
+        // "LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES는 Android 15에서 지원 중단"
+        //
+        // ❌ 지원 중단: LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES (1)
+        // ✅ Android 15 권장: LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS (3)
+        //
+        // Android P (API 28) 이상에서만 사용 가능
+        // ========================================
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            try {
+                // ✅ LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS 사용
+                // 노치/펀치홀 영역까지 콘텐츠 확장 (권장)
+                window.attributes.layoutInDisplayCutoutMode = 
+                    android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                
+                Log.i("MainActivity", "✅ Display Cutout Mode: ALWAYS (Android 15 권장)")
+                Log.i("MainActivity", "   → 노치/펀치홀 영역까지 콘텐츠 확장")
+                Log.i("MainActivity", "   → shortEdges 지원 중단 경고 해결")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "❌ Display Cutout Mode 설정 실패", e)
+            }
+        } else {
+            Log.i("MainActivity", "ℹ️ Display Cutout Mode: Android P 미만 버전 - 설정 건너뜀")
+        }
+        
+        // ========================================
         // ℹ️ 참고사항:
         // - Android 15 (API 35) 이상에서는 기본적으로 Edge-to-Edge 모드 활성화
         // - Flutter 앱의 SafeArea 위젯이 자동으로 시스템 인셋 처리
         // - MediaQuery.of(context).padding을 사용하여 상태바/네비게이션바 높이 확인 가능
+        // - Display Cutout Mode는 노치/펀치홀이 있는 기기에서 중요
         // ========================================
         
         // 카카오 로그인용 키 해시 출력
