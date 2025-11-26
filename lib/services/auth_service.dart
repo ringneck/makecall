@@ -689,10 +689,11 @@ class AuthService extends ChangeNotifier {
       String? deviceName;
       
       try {
+        // 🔍 CRITICAL: FCM 토큰은 최상위 컬렉션에 저장됨
+        // 경로: fcm_tokens/{userId}_{deviceId}_{platform}
         final fcmTokensSnapshot = await _firestore
-            .collection('users')
-            .doc(user.uid)
             .collection('fcm_tokens')
+            .where('userId', isEqualTo: user.uid)
             .where('isActive', isEqualTo: true)
             .limit(1)
             .get();
@@ -706,6 +707,10 @@ class AuthService extends ChangeNotifier {
             debugPrint('📱 [1/4] 디바이스 정보 확인');
             debugPrint('   Device ID: ${deviceId ?? "없음"}');
             debugPrint('   Device Name: ${deviceName ?? "없음"}');
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('⚠️  [1/4] 활성화된 FCM 토큰 없음');
           }
         }
       } catch (e) {
