@@ -10,6 +10,26 @@ import 'account_manager_service.dart';
 import 'fcm_service.dart';
 import 'dcmiws_connection_manager.dart';
 
+/// 🛑 서비스 이용 중지 예외 클래스
+/// 
+/// 이용 중지된 계정이 로그인 시도할 때 발생하는 예외
+class ServiceSuspendedException implements Exception {
+  final String? suspendedAt;
+  final String? deviceId;
+  final String? deviceName;
+  
+  ServiceSuspendedException({
+    this.suspendedAt,
+    this.deviceId,
+    this.deviceName,
+  });
+  
+  @override
+  String toString() {
+    return 'ServiceSuspendedException: Account suspended at $suspendedAt';
+  }
+}
+
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -109,6 +129,41 @@ class AuthService extends ChangeNotifier {
       
       if (doc.exists) {
         final data = doc.data()!;
+        
+        // 🛑 CRITICAL: 최우선 이용 중지 여부 확인
+        final isActive = data['isActive'] as bool? ?? true;
+        
+        if (!isActive) {
+          // 이용 중지된 계정 - 로그아웃 처리하고 예외 발생
+          final suspendedAt = data['suspendedAt'] as String?;
+          final suspendedDeviceId = data['suspendedDeviceId'] as String?;
+          final suspendedDeviceName = data['suspendedDeviceName'] as String?;
+          
+          if (kDebugMode) {
+            debugPrint('');
+            debugPrint('🛑 ========== 서비스 이용 중지 계정 ==========');
+            debugPrint('   📧 이메일: ${data['email']}');
+            debugPrint('   🆔 UID: $uid');
+            debugPrint('   📅 중지 일시: $suspendedAt');
+            debugPrint('   📱 디바이스 ID: ${suspendedDeviceId ?? "없음"}');
+            debugPrint('   📱 디바이스 이름: ${suspendedDeviceName ?? "없음"}');
+            debugPrint('   ⚠️  로그인 차단 - 로그아웃 처리');
+            debugPrint('================================================');
+            debugPrint('');
+          }
+          
+          // 로그아웃 처리
+          await _auth.signOut();
+          _tempPassword = null;
+          
+          // 예외 발생 (UI에서 다이얼로그 표시용)
+          throw ServiceSuspendedException(
+            suspendedAt: suspendedAt,
+            deviceId: suspendedDeviceId,
+            deviceName: suspendedDeviceName,
+          );
+        }
+        
         _currentUserModel = UserModel.fromMap(data, uid);
         
         await _accountManager.saveAccount(_currentUserModel!, password: password ?? _tempPassword);
@@ -597,47 +652,83 @@ class AuthService extends ChangeNotifier {
         debugPrint('');
       }
       
-      // 1️⃣ Firestore에 계정 비활성화 상태 기록
+      // 1️⃣ 현재 디바이스 정보 가져오기 (FCM 토큰에서)
+      String? deviceId;
+      String? deviceName;
+      
+      try {
+        final fcmTokensSnapshot = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('fcm_tokens')
+            .where('isActive', isEqualTo: true)
+            .limit(1)
+            .get();
+        
+        if (fcmTokensSnapshot.docs.isNotEmpty) {
+          final tokenData = fcmTokensSnapshot.docs.first.data();
+          deviceId = tokenData['deviceId'] as String?;
+          deviceName = tokenData['deviceName'] as String?;
+          
+          if (kDebugMode) {
+            debugPrint('📱 [1/4] 디바이스 정보 확인');
+            debugPrint('   Device ID: ${deviceId ?? "없음"}');
+            debugPrint('   Device Name: ${deviceName ?? "없음"}');
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('⚠️  [1/4] FCM 토큰 조회 오류 (무시): $e');
+        }
+      }
+      
+      // 2️⃣ Firestore에 계정 비활성화 상태 기록
       try {
         await _firestore.collection('users').doc(user.uid).update({
           'isActive': false,
           'suspendedAt': DateTime.now().toIso8601String(),
+          'suspendedDeviceId': deviceId,
+          'suspendedDeviceName': deviceName,
         });
         
         if (kDebugMode) {
-          debugPrint('✅ [1/3] Firestore 계정 상태 업데이트 완료 (isActive: false)');
+          debugPrint('✅ [2/4] Firestore 계정 상태 업데이트 완료');
+          debugPrint('   isActive: false');
+          debugPrint('   suspendedAt: ${DateTime.now().toIso8601String()}');
+          debugPrint('   suspendedDeviceId: ${deviceId ?? "없음"}');
+          debugPrint('   suspendedDeviceName: ${deviceName ?? "없음"}');
         }
       } catch (e) {
         if (kDebugMode) {
-          debugPrint('⚠️  [1/3] Firestore 업데이트 오류: $e');
+          debugPrint('⚠️  [2/4] Firestore 업데이트 오류: $e');
         }
         rethrow;
       }
       
-      // 2️⃣ Firebase Authentication 계정 비활성화
+      // 3️⃣ Firebase Authentication 계정 비활성화
       try {
         // Firebase Admin SDK를 사용해야 하지만, 클라이언트에서는 불가능
         // 따라서 Firestore 상태만 업데이트하고 로그아웃 처리
         if (kDebugMode) {
-          debugPrint('✅ [2/3] 계정 비활성화 완료 (Firestore 상태)');
+          debugPrint('✅ [3/4] 계정 비활성화 완료 (Firestore 상태)');
         }
       } catch (e) {
         if (kDebugMode) {
-          debugPrint('⚠️  [2/3] 계정 비활성화 오류: $e');
+          debugPrint('⚠️  [3/4] 계정 비활성화 오류: $e');
         }
         rethrow;
       }
       
-      // 3️⃣ 로그아웃 처리
+      // 4️⃣ 로그아웃 처리
       try {
         if (kDebugMode) {
-          debugPrint('🔓 [3/3] 로그아웃 처리 시작...');
+          debugPrint('🔓 [4/4] 로그아웃 처리 시작...');
         }
         
         await signOut();
         
         if (kDebugMode) {
-          debugPrint('✅ [3/3] 로그아웃 완료');
+          debugPrint('✅ [4/4] 로그아웃 완료');
           debugPrint('');
           debugPrint('✅ 서비스 이용 중지 완료!');
           debugPrint('✅ 계정 상태: 비활성화 (isActive: false)');
@@ -647,7 +738,7 @@ class AuthService extends ChangeNotifier {
         }
       } catch (e) {
         if (kDebugMode) {
-          debugPrint('⚠️  [3/3] 로그아웃 오류: $e');
+          debugPrint('⚠️  [4/4] 로그아웃 오류: $e');
         }
         rethrow;
       }
