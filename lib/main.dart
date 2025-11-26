@@ -327,20 +327,57 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugPrint('🔄 [MyApp] App lifecycle changed to $state');
     }
     
-    // iOS에서 포그라운드 복귀 시 UI 강제 재렌더링 및 배지 초기화
-    if (state == AppLifecycleState.resumed) {
-      if (kDebugMode) {
-        debugPrint('🌞 [MyApp] App resumed - forcing UI rebuild');
-      }
-      
-      // 🔔 iOS 배지 초기화 (포그라운드 복귀 시)
-      _clearBadge();
-      
-      if (mounted) {
-        setState(() {
-          // UI 강제 재렌더링 트리거
-        });
-      }
+    // ========================================
+    // ⏱️ 비활성 타이머 생명주기 관리
+    // ========================================
+    // iOS/Android 백그라운드 최적화:
+    // - paused: 앱이 백그라운드로 전환 → 타이머 일시정지 (선택적)
+    // - resumed: 앱이 포그라운드로 복귀 → 타이머 재개
+    // 
+    // ⚠️ BGTaskScheduler 불필요:
+    // - Dart Timer는 포그라운드에서만 작동 (시스템이 자동 일시정지)
+    // - 백그라운드에서 타이머 계속 실행하지 않음 (배터리 효율적)
+    // - 포그라운드 복귀 시 resume()으로 타이머 재시작
+    // ========================================
+    switch (state) {
+      case AppLifecycleState.paused:
+        // 앱이 백그라운드로 전환
+        if (kDebugMode) {
+          debugPrint('⏸️ [MyApp] App paused - InactivityService 자동 일시정지');
+        }
+        // ℹ️ 명시적으로 pause() 호출 불필요 (Dart Timer는 자동 정지)
+        // 필요 시 주석 해제: _inactivityService.pause();
+        break;
+        
+      case AppLifecycleState.resumed:
+        // 앱이 포그라운드로 복귀
+        if (kDebugMode) {
+          debugPrint('🌞 [MyApp] App resumed - forcing UI rebuild');
+        }
+        
+        // 🔔 iOS 배지 초기화 (포그라운드 복귀 시)
+        _clearBadge();
+        
+        // ⏱️ 비활성 타이머 재개
+        if (_inactivityService.isActive) {
+          _inactivityService.resume();
+          if (kDebugMode) {
+            debugPrint('▶️ [MyApp] InactivityService 재개');
+          }
+        }
+        
+        if (mounted) {
+          setState(() {
+            // UI 강제 재렌더링 트리거
+          });
+        }
+        break;
+        
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        // 기타 상태는 특별한 처리 불필요
+        break;
     }
   }
   
