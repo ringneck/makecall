@@ -34,7 +34,7 @@ class ServiceSuspensionSection extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                '이용중지 안내',
+                '서비스 이용중지 안내',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -64,13 +64,13 @@ class ServiceSuspensionSection extends StatelessWidget {
                     children: [
                       _buildInfoRow(
                         '1.',
-                        '이용 중지를 하시면 MAKECALL 서비스의 클릭투콜, 착신전환, 수신전화알림 등의 서비스를 이용하실 수 없습니다.',
+                        '서비스 이용중지를 하시면 MAKECALL 주요서비스인 클릭투콜, 착신전환, 수신전화알림 등의 서비스를 이용하실 수 없습니다.',
                         isDark,
                       ),
                       const SizedBox(height: 12),
                       _buildInfoRow(
                         '2.',
-                        '이용 중지를 하시더라도 서비스가 해지되는 것은 아니며 해지를 원하시는 경우는 영업사에 문의를 하여 주시기 바랍니다.',
+                        '서비스 이용중지를 하시더라도 서비스가 해지되는 것은 아니며 해지를 원하시는 경우는 영업사에 문의를 하여 주시기 바랍니다.',
                         isDark,
                       ),
                     ],
