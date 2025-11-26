@@ -11,6 +11,7 @@ import '../../services/social_login_service.dart';
 import '../../utils/dialog_utils.dart';
 import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
+import '../../main.dart' show navigatorKey;
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -239,7 +240,215 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
   }
   
-  /// 🛑 서비스 이용 중지 안내 다이얼로그
+  /// 🛑 서비스 이용 중지 안내 다이얼로그 (글로벌 컨텍스트용)
+  /// mounted 상태와 무관하게 navigatorKey.currentContext를 사용하여 표시
+  static Future<void> _showServiceSuspendedDialogGlobal({
+    required BuildContext context,
+    String? suspendedAt,
+    String? deviceId,
+    String? deviceName,
+  }) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // 날짜 포맷팅
+    String formattedDate = '정보 없음';
+    if (suspendedAt != null) {
+      try {
+        final dateTime = DateTime.parse(suspendedAt);
+        formattedDate = '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
+            '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+      } catch (e) {
+        formattedDate = suspendedAt;
+      }
+    }
+    
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.block,
+                color: isDark ? Colors.red[300] : Colors.red[700],
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '서비스 이용중지 사용자입니다',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark 
+                        ? Colors.red[900]!.withValues(alpha: 0.2) 
+                        : Colors.red[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? Colors.red[700]! : Colors.red[200]!,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 중지 일시
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 16,
+                            color: isDark ? Colors.red[300] : Colors.red[700],
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '서비스 이용중지 일시',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.red[300] : Colors.red[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  formattedDate,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDark ? Colors.grey[300] : Colors.grey[800],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      // 디바이스 정보 (있을 경우만 표시)
+                      if (deviceId != null || deviceName != null) ...[
+                        const SizedBox(height: 16),
+                        const Divider(height: 1),
+                        const SizedBox(height: 16),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.phone_android,
+                              size: 16,
+                              color: isDark ? Colors.red[300] : Colors.red[700],
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '디바이스 정보',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.red[300] : Colors.red[700],
+                                    ),
+                                  ),
+                                  if (deviceName != null) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      deviceName,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: isDark ? Colors.grey[300] : Colors.grey[800],
+                                      ),
+                                    ),
+                                  ],
+                                  if (deviceId != null) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'ID: $deviceId',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '서비스 재개를 원하시면 고객센터로 문의해주세요.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey[400] : Colors.grey[700],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? Colors.grey[700] : Colors.grey[600],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  '닫기',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  /// 🛑 서비스 이용 중지 안내 다이얼로그 (인스턴스 메서드용)
+  /// mounted 상태에서만 사용
   Future<void> _showServiceSuspendedDialog({
     String? suspendedAt,
     String? deviceId,
@@ -562,18 +771,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('🛑 [SOCIAL LOGIN] 서비스 이용 중지 계정 감지');
           }
           
-          // 오버레이 제거
-          if (mounted) {
-            SocialLoginProgressHelper.hide();
+          // 항상 오버레이 제거 (mounted 체크 불필요 - static 메서드)
+          SocialLoginProgressHelper.hide();
+          
+          // navigatorKey.currentContext를 사용하여 다이얼로그 표시
+          // mounted 상태와 무관하게 항상 표시 가능
+          if (kDebugMode) {
+            debugPrint('🔍 [SOCIAL LOGIN] navigatorKey.currentContext 확인: ${navigatorKey.currentContext != null}');
           }
           
-          // 서비스 이용 중지 다이얼로그 표시
-          if (mounted) {
-            await _showServiceSuspendedDialog(
+          if (navigatorKey.currentContext != null) {
+            await _showServiceSuspendedDialogGlobal(
+              context: navigatorKey.currentContext!,
               suspendedAt: e.suspendedAt,
               deviceId: e.deviceId,
               deviceName: e.deviceName,
             );
+          } else {
+            if (kDebugMode) {
+              debugPrint('⚠️ [SOCIAL LOGIN] navigatorKey.currentContext가 null입니다');
+            }
           }
           
           return;
