@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
+import '../../models/user_model.dart';
 
 class ApiSettingsDialog extends StatefulWidget {
   const ApiSettingsDialog({super.key});
@@ -202,11 +203,31 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
       return;
     }
     
-    // 확인 다이얼로그
-    final confirmed = await DialogUtils.showConfirm(
-      context,
-      '현재 설정을 내보내시겠습니까?\n\n조직명: ${userModel.companyName}\nApp-Key: ${userModel.appKey}\n\n같은 조직의 다른 사용자가 이 설정을 가져올 수 있습니다.',
-      title: 'API 설정 내보내기',
+    // 기존 내보내기 정보 조회
+    setState(() => _isLoading = true);
+    Map<String, dynamic>? existingExport;
+    
+    try {
+      final dbService = DatabaseService();
+      existingExport = await dbService.getExistingExportInfo(
+        userId: userModel.uid,
+        organizationName: userModel.companyName!,
+        appKey: userModel.appKey!,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('기존 내보내기 정보 조회 실패: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+    
+    // 확인 다이얼로그 (다크모드 최적화, 기존 내보내기 정보 포함)
+    final confirmed = await _showExportConfirmDialog(
+      userModel: userModel,
+      existingExport: existingExport,
     );
     
     if (confirmed != true) return;
@@ -307,13 +328,81 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     }
   }
   
-  /// 📋 가져올 설정 선택 다이얼로그
+  /// 📋 가져올 설정 선택 다이얼로그 (다크모드 최적화)
   Future<void> _showSelectSettingDialog(List<Map<String, dynamic>> settings) async {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     final selectedSetting = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('API 설정 선택', style: TextStyle(fontSize: 15)),
+          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 메인 타이틀
+              Row(
+                children: [
+                  Icon(
+                    Icons.download_rounded,
+                    color: isDark ? Colors.green.shade300 : Colors.green,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'API 설정 선택',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              // 주의 메시지 배너
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark 
+                      ? Colors.red.shade900.withValues(alpha: 0.3)
+                      : Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark 
+                        ? Colors.red.shade700.withValues(alpha: 0.5)
+                        : Colors.red.shade200,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '[주의] 기존의 기본 API 설정은 변경됩니다.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.red.shade200 : Colors.red.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -332,18 +421,89 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 final formattedDate = '${exportedAt.year}-${exportedAt.month.toString().padLeft(2, '0')}-${exportedAt.day.toString().padLeft(2, '0')} '
                     '${exportedAt.hour.toString().padLeft(2, '0')}:${exportedAt.minute.toString().padLeft(2, '0')}';
                 
-                return ListTile(
-                  title: Text(
-                    '$organizationName: $appKey',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  color: isDark 
+                      ? const Color(0xFF2A2A2A)
+                      : Colors.grey.shade50,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: isDark 
+                          ? Colors.grey.shade700.withValues(alpha: 0.3)
+                          : Colors.grey.shade300,
+                      width: 1,
+                    ),
                   ),
-                  subtitle: Text(
-                    '등록 관리자: $exportedByEmail\n'
-                    'API 서버: ${setting['apiBaseUrl'] ?? '미설정'}\n'
-                    '업데이트: $formattedDate',
-                    style: const TextStyle(fontSize: 12),
+                  child: InkWell(
+                    onTap: () => Navigator.pop(context, setting),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 조직명: App-Key (강조)
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.vpn_key_rounded,
+                                size: 18,
+                                color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '$organizationName: $appKey',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          
+                          // 구분선
+                          Divider(
+                            height: 1,
+                            color: isDark 
+                                ? Colors.grey.shade700.withValues(alpha: 0.3)
+                                : Colors.grey.shade300,
+                          ),
+                          const SizedBox(height: 8),
+                          
+                          // 등록 관리자
+                          _buildSettingInfoRow(
+                            icon: Icons.person_outline_rounded,
+                            label: '등록 관리자',
+                            value: exportedByEmail,
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 6),
+                          
+                          // API 서버
+                          _buildSettingInfoRow(
+                            icon: Icons.dns_rounded,
+                            label: 'API 서버',
+                            value: setting['apiBaseUrl'] ?? '미설정',
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 6),
+                          
+                          // 업데이트 시간
+                          _buildSettingInfoRow(
+                            icon: Icons.access_time_rounded,
+                            label: '업데이트',
+                            value: formattedDate,
+                            isDark: isDark,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  onTap: () => Navigator.pop(context, setting),
                 );
               },
             ),
@@ -351,7 +511,13 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('취소', style: TextStyle(fontSize: 13)),
+              child: Text(
+                '취소',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                ),
+              ),
             ),
           ],
         );
@@ -362,6 +528,308 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     
     // 선택한 설정 가져오기
     await _importSelectedSetting(selectedSetting);
+  }
+  
+  /// 📊 설정 정보 행 위젯 (선택 다이얼로그용)
+  Widget _buildSettingInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required bool isDark,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 14,
+          color: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+              ),
+              children: [
+                TextSpan(
+                  text: '$label: ',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                TextSpan(
+                  text: value,
+                  style: TextStyle(
+                    color: isDark ? Colors.grey.shade300 : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  /// 📤 내보내기 확인 다이얼로그 (다크모드 최적화)
+  Future<bool?> _showExportConfirmDialog({
+    required UserModel userModel,
+    Map<String, dynamic>? existingExport,
+  }) async {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // 기존 내보내기 정보가 있으면 날짜 포맷
+    String? lastExportedDate;
+    if (existingExport != null) {
+      try {
+        final lastUpdated = existingExport['lastUpdatedAt'] ?? existingExport['exportedAt'];
+        if (lastUpdated != null) {
+          final date = DateTime.parse(lastUpdated as String);
+          lastExportedDate = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
+              '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('날짜 파싱 실패: $e');
+        }
+      }
+    }
+    
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.upload_rounded,
+                color: isDark ? Colors.blue.shade300 : Colors.blue,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'API 설정 내보내기',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 설명 텍스트
+                Text(
+                  '현재 설정을 조직 구성원과 공유하시겠습니까?',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey.shade300 : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // 정보 카드
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark 
+                        ? Colors.blue.shade900.withValues(alpha: 0.2)
+                        : Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark 
+                          ? Colors.blue.shade700.withValues(alpha: 0.3)
+                          : Colors.blue.shade200,
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInfoRow(
+                        icon: Icons.business_rounded,
+                        label: '조직명',
+                        value: userModel.companyName ?? '',
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildInfoRow(
+                        icon: Icons.vpn_key_rounded,
+                        label: 'App-Key',
+                        value: userModel.appKey ?? '',
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildInfoRow(
+                        icon: Icons.dns_rounded,
+                        label: 'API 서버',
+                        value: userModel.apiBaseUrl ?? '미설정',
+                        isDark: isDark,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // 기존 내보내기 정보 표시
+                if (lastExportedDate != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark 
+                          ? Colors.orange.shade900.withValues(alpha: 0.2)
+                          : Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark 
+                            ? Colors.orange.shade700.withValues(alpha: 0.3)
+                            : Colors.orange.shade200,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.history_rounded,
+                          color: isDark ? Colors.orange.shade300 : Colors.orange.shade700,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '지난 내보내기',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.orange.shade300 : Colors.orange.shade700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                lastExportedDate,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
+                const SizedBox(height: 16),
+                
+                // 안내 메시지
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 18,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '같은 조직명을 사용하는 구성원이 이 설정을 가져올 수 있습니다.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                '취소',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                ),
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.pop(context, true),
+              icon: const Icon(Icons.upload_rounded, size: 18),
+              label: const Text('내보내기', style: TextStyle(fontSize: 14)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? Colors.blue.shade600 : Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  /// 📊 정보 행 위젯
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required bool isDark,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.grey.shade300 : Colors.black87,
+              ),
+              children: [
+                TextSpan(
+                  text: '$label: ',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                  ),
+                ),
+                TextSpan(
+                  text: value,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
   
   /// 💾 선택한 설정 가져오기 및 적용

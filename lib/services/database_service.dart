@@ -1892,6 +1892,55 @@ class DatabaseService {
     }
   }
   
+  /// 🔍 현재 사용자의 기존 내보내기 정보 조회
+  /// 내보내기 전에 기존 내보내기 이력이 있는지 확인할 때 사용
+  Future<Map<String, dynamic>?> getExistingExportInfo({
+    required String userId,
+    required String organizationName,
+    required String appKey,
+  }) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔍 [DB] 기존 내보내기 정보 조회');
+        debugPrint('   사용자 ID: $userId');
+        debugPrint('   조직명: $organizationName');
+        debugPrint('   App-Key: $appKey');
+      }
+      
+      // 현재 사용자가 이전에 내보낸 설정이 있는지 조회
+      final querySnapshot = await _firestore
+          .collection('shared_api_settings')
+          .where('organizationName', isEqualTo: organizationName)
+          .where('appKey', isEqualTo: appKey)
+          .where('exportedByUserId', isEqualTo: userId)
+          .limit(1)
+          .get();
+      
+      if (querySnapshot.docs.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('   기존 내보내기 정보 없음');
+        }
+        return null;
+      }
+      
+      final doc = querySnapshot.docs.first;
+      final data = doc.data();
+      data['id'] = doc.id;
+      
+      if (kDebugMode) {
+        debugPrint('✅ [DB] 기존 내보내기 정보 발견');
+        debugPrint('   마지막 업데이트: ${data['lastUpdatedAt'] ?? data['exportedAt']}');
+      }
+      
+      return data;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [DB] 기존 내보내기 정보 조회 실패: $e');
+      }
+      rethrow;
+    }
+  }
+  
   /// 📥 공유 API 설정을 사용자 계정에 적용
   /// 선택한 공유 설정을 현재 사용자의 users 문서에 저장
   Future<void> importApiSettings({
