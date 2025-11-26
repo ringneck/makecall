@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -274,6 +275,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   
   // 🎨 테마 Provider
   final ThemeProvider _themeProvider = ThemeProvider();
+  
+  // 🔔 알림 플러그인 (iOS 배지 초기화용)
+  final FlutterLocalNotificationsPlugin _notificationsPlugin = 
+      FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
@@ -281,6 +286,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     
     // 🔄 앱 생명주기 옵저버 등록 (iOS 화면 검게 변하는 문제 해결)
     WidgetsBinding.instance.addObserver(this);
+    
+    // 🔔 iOS 배지 초기화 (앱 시작 시)
+    _clearBadge();
     
     // 🎨 테마 설정 로드
     _themeProvider.loadThemeMode();
@@ -319,16 +327,44 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugPrint('🔄 [MyApp] App lifecycle changed to $state');
     }
     
-    // iOS에서 포그라운드 복귀 시 UI 강제 재렌더링
+    // iOS에서 포그라운드 복귀 시 UI 강제 재렌더링 및 배지 초기화
     if (state == AppLifecycleState.resumed) {
       if (kDebugMode) {
         debugPrint('🌞 [MyApp] App resumed - forcing UI rebuild');
       }
       
+      // 🔔 iOS 배지 초기화 (포그라운드 복귀 시)
+      _clearBadge();
+      
       if (mounted) {
         setState(() {
           // UI 강제 재렌더링 트리거
         });
+      }
+    }
+  }
+  
+  /// 🔔 iOS 배지 초기화
+  Future<void> _clearBadge() async {
+    // iOS에서만 실행
+    if (kIsWeb || !Platform.isIOS) return;
+    
+    try {
+      // 방법 1: 모든 알림 제거
+      await _notificationsPlugin.cancelAll();
+      
+      // 방법 2: 배지를 명시적으로 0으로 설정
+      await _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(badge: true);
+      
+      if (kDebugMode) {
+        debugPrint('✅ [Badge] iOS 배지 초기화 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [Badge] iOS 배지 초기화 실패: $e');
       }
     }
   }

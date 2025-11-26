@@ -215,9 +215,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
         appKey: userModel.appKey!,
       );
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('기존 내보내기 정보 조회 실패: $e');
-      }
+      // 기존 내보내기 정보 조회 실패 시 무시 (선택적 기능)
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -413,13 +411,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
                 final organizationName = setting['organizationName'] ?? '조직명 없음';
                 final appKey = setting['appKey'] ?? 'App-Key 없음';
                 final exportedByEmail = setting['exportedByEmail'] ?? '알 수 없음';
-                
-                final exportedAt = setting['lastUpdatedAt'] != null
-                    ? DateTime.parse(setting['lastUpdatedAt'] as String)
-                    : DateTime.parse(setting['exportedAt'] as String);
-                
-                final formattedDate = '${exportedAt.year}-${exportedAt.month.toString().padLeft(2, '0')}-${exportedAt.day.toString().padLeft(2, '0')} '
-                    '${exportedAt.hour.toString().padLeft(2, '0')}:${exportedAt.minute.toString().padLeft(2, '0')}';
+                final formattedDate = _formatDateTime(setting);
                 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -530,6 +522,20 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     await _importSelectedSetting(selectedSetting);
   }
   
+  /// 📅 날짜 포맷팅 헬퍼 메서드
+  String _formatDateTime(Map<String, dynamic> data) {
+    try {
+      final dateString = data['lastUpdatedAt'] ?? data['exportedAt'];
+      if (dateString == null) return '날짜 정보 없음';
+      
+      final date = DateTime.parse(dateString as String);
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
+          '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return '날짜 파싱 실패';
+    }
+  }
+  
   /// 📊 설정 정보 행 위젯 (선택 다이얼로그용)
   Widget _buildSettingInfoRow({
     required IconData icon,
@@ -581,21 +587,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
     final isDark = theme.brightness == Brightness.dark;
     
     // 기존 내보내기 정보가 있으면 날짜 포맷
-    String? lastExportedDate;
-    if (existingExport != null) {
-      try {
-        final lastUpdated = existingExport['lastUpdatedAt'] ?? existingExport['exportedAt'];
-        if (lastUpdated != null) {
-          final date = DateTime.parse(lastUpdated as String);
-          lastExportedDate = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
-              '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('날짜 파싱 실패: $e');
-        }
-      }
-    }
+    final lastExportedDate = existingExport != null ? _formatDateTime(existingExport) : null;
     
     return showDialog<bool>(
       context: context,

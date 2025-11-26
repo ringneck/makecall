@@ -1696,12 +1696,6 @@ class DatabaseService {
     int? amiServerId,
   }) async {
     try {
-      if (kDebugMode) {
-        debugPrint('📤 [DB] API 설정 내보내기 시작');
-        debugPrint('   조직명: $organizationName');
-        debugPrint('   App-Key: $appKey');
-      }
-      
       // 동일한 조직명 + App-Key 조합이 이미 있는지 확인
       final existingQuery = await _firestore
           .collection('shared_api_settings')
@@ -1738,23 +1732,13 @@ class DatabaseService {
             .collection('shared_api_settings')
             .doc(docId)
             .update(settingsData);
-        
-        if (kDebugMode) {
-          debugPrint('✅ [DB] 기존 API 설정 업데이트 완료');
-          debugPrint('   문서 ID: $docId');
-        }
       } else {
         // 새로운 설정 생성
         settingsData['exportedAt'] = now.toIso8601String();
         
-        final docRef = await _firestore
+        await _firestore
             .collection('shared_api_settings')
             .add(settingsData);
-        
-        if (kDebugMode) {
-          debugPrint('✅ [DB] 새로운 API 설정 내보내기 완료');
-          debugPrint('   문서 ID: ${docRef.id}');
-        }
       }
     } catch (e) {
       if (kDebugMode) {
@@ -1835,20 +1819,11 @@ class DatabaseService {
     required String organizationName,
   }) async {
     try {
-      if (kDebugMode) {
-        debugPrint('🔍 [DB] 조직명으로 모든 공유 API 설정 조회');
-        debugPrint('   조직명: $organizationName');
-      }
-      
       // ⚡ 단일 where() 사용 (복합 인덱스 불필요)
       final querySnapshot = await _firestore
           .collection('shared_api_settings')
           .where('organizationName', isEqualTo: organizationName)
           .get();
-      
-      if (kDebugMode) {
-        debugPrint('   조회된 문서 수: ${querySnapshot.docs.length}');
-      }
       
       // Map으로 변환
       final results = querySnapshot.docs.map((doc) {
@@ -1875,14 +1850,6 @@ class DatabaseService {
         }
       });
       
-      if (kDebugMode) {
-        debugPrint('✅ [DB] 조직명 기반 공유 API 설정 조회 완료');
-        debugPrint('   결과 개수: ${results.length}');
-        for (var result in results) {
-          debugPrint('   - App-Key: ${result['appKey']}, 등록자: ${result['exportedByEmail']}');
-        }
-      }
-      
       return results;
     } catch (e) {
       if (kDebugMode) {
@@ -1900,13 +1867,6 @@ class DatabaseService {
     required String appKey,
   }) async {
     try {
-      if (kDebugMode) {
-        debugPrint('🔍 [DB] 기존 내보내기 정보 조회');
-        debugPrint('   사용자 ID: $userId');
-        debugPrint('   조직명: $organizationName');
-        debugPrint('   App-Key: $appKey');
-      }
-      
       // 현재 사용자가 이전에 내보낸 설정이 있는지 조회
       final querySnapshot = await _firestore
           .collection('shared_api_settings')
@@ -1917,20 +1877,12 @@ class DatabaseService {
           .get();
       
       if (querySnapshot.docs.isEmpty) {
-        if (kDebugMode) {
-          debugPrint('   기존 내보내기 정보 없음');
-        }
         return null;
       }
       
       final doc = querySnapshot.docs.first;
       final data = doc.data();
       data['id'] = doc.id;
-      
-      if (kDebugMode) {
-        debugPrint('✅ [DB] 기존 내보내기 정보 발견');
-        debugPrint('   마지막 업데이트: ${data['lastUpdatedAt'] ?? data['exportedAt']}');
-      }
       
       return data;
     } catch (e) {

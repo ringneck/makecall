@@ -1,5 +1,7 @@
+import 'dart:io' show Platform;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'fcm_notification_sound_service.dart';
 import 'fcm_platform_utils.dart';
 import '../database_service.dart';
@@ -55,6 +57,9 @@ class FCMMessageHandler {
     if (kDebugMode) {
       debugPrint('🔔 [FCM-HANDLER] 백그라운드 알림 탭: ${message.notification?.title ?? message.data['type']}');
     }
+    
+    // 🔔 iOS 배지 제거 (알림 탭 시)
+    _clearBadgeOnNotificationTap();
     
     // 메시지 타입별 라우팅
     _routeMessage(message, isForeground: false);
@@ -301,6 +306,27 @@ class FCMMessageHandler {
       // ignore: avoid_print
       print('   - data[$key]: $value (${value.runtimeType})');
     });
+  }
+
+  /// 🔔 알림 탭 시 iOS 배지 제거
+  Future<void> _clearBadgeOnNotificationTap() async {
+    // iOS에서만 실행
+    if (kIsWeb || !Platform.isIOS) return;
+    
+    try {
+      final notificationsPlugin = FlutterLocalNotificationsPlugin();
+      
+      // 모든 알림 제거 (배지 포함)
+      await notificationsPlugin.cancelAll();
+      
+      if (kDebugMode) {
+        debugPrint('✅ [Badge] 알림 탭으로 iOS 배지 제거');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [Badge] 알림 탭 시 배지 제거 실패: $e');
+      }
+    }
   }
 
   /// 처리된 메시지 ID 초기화
