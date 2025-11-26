@@ -159,14 +159,13 @@ class AuthService extends ChangeNotifier {
             debugPrint('   📅 중지 일시: $suspendedAt');
             debugPrint('   📱 디바이스 ID: ${suspendedDeviceId ?? "없음"}');
             debugPrint('   📱 디바이스 이름: ${suspendedDeviceName ?? "없음"}');
-            debugPrint('   ⚠️  로그인 차단 - 로그아웃 처리');
+            debugPrint('   ⚠️  로그인 차단 - 예외 발생');
             debugPrint('================================================');
             debugPrint('');
           }
           
-          // 로그아웃 처리
-          await _auth.signOut();
-          _tempPassword = null;
+          // 🛑 CRITICAL: 로그아웃은 signIn()에서 처리
+          // 여기서 signOut()을 호출하면 authStateChanges가 발생하여 복잡해짐
           
           // 예외 발생 (UI에서 다이얼로그 표시용)
           throw ServiceSuspendedException(
@@ -331,11 +330,21 @@ class AuthService extends ChangeNotifier {
         // 🛑 CRITICAL: _loadUserModel에서 ServiceSuspendedException이 발생하면 즉시 리턴
         try {
           await _loadUserModel(credential.user!.uid, password: password);
-        } on ServiceSuspendedException {
-          // 서비스 이용 중지 계정 - FCM 초기화 없이 즉시 예외 재전파
+        } on ServiceSuspendedException catch (e) {
+          // 서비스 이용 중지 계정 - 로그아웃 처리 후 예외 재전파
           if (kDebugMode) {
-            debugPrint('🛑 [AUTH] 서비스 이용 중지 계정 - FCM 초기화 건너뜀');
+            debugPrint('🛑 [AUTH] 서비스 이용 중지 계정 감지 - 로그아웃 처리');
           }
+          
+          // 로그아웃 처리
+          await _auth.signOut();
+          _tempPassword = null;
+          
+          if (kDebugMode) {
+            debugPrint('🛑 [AUTH] 로그아웃 완료 - UI로 예외 전파');
+          }
+          
+          // FCM 초기화 없이 즉시 예외 재전파
           rethrow;
         }
         
