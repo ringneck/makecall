@@ -314,7 +314,16 @@ class AuthService extends ChangeNotifier {
         }
         
         // 비밀번호를 _loadUserModel에 전달하여 자동 저장
-        await _loadUserModel(credential.user!.uid, password: password);
+        // 🛑 CRITICAL: _loadUserModel에서 ServiceSuspendedException이 발생하면 즉시 리턴
+        try {
+          await _loadUserModel(credential.user!.uid, password: password);
+        } on ServiceSuspendedException {
+          // 서비스 이용 중지 계정 - FCM 초기화 없이 즉시 예외 재전파
+          if (kDebugMode) {
+            debugPrint('🛑 [AUTH] 서비스 이용 중지 계정 - FCM 초기화 건너뜀');
+          }
+          rethrow;
+        }
         
         // FCM 초기화 (로그인 성공 후)
         try {
