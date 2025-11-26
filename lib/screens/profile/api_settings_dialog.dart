@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
+import '../../services/database_service.dart';
 
 class ApiSettingsDialog extends StatefulWidget {
   const ApiSettingsDialog({super.key});
@@ -179,15 +180,265 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
       }
     }
   }
+  
+  /// 📤 API 설정 내보내기 (isAdmin 전용)
+  Future<void> _exportApiSettings() async {
+    final userModel = context.read<AuthService>().currentUserModel;
+    
+    if (userModel == null) {
+      await DialogUtils.showError(context, '사용자 정보를 찾을 수 없습니다');
+      return;
+    }
+    
+    // 조직명 확인
+    if (userModel.organizationName == null || userModel.organizationName!.isEmpty) {
+      await DialogUtils.showError(context, '조직명이 설정되지 않았습니다.\n프로필에서 조직명을 먼저 설정해주세요.');
+      return;
+    }
+    
+    // App-Key 확인
+    if (userModel.appKey == null || userModel.appKey!.isEmpty) {
+      await DialogUtils.showError(context, 'REST API App-Key가 설정되지 않았습니다.\n먼저 App-Key를 입력하고 저장해주세요.');
+      return;
+    }
+    
+    // 확인 다이얼로그
+    final confirmed = await DialogUtils.showConfirm(
+      context,
+      '현재 설정을 내보내시겠습니까?\n\n조직명: ${userModel.organizationName}\nApp-Key: ${userModel.appKey}\n\n같은 조직의 다른 사용자가 이 설정을 가져올 수 있습니다.',
+      title: 'API 설정 내보내기',
+    );
+    
+    if (confirmed != true) return;
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      final dbService = DatabaseService();
+      
+      await dbService.exportApiSettings(
+        userId: userModel.uid,
+        userEmail: userModel.email,
+        organizationName: userModel.organizationName!,
+        appKey: userModel.appKey!,
+        companyName: userModel.companyName,
+        companyId: userModel.companyId,
+        apiBaseUrl: userModel.apiBaseUrl,
+        apiHttpPort: userModel.apiHttpPort,
+        apiHttpsPort: userModel.apiHttpsPort,
+        websocketServerUrl: userModel.websocketServerUrl,
+        websocketServerPort: userModel.websocketServerPort,
+        websocketUseSSL: userModel.websocketUseSSL,
+        websocketHttpAuthId: userModel.websocketHttpAuthId,
+        websocketHttpAuthPassword: userModel.websocketHttpAuthPassword,
+        amiServerId: userModel.amiServerId,
+      );
+      
+      if (mounted) {
+        await DialogUtils.showSuccess(
+          context,
+          'API 설정이 성공적으로 내보내졌습니다.\n\n조직 구성원이 동일한 조직명과 App-Key로 설정을 가져올 수 있습니다.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogUtils.showError(context, 'API 설정 내보내기 실패:\n$e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+  
+  /// 📥 API 설정 가져오기 다이얼로그 표시
+  Future<void> _showImportDialog() async {
+    final userModel = context.read<AuthService>().currentUserModel;
+    
+    if (userModel == null) {
+      await DialogUtils.showError(context, '사용자 정보를 찾을 수 없습니다');
+      return;
+    }
+    
+    // 조직명 확인
+    if (userModel.organizationName == null || userModel.organizationName!.isEmpty) {
+      await DialogUtils.showError(context, '조직명이 설정되지 않았습니다.\n프로필에서 조직명을 먼저 설정해주세요.');
+      return;
+    }
+    
+    // App-Key 입력 확인
+    final appKey = _appKeyController.text.trim();
+    if (appKey.isEmpty) {
+      await DialogUtils.showError(context, 'REST API App-Key를 먼저 입력해주세요.');
+      return;
+    }
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      final dbService = DatabaseService();
+      
+      // 공유 설정 조회
+      final sharedSettings = await dbService.searchSharedApiSettings(
+        organizationName: userModel.organizationName!,
+        appKey: appKey,
+      );
+      
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      
+      if (sharedSettings.isEmpty) {
+        if (mounted) {
+          await DialogUtils.showInfo(
+            context,
+            '조직명 "${userModel.organizationName}"과 입력한 App-Key로\n내보낸 설정을 찾을 수 없습니다.\n\n관리자에게 먼저 설정을 내보내도록 요청해주세요.',
+            title: '설정을 찾을 수 없음',
+          );
+        }
+        return;
+      }
+      
+      // 가져올 설정 선택 다이얼로그 표시
+      if (mounted) {
+        await _showSelectSettingDialog(sharedSettings);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        await DialogUtils.showError(context, '설정 조회 실패:\n$e');
+      }
+    }
+  }
+  
+  /// 📋 가져올 설정 선택 다이얼로그
+  Future<void> _showSelectSettingDialog(List<Map<String, dynamic>> settings) async {
+    final selectedSetting = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('API 설정 선택', style: TextStyle(fontSize: 15)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: settings.length,
+              itemBuilder: (context, index) {
+                final setting = settings[index];
+                final exportedAt = setting['lastUpdatedAt'] != null
+                    ? DateTime.parse(setting['lastUpdatedAt'] as String)
+                    : DateTime.parse(setting['exportedAt'] as String);
+                
+                return ListTile(
+                  title: Text(
+                    setting['apiBaseUrl'] ?? '설정 없음',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    '내보낸 사람: ${setting['exportedByEmail']}\n'
+                    '업데이트: ${exportedAt.year}-${exportedAt.month.toString().padLeft(2, '0')}-${exportedAt.day.toString().padLeft(2, '0')} '
+                    '${exportedAt.hour.toString().padLeft(2, '0')}:${exportedAt.minute.toString().padLeft(2, '0')}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  onTap: () => Navigator.pop(context, setting),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('취소', style: TextStyle(fontSize: 13)),
+            ),
+          ],
+        );
+      },
+    );
+    
+    if (selectedSetting == null || !mounted) return;
+    
+    // 선택한 설정 가져오기
+    await _importSelectedSetting(selectedSetting);
+  }
+  
+  /// 💾 선택한 설정 가져오기 및 적용
+  Future<void> _importSelectedSetting(Map<String, dynamic> setting) async {
+    final userModel = context.read<AuthService>().currentUserModel;
+    if (userModel == null) return;
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      final dbService = DatabaseService();
+      
+      // 사용자 계정에 설정 적용
+      await dbService.importApiSettings(
+        userId: userModel.uid,
+        sharedSettings: setting,
+      );
+      
+      // AuthService 사용자 모델 새로고침
+      await context.read<AuthService>().refreshUserModel();
+      
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (mounted) {
+          await DialogUtils.showSuccess(
+            context,
+            'API 설정을 성공적으로 가져왔습니다.\n\n설정이 자동으로 적용되었습니다.',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogUtils.showError(context, '설정 가져오기 실패:\n$e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final dialogWidth = screenWidth > 600 ? 500.0 : screenWidth * 0.9;
+    final userModel = context.watch<AuthService>().currentUserModel;
+    final isAdmin = userModel?.isAdmin ?? false;
+    final organizationName = userModel?.organizationName;
     
     return AlertDialog(
-      title: const Text('기본 API 설정', style: TextStyle(fontSize: 15)),
+      title: Row(
+        children: [
+          const Expanded(
+            child: Text('기본 API 설정', style: TextStyle(fontSize: 15)),
+          ),
+          // 조직명이 있고 isAdmin인 경우 내보내기 버튼 표시
+          if (isAdmin && organizationName != null && organizationName.isNotEmpty)
+            TextButton.icon(
+              onPressed: _exportApiSettings,
+              icon: const Icon(Icons.upload, size: 16),
+              label: const Text('내보내기', style: TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+          // 일반 사용자이고 조직명이 있는 경우 가져오기 버튼 표시
+          if (!isAdmin && organizationName != null && organizationName.isNotEmpty)
+            TextButton.icon(
+              onPressed: _showImportDialog,
+              icon: const Icon(Icons.download, size: 16),
+              label: const Text('가져오기', style: TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+        ],
+      ),
       contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       content: SizedBox(
         width: dialogWidth,

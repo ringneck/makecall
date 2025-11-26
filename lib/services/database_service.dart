@@ -1673,4 +1673,172 @@ class DatabaseService {
       await subscription?.cancel();
     }
   }
+  
+  // ===== 공유 API 설정 관리 =====
+  
+  /// 📤 API 설정 내보내기 (isAdmin 사용자 전용)
+  /// 조직명과 App-Key로 검색 가능하게 Firestore에 저장
+  Future<void> exportApiSettings({
+    required String userId,
+    required String userEmail,
+    required String organizationName,
+    required String appKey,
+    String? companyName,
+    String? companyId,
+    String? apiBaseUrl,
+    int? apiHttpPort,
+    int? apiHttpsPort,
+    String? websocketServerUrl,
+    int? websocketServerPort,
+    bool? websocketUseSSL,
+    String? websocketHttpAuthId,
+    String? websocketHttpAuthPassword,
+    int? amiServerId,
+  }) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('📤 [DB] API 설정 내보내기 시작');
+        debugPrint('   조직명: $organizationName');
+        debugPrint('   App-Key: $appKey');
+      }
+      
+      // 동일한 조직명 + App-Key 조합이 이미 있는지 확인
+      final existingQuery = await _firestore
+          .collection('shared_api_settings')
+          .where('organizationName', isEqualTo: organizationName)
+          .where('appKey', isEqualTo: appKey)
+          .where('exportedByUserId', isEqualTo: userId)
+          .limit(1)
+          .get();
+      
+      final now = DateTime.now();
+      final settingsData = {
+        'organizationName': organizationName,
+        'appKey': appKey,
+        'companyName': companyName,
+        'companyId': companyId,
+        'apiBaseUrl': apiBaseUrl,
+        'apiHttpPort': apiHttpPort ?? 3500,
+        'apiHttpsPort': apiHttpsPort ?? 3501,
+        'websocketServerUrl': websocketServerUrl,
+        'websocketServerPort': websocketServerPort ?? 6600,
+        'websocketUseSSL': websocketUseSSL ?? false,
+        'websocketHttpAuthId': websocketHttpAuthId,
+        'websocketHttpAuthPassword': websocketHttpAuthPassword,
+        'amiServerId': amiServerId ?? 1,
+        'exportedByUserId': userId,
+        'exportedByEmail': userEmail,
+        'lastUpdatedAt': now.toIso8601String(),
+      };
+      
+      if (existingQuery.docs.isNotEmpty) {
+        // 기존 설정 업데이트
+        final docId = existingQuery.docs.first.id;
+        await _firestore
+            .collection('shared_api_settings')
+            .doc(docId)
+            .update(settingsData);
+        
+        if (kDebugMode) {
+          debugPrint('✅ [DB] 기존 API 설정 업데이트 완료');
+          debugPrint('   문서 ID: $docId');
+        }
+      } else {
+        // 새로운 설정 생성
+        settingsData['exportedAt'] = now.toIso8601String();
+        
+        final docRef = await _firestore
+            .collection('shared_api_settings')
+            .add(settingsData);
+        
+        if (kDebugMode) {
+          debugPrint('✅ [DB] 새로운 API 설정 내보내기 완료');
+          debugPrint('   문서 ID: ${docRef.id}');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [DB] API 설정 내보내기 실패: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  /// 🔍 조직명과 App-Key로 공유 API 설정 조회
+  /// 일반 사용자가 조직 설정을 검색할 때 사용
+  Future<List<Map<String, dynamic>>> searchSharedApiSettings({
+    required String organizationName,
+    required String appKey,
+  }) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🔍 [DB] 공유 API 설정 조회');
+        debugPrint('   조직명: $organizationName');
+        debugPrint('   App-Key: $appKey');
+      }
+      
+      final querySnapshot = await _firestore
+          .collection('shared_api_settings')
+          .where('organizationName', isEqualTo: organizationName)
+          .where('appKey', isEqualTo: appKey)
+          .orderBy('lastUpdatedAt', descending: true)
+          .get();
+      
+      if (kDebugMode) {
+        debugPrint('✅ [DB] 공유 API 설정 조회 완료');
+        debugPrint('   결과 개수: ${querySnapshot.docs.length}');
+      }
+      
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [DB] 공유 API 설정 조회 실패: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  /// 📥 공유 API 설정을 사용자 계정에 적용
+  /// 선택한 공유 설정을 현재 사용자의 users 문서에 저장
+  Future<void> importApiSettings({
+    required String userId,
+    required Map<String, dynamic> sharedSettings,
+  }) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('📥 [DB] API 설정 가져오기 시작');
+        debugPrint('   사용자 ID: $userId');
+        debugPrint('   조직명: ${sharedSettings['organizationName']}');
+      }
+      
+      // 사용자 문서에 API 설정 필드만 업데이트
+      await _firestore.collection('users').doc(userId).update({
+        'companyName': sharedSettings['companyName'],
+        'companyId': sharedSettings['companyId'],
+        'appKey': sharedSettings['appKey'],
+        'apiBaseUrl': sharedSettings['apiBaseUrl'],
+        'apiHttpPort': sharedSettings['apiHttpPort'] ?? 3500,
+        'apiHttpsPort': sharedSettings['apiHttpsPort'] ?? 3501,
+        'websocketServerUrl': sharedSettings['websocketServerUrl'],
+        'websocketServerPort': sharedSettings['websocketServerPort'] ?? 6600,
+        'websocketUseSSL': sharedSettings['websocketUseSSL'] ?? false,
+        'websocketHttpAuthId': sharedSettings['websocketHttpAuthId'],
+        'websocketHttpAuthPassword': sharedSettings['websocketHttpAuthPassword'],
+        'amiServerId': sharedSettings['amiServerId'] ?? 1,
+      });
+      
+      if (kDebugMode) {
+        debugPrint('✅ [DB] API 설정 가져오기 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [DB] API 설정 가져오기 실패: $e');
+      }
+      rethrow;
+    }
+  }
 }

@@ -25,6 +25,7 @@ class UserModel {
   final DateTime? lastMaxExtensionsUpdate; // maxExtensions 마지막 업데이트 일시
   final bool isActive;
   final bool isPremium; // 프리미엄 사용자 여부 (하위 호환성 유지)
+  final bool isAdmin; // 관리자 여부 (API 설정 내보내기 권한)
   final int maxExtensions; // 사용자별 단말번호 저장 가능 개수
   final List<String>? myExtensions; // 내 단말번호 목록
   final String? loginProvider; // 로그인 제공자 (google, kakao, apple, email)
@@ -66,6 +67,7 @@ class UserModel {
     this.lastMaxExtensionsUpdate,
     this.isActive = true,
     this.isPremium = false, // 기본값: 무료 사용자 (하위 호환성)
+    this.isAdmin = false, // 기본값: 일반 사용자
     this.maxExtensions = 1, // 기본값: 1개
     this.myExtensions,
     this.loginProvider,
@@ -132,6 +134,7 @@ class UserModel {
       lastMaxExtensionsUpdate: parseTimestamp(map['lastMaxExtensionsUpdate']),
       isActive: map['isActive'] as bool? ?? true,
       isPremium: map['isPremium'] as bool? ?? false,
+      isAdmin: map['isAdmin'] as bool? ?? false,
       maxExtensions: map['maxExtensions'] as int? ?? 1, // 기본값 1개
       myExtensions: map['myExtensions'] != null 
           ? List<String>.from(map['myExtensions'] as List)
@@ -180,6 +183,7 @@ class UserModel {
       'lastMaxExtensionsUpdate': lastMaxExtensionsUpdate?.toIso8601String(),
       'isActive': isActive,
       'isPremium': isPremium,
+      'isAdmin': isAdmin,
       'maxExtensions': maxExtensions,
       'myExtensions': myExtensions,
       if (loginProvider != null) 'loginProvider': loginProvider,
@@ -222,6 +226,7 @@ class UserModel {
     DateTime? lastMaxExtensionsUpdate,
     bool? isActive,
     bool? isPremium,
+    bool? isAdmin,
     int? maxExtensions,
     List<String>? myExtensions,
   }) {
@@ -250,6 +255,7 @@ class UserModel {
       lastMaxExtensionsUpdate: lastMaxExtensionsUpdate ?? this.lastMaxExtensionsUpdate,
       isActive: isActive ?? this.isActive,
       isPremium: isPremium ?? this.isPremium,
+      isAdmin: isAdmin ?? this.isAdmin,
       maxExtensions: maxExtensions ?? this.maxExtensions,
       myExtensions: myExtensions ?? this.myExtensions,
     );
