@@ -11,6 +11,7 @@ import 'profile_drawer/dcmiws_settings_section.dart';  // 📡 DCMIWS 설정 섹
 import 'profile_drawer/terms_and_policies_section.dart';  // 📜 약관 및 정책 섹션
 import 'profile_drawer/general_settings_section.dart';  // 🎯 일반 설정 섹션
 import 'profile_drawer/app_info_section.dart';  // 📱 앱 정보 섹션
+import 'profile_drawer/service_suspension_section.dart';  // 🛑 서비스 이용 중지 섹션
 
 class ProfileDrawer extends StatefulWidget {
   const ProfileDrawer({super.key});
@@ -200,6 +201,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           
           // 📱 앱 정보 섹션 (리팩토링: 별도 위젯으로 분리)
           const AppInfoSection(),
+          
+          // 🛑 서비스 이용 중지 섹션
+          const ServiceSuspensionSection(),
 
           
           const SizedBox(height: 24),
