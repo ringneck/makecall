@@ -100,7 +100,7 @@ class AuthService extends ChangeNotifier {
   }
   
   AuthService() {
-    _auth.authStateChanges().listen((User? user) {
+    _auth.authStateChanges().listen((User? user) async {
       // 🔒 CRITICAL FIX: 로그아웃 진행 중에는 authStateChanges 무시
       if (_isSigningOut) {
         return; // 로그아웃 진행 중에는 무시
@@ -109,7 +109,19 @@ class AuthService extends ChangeNotifier {
       if (user != null) {
         // 로그인 상태
         _lastUserId = user.uid;
-        _loadUserModel(user.uid);
+        try {
+          await _loadUserModel(user.uid);
+        } on ServiceSuspendedException catch (e) {
+          // 🛑 서비스 이용 중지 계정 - authStateChanges에서는 무시
+          // UI의 signIn()에서 이미 처리했으므로 여기서는 조용히 무시
+          if (kDebugMode) {
+            debugPrint('🛑 [AUTH STATE] 서비스 이용 중지 계정 - 무시');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [AUTH STATE] _loadUserModel 오류: $e');
+          }
+        }
       } else if (_lastUserId != null) {
         // 로그아웃 상태 (최초 1회만)
         _lastUserId = null;
