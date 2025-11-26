@@ -1777,23 +1777,44 @@ class DatabaseService {
         debugPrint('   App-Key: $appKey');
       }
       
+      // 인덱스 없이 작동하도록 단순 쿼리 + 메모리 필터링 사용
       final querySnapshot = await _firestore
           .collection('shared_api_settings')
           .where('organizationName', isEqualTo: organizationName)
           .where('appKey', isEqualTo: appKey)
-          .orderBy('lastUpdatedAt', descending: true)
           .get();
       
-      if (kDebugMode) {
-        debugPrint('✅ [DB] 공유 API 설정 조회 완료');
-        debugPrint('   결과 개수: ${querySnapshot.docs.length}');
-      }
-      
-      return querySnapshot.docs.map((doc) {
+      // 메모리에서 정렬 (인덱스 불필요)
+      final results = querySnapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
         return data;
       }).toList();
+      
+      // lastUpdatedAt 또는 exportedAt으로 정렬
+      results.sort((a, b) {
+        final aTime = a['lastUpdatedAt'] ?? a['exportedAt'];
+        final bTime = b['lastUpdatedAt'] ?? b['exportedAt'];
+        
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return 1;
+        if (bTime == null) return -1;
+        
+        try {
+          final aDate = DateTime.parse(aTime as String);
+          final bDate = DateTime.parse(bTime as String);
+          return bDate.compareTo(aDate); // 내림차순 (최신순)
+        } catch (e) {
+          return 0;
+        }
+      });
+      
+      if (kDebugMode) {
+        debugPrint('✅ [DB] 공유 API 설정 조회 완료');
+        debugPrint('   결과 개수: ${results.length}');
+      }
+      
+      return results;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ [DB] 공유 API 설정 조회 실패: $e');
