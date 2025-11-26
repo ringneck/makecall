@@ -324,7 +324,7 @@ class DialogUtils {
       case DialogType.success:
         return '성공';
       case DialogType.error:
-        return '오류';
+        return '안내';
       case DialogType.warning:
         return '경고';
       case DialogType.info:
