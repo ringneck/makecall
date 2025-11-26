@@ -131,7 +131,7 @@ class ServiceSuspensionSection extends StatelessWidget {
                 ),
               ),
               child: const Text(
-                '이용 중지',
+                '서비스 이용중지',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -220,7 +220,7 @@ class ServiceSuspensionSection extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                '계정을 비활성화하는 중...',
+                '서비스 이용중지 실행 하는 중...',
                 style: TextStyle(
                   fontSize: 16,
                   color: isDark ? Colors.grey[300] : Colors.black87,
@@ -255,7 +255,7 @@ class ServiceSuspensionSection extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                '이용 중지 완료',
+                '서비스 이용중지 완료',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -328,7 +328,7 @@ class ServiceSuspensionSection extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                '이용 중지 실패',
+                '서비스 이용중지 실패',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -338,7 +338,7 @@ class ServiceSuspensionSection extends StatelessWidget {
             ],
           ),
           content: Text(
-            '계정 비활성화 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.\n\n오류: $error',
+            '서비스 이용중지 작업중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.\n\n오류: $error',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -389,14 +389,14 @@ class ServiceSuspensionSection extends StatelessWidget {
             color: isDark ? Colors.red[300] : Colors.red[700],
           ),
           title: Text(
-            '서비스 이용 중지',
+            '서비스 이용중지',
             style: TextStyle(
               fontWeight: FontWeight.w600,
               color: isDark ? Colors.white : Colors.black87,
             ),
           ),
           subtitle: Text(
-            'MAKECALL 서비스 이용을 일시 중지합니다',
+            'MAKECALL 서비스 이용을 중지합니다',
             style: TextStyle(
               fontSize: 12,
               color: isDark ? Colors.grey[400] : Colors.black54,
