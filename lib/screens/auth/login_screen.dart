@@ -656,18 +656,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   // 소셜 로그인 성공 처리
   Future<void> _handleSocialLoginSuccess(SocialLoginResult result) async {
     try {
-      // 🔒 CRITICAL: mounted 체크 - 비동기 작업 전 위젯이 마운트되어 있는지 확인
-      if (!mounted) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [SOCIAL LOGIN] Widget unmounted - 후처리 중단');
-        }
-        return;
+      // 🔒 CRITICAL: mounted 체크 - 하지만 ServiceSuspendedException 체크는 먼저 실행
+      // mounted가 false여도 계정 상태 확인은 필요함
+      
+      // ⌨️ 키보드 내리기 (mounted일 때만)
+      if (mounted) {
+        FocusScope.of(context).unfocus();
       }
       
-      // ⌨️ CRITICAL: 키보드 내리기 (소셜 로그인 성공 시)
-      FocusScope.of(context).unfocus();
-      
-      final authService = context.read<AuthService>();
+      // AuthService는 mounted 체크 없이 가져올 수 있음 (ProviderContainer에서)
+      final authService = Provider.of<AuthService>(navigatorKey.currentContext!, listen: false);
       
       if (kDebugMode) {
         debugPrint('✅ [SOCIAL LOGIN] ${result.provider.name} 로그인 성공');
@@ -690,23 +688,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         // 짧은 지연 후 새 오버레이 표시 (UI 업데이트 보장)
         await Future.delayed(const Duration(milliseconds: 50));
         
-        // 🔒 mounted 재확인 (비동기 지연 후)
-        if (!mounted) {
-          if (kDebugMode) {
-            debugPrint('⚠️ [SOCIAL LOGIN] Widget unmounted after delay - 후처리 중단');
-          }
-          return;
-        }
-        
-        // 1️⃣ 사용자 정보 업데이트 중
+        // 1️⃣ 사용자 정보 업데이트 중 (mounted 체크 후 표시)
         if (kDebugMode) {
           debugPrint('🔄 [OVERLAY] 새 오버레이 표시: 사용자 정보 업데이트 중...');
         }
-        SocialLoginProgressHelper.show(
-          context,
-          message: '사용자 정보 업데이트 중...',
-          subMessage: 'Firebase에 프로필 정보를 저장하고 있습니다',
-        );
+        if (mounted) {
+          SocialLoginProgressHelper.show(
+            context,
+            message: '사용자 정보 업데이트 중...',
+            subMessage: 'Firebase에 프로필 정보를 저장하고 있습니다',
+          );
+        }
         
         if (kDebugMode) {
           debugPrint('🔄 [SOCIAL LOGIN] 사용자 문서 확인 중...');
@@ -730,14 +722,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           // 로그아웃 처리
           await FirebaseAuth.instance.signOut();
           
-          if (!mounted) return;
-          
-          // 회원가입 안내
-          await DialogUtils.showInfo(
-            context,
-            '아직 가입되지 않은 계정입니다.\n\n회원가입 페이지에서 먼저 가입해주세요.',
-            title: '회원가입 필요',
-          );
+          // 회원가입 안내 (navigatorKey 사용)
+          if (navigatorKey.currentContext != null) {
+            await DialogUtils.showInfo(
+              navigatorKey.currentContext!,
+              '아직 가입되지 않은 계정입니다.\n\n회원가입 페이지에서 먼저 가입해주세요.',
+              title: '회원가입 필요',
+            );
+          }
           
           return;
         }
