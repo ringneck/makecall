@@ -16,13 +16,40 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // ✅ CRITICAL: Java helper로 EdgeToEdge.enable() 직접 호출
-        // Google Play Console의 정적 분석이 감지 가능
-        // EdgeToEdgeHelper가 내부에서 타입 체크 및 캐스팅 처리
-        EdgeToEdgeHelper.enable(this)
+        // ========================================
+        // ✅ CRITICAL: Android 15 Edge-to-Edge 지원
+        // ========================================
+        // Google Play Console 권장사항 완벽 준수:
+        // "SDK 35를 타겟팅하는 앱은 Android 15 이상에서 
+        //  앱이 올바르게 표시되도록 인셋을 처리해야 합니다."
+        //
+        // 1. EdgeToEdge.enable() - Google Play가 정적 분석으로 감지
+        // 2. WindowCompat.setDecorFitsSystemWindows(false) - 시스템 바 뒤로 확장
+        // 3. Flutter 앱에서 SafeArea와 MediaQuery.padding으로 인셋 처리
+        // ========================================
         
-        // ✅ 추가 안전망: WindowCompat으로도 설정
+        // ✅ METHOD 1: Java helper를 통한 EdgeToEdge.enable() 호출
+        // Google Play Console의 정적 분석이 직접 감지 가능
+        val edgeToEdgeEnabled = EdgeToEdgeHelper.enable(this)
+        
+        if (edgeToEdgeEnabled) {
+            Log.i("MainActivity", "✅ EdgeToEdge.enable() 호출 성공 - Android 15 지원 완료")
+        } else {
+            Log.w("MainActivity", "⚠️ EdgeToEdge.enable() 실패 - WindowCompat 폴백 사용")
+        }
+        
+        // ✅ METHOD 2: WindowCompat을 통한 추가 안전망
+        // 시스템 바(상태바, 네비게이션 바) 뒤로 콘텐츠 확장 허용
+        // false = 시스템이 자동으로 padding 추가하지 않음 (Flutter가 직접 처리)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        Log.i("MainActivity", "✅ WindowCompat.setDecorFitsSystemWindows(false) 설정 완료")
+        
+        // ========================================
+        // ℹ️ 참고사항:
+        // - Android 15 (API 35) 이상에서는 기본적으로 Edge-to-Edge 모드 활성화
+        // - Flutter 앱의 SafeArea 위젯이 자동으로 시스템 인셋 처리
+        // - MediaQuery.of(context).padding을 사용하여 상태바/네비게이션바 높이 확인 가능
+        // ========================================
         
         // 카카오 로그인용 키 해시 출력
         printKakaoKeyHash()
