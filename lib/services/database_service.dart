@@ -1777,15 +1777,21 @@ class DatabaseService {
         debugPrint('   App-Key: $appKey');
       }
       
-      // 인덱스 없이 작동하도록 단순 쿼리 + 메모리 필터링 사용
+      // ⚡ 최적화: where() 하나만 사용 (인덱스 불필요)
+      // organizationName으로만 조회하고 appKey는 메모리에서 필터링
       final querySnapshot = await _firestore
           .collection('shared_api_settings')
           .where('organizationName', isEqualTo: organizationName)
-          .where('appKey', isEqualTo: appKey)
           .get();
       
-      // 메모리에서 정렬 (인덱스 불필요)
-      final results = querySnapshot.docs.map((doc) {
+      // 메모리에서 appKey 필터링
+      final filtered = querySnapshot.docs.where((doc) {
+        final data = doc.data();
+        return data['appKey'] == appKey;
+      }).toList();
+      
+      // Map으로 변환
+      final results = filtered.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
         return data;
