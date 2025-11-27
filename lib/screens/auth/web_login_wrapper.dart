@@ -525,7 +525,7 @@ class _FooterSection extends StatelessWidget {
               _buildStoreIcon(
                 imagePath: 'assets/images/stores/app_store.png',
                 label: 'App Store',
-                url: '', // TODO: Apple App Store URL 추가
+                url: 'https://apps.apple.com/kr/app/makecall/id6475055702',
                 isDark: isDark,
               ),
             ],
