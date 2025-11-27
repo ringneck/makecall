@@ -77,6 +77,7 @@ class CallService {
   }
   
   // 단말 통화 (Click to Call API 사용)
+  // ⚠️ 주의: 이 함수는 현재 사용되지 않습니다. 실제 발신은 다른 파일에서 처리됩니다.
   Future<bool> makeExtensionCall({
     required String phoneNumber,
     required String userId,

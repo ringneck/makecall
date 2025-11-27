@@ -259,13 +259,34 @@ class _DialpadScreenState extends State<DialpadScreen> {
         debugPrint('🎯 기능번호: $phoneNumber');
       }
 
-      // CID 설정: 고정값 사용
-      String cidName = '클릭투콜';                // 고정값: "클릭투콜"
-      String cidNumber = phoneNumber;      // callee 값 사용
-
-      if (kDebugMode) {
-        debugPrint('📞 CID Name: $cidName (고정값)');
-        debugPrint('📞 CID Number: $cidNumber (callee 값)');
+      // 🔍 발신 대상 숫자 자릿수 확인
+      final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+      final is5DigitsOrLess = cleanNumber.length > 0 && cleanNumber.length <= 5;
+      
+      // 📞 CID 설정: 발신 대상에 따라 다르게 설정
+      String cidName;
+      String cidNumber;
+      
+      if (is5DigitsOrLess) {
+        // 5자리 이하: my_extensions의 name, extension 사용
+        cidName = selectedExtension.name;
+        cidNumber = selectedExtension.extension;
+        
+        if (kDebugMode) {
+          debugPrint('📞 5자리 이하 발신');
+          debugPrint('   CID Name: $cidName (my_extensions.name)');
+          debugPrint('   CID Number: $cidNumber (my_extensions.extension)');
+        }
+      } else {
+        // 5자리 초과: my_extensions의 externalCidName, externalCidNumber 사용
+        cidName = selectedExtension.externalCidName ?? '클릭투콜';
+        cidNumber = selectedExtension.externalCidNumber ?? phoneNumber;
+        
+        if (kDebugMode) {
+          debugPrint('📞 5자리 초과 발신');
+          debugPrint('   CID Name: $cidName (my_extensions.externalCidName)');
+          debugPrint('   CID Number: $cidNumber (my_extensions.externalCidNumber)');
+        }
       }
 
       // 로딩 표시
