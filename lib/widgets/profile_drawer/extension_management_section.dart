@@ -579,134 +579,146 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // 모던 숫자 배지
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [Colors.blue[800]!, Colors.blue[900]!]
-                      : [const Color(0xFF2196F3), const Color(0xFF1976D2)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2196F3).withAlpha(77),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            
-            // 정보 영역
-            Expanded(
-              child: Column(
+            // 메인 콘텐츠 (삭제 버튼 공간 확보)
+            Padding(
+              padding: const EdgeInsets.only(right: 36), // 삭제 버튼 공간
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 이름 (첫 번째 줄)
-                  Text(
-                    ext.name,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.grey[100] : Colors.black87,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  // 단말번호 (두 번째 줄)
+                  // 모던 숫자 배지 (크기 축소)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
-                      color: (isDark ? Colors.blue[900]! : const Color(0xFF2196F3)).withAlpha(51),
-                      borderRadius: BorderRadius.circular(6),
+                      gradient: LinearGradient(
+                        colors: isDark
+                            ? [Colors.blue[800]!, Colors.blue[900]!]
+                            : [const Color(0xFF2196F3), const Color(0xFF1976D2)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2196F3).withAlpha(77),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      ext.extension,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.blue[300] : const Color(0xFF1976D2),
-                        fontFamily: 'monospace',
-                        letterSpacing: 0.5,
+                    child: Center(
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(width: 10),
                   
-                  // 수신번호 (길게 누르면 복사)
-                  if (ext.accountCode != null && ext.accountCode!.isNotEmpty) ...[
-                    _buildLongPressCopyRow(
-                      context: context,
-                      label: '수신번호',
-                      value: ext.accountCode!,
+                  // 정보 영역 (더 넓은 공간 확보)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 이름 (첫 번째 줄)
+                        Text(
+                          ext.name,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.grey[100] : Colors.black87,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // 단말번호 (두 번째 줄)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: (isDark ? Colors.blue[900]! : const Color(0xFF2196F3)).withAlpha(51),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            ext.extension,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.blue[300] : const Color(0xFF1976D2),
+                              fontFamily: 'monospace',
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        
+                        // 수신번호 (길게 누르면 복사)
+                        if (ext.accountCode != null && ext.accountCode!.isNotEmpty) ...[
+                          _buildLongPressCopyRow(
+                            context: context,
+                            label: '수신번호',
+                            value: ext.accountCode!,
+                          ),
+                          const SizedBox(height: 6),
+                        ],
+                        
+                        // SIP UserId (길게 누르면 복사)
+                        if (ext.sipUserId != null && ext.sipUserId!.isNotEmpty) ...[
+                          _buildLongPressCopyRow(
+                            context: context,
+                            label: 'SIP UserId',
+                            value: ext.sipUserId!,
+                          ),
+                          const SizedBox(height: 6),
+                        ],
+                        
+                        // SIP Secret (길게 누르면 복사)
+                        if (ext.sipSecret != null && ext.sipSecret!.isNotEmpty) ...[
+                          _buildLongPressCopyRow(
+                            context: context,
+                            label: 'SIP Secret',
+                            value: ext.sipSecret!,
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(height: 6),
-                  ],
-                  
-                  // SIP UserId (길게 누르면 복사)
-                  if (ext.sipUserId != null && ext.sipUserId!.isNotEmpty) ...[
-                    _buildLongPressCopyRow(
-                      context: context,
-                      label: 'SIP UserId',
-                      value: ext.sipUserId!,
-                    ),
-                    const SizedBox(height: 6),
-                  ],
-                  
-                  // SIP Secret (길게 누르면 복사)
-                  if (ext.sipSecret != null && ext.sipSecret!.isNotEmpty) ...[
-                    _buildLongPressCopyRow(
-                      context: context,
-                      label: 'SIP Secret',
-                      value: ext.sipSecret!,
-                    ),
-                  ],
+                  ),
                 ],
               ),
             ),
             
-            // 모던 삭제 버튼
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  Navigator.pop(dialogContext);
-                  _deleteExtension(context, ext);
-                },
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: (isDark ? Colors.red[900]! : Colors.red[50]!).withAlpha(102),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isDark ? Colors.red[700]! : Colors.red[300]!,
-                      width: 1,
+            // 모던 삭제 버튼 (절대 위치 - 우측 상단)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pop(dialogContext);
+                    _deleteExtension(context, ext);
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.red[900]! : Colors.red[50]!).withAlpha(102),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isDark ? Colors.red[700]! : Colors.red[300]!,
+                        width: 1,
+                      ),
                     ),
-                  ),
-                  child: Icon(
-                    Icons.delete_rounded, 
-                    size: 20,
-                    color: isDark ? Colors.red[300] : Colors.red[700],
+                    child: Icon(
+                      Icons.delete_rounded, 
+                      size: 20,
+                      color: isDark ? Colors.red[300] : Colors.red[700],
+                    ),
                   ),
                 ),
               ),
