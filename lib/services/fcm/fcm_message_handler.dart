@@ -111,27 +111,31 @@ class FCMMessageHandler {
       return;
     }
     
-    // 승인 상태 체크
+    // 🔔 수신전화 알림 취소 - 승인 체크 필요 없음 (백엔드에서 이미 검증됨)
+    if (messageType == 'incoming_call_cancelled') {
+      if (kDebugMode) {
+        debugPrint('🛑 [FCM-HANDLER] 수신전화 취소');
+      }
+      onIncomingCallCancelled?.call(message);
+      return;
+    }
+    
+    // 📞 수신 전화 - 승인 체크 필요 없음 (백엔드에서 my_extensions로 이미 검증됨)
+    // 로그아웃 상태에서도 수신전화는 표시되어야 함
+    if (_isIncomingCallMessage(message)) {
+      if (kDebugMode) {
+        debugPrint('📞 [FCM-HANDLER] 수신 전화 (승인 체크 생략 - 백엔드 검증됨)');
+      }
+      onIncomingCall?.call(message);
+      return;
+    }
+    
+    // 🔐 승인 상태 체크 (수신전화 외 메시지)
     final isApproved = await _checkDeviceApprovalStatus();
     if (!isApproved) {
       if (kDebugMode) {
         debugPrint('🔒 [FCM-HANDLER] 미승인 기기 - 메시지 차단');
       }
-      return;
-    }
-    
-    // 수신전화 알림 취소
-    if (messageType == 'incoming_call_cancelled') {
-      onIncomingCallCancelled?.call(message);
-      return;
-    }
-    
-    // 수신 전화
-    if (_isIncomingCallMessage(message)) {
-      if (kDebugMode) {
-        debugPrint('📞 [FCM-HANDLER] 수신 전화');
-      }
-      onIncomingCall?.call(message);
       return;
     }
     
