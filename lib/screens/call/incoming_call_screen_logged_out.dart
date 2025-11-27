@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../widgets/cached_network_image_widget.dart';
+import '../../widgets/cached_network_image_widget.dart';
 
 /// 📞 로그아웃 전용 수신전화 화면
 /// 
