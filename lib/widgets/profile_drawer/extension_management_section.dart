@@ -729,7 +729,7 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
     );
   }
 
-  /// 복사 버튼이 있는 정보 행 빌더 (모던 디자인)
+  /// 복사 버튼이 있는 정보 행 빌더 (모던 디자인 - 세로 레이아웃)
   Widget _buildLongPressCopyRow({
     required BuildContext context,
     required String label,
@@ -739,7 +739,7 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
     
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: (isDark ? Colors.grey[800]! : Colors.grey[100]!).withAlpha(128),
         borderRadius: BorderRadius.circular(8),
@@ -748,59 +748,61 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
           width: 1,
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 라벨
-          SizedBox(
-            width: 70,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.grey[400] : Colors.grey[700],
-                letterSpacing: -0.2,
+          // 라벨 + 복사 버튼 (상단 행)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // 라벨
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.grey[400] : Colors.grey[700],
+                  letterSpacing: -0.2,
+                ),
               ),
-            ),
-          ),
-          // 값
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.grey[300] : Colors.black87,
-                fontFamily: 'monospace',
-                letterSpacing: 0.3,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          // 모던 복사 버튼
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () async {
-                Clipboard.setData(ClipboardData(text: value));
-                await DialogUtils.showCopySuccess(context, label, value);
-              },
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: (isDark ? Colors.blue[900]! : const Color(0xFF2196F3)).withAlpha(51),
+              // 모던 복사 버튼
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () async {
+                    Clipboard.setData(ClipboardData(text: value));
+                    await DialogUtils.showCopySuccess(context, label, value);
+                  },
                   borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  Icons.copy_rounded,
-                  size: 16,
-                  color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.blue[900]! : const Color(0xFF2196F3)).withAlpha(51),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(
+                      Icons.copy_rounded,
+                      size: 16,
+                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                    ),
+                  ),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // 값 텍스트 (전체 넓이 사용)
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.grey[300] : Colors.black87,
+              fontFamily: 'monospace',
+              letterSpacing: 0.3,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
