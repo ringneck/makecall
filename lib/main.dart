@@ -96,6 +96,14 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     debugPrint('   - linkedid: ${message.data['linkedid']}');
     debugPrint('   - call_type: ${message.data['call_type']}');
     debugPrint('   - caller_num: ${message.data['caller_num']}');
+    debugPrint('   - receiver_number: ${message.data['receiver_number']}');
+    
+    // ✅ CRITICAL: 백엔드(Firebase Functions)에서 이미 my_extensions 검증 완료
+    // → sendIncomingCallNotification Function이 accountCode/extension 확인 후 전송
+    // → 이 시점에서 도착한 푸시는 100% 유효한 수신전화임
+    // → 앱 측에서 추가 검증 불필요 (로그인 상태 무관)
+    
+    debugPrint('✅ [FCM-BG] 백엔드 검증 통과한 수신전화 (앱 종료 상태에서도 처리 가능)');
     
     // 백그라운드에서는 알림을 시스템이 자동으로 표시함
     // 사용자가 알림을 탭하면 onMessageOpenedApp에서 수신 전화 화면 표시

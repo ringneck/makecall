@@ -476,19 +476,20 @@ exports.sendIncomingCallNotification = functions.region(region).https.onRequest(
         console.log(`✅ [FCM-INCOMING] userId 확인: ${userId}`);
         console.log(`   내선번호: ${extensionUsed}`);
 
-        // 2. 해당 사용자의 활성 FCM 토큰 조회
+        // 2. 해당 사용자의 FCM 토큰 조회 (isActive 무관)
+        // ✅ CRITICAL: my_extensions에 등록된 번호면 로그인/로그아웃 상태 무관하게 푸시 전송
         console.log("🔍 [FCM-INCOMING] FCM 토큰 조회 중...");
 
         const tokensSnapshot = await admin.firestore()
             .collection("fcm_tokens")
             .where("userId", "==", userId)
-            .where("isActive", "==", true)
+            // ✅ isActive 조건 제거 - 로그아웃 상태에서도 수신전화 푸시 전송
             .get();
 
         if (tokensSnapshot.empty) {
-          console.error(`❌ [FCM-INCOMING] 활성 FCM 토큰 없음: ${userId}`);
+          console.error(`❌ [FCM-INCOMING] FCM 토큰 없음: ${userId}`);
           res.status(404).json({
-            error: "No active FCM tokens",
+            error: "No FCM tokens found",
             userId: userId,
           });
           return;
@@ -649,13 +650,14 @@ exports.cancelIncomingCallNotification = functions.region(region).https.onCall(
 
         console.log("✅ [FCM-CANCEL] call_history 업데이트 완료");
 
-        // 2. 사용자의 모든 활성 FCM 토큰 조회 (방법 1: FCM 푸시용)
+        // 2. 사용자의 모든 FCM 토큰 조회 (방법 1: FCM 푸시용)
+        // ✅ isActive 무관 - 로그아웃 상태에서도 알림 취소 메시지 전송
         console.log("🔍 [FCM-CANCEL] FCM 토큰 조회 중...");
 
         const tokensSnapshot = await admin.firestore()
             .collection("fcm_tokens")
             .where("userId", "==", userId)
-            .where("isActive", "==", true)
+            // ✅ isActive 조건 제거
             .get();
 
         if (tokensSnapshot.empty) {
