@@ -30,6 +30,7 @@ import 'screens/auth/approval_waiting_screen.dart';
 import 'screens/auth/consent_renewal_screen.dart';
 import 'screens/home/main_screen.dart';
 import 'screens/splash/splash_screen.dart';
+import 'widgets/social_login_progress_overlay.dart';
 
 /// 백그라운드 FCM 메시지 핸들러 (Top-level function)
 @pragma('vm:entry-point')
@@ -362,6 +363,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         if (kDebugMode) {
           debugPrint('🌞 [MyApp] App resumed - forcing UI rebuild');
         }
+        
+        // 🔥 CRITICAL: 소셜 로그인 오버레이 강제 제거
+        // Google/Kakao/Apple 로그인 화면에서 돌아올 때 오버레이가 남아있는 문제 해결
+        print('🧹 [MyApp] Forcing social login overlay removal on resume');
+        SocialLoginProgressHelper.forceHide();
         
         // 🔔 iOS 배지 초기화 (포그라운드 복귀 시)
         _clearBadge();
