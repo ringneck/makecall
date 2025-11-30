@@ -49,6 +49,7 @@ class _CallTabState extends State<CallTab> {
   final DatabaseService _databaseService = DatabaseService();
   final MobileContactsService _mobileContactsService = MobileContactsService();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _favoritesSearchController = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
   // 📞 최근통화 필터 상태
@@ -235,6 +236,7 @@ class _CallTabState extends State<CallTab> {
     _dcmiwsEventSubscription = null;
     
     _searchController.dispose();
+    _favoritesSearchController.dispose();
     super.dispose();
   }
   
@@ -704,8 +706,9 @@ class _CallTabState extends State<CallTab> {
                     ),
                   ),
                   child: TextField(
+                    controller: _favoritesSearchController,
                     decoration: InputDecoration(
-                      hintText: '이름, 번호, 부서 검색 (초성 가능, 예: ㄱㅎㄷ)...',
+                      hintText: '이름, 번호 검색...',
                       prefixIcon: Icon(
                         Icons.search,
                         color: isDark ? Colors.grey[500] : Colors.grey[600],
@@ -718,6 +721,7 @@ class _CallTabState extends State<CallTab> {
                               ),
                               onPressed: () {
                                 setState(() {
+                                  _favoritesSearchController.clear();
                                   _favoritesSearchQuery = '';
                                 });
                               },
