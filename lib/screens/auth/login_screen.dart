@@ -935,20 +935,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (result.success) {
         await _handleSocialLoginSuccess(result);
       } else {
-        if (mounted) {
-          // 사용자 취소는 안내 메시지로 표시
-          if (result.errorMessage?.contains('취소') ?? false) {
-            await DialogUtils.showInfo(
-              context,
-              'Google 로그인이 취소되었습니다.',
-              title: 'Google 로그인',
-            );
-          } else {
-            await DialogUtils.showError(
-              context,
-              result.errorMessage ?? 'Google 로그인에 실패했습니다.',
-            );
-          }
+        // 사용자 취소는 메시지를 표시하지 않음 (오버레이만 제거)
+        if (mounted && !(result.errorMessage?.contains('취소') ?? false)) {
+          await DialogUtils.showError(
+            context,
+            result.errorMessage ?? 'Google 로그인에 실패했습니다.',
+          );
         }
       }
     } catch (e) {
@@ -1005,20 +997,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (result.success) {
         await _handleSocialLoginSuccess(result);
       } else {
-        if (mounted) {
-          // 사용자 취소는 안내 메시지로 표시
-          if (result.errorMessage?.contains('취소') ?? false) {
-            await DialogUtils.showInfo(
-              context,
-              'Kakao 로그인이 취소되었습니다.',
-              title: 'Kakao 로그인',
-            );
-          } else {
-            await DialogUtils.showError(
-              context,
-              result.errorMessage ?? 'Kakao 로그인에 실패했습니다.',
-            );
-          }
+        // 사용자 취소는 메시지를 표시하지 않음 (오버레이만 제거)
+        if (mounted && !(result.errorMessage?.contains('취소') ?? false)) {
+          await DialogUtils.showError(
+            context,
+            result.errorMessage ?? 'Kakao 로그인에 실패했습니다.',
+          );
         }
       }
     } catch (e) {
@@ -1300,22 +1284,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (result.success) {
         await _handleSocialLoginSuccess(result);
       } else {
-        if (mounted) {
-          // 사용자 취소는 안내 메시지로 표시 (info), 나머지는 에러로 표시
-          final isCanceled = result.errorMessage?.contains('취소') ?? false;
-          
-          if (isCanceled) {
-            await DialogUtils.showInfo(
-              context,
-              result.errorMessage ?? 'Apple 로그인이 취소되었습니다.',
-              title: 'Apple 로그인',
-            );
-          } else {
-            await DialogUtils.showError(
-              context,
-              result.errorMessage ?? 'Apple 로그인에 실패했습니다.\n\niOS 설정 > Apple ID > 암호 및 보안에서\nApple로 로그인 설정을 확인해주세요.',
-            );
-          }
+        // 사용자 취소는 메시지를 표시하지 않음 (오버레이만 제거)
+        if (mounted && !(result.errorMessage?.contains('취소') ?? false)) {
+          await DialogUtils.showError(
+            context,
+            result.errorMessage ?? 'Apple 로그인에 실패했습니다.\n\niOS 설정 > Apple ID > 암호 및 보안에서\nApple로 로그인 설정을 확인해주세요.',
+          );
         }
       }
     } catch (e) {

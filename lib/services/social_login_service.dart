@@ -125,6 +125,20 @@ class SocialLoginService {
       if (kDebugMode) {
         debugPrint('❌ [Google] 로그인 오류: $e');
       }
+      
+      // 사용자 취소 감지
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('sign_in_failed') || 
+          errorString.contains('access_denied') ||
+          errorString.contains('canceled') ||
+          errorString.contains('cancelled')) {
+        return SocialLoginResult(
+          success: false,
+          errorMessage: '로그인이 취소되었습니다',
+          provider: SocialLoginProvider.google,
+        );
+      }
+      
       return SocialLoginResult(
         success: false,
         errorMessage: '구글 로그인 오류',
