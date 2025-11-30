@@ -53,6 +53,9 @@ class _CallTabState extends State<CallTab> {
   // 📞 최근통화 필터 상태
   String _callHistoryFilter = 'all'; // all, outgoing, incoming, incoming_confirmed, incoming_missed
   
+  // ⭐ 즐겨찾기 검색 상태
+  String _favoritesSearchQuery = ''; // 즐겨찾기 검색어
+  
   // Note: Device contacts state는 ContactManager에서 관리됨
   // Note: _hasCheckedNewUser는 ExtensionInitializer에서 관리됨
   
@@ -615,9 +618,28 @@ class _CallTabState extends State<CallTab> {
             final contactFavorites = contactSnapshot.data ?? [];
             final phonebookFavorites = phonebookSnapshot.data ?? [];
             
-            final totalCount = contactFavorites.length + phonebookFavorites.length;
+            // 🔍 검색 필터링 적용
+            final filteredContactFavorites = _favoritesSearchQuery.isEmpty
+                ? contactFavorites
+                : contactFavorites.where((contact) {
+                    final query = _favoritesSearchQuery.toLowerCase();
+                    return contact.name.toLowerCase().contains(query) ||
+                           contact.phoneNumber.contains(query) ||
+                           (contact.company?.toLowerCase().contains(query) ?? false);
+                  }).toList();
+            
+            final filteredPhonebookFavorites = _favoritesSearchQuery.isEmpty
+                ? phonebookFavorites
+                : phonebookFavorites.where((contact) {
+                    final query = _favoritesSearchQuery.toLowerCase();
+                    return contact.name.toLowerCase().contains(query) ||
+                           contact.extension.contains(query) ||
+                           (contact.department?.toLowerCase().contains(query) ?? false);
+                  }).toList();
+            
+            final totalCount = filteredContactFavorites.length + filteredPhonebookFavorites.length;
 
-            if (totalCount == 0) {
+            if (totalCount == 0 && _favoritesSearchQuery.isEmpty) {
               final isDark = Theme.of(context).brightness == Brightness.dark;
               return Center(
                 child: Column(
@@ -651,10 +673,98 @@ class _CallTabState extends State<CallTab> {
               );
             }
 
-            return ListView(
+            return Column(
               children: [
-                // 단말번호 즐겨찾기 섹션
-                if (phonebookFavorites.isNotEmpty) ...[
+                // 🔍 검색창
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey[900] : Colors.grey[50],
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: '이름, 번호, 부서 검색...',
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: isDark ? Colors.grey[500] : Colors.grey[600],
+                      ),
+                      suffixIcon: _favoritesSearchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(
+                                Icons.clear,
+                                color: isDark ? Colors.grey[500] : Colors.grey[600],
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _favoritesSearchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: isDark ? Colors.grey[850] : Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _favoritesSearchQuery = value;
+                      });
+                    },
+                  ),
+                ),
+                
+                // 검색 결과 없음 표시
+                if (totalCount == 0 && _favoritesSearchQuery.isNotEmpty)
+                  Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 80,
+                            color: isDark ? Colors.grey[700] : Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '검색 결과가 없습니다',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.grey[400] : Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '"$_favoritesSearchQuery"에 대한\n즐겨찾기를 찾을 수 없습니다',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark ? Colors.grey[500] : Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                
+                // 즐겨찾기 리스트
+                if (totalCount > 0)
+                  Expanded(
+                    child: ListView(
+                      children: [
+                        // 단말번호 즐겨찾기 섹션
+                        if (filteredPhonebookFavorites.isNotEmpty) ...[
                   Builder(
                     builder: (context) {
                       final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -669,7 +779,7 @@ class _CallTabState extends State<CallTab> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              '단말번호 (${phonebookFavorites.length})',
+                              '단말번호 (${filteredPhonebookFavorites.length})',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -681,11 +791,11 @@ class _CallTabState extends State<CallTab> {
                       );
                     },
                   ),
-                  ...phonebookFavorites.map((contact) => _buildPhonebookContactListTile(contact)),
-                ],
-                
-                // 연락처 즐겨찾기 섹션
-                if (contactFavorites.isNotEmpty) ...[
+                          ...filteredPhonebookFavorites.map((contact) => _buildPhonebookContactListTile(contact)),
+                        ],
+                        
+                        // 연락처 즐겨찾기 섹션
+                        if (filteredContactFavorites.isNotEmpty) ...[
                   Builder(
                     builder: (context) {
                       final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -700,7 +810,7 @@ class _CallTabState extends State<CallTab> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              '연락처 (${contactFavorites.length})',
+                              '연락처 (${filteredContactFavorites.length})',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -712,8 +822,11 @@ class _CallTabState extends State<CallTab> {
                       );
                     },
                   ),
-                  ...contactFavorites.map((contact) => _buildContactListTile(contact)),
-                ],
+                          ...filteredContactFavorites.map((contact) => _buildContactListTile(contact)),
+                        ],
+                      ],
+                    ),
+                  ),
               ],
             );
           },
