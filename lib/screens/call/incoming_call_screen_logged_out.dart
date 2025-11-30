@@ -12,7 +12,6 @@ import '../../widgets/cached_network_image_widget.dart';
 /// - ❌ 벨소리/진동 없음 (시스템 알림에서 이미 처리)
 /// - ➕ 닫기 버튼 (우측 상단 ✕)
 /// - ✅ 통화 확인 버튼 (Firestore 업데이트)
-/// - 🔄 "로그인하여 확인하기" 버튼
 class IncomingCallScreenLoggedOut extends StatefulWidget {
   final String callerName;
   final String callerNumber;
@@ -142,17 +141,6 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
     _closeScreen();
   }
 
-  /// 🚪 로그인 화면으로 이동
-  void _navigateToLogin() {
-    // 페이드 아웃 애니메이션 후 화면 닫기
-    _fadeController.reverse().then((_) {
-      if (mounted) {
-        Navigator.of(context).pop();
-        // 로그인 화면으로 이동 (AuthWrapper가 자동으로 처리)
-      }
-    });
-  }
-
   /// ❌ 화면 닫기
   void _closeScreen() {
     _fadeController.reverse().then((_) {
@@ -225,13 +213,8 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
 
                               const Spacer(flex: 3),
 
-                              // ✅ 통화 확인 버튼 (먼저 표시)
+                              // ✅ 통화 확인 버튼
                               _buildConfirmButton(),
-
-                              const SizedBox(height: 20),
-
-                              // 🔐 로그인 안내 버튼
-                              _buildLoginPromptButton(),
 
                               const SizedBox(height: 40),
                             ],
@@ -898,74 +881,6 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
                 color: Colors.white.withOpacity(0.95),
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 🔐 로그인 안내 버튼
-  Widget _buildLoginPromptButton() {
-    return Center(
-      child: GestureDetector(
-        onTap: _navigateToLogin,
-        child: Column(
-          children: [
-            // 버튼 (글로우 효과)
-            AnimatedBuilder(
-              animation: _glowController,
-              builder: (context, child) {
-                return Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.orange.withOpacity(0.5 * _glowController.value),
-                        blurRadius: 30 * _glowController.value,
-                        spreadRadius: 5 * _glowController.value,
-                      ),
-                    ],
-                  ),
-                  child: Container(
-                    width: 75,
-                    height: 75,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.orange.shade400,
-                          Colors.orange.shade600,
-                        ],
-                      ),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                        width: 2,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.login_rounded,
-                      color: Colors.white,
-                      size: 36,
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 12),
-
-            // 레이블
-            Text(
-              '로그인하여 확인하기',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
               ),
             ),
