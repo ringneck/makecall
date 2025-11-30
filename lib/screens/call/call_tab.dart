@@ -50,6 +50,9 @@ class _CallTabState extends State<CallTab> {
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
+  // 📞 최근통화 필터 상태
+  String _callHistoryFilter = 'all'; // all, outgoing, incoming, incoming_confirmed, incoming_missed
+  
   // Note: Device contacts state는 ContactManager에서 관리됨
   // Note: _hasCheckedNewUser는 ExtensionInitializer에서 관리됨
   
@@ -785,41 +788,88 @@ class _CallTabState extends State<CallTab> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final callHistory = snapshot.data ?? [];
+        final allCallHistory = snapshot.data ?? [];
+        
+        // 📞 필터 적용
+        final callHistory = allCallHistory.where((call) {
+          switch (_callHistoryFilter) {
+            case 'outgoing':
+              return call.callType == CallType.outgoing;
+            case 'incoming':
+              return call.callType == CallType.incoming;
+            case 'incoming_confirmed':
+              return call.callType == CallType.incoming && call.status == 'confirmed';
+            case 'incoming_missed':
+              return call.callType == CallType.incoming && call.status == 'missed';
+            default:
+              return true; // 'all'
+          }
+        }).toList();
 
-        if (callHistory.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.history,
-                  size: 80,
-                  color: isDark ? Colors.grey[700] : Colors.grey[300],
-                ), 
-                const SizedBox(height: 20),
-                Text(
-                  '통화 기록이 없습니다',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.grey[400] : Colors.grey,
+        return Column(
+          children: [
+            // 🎯 필터 UI
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[900] : Colors.grey[50],
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                    width: 1,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '첫 통화를 시작해보세요',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark ? Colors.grey[500] : Colors.grey[500],
-                  ),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip('all', '전체', allCallHistory.length, isDark),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('outgoing', '발신', 
+                      allCallHistory.where((c) => c.callType == CallType.outgoing).length, isDark),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('incoming', '수신', 
+                      allCallHistory.where((c) => c.callType == CallType.incoming).length, isDark),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('incoming_confirmed', '수신확인', 
+                      allCallHistory.where((c) => c.callType == CallType.incoming && c.status == 'confirmed').length, isDark),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('incoming_missed', '미확인', 
+                      allCallHistory.where((c) => c.callType == CallType.incoming && c.status == 'missed').length, isDark),
+                  ],
                 ),
-              ],
+              ),
             ),
-          );
-        }
-
-        return ListView.separated(
+            
+            // 📋 통화 기록 리스트
+            if (callHistory.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.filter_list_off,
+                        size: 80,
+                        color: isDark ? Colors.grey[700] : Colors.grey[300],
+                      ), 
+                      const SizedBox(height: 20),
+                      Text(
+                        '필터 조건에 맞는 통화 기록이 없습니다',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.grey[400] : Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
           padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: callHistory.length,
           separatorBuilder: (context, index) {
@@ -904,7 +954,10 @@ class _CallTabState extends State<CallTab> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.grey[200] : const Color(0xFF1a1a1a),
+                          // 🔴 미확인 수신 전화는 붉은색으로 강조
+                          color: call.callType == CallType.incoming && call.status == 'missed'
+                              ? const Color(0xFFE53935) // 붉은색 강조
+                              : isDark ? Colors.grey[200] : const Color(0xFF1a1a1a),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -982,7 +1035,10 @@ class _CallTabState extends State<CallTab> {
                               call.phoneNumber,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: isDark ? Colors.grey[400] : Colors.grey[700],
+                                // 🔴 미확인 수신 전화는 전화번호도 붉은색으로 강조
+                                color: call.callType == CallType.incoming && call.status == 'missed'
+                                    ? const Color(0xFFE53935) // 붉은색 강조
+                                    : isDark ? Colors.grey[400] : Colors.grey[700],
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1142,8 +1198,73 @@ class _CallTabState extends State<CallTab> {
       ),
     );
           },
+                ),
+              ),
+          ],
         );
       },
+    );
+  }
+  
+  /// 📞 필터 Chip 빌더
+  Widget _buildFilterChip(String filterValue, String label, int count, bool isDark) {
+    final isSelected = _callHistoryFilter == filterValue;
+    
+    return FilterChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected 
+                  ? Colors.white 
+                  : isDark ? Colors.grey[300] : Colors.grey[700],
+            ),
+          ),
+          const SizedBox(width: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: isSelected 
+                  ? Colors.white.withValues(alpha: 0.2)
+                  : isDark ? Colors.grey[700] : Colors.grey[300],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              count.toString(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isSelected 
+                    ? Colors.white 
+                    : isDark ? Colors.grey[300] : Colors.grey[700],
+              ),
+            ),
+          ),
+        ],
+      ),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _callHistoryFilter = filterValue;
+        });
+      },
+      selectedColor: const Color(0xFF2196F3),
+      backgroundColor: isDark ? Colors.grey[800] : Colors.white,
+      checkmarkColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected 
+              ? const Color(0xFF2196F3)
+              : isDark ? Colors.grey[700]! : Colors.grey[300]!,
+          width: 1.5,
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     );
   }
 
