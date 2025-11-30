@@ -47,50 +47,25 @@ class KoreanSearchUtils {
     return buffer.toString();
   }
 
-  /// 초성 검색 매칭 (대소문자 구분 없음)
+  /// 부분 문자열 검색 (대소문자 구분 없음)
   /// 
-  /// query: 검색어 (초성 또는 일반 텍스트)
+  /// query: 검색어
   /// target: 검색 대상 문자열
   /// 
   /// 반환: 매칭 여부
   /// 
   /// 예:
-  /// - matchesChosung('ㄱㅎㄷ', '김현동') → true
-  /// - matchesChosung('김현', '김현동') → true
-  /// - matchesChosung('ㄱ', '김현동') → true
-  /// - matchesChosung('khd', 'KimHyunDong') → true
+  /// - matchesChosung('김', '김현동') → true
+  /// - matchesChosung('현', '김현동') → true
+  /// - matchesChosung('010', '010-1234-5678') → true
+  /// - matchesChosung('echo', 'Echo Test') → true
   static bool matchesChosung(String query, String target) {
     if (query.isEmpty || target.isEmpty) return false;
     
-    // 쿼리와 타겟을 소문자로 변환
+    // 쿼리와 타겟을 소문자로 변환하여 부분 문자열 검색
     final lowerQuery = query.toLowerCase();
     final lowerTarget = target.toLowerCase();
     
-    // 쿼리가 초성인지 확인
-    bool isChosungQuery = true;
-    bool hasKorean = false;
-    for (int i = 0; i < query.length; i++) {
-      if (_chosung.contains(query[i])) {
-        hasKorean = true;
-      } else if (query[i] != ' ') {
-        isChosungQuery = false;
-      }
-    }
-    
-    // 1. 초성 검색 (순수 초성만 있는 경우)
-    if (isChosungQuery && hasKorean) {
-      final targetChosung = getChosungString(target);
-      final cleanQuery = query.replaceAll(' ', '');
-      return targetChosung.contains(cleanQuery);
-    }
-    
-    // 2. 일반 문자열 포함 검색 (초성이 아닌 경우)
-    if (!hasKorean) {
-      // 영문, 숫자 등 - 부분 문자열 검색
-      return lowerTarget.contains(lowerQuery);
-    }
-    
-    // 3. 한글 음절이 포함된 경우 - 정확한 음절 매칭만
     return lowerTarget.contains(lowerQuery);
   }
 
