@@ -797,8 +797,6 @@ class _CallTabState extends State<CallTab> {
               return call.callType == CallType.outgoing;
             case 'incoming':
               return call.callType == CallType.incoming;
-            case 'incoming_confirmed':
-              return call.callType == CallType.incoming && call.status == 'confirmed';
             case 'incoming_missed':
               return call.callType == CallType.incoming && call.status == 'missed';
             default:
@@ -831,9 +829,6 @@ class _CallTabState extends State<CallTab> {
                     const SizedBox(width: 8),
                     _buildFilterChip('incoming', '수신', 
                       allCallHistory.where((c) => c.callType == CallType.incoming).length, isDark),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('incoming_confirmed', '수신확인', 
-                      allCallHistory.where((c) => c.callType == CallType.incoming && c.status == 'confirmed').length, isDark),
                     const SizedBox(width: 8),
                     _buildFilterChip('incoming_missed', '미확인', 
                       allCallHistory.where((c) => c.callType == CallType.incoming && c.status == 'missed').length, isDark),
