@@ -66,32 +66,32 @@ class KoreanSearchUtils {
     final lowerQuery = query.toLowerCase();
     final lowerTarget = target.toLowerCase();
     
-    // 1. 일반 문자열 포함 검색
-    if (lowerTarget.contains(lowerQuery)) {
-      return true;
-    }
-    
-    // 2. 초성 검색
-    final targetChosung = getChosungString(target);
-    
     // 쿼리가 초성인지 확인
     bool isChosungQuery = true;
+    bool hasKorean = false;
     for (int i = 0; i < query.length; i++) {
-      if (!_chosung.contains(query[i]) && query[i] != ' ') {
+      if (_chosung.contains(query[i])) {
+        hasKorean = true;
+      } else if (query[i] != ' ') {
         isChosungQuery = false;
-        break;
       }
     }
     
-    // 초성 쿼리인 경우
-    if (isChosungQuery) {
+    // 1. 초성 검색 (순수 초성만 있는 경우)
+    if (isChosungQuery && hasKorean) {
+      final targetChosung = getChosungString(target);
       final cleanQuery = query.replaceAll(' ', '');
       return targetChosung.contains(cleanQuery);
     }
     
-    // 3. 혼합 검색 (초성 + 일반 문자)
-    // 예: "ㄱ현" → "김현동" (초성 'ㄱ' + 문자 '현')
-    return _matchesMixed(lowerQuery, lowerTarget, targetChosung);
+    // 2. 일반 문자열 포함 검색 (초성이 아닌 경우)
+    if (!hasKorean) {
+      // 영문, 숫자 등 - 부분 문자열 검색
+      return lowerTarget.contains(lowerQuery);
+    }
+    
+    // 3. 한글 음절이 포함된 경우 - 정확한 음절 매칭만
+    return lowerTarget.contains(lowerQuery);
   }
 
   /// 혼합 검색 (초성 + 일반 문자)
