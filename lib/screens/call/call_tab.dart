@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import '../../utils/dialog_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
@@ -60,6 +62,9 @@ class _CallTabState extends State<CallTab> {
   
   // 🔧 RegExp 캐싱 (성능 최적화)
   static final _numericRegExp = RegExp(r'[^0-9]');
+  
+  // 🔔 배지/알림 제거 플러그인
+  final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
   
   // Note: Device contacts state는 ContactManager에서 관리됨
   // Note: _hasCheckedNewUser는 ExtensionInitializer에서 관리됨
@@ -242,6 +247,26 @@ class _CallTabState extends State<CallTab> {
     _favoritesSearchController.dispose();
     _searchDebounceTimer?.cancel(); // 검색 디바운스 타이머 정리
     super.dispose();
+  }
+  
+  // 🔔 최근통화 탭 진입 시 배지/알림 제거
+  Future<void> _clearBadgeOnCallHistoryTab() async {
+    // Web은 배지 미지원
+    if (kIsWeb) return;
+    
+    try {
+      // Android: 알림 제거 시 배지도 자동 제거
+      // iOS: 알림 제거 + 배지 카운트 0으로 설정
+      await _notificationsPlugin.cancelAll();
+      
+      if (kDebugMode) {
+        debugPrint('✅ [CallTab] 최근통화 탭 진입 - ${Platform.isAndroid ? 'Android' : 'iOS'} 배지/알림 제거 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [CallTab] 배지 제거 실패: $e');
+      }
+    }
   }
   
   // 🔔 AuthService 상태 변경 감지 콜백 (완전한 이벤트 기반 패턴)
@@ -492,6 +517,11 @@ class _CallTabState extends State<CallTab> {
               setState(() {
                 _currentTabIndex = index;
               });
+              
+              // 🔔 최근통화 탭(index 1) 진입 시 배지/알림 제거
+              if (index == 1) {
+                _clearBadgeOnCallHistoryTab();
+              }
             },
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.transparent,

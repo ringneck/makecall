@@ -391,25 +391,27 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   
   /// 🔔 iOS 배지 초기화
   Future<void> _clearBadge() async {
-    // iOS에서만 실행
-    if (kIsWeb || !Platform.isIOS) return;
+    // Web은 배지 미지원
+    if (kIsWeb) return;
     
     try {
-      // 방법 1: 모든 알림 제거
+      // 🔔 iOS와 Android 모두 알림 제거 (Android는 알림 제거 시 배지도 자동 제거)
       await _notificationsPlugin.cancelAll();
       
-      // 방법 2: 배지를 명시적으로 0으로 설정
-      await _notificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(badge: true);
+      // iOS 추가 처리: 배지를 명시적으로 0으로 설정
+      if (Platform.isIOS) {
+        await _notificationsPlugin
+            .resolvePlatformSpecificImplementation<
+                IOSFlutterLocalNotificationsPlugin>()
+            ?.requestPermissions(badge: true);
+      }
       
       if (kDebugMode) {
-        debugPrint('✅ [Badge] iOS 배지 초기화 완료');
+        debugPrint('✅ [Badge] ${Platform.isIOS ? 'iOS' : 'Android'} 배지/알림 초기화 완료');
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ [Badge] iOS 배지 초기화 실패: $e');
+        debugPrint('❌ [Badge] 배지 초기화 실패: $e');
       }
     }
   }
