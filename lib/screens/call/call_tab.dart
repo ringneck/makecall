@@ -679,11 +679,12 @@ class _CallTabState extends State<CallTab> {
                 ? contactFavorites
                 : contactFavorites.where((contact) {
                     final query = _favoritesSearchQuery.toLowerCase();
+                    final numericQuery = query.replaceAll(RegExp(r'[^0-9]'), '');
                     final matches = contact.name.toLowerCase().contains(query) ||
                         (contact.company?.toLowerCase().contains(query) ?? false) ||
                         (contact.email?.toLowerCase().contains(query) ?? false) ||
                         (contact.notes?.toLowerCase().contains(query) ?? false) ||
-                        contact.phoneNumber.replaceAll(RegExp(r'[^0-9]'), '').contains(query.replaceAll(RegExp(r'[^0-9]'), ''));
+                        (numericQuery.isNotEmpty && contact.phoneNumber.replaceAll(RegExp(r'[^0-9]'), '').contains(numericQuery));
                     if (kDebugMode && matches) {
                       debugPrint('⭐ [즐겨찾기] 연락처 매칭: ${contact.name} (${contact.phoneNumber})');
                     }
@@ -694,10 +695,11 @@ class _CallTabState extends State<CallTab> {
                 ? phonebookFavorites
                 : phonebookFavorites.where((contact) {
                     final query = _favoritesSearchQuery.toLowerCase();
+                    final numericQuery = query.replaceAll(RegExp(r'[^0-9]'), '');
                     final matches = contact.name.toLowerCase().contains(query) ||
                         (contact.company?.toLowerCase().contains(query) ?? false) ||
                         (contact.title?.toLowerCase().contains(query) ?? false) ||
-                        contact.telephone.replaceAll(RegExp(r'[^0-9]'), '').contains(query.replaceAll(RegExp(r'[^0-9]'), ''));
+                        (numericQuery.isNotEmpty && contact.telephone.replaceAll(RegExp(r'[^0-9]'), '').contains(numericQuery));
                     if (kDebugMode && matches) {
                       debugPrint('⭐ [즐겨찾기] 단말번호 매칭: ${contact.name} (${contact.telephone})');
                     }
