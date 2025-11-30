@@ -494,6 +494,8 @@ class FCMIncomingCallHandler {
   }
   
   /// 통화 기록 생성 (Firestore)
+  /// 
+  /// ✅ linkedid를 문서 ID로 사용하여 중복 생성 방지
   Future<void> _createCallHistory({
     required String callerNumber,
     required String callerName,
@@ -511,8 +513,8 @@ class FCMIncomingCallHandler {
         return;
       }
       
-      // 통화 기록 생성
-      await _firestore.collection('call_history').add({
+      // ✅ linkedid를 문서 ID로 사용 (중복 방지)
+      await _firestore.collection('call_history').doc(linkedid).set({
         'userId': userId,
         'callerNumber': callerNumber,
         'callerName': callerName,
@@ -523,9 +525,9 @@ class FCMIncomingCallHandler {
         'direction': 'incoming',
         'status': 'missed', // 초기 상태는 missed (부재중)
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: false)); // 덮어쓰기 방지
       
-      debugPrint('✅ [FCM-CALL-HISTORY] 통화 기록 생성 완료');
+      debugPrint('✅ [FCM-CALL-HISTORY] 통화 기록 생성 완료 (linkedid: $linkedid, status: missed)');
       
     } catch (e) {
       debugPrint('❌ [FCM-CALL-HISTORY] 통화 기록 생성 실패: $e');

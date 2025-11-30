@@ -1211,40 +1211,15 @@ class _CallTabState extends State<CallTab> {
     final isSelected = _callHistoryFilter == filterValue;
     
     return FilterChip(
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected 
-                  ? Colors.white 
-                  : isDark ? Colors.grey[300] : Colors.grey[700],
-            ),
-          ),
-          const SizedBox(width: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: isSelected 
-                  ? Colors.white.withValues(alpha: 0.2)
-                  : isDark ? Colors.grey[700] : Colors.grey[300],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              count.toString(),
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: isSelected 
-                    ? Colors.white 
-                    : isDark ? Colors.grey[300] : Colors.grey[700],
-              ),
-            ),
-          ),
-        ],
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          color: isSelected 
+              ? Colors.white 
+              : isDark ? Colors.grey[300] : Colors.grey[700],
+        ),
       ),
       selected: isSelected,
       onSelected: (selected) {

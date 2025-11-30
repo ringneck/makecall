@@ -1439,19 +1439,12 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       
       final userId = currentUser.uid;
 
-      final callHistoryData = {
-        'userId': userId,
-        'callerNumber': widget.callerNumber,
-        'callerName': widget.callerName,
-        'receiverNumber': widget.receiverNumber,
+      // ✅ 기존 문서 업데이트 (새로 생성하지 않음)
+      final updateData = {
+        'status': 'confirmed', // missed → confirmed로 변경
+        'confirmedAt': FieldValue.serverTimestamp(),
         'extensionUsed': widget.myExtension, // 실제 내 단말번호 (예: 1010)
-        'channel': widget.channel,
-        'linkedid': widget.linkedid,
-        'callType': 'incoming',
         'callSubType': widget.callType, // 'external', 'internal', 'unknown'
-        'status': 'confirmed',
-        'timestamp': FieldValue.serverTimestamp(),
-        'createdAt': DateTime.now(),
         
         // 내 단말번호 정보
         if (widget.myCompanyName != null) 'myCompanyName': widget.myCompanyName,
@@ -1468,19 +1461,22 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         return;
       }
 
+      // ✅ linkedid를 문서 ID로 사용하여 기존 문서 업데이트
       await FirebaseFirestore.instance
           .collection('call_history')
-          .add(callHistoryData);
+          .doc(widget.linkedid)
+          .update(updateData);
 
       if (kDebugMode) {
-        debugPrint('✅ [SAVE-HISTORY] 통화 기록 저장 완료');
+        debugPrint('✅ [SAVE-HISTORY] 통화 기록 업데이트 완료 (missed → confirmed)');
+        debugPrint('  linkedid: ${widget.linkedid}');
         debugPrint('  발신자: ${widget.callerName} (${widget.callerNumber})');
         debugPrint('  수신번호: ${widget.receiverNumber}');
-        debugPrint('  타입: incoming (confirmed)');
+        debugPrint('  상태: missed → confirmed');
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ [SAVE-HISTORY] 통화 기록 저장 실패: $e');
+        debugPrint('❌ [SAVE-HISTORY] 통화 기록 업데이트 실패: $e');
         // 로그아웃으로 인한 권한 오류는 조용히 무시
         if (e.toString().contains('permission') || e.toString().contains('unauthorized')) {
           debugPrint('   → 권한 오류 (로그아웃 가능성) - 무시');
