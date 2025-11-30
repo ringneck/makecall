@@ -409,6 +409,10 @@ class FCMIncomingCallHandler {
     // 💾 통화 기록 생성 (call_history)
     // ignore: avoid_print
     print('📝 [FCM-SCREEN] 통화 기록 생성 시도 중...');
+    
+    // FCM 메시지에서 user_id 추출 (백업용)
+    final fcmUserId = message.data['user_id'] ?? message.data['userId'];
+    
     await _createCallHistory(
       callerNumber: callerNumber,
       callerName: callerName,
@@ -416,6 +420,7 @@ class FCMIncomingCallHandler {
       linkedid: linkedid,
       channel: channel,
       callType: callType,
+      fcmUserId: fcmUserId, // FCM 메시지의 userId 전달 (로그인 상태에서는 사용 안 함)
     );
     // ignore: avoid_print
     print('📝 [FCM-SCREEN] 통화 기록 생성 완료 (또는 실패)');
@@ -496,6 +501,7 @@ class FCMIncomingCallHandler {
   /// 통화 기록 생성 (Firestore)
   /// 
   /// ✅ linkedid를 문서 ID로 사용하여 중복 생성 방지
+  /// ✅ 로그아웃 상태에서도 생성 가능 (FCM 메시지의 user_id 사용)
   Future<void> _createCallHistory({
     required String callerNumber,
     required String callerName,
@@ -503,10 +509,17 @@ class FCMIncomingCallHandler {
     required String linkedid,
     required String channel,
     required String callType,
+    String? fcmUserId, // FCM 메시지에서 전달된 userId (로그아웃 상태용)
   }) async {
     try {
       final authService = AuthService();
-      final userId = authService.currentUser?.uid;
+      String? userId = authService.currentUser?.uid; // 현재 로그인 사용자
+      
+      // 로그아웃 상태면 FCM 메시지의 userId 사용
+      if (userId == null && fcmUserId != null) {
+        userId = fcmUserId;
+        debugPrint('📝 [FCM-CALL-HISTORY] 로그아웃 상태 - FCM userId 사용: $userId');
+      }
       
       if (userId == null) {
         debugPrint('⚠️ [FCM-CALL-HISTORY] 사용자 ID 없음 - 통화 기록 생성 불가');
@@ -527,7 +540,7 @@ class FCMIncomingCallHandler {
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: false)); // 덮어쓰기 방지
       
-      debugPrint('✅ [FCM-CALL-HISTORY] 통화 기록 생성 완료 (linkedid: $linkedid, status: missed)');
+      debugPrint('✅ [FCM-CALL-HISTORY] 통화 기록 생성 완료 (linkedid: $linkedid, status: missed, userId: $userId)');
       
     } catch (e) {
       debugPrint('❌ [FCM-CALL-HISTORY] 통화 기록 생성 실패: $e');
@@ -670,6 +683,27 @@ class FCMIncomingCallHandler {
     print('   수신번호: $receiverNumber');
     // ignore: avoid_print
     print('   통화타입: $callType');
+    
+    // FCM 메시지에서 user_id 추출 (로그아웃 상태에서 통화 기록 생성용)
+    final fcmUserId = message.data['user_id'] ?? message.data['userId'];
+    
+    // ignore: avoid_print
+    print('📝 [FCM-SCREEN-LOGOUT] FCM user_id: ${fcmUserId ?? "(없음)"}');
+    
+    // 💾 통화 기록 생성 (call_history) - 로그아웃 상태에서도 생성
+    // ignore: avoid_print
+    print('📝 [FCM-SCREEN-LOGOUT] 통화 기록 생성 시도 중...');
+    await _createCallHistory(
+      callerNumber: callerNumber,
+      callerName: callerName,
+      receiverNumber: receiverNumber,
+      linkedid: linkedid,
+      channel: channel,
+      callType: callType,
+      fcmUserId: fcmUserId, // FCM 메시지의 userId 전달
+    );
+    // ignore: avoid_print
+    print('📝 [FCM-SCREEN-LOGOUT] 통화 기록 생성 완료 (또는 실패)');
     
     print('🎬 [FCM-LOGOUT] 로그아웃 전용 수신 전화 화면 표시');
     
