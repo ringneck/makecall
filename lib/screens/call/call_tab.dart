@@ -633,8 +633,9 @@ class _CallTabState extends State<CallTab> {
                 : phonebookFavorites.where((contact) {
                     final query = _favoritesSearchQuery.toLowerCase();
                     return contact.name.toLowerCase().contains(query) ||
-                           contact.extension.contains(query) ||
-                           (contact.department?.toLowerCase().contains(query) ?? false);
+                           contact.telephone.contains(query) ||
+                           (contact.company?.toLowerCase().contains(query) ?? false) ||
+                           (contact.title?.toLowerCase().contains(query) ?? false);
                   }).toList();
             
             final totalCount = filteredContactFavorites.length + filteredPhonebookFavorites.length;
