@@ -169,19 +169,22 @@ class SocialLoginProgressHelper {
     Overlay.of(context).insert(_currentOverlay!);
   }
 
-  /// 오버레이 숨기기 (이벤트 기반 - 마이크로태스크 큐 사용)
+  /// 오버레이 숨기기 (즉시 제거)
   static void hide() {
     if (_currentOverlay == null) return;
     
-    // Microtask를 사용해 현재 실행 스택이 완료된 직후 오버레이 제거
-    scheduleMicrotask(() {
-      try {
-        _currentOverlay?.remove();
-        _currentOverlay = null;
-      } catch (e) {
-        _currentOverlay = null;
+    try {
+      _currentOverlay?.remove();
+      _currentOverlay = null;
+      if (kDebugMode) {
+        debugPrint('✅ [OVERLAY] Removed successfully');
       }
-    });
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [OVERLAY] Remove error (may already be removed): $e');
+      }
+      _currentOverlay = null;
+    }
   }
   
   /// 강제 오버레이 제거 (화면 전환 시 안전장치)
