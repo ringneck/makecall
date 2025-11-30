@@ -109,4 +109,44 @@ class CommonUtils {
       setRefreshing(false);
     }
   }
+
+  /// 비밀번호 유효성 검증
+  /// 
+  /// 요구사항:
+  /// - 최소 8자 이상
+  /// - 영문자 포함 (대문자 또는 소문자)
+  /// - 숫자 포함
+  /// - 특수문자 포함
+  /// 
+  /// Returns: null (유효한 경우) 또는 에러 메시지
+  static String? validatePassword(String? password) {
+    if (password == null || password.isEmpty) {
+      return '비밀번호를 입력하세요';
+    }
+
+    // 최소 8자 이상
+    if (password.length < 8) {
+      return '비밀번호는 최소 8자 이상이어야 합니다';
+    }
+
+    // 영문자 포함 확인 (대문자 또는 소문자)
+    if (!password.contains(RegExp(r'[a-zA-Z]'))) {
+      return '비밀번호에 영문자를 포함해야 합니다';
+    }
+
+    // 숫자 포함 확인
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      return '비밀번호에 숫자를 포함해야 합니다';
+    }
+
+    // 특수문자 포함 확인
+    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+      return '비밀번호에 특수문자를 포함해야 합니다';
+    }
+
+    return null; // 유효한 비밀번호
+  }
+
+  /// 비밀번호 정책 설명 텍스트
+  static const String passwordPolicyText = '8자 이상, 영문/숫자/특수문자 포함';
 }

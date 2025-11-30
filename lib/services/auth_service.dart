@@ -1107,7 +1107,7 @@ class AuthService extends ChangeNotifier {
       case 'operation-not-allowed':
         return '이메일/비밀번호 로그인이 비활성화되어 있습니다.';
       case 'weak-password':
-        return '비밀번호는 최소 6자 이상이어야 합니다.';
+        return '비밀번호는 8자 이상, 영문/숫자/특수문자를 포함해야 합니다.';
       case 'user-disabled':
         return '비활성화된 계정입니다.';
       case 'user-not-found':

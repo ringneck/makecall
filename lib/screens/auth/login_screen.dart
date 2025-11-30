@@ -9,6 +9,7 @@ import '../../services/auth_service.dart';
 import '../../services/account_manager_service.dart';
 import '../../services/social_login_service.dart';
 import '../../utils/dialog_utils.dart';
+import '../../utils/common_utils.dart';
 import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
 import '../../main.dart' show navigatorKey;
@@ -1540,7 +1541,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             labelStyle: TextStyle(
                               color: isDark ? Colors.grey[400] : Colors.grey[700],
                             ),
-                            hintText: '6자 이상 입력',
+                            hintText: '8자 이상, 영문/숫자/특수문자 포함',
                             hintStyle: TextStyle(
                               color: isDark ? Colors.grey[600] : Colors.grey[400],
                             ),
@@ -1589,15 +1590,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               vertical: 16,
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return '비밀번호를 입력해주세요';
-                            }
-                            if (value.length < 6) {
-                              return '비밀번호는 최소 6자 이상이어야 합니다';
-                            }
-                            return null;
-                          },
+                          validator: (value) => CommonUtils.validatePassword(value),
                         ),
                         
                         const SizedBox(height: 12),
