@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../utils/dialog_utils.dart';
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode, debugPrint;
 import 'package:provider/provider.dart';
@@ -29,6 +30,9 @@ class _DialpadScreenState extends State<DialpadScreen> {
   // 📝 TextField Controller (붙여넣기 지원)
   final TextEditingController _phoneController = TextEditingController();
   final FocusNode _phoneFocusNode = FocusNode();
+  
+  // 🚀 성능 최적화: Debouncing 타이머
+  Timer? _dialpadDebounceTimer;
 
   // 플랫폼 감지
   bool get _isAndroid => !kIsWeb && Platform.isAndroid;
@@ -37,18 +41,23 @@ class _DialpadScreenState extends State<DialpadScreen> {
   @override
   void initState() {
     super.initState();
-    // TextField 변경 감지
+    // 🚀 최적화: Controller listener로 통합 관리 (이중 setState 방지)
     _phoneController.addListener(() {
-      if (_phoneController.text != _phoneNumber) {
-        setState(() {
-          _phoneNumber = _phoneController.text;
-        });
-      }
+      // Debouncing으로 빠른 타이핑 시 성능 최적화
+      _dialpadDebounceTimer?.cancel();
+      _dialpadDebounceTimer = Timer(const Duration(milliseconds: 50), () {
+        if (mounted && _phoneController.text != _phoneNumber) {
+          setState(() {
+            _phoneNumber = _phoneController.text;
+          });
+        }
+      });
     });
   }
   
   @override
   void dispose() {
+    _dialpadDebounceTimer?.cancel(); // 타이머 정리
     _phoneController.dispose();
     _phoneFocusNode.dispose();
     super.dispose();
@@ -65,9 +74,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
       _phoneController.selection = TextSelection.collapsed(
         offset: newText.length,
       );
-      setState(() {
-        _phoneNumber = newText;
-      });
+      // 🚀 최적화: setState 제거 - Controller listener가 자동 처리
       return;
     }
     
@@ -84,10 +91,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
     _phoneController.selection = TextSelection.collapsed(
       offset: start + key.length,
     );
-    
-    setState(() {
-      _phoneNumber = newText;
-    });
+    // 🚀 최적화: setState 제거 - Controller listener가 자동 처리
   }
 
   void _onBackspace() {
@@ -103,9 +107,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
       _phoneController.selection = TextSelection.collapsed(
         offset: newText.length,
       );
-      setState(() {
-        _phoneNumber = newText;
-      });
+      // 🚀 최적화: setState 제거 - Controller listener가 자동 처리
       return;
     }
     
@@ -118,10 +120,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
       _phoneController.selection = TextSelection.collapsed(
         offset: selection.start - 1,
       );
-      
-      setState(() {
-        _phoneNumber = newText;
-      });
+      // 🚀 최적화: setState 제거 - Controller listener가 자동 처리
     } else if (selection.start != selection.end && selection.start >= 0 && selection.end > 0) {
       // 선택된 텍스트 삭제
       final newText = currentText.substring(0, selection.start) + 
@@ -131,10 +130,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
       _phoneController.selection = TextSelection.collapsed(
         offset: selection.start,
       );
-      
-      setState(() {
-        _phoneNumber = newText;
-      });
+      // 🚀 최적화: setState 제거 - Controller listener가 자동 처리
     }
   }
 
@@ -511,11 +507,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
                           enableInteractiveSelection: true, // ✅ 선택, 복사, 붙여넣기 활성화
                           showCursor: true,
                           cursorColor: isDark ? Colors.white : Colors.black87,
-                          onChanged: (value) {
-                            setState(() {
-                              _phoneNumber = value;
-                            });
-                          },
+                          // 🚀 최적화: onChanged 제거 - Controller listener로 통합 관리 (이중 setState 방지)
                         ),
                       ),
                     ),
