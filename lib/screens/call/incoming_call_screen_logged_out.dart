@@ -1,5 +1,7 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/cached_network_image_widget.dart';
 
 /// 📞 로그아웃 전용 수신전화 화면
@@ -9,7 +11,8 @@ import '../../widgets/cached_network_image_widget.dart';
 /// - ❌ Firestore 리스너 없음 (실시간 업데이트 불필요)
 /// - ❌ 벨소리/진동 없음 (시스템 알림에서 이미 처리)
 /// - ➕ 닫기 버튼 (우측 상단 ✕)
-/// - 🔄 "로그인하여 확인하기" 단일 버튼
+/// - ✅ 통화 확인 버튼 (Firestore 업데이트)
+/// - 🔄 "로그인하여 확인하기" 버튼
 class IncomingCallScreenLoggedOut extends StatefulWidget {
   final String callerName;
   final String callerNumber;
@@ -114,6 +117,31 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
     _scaleController.forward();
   }
 
+  /// ✅ 통화 확인 (Firestore 업데이트)
+  Future<void> _confirmCall() async {
+    try {
+      // Firestore에서 linkedid로 통화 기록 업데이트
+      await FirebaseFirestore.instance
+          .collection('call_history')
+          .doc(widget.linkedid)
+          .update({
+        'status': 'confirmed',
+        'updatedAt': FieldValue.serverTimestamp(),
+      }).timeout(const Duration(seconds: 5));
+
+      if (kDebugMode) {
+        debugPrint('✅ 로그아웃 상태에서 통화 확인 완료: ${widget.linkedid}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 로그아웃 상태 통화 확인 실패: $e');
+      }
+    }
+
+    // 화면 닫기
+    _closeScreen();
+  }
+
   /// 🚪 로그인 화면으로 이동
   void _navigateToLogin() {
     // 페이드 아웃 애니메이션 후 화면 닫기
@@ -196,6 +224,11 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
                               ),
 
                               const Spacer(flex: 3),
+
+                              // ✅ 통화 확인 버튼 (먼저 표시)
+                              _buildConfirmButton(),
+
+                              const SizedBox(height: 20),
 
                               // 🔐 로그인 안내 버튼
                               _buildLoginPromptButton(),
@@ -801,6 +834,74 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
             fontSize: 56,
             fontWeight: FontWeight.bold,
           ),
+        ),
+      ),
+    );
+  }
+
+  /// ✅ 통화 확인 버튼 (로그아웃 상태)
+  Widget _buildConfirmButton() {
+    return Center(
+      child: GestureDetector(
+        onTap: _confirmCall,
+        child: Column(
+          children: [
+            // 확인 버튼 (녹색 글로우 효과)
+            AnimatedBuilder(
+              animation: _glowController,
+              builder: (context, child) {
+                return Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.withOpacity(0.6 * _glowController.value),
+                        blurRadius: 35 * _glowController.value,
+                        spreadRadius: 8 * _glowController.value,
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.green.shade400,
+                          Colors.green.shade600,
+                        ],
+                      ),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.4),
+                        width: 3,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 40,
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // 레이블
+            Text(
+              '통화 확인',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.95),
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       ),
     );
