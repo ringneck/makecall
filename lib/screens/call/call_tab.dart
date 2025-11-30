@@ -598,7 +598,74 @@ class _CallTabState extends State<CallTab> {
       );
     }
 
-    // 연락처와 단말번호 즐겨찾기를 모두 표시
+    // 검색바를 최상위로 이동 (StreamBuilder 외부)
+    return Column(
+      children: [
+        // 🔍 검색바
+        _buildFavoritesSearchBar(isDark),
+        
+        // 연락처와 단말번호 즐겨찾기 목록
+        Expanded(
+          child: _buildFavoritesStreamContent(userId, isDark),
+        ),
+      ],
+    );
+  }
+
+  // 🔍 즐겨찾기 검색바 위젯 (분리)
+  Widget _buildFavoritesSearchBar(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[900] : Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+            width: 1,
+          ),
+        ),
+      ),
+      child: TextField(
+        controller: _favoritesSearchController,
+        decoration: InputDecoration(
+          hintText: '이름, 번호 검색...',
+          prefixIcon: Icon(
+            Icons.search,
+            color: isDark ? Colors.grey[500] : Colors.grey[600],
+          ),
+          suffixIcon: _favoritesSearchQuery.isNotEmpty
+              ? IconButton(
+                  icon: Icon(
+                    Icons.clear,
+                    color: isDark ? Colors.grey[500] : Colors.grey[600],
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _favoritesSearchController.clear();
+                      _favoritesSearchQuery = '';
+                    });
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: isDark ? Colors.grey[850] : Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        onChanged: (value) {
+          setState(() {
+            _favoritesSearchQuery = value;
+          });
+        },
+      ),
+    );
+  }
+
+  // 📋 즐겨찾기 스트림 컨텐츠 (분리)
+  Widget _buildFavoritesStreamContent(String userId, bool isDark) {
     return StreamBuilder<List<ContactModel>>(
       stream: _databaseService.getFavoriteContacts(userId),
       builder: (context, contactSnapshot) {
@@ -691,97 +758,42 @@ class _CallTabState extends State<CallTab> {
               );
             }
 
-            return Column(
-              children: [
-                // 🔍 검색창
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[900] : Colors.grey[50],
-                    border: Border(
-                      bottom: BorderSide(
-                        color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
-                        width: 1,
+            // 검색 결과 없음 표시
+            if (totalCount == 0 && _favoritesSearchQuery.isNotEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.search_off,
+                      size: 80,
+                      color: isDark ? Colors.grey[700] : Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '검색 결과가 없습니다',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.grey[400] : Colors.grey,
                       ),
                     ),
-                  ),
-                  child: TextField(
-                    controller: _favoritesSearchController,
-                    decoration: InputDecoration(
-                      hintText: '이름, 번호 검색...',
-                      prefixIcon: Icon(
-                        Icons.search,
+                    const SizedBox(height: 8),
+                    Text(
+                      '"$_favoritesSearchQuery"에 대한\n즐겨찾기를 찾을 수 없습니다',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
                         color: isDark ? Colors.grey[500] : Colors.grey[600],
                       ),
-                      suffixIcon: _favoritesSearchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(
-                                Icons.clear,
-                                color: isDark ? Colors.grey[500] : Colors.grey[600],
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _favoritesSearchController.clear();
-                                  _favoritesSearchQuery = '';
-                                });
-                              },
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: isDark ? Colors.grey[850] : Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    onChanged: (value) {
-                      setState(() {
-                        _favoritesSearchQuery = value;
-                      });
-                    },
-                  ),
+                  ],
                 ),
-                
-                // 검색 결과 없음 표시
-                if (totalCount == 0 && _favoritesSearchQuery.isNotEmpty)
-                  Expanded(
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.search_off,
-                            size: 80,
-                            color: isDark ? Colors.grey[700] : Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '검색 결과가 없습니다',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.grey[400] : Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '"$_favoritesSearchQuery"에 대한\n즐겨찾기를 찾을 수 없습니다',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDark ? Colors.grey[500] : Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                
-                // 즐겨찾기 리스트
-                if (totalCount > 0)
-                  Expanded(
-                    child: ListView(
+              );
+            }
+            
+            // 즐겨찾기 리스트
+            return ListView(
                       children: [
                         // 단말번호 즐겨찾기 섹션
                         if (filteredPhonebookFavorites.isNotEmpty) ...[
@@ -845,10 +857,7 @@ class _CallTabState extends State<CallTab> {
                           ...filteredContactFavorites.map((contact) => _buildContactListTile(contact)),
                         ],
                       ],
-                    ),
-                  ),
-              ],
-            );
+                    );
           },
         );
       },
