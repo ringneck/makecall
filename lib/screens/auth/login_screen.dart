@@ -927,16 +927,30 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       final result = await _socialLoginService.signInWithGoogle();
       
+      if (kDebugMode) {
+        debugPrint('📊 [LOGIN] Google login result: success=${result.success}, error=${result.errorMessage}');
+      }
+      
       // 진행 상황 오버레이 제거 (성공 시에는 _handleSocialLoginSuccess에서 제거)
       if (!result.success && mounted) {
+        if (kDebugMode) {
+          debugPrint('🔄 [LOGIN] Calling SocialLoginProgressHelper.hide()...');
+        }
         SocialLoginProgressHelper.hide();
+        if (kDebugMode) {
+          debugPrint('✅ [LOGIN] SocialLoginProgressHelper.hide() called');
+        }
       }
       
       if (result.success) {
         await _handleSocialLoginSuccess(result);
       } else {
         // 사용자 취소는 메시지를 표시하지 않음 (오버레이만 제거)
-        if (mounted && !(result.errorMessage?.contains('취소') ?? false)) {
+        final isCanceled = result.errorMessage?.contains('취소') ?? false;
+        if (kDebugMode) {
+          debugPrint('📋 [LOGIN] Is canceled: $isCanceled');
+        }
+        if (mounted && !isCanceled) {
           await DialogUtils.showError(
             context,
             result.errorMessage ?? 'Google 로그인에 실패했습니다.',

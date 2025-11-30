@@ -60,6 +60,9 @@ class SocialLoginService {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       
       if (googleUser == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [Google] 사용자가 로그인을 취소했습니다 (googleUser == null)');
+        }
         return SocialLoginResult(
           success: false,
           errorMessage: '로그인이 취소되었습니다',
@@ -128,10 +131,19 @@ class SocialLoginService {
       
       // 사용자 취소 감지
       final errorString = e.toString().toLowerCase();
-      if (errorString.contains('sign_in_failed') || 
+      final isCanceled = errorString.contains('sign_in_failed') || 
           errorString.contains('access_denied') ||
           errorString.contains('canceled') ||
-          errorString.contains('cancelled')) {
+          errorString.contains('cancelled');
+          
+      if (kDebugMode) {
+        debugPrint('🔍 [Google] 취소 감지: $isCanceled (error: ${e.toString().substring(0, 100)}...)');
+      }
+      
+      if (isCanceled) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [Google] 사용자가 로그인을 취소했습니다 (PlatformException)');
+        }
         return SocialLoginResult(
           success: false,
           errorMessage: '로그인이 취소되었습니다',
