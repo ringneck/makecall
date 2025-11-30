@@ -639,6 +639,9 @@ class _CallTabState extends State<CallTab> {
           fillColor: isDark ? Colors.grey[850] : Colors.grey[50],
         ),
         onChanged: (value) {
+          if (kDebugMode) {
+            debugPrint('🔍 즐겨찾기 검색 입력: "$value"');
+          }
           setState(() {
             _favoritesSearchQuery = value;
           });
@@ -675,7 +678,7 @@ class _CallTabState extends State<CallTab> {
             final filteredContactFavorites = _favoritesSearchQuery.isEmpty
                 ? contactFavorites
                 : contactFavorites.where((contact) {
-                    return KoreanSearchUtils.matchesAnyField(
+                    final matches = KoreanSearchUtils.matchesAnyField(
                       _favoritesSearchQuery,
                       [
                         contact.name,
@@ -687,12 +690,16 @@ class _CallTabState extends State<CallTab> {
                       _favoritesSearchQuery,
                       contact.phoneNumber,
                     );
+                    if (kDebugMode && matches) {
+                      debugPrint('✅ 연락처 매칭: ${contact.name} (${contact.phoneNumber})');
+                    }
+                    return matches;
                   }).toList();
             
             final filteredPhonebookFavorites = _favoritesSearchQuery.isEmpty
                 ? phonebookFavorites
                 : phonebookFavorites.where((contact) {
-                    return KoreanSearchUtils.matchesAnyField(
+                    final matches = KoreanSearchUtils.matchesAnyField(
                       _favoritesSearchQuery,
                       [
                         contact.name,
@@ -703,7 +710,15 @@ class _CallTabState extends State<CallTab> {
                       _favoritesSearchQuery,
                       contact.telephone,
                     );
+                    if (kDebugMode && matches) {
+                      debugPrint('✅ 단말번호 매칭: ${contact.name} (${contact.telephone})');
+                    }
+                    return matches;
                   }).toList();
+            
+            if (kDebugMode) {
+              debugPrint('📊 검색 결과: 연락처 ${filteredContactFavorites.length}개, 단말번호 ${filteredPhonebookFavorites.length}개');
+            }
             
             final totalCount = filteredContactFavorites.length + filteredPhonebookFavorites.length;
 
