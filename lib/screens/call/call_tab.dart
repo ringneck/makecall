@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../../utils/dialog_utils.dart';
+import '../../utils/korean_search_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -618,24 +619,38 @@ class _CallTabState extends State<CallTab> {
             final contactFavorites = contactSnapshot.data ?? [];
             final phonebookFavorites = phonebookSnapshot.data ?? [];
             
-            // 🔍 검색 필터링 적용
+            // 🔍 초성 검색 필터링 적용
             final filteredContactFavorites = _favoritesSearchQuery.isEmpty
                 ? contactFavorites
                 : contactFavorites.where((contact) {
-                    final query = _favoritesSearchQuery.toLowerCase();
-                    return contact.name.toLowerCase().contains(query) ||
-                           contact.phoneNumber.contains(query) ||
-                           (contact.company?.toLowerCase().contains(query) ?? false);
+                    return KoreanSearchUtils.matchesAnyField(
+                      _favoritesSearchQuery,
+                      [
+                        contact.name,
+                        contact.company,
+                        contact.email,
+                        contact.notes,
+                      ],
+                    ) || KoreanSearchUtils.matchesPhoneNumber(
+                      _favoritesSearchQuery,
+                      contact.phoneNumber,
+                    );
                   }).toList();
             
             final filteredPhonebookFavorites = _favoritesSearchQuery.isEmpty
                 ? phonebookFavorites
                 : phonebookFavorites.where((contact) {
-                    final query = _favoritesSearchQuery.toLowerCase();
-                    return contact.name.toLowerCase().contains(query) ||
-                           contact.telephone.contains(query) ||
-                           (contact.company?.toLowerCase().contains(query) ?? false) ||
-                           (contact.title?.toLowerCase().contains(query) ?? false);
+                    return KoreanSearchUtils.matchesAnyField(
+                      _favoritesSearchQuery,
+                      [
+                        contact.name,
+                        contact.company,
+                        contact.title,
+                      ],
+                    ) || KoreanSearchUtils.matchesPhoneNumber(
+                      _favoritesSearchQuery,
+                      contact.telephone,
+                    );
                   }).toList();
             
             final totalCount = filteredContactFavorites.length + filteredPhonebookFavorites.length;
@@ -690,7 +705,7 @@ class _CallTabState extends State<CallTab> {
                   ),
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: '이름, 번호, 부서 검색...',
+                      hintText: '이름, 번호, 부서 검색 (초성 가능, 예: ㄱㅎㄷ)...',
                       prefixIcon: Icon(
                         Icons.search,
                         color: isDark ? Colors.grey[500] : Colors.grey[600],
