@@ -1,6 +1,5 @@
 import 'dart:async';
 import '../../utils/dialog_utils.dart';
-import '../../utils/korean_search_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -639,9 +638,6 @@ class _CallTabState extends State<CallTab> {
           fillColor: isDark ? Colors.grey[850] : Colors.grey[50],
         ),
         onChanged: (value) {
-          if (kDebugMode) {
-            debugPrint('⭐ [즐겨찾기] 검색 입력: "$value"');
-          }
           setState(() {
             _favoritesSearchQuery = value;
           });
@@ -674,21 +670,17 @@ class _CallTabState extends State<CallTab> {
             final contactFavorites = contactSnapshot.data ?? [];
             final phonebookFavorites = phonebookSnapshot.data ?? [];
             
-            // 🔍 단순 부분 문자열 검색 필터링 적용
+            // 🔍 검색 필터링 적용
             final filteredContactFavorites = _favoritesSearchQuery.isEmpty
                 ? contactFavorites
                 : contactFavorites.where((contact) {
                     final query = _favoritesSearchQuery.toLowerCase();
                     final numericQuery = query.replaceAll(RegExp(r'[^0-9]'), '');
-                    final matches = contact.name.toLowerCase().contains(query) ||
+                    return contact.name.toLowerCase().contains(query) ||
                         (contact.company?.toLowerCase().contains(query) ?? false) ||
                         (contact.email?.toLowerCase().contains(query) ?? false) ||
                         (contact.notes?.toLowerCase().contains(query) ?? false) ||
                         (numericQuery.isNotEmpty && contact.phoneNumber.replaceAll(RegExp(r'[^0-9]'), '').contains(numericQuery));
-                    if (kDebugMode && matches) {
-                      debugPrint('⭐ [즐겨찾기] 연락처 매칭: ${contact.name} (${contact.phoneNumber})');
-                    }
-                    return matches;
                   }).toList();
             
             final filteredPhonebookFavorites = _favoritesSearchQuery.isEmpty
@@ -696,19 +688,11 @@ class _CallTabState extends State<CallTab> {
                 : phonebookFavorites.where((contact) {
                     final query = _favoritesSearchQuery.toLowerCase();
                     final numericQuery = query.replaceAll(RegExp(r'[^0-9]'), '');
-                    final matches = contact.name.toLowerCase().contains(query) ||
+                    return contact.name.toLowerCase().contains(query) ||
                         (contact.company?.toLowerCase().contains(query) ?? false) ||
                         (contact.title?.toLowerCase().contains(query) ?? false) ||
                         (numericQuery.isNotEmpty && contact.telephone.replaceAll(RegExp(r'[^0-9]'), '').contains(numericQuery));
-                    if (kDebugMode && matches) {
-                      debugPrint('⭐ [즐겨찾기] 단말번호 매칭: ${contact.name} (${contact.telephone})');
-                    }
-                    return matches;
                   }).toList();
-            
-            if (kDebugMode) {
-              debugPrint('⭐ [즐겨찾기] 검색 결과: 연락처 ${filteredContactFavorites.length}개, 단말번호 ${filteredPhonebookFavorites.length}개');
-            }
             
             final totalCount = filteredContactFavorites.length + filteredPhonebookFavorites.length;
 
