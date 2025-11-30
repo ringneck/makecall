@@ -151,8 +151,13 @@ class SocialLoginProgressHelper {
     String? subMessage,
     double? progress,
   }) {
+    print('🔵 [OVERLAY] show() called: message="$message"');
+    
     // 기존 오버레이 즉시 제거
-    _currentOverlay?.remove();
+    if (_currentOverlay != null) {
+      print('⚠️ [OVERLAY] Removing existing overlay before showing new one');
+      _currentOverlay?.remove();
+    }
     _currentOverlay = null;
 
     // 새 오버레이 즉시 생성 및 삽입
@@ -165,22 +170,25 @@ class SocialLoginProgressHelper {
     );
 
     Overlay.of(context).insert(_currentOverlay!);
+    print('✅ [OVERLAY] New overlay inserted');
   }
 
   /// 오버레이 숨기기 (즉시 제거)
   static void hide() {
-    if (_currentOverlay == null) return;
+    print('🔵 [OVERLAY] hide() called, _currentOverlay: ${_currentOverlay != null ? "exists" : "null"}');
+    
+    if (_currentOverlay == null) {
+      print('⚠️ [OVERLAY] Already null, nothing to remove');
+      return;
+    }
     
     try {
+      print('🔄 [OVERLAY] Calling remove()...');
       _currentOverlay?.remove();
       _currentOverlay = null;
-      if (kDebugMode) {
-        debugPrint('✅ [OVERLAY] Removed successfully');
-      }
+      print('✅ [OVERLAY] Removed successfully');
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('⚠️ [OVERLAY] Remove error (may already be removed): $e');
-      }
+      print('❌ [OVERLAY] Remove error: $e');
       _currentOverlay = null;
     }
   }
