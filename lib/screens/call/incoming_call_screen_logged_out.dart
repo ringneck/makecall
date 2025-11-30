@@ -118,15 +118,38 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
 
   /// ✅ 통화 확인 (Firestore 업데이트)
   Future<void> _confirmCall() async {
+    if (kDebugMode) {
+      debugPrint('🔄 로그아웃 상태에서 통화 확인 시도: ${widget.linkedid}');
+    }
+
     try {
-      // Firestore에서 linkedid로 통화 기록 업데이트
-      await FirebaseFirestore.instance
+      final docRef = FirebaseFirestore.instance
           .collection('call_history')
-          .doc(widget.linkedid)
-          .update({
+          .doc(widget.linkedid);
+
+      // 먼저 문서가 존재하는지 확인
+      final docSnapshot = await docRef.get().timeout(const Duration(seconds: 5));
+      
+      if (kDebugMode) {
+        debugPrint('📄 문서 존재 여부: ${docSnapshot.exists}');
+        if (docSnapshot.exists) {
+          debugPrint('📄 현재 상태: ${docSnapshot.data()?['status']}');
+        }
+      }
+
+      if (!docSnapshot.exists) {
+        if (kDebugMode) {
+          debugPrint('❌ 문서가 존재하지 않음: ${widget.linkedid}');
+        }
+        _closeScreen();
+        return;
+      }
+
+      // .update() 대신 .set()을 merge 옵션으로 사용 (더 안전)
+      await docRef.set({
         'status': 'confirmed',
         'updatedAt': FieldValue.serverTimestamp(),
-      }).timeout(const Duration(seconds: 5));
+      }, SetOptions(merge: true)).timeout(const Duration(seconds: 5));
 
       if (kDebugMode) {
         debugPrint('✅ 로그아웃 상태에서 통화 확인 완료: ${widget.linkedid}');
@@ -134,6 +157,19 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ 로그아웃 상태 통화 확인 실패: $e');
+        debugPrint('❌ 에러 타입: ${e.runtimeType}');
+        debugPrint('❌ 에러 상세: ${e.toString()}');
+      }
+      
+      // 사용자에게 에러 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('통화 확인에 실패했습니다: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     }
 
