@@ -523,7 +523,7 @@ exports.sendIncomingCallNotification = functions.region(region).https.onRequest(
             linkedid: linkedid,
             callType: "incoming",
             callSubType: callType || "external",
-            status: "fcm_notification", // FCM으로 받은 알림
+            status: "missed", // 초기 상태는 missed (부재중)
             extensionUsed: extensionUsed,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
