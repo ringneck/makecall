@@ -614,46 +614,29 @@ class _CallTabState extends State<CallTab> {
 
   // 🔍 즐겨찾기 검색바 위젯 (분리)
   Widget _buildFavoritesSearchBar(bool isDark) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[900] : Colors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
-            width: 1,
-          ),
-        ),
-      ),
       child: TextField(
         controller: _favoritesSearchController,
         decoration: InputDecoration(
           hintText: '이름, 번호 검색...',
-          prefixIcon: Icon(
-            Icons.search,
-            color: isDark ? Colors.grey[500] : Colors.grey[600],
-          ),
-          suffixIcon: _favoritesSearchQuery.isNotEmpty
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _favoritesSearchController.text.isNotEmpty
               ? IconButton(
-                  icon: Icon(
-                    Icons.clear,
-                    color: isDark ? Colors.grey[500] : Colors.grey[600],
-                  ),
+                  icon: const Icon(Icons.clear),
                   onPressed: () {
+                    _favoritesSearchController.clear();
                     setState(() {
-                      _favoritesSearchController.clear();
                       _favoritesSearchQuery = '';
                     });
                   },
                 )
               : null,
-          filled: true,
-          fillColor: isDark ? Colors.grey[850] : Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          filled: true,
+          fillColor: isDark ? Colors.grey[850] : Colors.grey[50],
         ),
         onChanged: (value) {
           setState(() {
