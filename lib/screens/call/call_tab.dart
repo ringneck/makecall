@@ -674,22 +674,16 @@ class _CallTabState extends State<CallTab> {
             final contactFavorites = contactSnapshot.data ?? [];
             final phonebookFavorites = phonebookSnapshot.data ?? [];
             
-            // 🔍 초성 검색 필터링 적용
+            // 🔍 단순 부분 문자열 검색 필터링 적용
             final filteredContactFavorites = _favoritesSearchQuery.isEmpty
                 ? contactFavorites
                 : contactFavorites.where((contact) {
-                    final matches = KoreanSearchUtils.matchesAnyField(
-                      _favoritesSearchQuery,
-                      [
-                        contact.name,
-                        contact.company,
-                        contact.email,
-                        contact.notes,
-                      ],
-                    ) || KoreanSearchUtils.matchesPhoneNumber(
-                      _favoritesSearchQuery,
-                      contact.phoneNumber,
-                    );
+                    final query = _favoritesSearchQuery.toLowerCase();
+                    final matches = contact.name.toLowerCase().contains(query) ||
+                        (contact.company?.toLowerCase().contains(query) ?? false) ||
+                        (contact.email?.toLowerCase().contains(query) ?? false) ||
+                        (contact.notes?.toLowerCase().contains(query) ?? false) ||
+                        contact.phoneNumber.replaceAll(RegExp(r'[^0-9]'), '').contains(query.replaceAll(RegExp(r'[^0-9]'), ''));
                     if (kDebugMode && matches) {
                       debugPrint('⭐ [즐겨찾기] 연락처 매칭: ${contact.name} (${contact.phoneNumber})');
                     }
@@ -699,17 +693,11 @@ class _CallTabState extends State<CallTab> {
             final filteredPhonebookFavorites = _favoritesSearchQuery.isEmpty
                 ? phonebookFavorites
                 : phonebookFavorites.where((contact) {
-                    final matches = KoreanSearchUtils.matchesAnyField(
-                      _favoritesSearchQuery,
-                      [
-                        contact.name,
-                        contact.company,
-                        contact.title,
-                      ],
-                    ) || KoreanSearchUtils.matchesPhoneNumber(
-                      _favoritesSearchQuery,
-                      contact.telephone,
-                    );
+                    final query = _favoritesSearchQuery.toLowerCase();
+                    final matches = contact.name.toLowerCase().contains(query) ||
+                        (contact.company?.toLowerCase().contains(query) ?? false) ||
+                        (contact.title?.toLowerCase().contains(query) ?? false) ||
+                        contact.telephone.replaceAll(RegExp(r'[^0-9]'), '').contains(query.replaceAll(RegExp(r'[^0-9]'), ''));
                     if (kDebugMode && matches) {
                       debugPrint('⭐ [즐겨찾기] 단말번호 매칭: ${contact.name} (${contact.telephone})');
                     }
