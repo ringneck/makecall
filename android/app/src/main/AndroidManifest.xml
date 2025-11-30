@@ -14,7 +14,7 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <!-- READ_MEDIA_IMAGES 권한 제거: Android 사진 선택 도구(Photo Picker) 사용 -->
     
     <!-- Camera feature (optional) -->
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
