@@ -195,11 +195,19 @@ class SocialLoginProgressHelper {
   
   /// 강제 오버레이 제거 (화면 전환 시 안전장치)
   static void forceHide() {
+    print('🔥 [OVERLAY] forceHide() called, _currentOverlay: ${_currentOverlay != null ? "exists" : "null"}');
     try {
-      _currentOverlay?.remove();
-      _currentOverlay = null;
+      if (_currentOverlay != null) {
+        print('🔄 [OVERLAY] Force removing overlay...');
+        _currentOverlay?.remove();
+        _currentOverlay = null;
+        print('✅ [OVERLAY] Force removed successfully');
+      } else {
+        print('ℹ️ [OVERLAY] No overlay to remove');
+      }
     } catch (e) {
-      // 무시
+      print('❌ [OVERLAY] Force remove error: $e');
+      _currentOverlay = null;
     }
   }
 
