@@ -151,13 +151,8 @@ class SocialLoginProgressHelper {
     String? subMessage,
     double? progress,
   }) {
-    print('🔵 [OVERLAY] show() called: message="$message"');
-    
     // 기존 오버레이 즉시 제거
-    if (_currentOverlay != null) {
-      print('⚠️ [OVERLAY] Removing existing overlay before showing new one');
-      _currentOverlay?.remove();
-    }
+    _currentOverlay?.remove();
     _currentOverlay = null;
 
     // 새 오버레이 즉시 생성 및 삽입
@@ -170,43 +165,26 @@ class SocialLoginProgressHelper {
     );
 
     Overlay.of(context).insert(_currentOverlay!);
-    print('✅ [OVERLAY] New overlay inserted');
   }
 
   /// 오버레이 숨기기 (즉시 제거)
   static void hide() {
-    print('🔵 [OVERLAY] hide() called, _currentOverlay: ${_currentOverlay != null ? "exists" : "null"}');
-    
-    if (_currentOverlay == null) {
-      print('⚠️ [OVERLAY] Already null, nothing to remove');
-      return;
-    }
+    if (_currentOverlay == null) return;
     
     try {
-      print('🔄 [OVERLAY] Calling remove()...');
       _currentOverlay?.remove();
       _currentOverlay = null;
-      print('✅ [OVERLAY] Removed successfully');
     } catch (e) {
-      print('❌ [OVERLAY] Remove error: $e');
       _currentOverlay = null;
     }
   }
   
   /// 강제 오버레이 제거 (화면 전환 시 안전장치)
   static void forceHide() {
-    print('🔥 [OVERLAY] forceHide() called, _currentOverlay: ${_currentOverlay != null ? "exists" : "null"}');
     try {
-      if (_currentOverlay != null) {
-        print('🔄 [OVERLAY] Force removing overlay...');
-        _currentOverlay?.remove();
-        _currentOverlay = null;
-        print('✅ [OVERLAY] Force removed successfully');
-      } else {
-        print('ℹ️ [OVERLAY] No overlay to remove');
-      }
+      _currentOverlay?.remove();
+      _currentOverlay = null;
     } catch (e) {
-      print('❌ [OVERLAY] Force remove error: $e');
       _currentOverlay = null;
     }
   }

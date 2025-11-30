@@ -125,23 +125,18 @@ class SocialLoginService {
       );
 
     } catch (e) {
-      // 🔥 CRITICAL: catch 블록 진입
-      print('❌ [Google] 로그인 오류: $e');
+      if (kDebugMode) {
+        debugPrint('❌ [Google] 로그인 오류: $e');
+      }
       
       // 사용자 취소 감지
       final errorString = e.toString().toLowerCase();
-      print('🔍 [Google] errorString: $errorString');
-      
       final isCanceled = errorString.contains('sign_in_failed') || 
           errorString.contains('access_denied') ||
           errorString.contains('canceled') ||
           errorString.contains('cancelled');
-          
-      print('🔍 [Google] 취소 감지: $isCanceled');
       
       if (isCanceled) {
-        print('⚠️ [Google] 사용자가 로그인을 취소했습니다 (PlatformException)');
-        print('🔙 [Google] Returning cancel result...');
         return SocialLoginResult(
           success: false,
           errorMessage: '로그인이 취소되었습니다',
@@ -149,7 +144,6 @@ class SocialLoginService {
         );
       }
       
-      print('🔙 [Google] Returning error result...');
       return SocialLoginResult(
         success: false,
         errorMessage: '구글 로그인 오류',

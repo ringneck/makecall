@@ -925,41 +925,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         );
       }
       
-      print('🔵 [LOGIN] Calling signInWithGoogle()...');
       final result = await _socialLoginService.signInWithGoogle();
-      print('📊 [LOGIN] Google login result received: success=${result.success}, error=${result.errorMessage}');
       
       // 진행 상황 오버레이 제거 (성공 시에는 _handleSocialLoginSuccess에서 제거)
       if (!result.success && mounted) {
-        print('🔄 [LOGIN] Result is not success, calling hide()...');
         SocialLoginProgressHelper.hide();
-        print('✅ [LOGIN] hide() called');
-      } else if (result.success) {
-        print('✅ [LOGIN] Result is success, will handle in _handleSocialLoginSuccess');
-      } else {
-        print('⚠️ [LOGIN] Widget is not mounted');
       }
       
       if (result.success) {
-        print('🚀 [LOGIN] Calling _handleSocialLoginSuccess...');
         await _handleSocialLoginSuccess(result);
       } else {
         // 사용자 취소는 메시지를 표시하지 않음 (오버레이만 제거)
         final isCanceled = result.errorMessage?.contains('취소') ?? false;
-        print('📋 [LOGIN] Is canceled: $isCanceled (errorMessage: ${result.errorMessage})');
         
         if (mounted && !isCanceled) {
-          print('⚠️ [LOGIN] Showing error dialog...');
           await DialogUtils.showError(
             context,
             result.errorMessage ?? 'Google 로그인에 실패했습니다.',
           );
-        } else if (isCanceled) {
-          print('✅ [LOGIN] Canceled - no dialog shown');
         }
       }
-      
-      print('🏁 [LOGIN] Google login flow completed');
     } catch (e) {
       // 에러 시 오버레이 제거
       if (mounted) {

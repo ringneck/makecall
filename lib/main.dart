@@ -364,9 +364,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           debugPrint('🌞 [MyApp] App resumed - forcing UI rebuild');
         }
         
-        // 🔥 CRITICAL: 소셜 로그인 오버레이 강제 제거
-        // Google/Kakao/Apple 로그인 화면에서 돌아올 때 오버레이가 남아있는 문제 해결
-        print('🧹 [MyApp] Forcing social login overlay removal on resume');
+        // 소셜 로그인 오버레이 강제 제거 (앱 재개 시)
         SocialLoginProgressHelper.forceHide();
         
         // 🔔 iOS 배지 초기화 (포그라운드 복귀 시)
