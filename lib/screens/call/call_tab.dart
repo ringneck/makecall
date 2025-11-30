@@ -56,6 +56,10 @@ class _CallTabState extends State<CallTab> {
   
   // ⭐ 즐겨찾기 검색 상태
   String _favoritesSearchQuery = ''; // 즐겨찾기 검색어
+  Timer? _searchDebounceTimer; // 검색 디바운스 타이머
+  
+  // 🔧 RegExp 캐싱 (성능 최적화)
+  static final _numericRegExp = RegExp(r'[^0-9]');
   
   // Note: Device contacts state는 ContactManager에서 관리됨
   // Note: _hasCheckedNewUser는 ExtensionInitializer에서 관리됨
@@ -236,6 +240,7 @@ class _CallTabState extends State<CallTab> {
     
     _searchController.dispose();
     _favoritesSearchController.dispose();
+    _searchDebounceTimer?.cancel(); // 검색 디바운스 타이머 정리
     super.dispose();
   }
   
@@ -638,8 +643,16 @@ class _CallTabState extends State<CallTab> {
           fillColor: isDark ? Colors.grey[850] : Colors.grey[50],
         ),
         onChanged: (value) {
-          setState(() {
-            _favoritesSearchQuery = value;
+          // 기존 타이머 취소
+          _searchDebounceTimer?.cancel();
+          
+          // 300ms 후에 검색 실행 (빠른 타이핑 시 중간 글자 무시)
+          _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              setState(() {
+                _favoritesSearchQuery = value;
+              });
+            }
           });
         },
       ),
@@ -670,28 +683,28 @@ class _CallTabState extends State<CallTab> {
             final contactFavorites = contactSnapshot.data ?? [];
             final phonebookFavorites = phonebookSnapshot.data ?? [];
             
-            // 🔍 검색 필터링 적용
+            // 🔍 검색 필터링 적용 (최적화: 쿼리 사전 처리)
+            final query = _favoritesSearchQuery.toLowerCase();
+            final numericQuery = query.replaceAll(_numericRegExp, '');
+            final hasNumericQuery = numericQuery.isNotEmpty;
+            
             final filteredContactFavorites = _favoritesSearchQuery.isEmpty
                 ? contactFavorites
                 : contactFavorites.where((contact) {
-                    final query = _favoritesSearchQuery.toLowerCase();
-                    final numericQuery = query.replaceAll(RegExp(r'[^0-9]'), '');
                     return contact.name.toLowerCase().contains(query) ||
                         (contact.company?.toLowerCase().contains(query) ?? false) ||
                         (contact.email?.toLowerCase().contains(query) ?? false) ||
                         (contact.notes?.toLowerCase().contains(query) ?? false) ||
-                        (numericQuery.isNotEmpty && contact.phoneNumber.replaceAll(RegExp(r'[^0-9]'), '').contains(numericQuery));
+                        (hasNumericQuery && contact.phoneNumber.replaceAll(_numericRegExp, '').contains(numericQuery));
                   }).toList();
             
             final filteredPhonebookFavorites = _favoritesSearchQuery.isEmpty
                 ? phonebookFavorites
                 : phonebookFavorites.where((contact) {
-                    final query = _favoritesSearchQuery.toLowerCase();
-                    final numericQuery = query.replaceAll(RegExp(r'[^0-9]'), '');
                     return contact.name.toLowerCase().contains(query) ||
                         (contact.company?.toLowerCase().contains(query) ?? false) ||
                         (contact.title?.toLowerCase().contains(query) ?? false) ||
-                        (numericQuery.isNotEmpty && contact.telephone.replaceAll(RegExp(r'[^0-9]'), '').contains(numericQuery));
+                        (hasNumericQuery && contact.telephone.replaceAll(_numericRegExp, '').contains(numericQuery));
                   }).toList();
             
             final totalCount = filteredContactFavorites.length + filteredPhonebookFavorites.length;
