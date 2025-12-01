@@ -1125,6 +1125,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
       if (mounted) {
         _showMaxDeviceLimitDialog(e);
+      }
+    } catch (e) {
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+        await DialogUtils.showError(
+          context,
+          'Google 로그인 중 오류가 발생했습니다: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialLoginLoading = false);
+      }
+    }
   }
   
   // 카카오 로그인
@@ -1175,8 +1189,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
       if (mounted) {
         _showMaxDeviceLimitDialog(e);
+      }
+    } catch (e) {
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+        await DialogUtils.showError(
+          context,
+          '로그인 중 오류가 발생했습니다: ${e.toString()}',
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialLoginLoading = false);
+      }
+    }
     } catch (e) {
       // 에러 시 오버레이 제거
       if (mounted) {
@@ -1468,8 +1494,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
       if (mounted) {
         _showMaxDeviceLimitDialog(e);
+      }
+    } catch (e) {
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+        await DialogUtils.showError(
+          context,
+          '로그인 중 오류가 발생했습니다: ${e.toString()}',
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isSocialLoginLoading = false);
+      }
+    }
     } catch (e) {
       // 에러 시 오버레이 제거
       if (mounted) {
