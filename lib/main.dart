@@ -722,36 +722,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                                       width: 1,
                                                     ),
                                                   ),
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: e.getActiveDevicesList()
-                                                        .split('\n')
-                                                        .where((line) => line.trim().isNotEmpty)
-                                                        .map((device) {
-                                                          return Padding(
-                                                            padding: const EdgeInsets.symmetric(vertical: 4),
-                                                            child: Row(
-                                                              children: [
-                                                                Icon(
-                                                                  device.contains('iOS') 
-                                                                      ? Icons.phone_iphone
-                                                                      : Icons.phone_android,
-                                                                  size: 16,
-                                                                  color: theme.colorScheme.secondary,
-                                                                ),
-                                                                const SizedBox(width: 8),
-                                                                Expanded(
-                                                                  child: Text(
-                                                                    device.replaceAll('• ', ''),
-                                                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                                                      color: theme.colorScheme.onSurface,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          );
-                                                        }).toList(),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.smartphone,
+                                                        size: 20,
+                                                        color: theme.colorScheme.secondary,
+                                                      ),
+                                                      const SizedBox(width: 12),
+                                                      Expanded(
+                                                        child: Text(
+                                                          '다른 기기에서 이미 로그인되어 있습니다.\n'
+                                                          '해당 기기에서 로그아웃 후 다시 시도하세요.',
+                                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                                            color: theme.colorScheme.onSurface,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                                 const SizedBox(height: 16),
