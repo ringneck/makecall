@@ -625,7 +625,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                 
                                 debugPrint('✅ [MAIN] FCM 초기화 완료 (앱 시작 시)');
                               } on MaxDeviceLimitException catch (e) {
-                                // 🚫 CRITICAL: 최대 기기 수 초과 - 로그아웃 처리
+                                // 🚫 CRITICAL: 최대 기기 수 초과 - 로그아웃 및 다이얼로그 표시
                                 debugPrint('');
                                 debugPrint('🚫 [MAIN] 최대 기기 수 초과 - 강제 로그아웃');
                                 debugPrint('   MaxDevices: ${e.maxDevices}');
@@ -635,7 +635,37 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                 // 강제 로그아웃
                                 await authService.signOut();
                                 
-                                debugPrint('✅ [MAIN] 로그아웃 완료 - 로그인 화면으로 이동');
+                                debugPrint('✅ [MAIN] 로그아웃 완료 - 다이얼로그 표시');
+                                
+                                // ⏱️ 짧은 지연 후 다이얼로그 표시 (Navigator 안정화 대기)
+                                await Future.delayed(const Duration(milliseconds: 500));
+                                
+                                // 다이얼로그 표시 (navigatorKey 사용)
+                                if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
+                                  showDialog(
+                                    context: navigatorKey.currentContext!,
+                                    barrierDismissible: false,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('🔴 최대 사용 기기 수 초과'),
+                                      content: Text(
+                                        '최대 사용 기기 수를 초과했습니다.\n'
+                                        '본 기기에서 계속 사용하시려면, 다른 기기에서\n'
+                                        '로그아웃 하신 후 본 기기에서 로그인하세요.\n\n'
+                                        '현재 활성 기기 (${e.currentDevices}개):\n'
+                                        '${e.getActiveDevicesList()}',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: const Text('확인'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                
                                 debugPrint('');
                               } catch (e, stackTrace) {
                                 debugPrint('❌ [MAIN] FCM 초기화 오류: $e');
