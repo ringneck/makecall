@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/user_model.dart';
 import '../main.dart' show navigatorKey;
+import '../exceptions/max_device_limit_exception.dart';
 import 'account_manager_service.dart';
 import 'fcm_service.dart';
 import 'dcmiws_connection_manager.dart';
@@ -364,6 +365,30 @@ class AuthService extends ChangeNotifier {
           
           // ignore: avoid_print
           print('✅ [AUTH] FCM 초기화 완료');
+        } on MaxDeviceLimitException catch (e) {
+          // 🚫 CRITICAL: 최대 기기 수 초과 - 로그인 차단
+          // ignore: avoid_print
+          print('');
+          // ignore: avoid_print
+          print('🚫 [AUTH] 최대 기기 수 초과 - 로그인 취소');
+          // ignore: avoid_print
+          print('   MaxDevices: ${e.maxDevices}');
+          // ignore: avoid_print
+          print('   Current Devices: ${e.currentDevices}');
+          // ignore: avoid_print
+          print('   Device Name: ${e.deviceName}');
+          // ignore: avoid_print
+          print('   사용자를 강제 로그아웃합니다...');
+          
+          // Firebase Authentication 로그아웃 (로그인 취소)
+          await _auth.signOut();
+          
+          // ignore: avoid_print
+          print('✅ [AUTH] 로그아웃 완료 - UI로 예외 전파');
+          print('');
+          
+          // 예외 재전파하여 UI에서 에러 처리
+          rethrow;
         } catch (e, stackTrace) {
           // ignore: avoid_print
           print('❌ [AUTH] FCM 초기화 오류: $e');
