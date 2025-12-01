@@ -3,6 +3,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // ============================================
+    // 앱 설정 (App Config) - 버전 체크용
+    // ============================================
+    match /app_config/{document=**} {
+      // 모든 사용자 읽기 가능 (로그인 전 버전 체크)
+      allow read: if true;
+      // 쓰기는 관리자만 가능 (현재는 차단)
+      allow write: if false;
+    }
+    
+    // ============================================
     // 사용자 문서 (개발 환경용 - 간소화된 규칙)
     // ============================================
     match /users/{userId} {
@@ -154,18 +164,16 @@ service cloud.firestore {
     // 통화 기록 (Call History)
     // ============================================
     match /call_history/{historyId} {
-      // 로그인한 사용자만 자신의 통화 기록 읽기 가능
-      allow read: if request.auth != null && 
-                     resource.data.userId == request.auth.uid;
+      // 모든 사용자 읽기 가능 (로그아웃 상태 푸시 알림 대응)
+      allow read: if true;
       
       // 로그인한 사용자만 자신의 통화 기록 생성 가능
       allow create: if request.auth != null && 
                        request.resource.data.userId == request.auth.uid;
       
-      // 통화 확인 업데이트: 로그인 여부와 관계없이 userId 일치 시 허용
+      // 통화 확인 업데이트: 모든 사용자 허용
       // (로그아웃 상태에서 푸시 알림으로 받은 통화 확인 가능)
-      allow update: if resource.data.userId == request.resource.data.userId &&
-                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']));
+      allow update: if true;
       
       // 로그인한 사용자만 자신의 통화 기록 삭제 가능
       allow delete: if request.auth != null && 
