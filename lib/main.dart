@@ -625,27 +625,27 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                 
                                 debugPrint('✅ [MAIN] FCM 초기화 완료 (앱 시작 시)');
                               } on MaxDeviceLimitException catch (e) {
-                                // 🚫 CRITICAL: 최대 기기 수 초과 - 로그아웃 및 다이얼로그 표시
+                                // 🚫 CRITICAL: 최대 기기 수 초과 - 즉시 다이얼로그 표시 + 백그라운드 로그아웃
                                 debugPrint('');
-                                debugPrint('🚫 [MAIN] 최대 기기 수 초과 - 강제 로그아웃');
+                                debugPrint('🚫 [MAIN] 최대 기기 수 초과 감지');
                                 debugPrint('   MaxDevices: ${e.maxDevices}');
                                 debugPrint('   Current Devices: ${e.currentDevices}');
                                 debugPrint('   Device Name: ${e.deviceName}');
                                 
-                                // 강제 로그아웃
-                                await authService.signOut();
+                                // ⚡ 최적화: 다이얼로그 먼저 표시 (즉시 사용자 피드백)
+                                // 로그아웃은 백그라운드에서 실행
                                 
-                                debugPrint('✅ [MAIN] 로그아웃 완료 - 다이얼로그 표시 예약');
-                                
-                                // 🎯 이벤트 기반: 다음 프레임에 다이얼로그 표시 (Navigator 빌드 완료 대기)
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
-                                    showDialog(
-                                      context: navigatorKey.currentContext!,
-                                      barrierDismissible: false,
-                                      builder: (context) {
-                                        final theme = Theme.of(context);
-                                        final isDark = theme.brightness == Brightness.dark;
+                                // 🎯 즉시 다이얼로그 표시 (사용자 경험 최우선)
+                                if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
+                                  final dialogContext = navigatorKey.currentContext!;
+                                  
+                                  // 다이얼로그 즉시 표시 (await 없음 - 비동기 실행)
+                                  showDialog(
+                                    context: dialogContext,
+                                    barrierDismissible: false,
+                                    builder: (context) {
+                                      final theme = Theme.of(context);
+                                      final isDark = theme.brightness == Brightness.dark;
                                         
                                         return AlertDialog(
                                           icon: Icon(
@@ -799,11 +799,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                           ),
                                         );
                                       },
-                                    );
-                                    
-                                    debugPrint('✅ [MAIN] 다이얼로그 표시 완료 (이벤트 기반)');
-                                  }
-                                });
+                                  );
+                                  
+                                  debugPrint('⚡ [MAIN] 다이얼로그 즉시 표시 완료');
+                                  
+                                  // ⚡ 백그라운드 로그아웃 (다이얼로그와 병렬 실행)
+                                  authService.signOut().then((_) {
+                                    debugPrint('✅ [MAIN] 백그라운드 로그아웃 완료');
+                                  }).catchError((error) {
+                                    debugPrint('⚠️ [MAIN] 로그아웃 오류 (무시): $error');
+                                  });
+                                }
                                 
                                 debugPrint('');
                               } catch (e, stackTrace) {
