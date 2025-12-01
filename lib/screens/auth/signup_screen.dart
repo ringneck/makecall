@@ -222,6 +222,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         'lastLoginAt': now,
         'isActive': true,
         'accountStatus': 'approved', // 소셜 로그인은 자동 승인
+        'maxDevices': 1, // 최대 사용 기기 수 (기본값: 1)
         // 동의 정보 (SignupScreen에서 이미 수집됨)
         'consentVersion': '1.0',
         'termsAgreed': _termsAgreed,
