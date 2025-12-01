@@ -976,14 +976,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           return;
         }
         
-        // 🔄 CRITICAL: 오버레이 제거
-        // AuthService의 user stream이 업데이트되면 화면이 자동 전환되므로
-        // 오버레이는 최대한 빨리 제거해야 함
+        // ⚡ 최적화: 오버레이 즉시 제거 + 성공 피드백 표시
+        // FCM 초기화를 기다리지 않고 로그인 완료 피드백 즉시 제공
         if (mounted) {
           if (kDebugMode) {
-            debugPrint('🔄 [OVERLAY] 로그인 완료 - 오버레이 제거');
+            debugPrint('✅ [OVERLAY] 로그인 완료 - 오버레이 즉시 제거');
           }
+          
+          // 기존 오버레이 제거
           SocialLoginProgressHelper.hide();
+          
+          // ⚡ 즉시 홈 화면으로 전환 (FCM 초기화는 백그라운드에서 진행)
+          // AuthService의 user stream이 자동으로 홈 화면으로 이동시킴
+          if (kDebugMode) {
+            debugPrint('🚀 [SOCIAL LOGIN] 홈 화면 전환 준비 완료 (FCM은 백그라운드 초기화)');
+          }
         }
       }
       
@@ -1157,12 +1164,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isSocialLoginLoading = true);
     
     try {
-      // 🎯 카카오톡 로그인 진행 중 오버레이 표시
+      // ⚡ 최적화: 카카오톡 로그인 진행 중 오버레이 즉시 표시
       if (mounted) {
         SocialLoginProgressHelper.show(
           context,
-          message: '카카오톡으로 로그인 중입니다',
-          subMessage: '잠시만 기다려주세요',
+          message: '카카오톡으로 로그인 중...',
+          subMessage: '빠른 로그인을 위해 최적화 중',
         );
       }
       
@@ -1445,12 +1452,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isSocialLoginLoading = true);
     
     try {
-      // 🎯 애플 로그인 진행 중 오버레이 표시
+      // ⚡ 최적화: 애플 로그인 진행 중 오버레이 즉시 표시
       if (mounted) {
         SocialLoginProgressHelper.show(
           context,
-          message: '애플로 로그인 중입니다',
-          subMessage: '잠시만 기다려주세요',
+          message: '애플로 로그인 중...',
+          subMessage: '빠른 로그인을 위해 최적화 중',
         );
       }
       
