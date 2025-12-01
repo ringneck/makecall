@@ -856,14 +856,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // 소셜 로그인 성공 시 Firestore 사용자 정보를 먼저 업데이트하고
       // 업데이트가 완전히 완료된 후에야 AuthService가 userModel을 로드하도록 함
       if (result.success && result.userId != null) {
-        // 🔄 기존 오버레이 명시적 제거 (카카오톡 로그인 중... 오버레이)
+        // ⚡ 최적화: 오버레이 지연 제거 - 즉시 표시
         if (kDebugMode) {
           debugPrint('🔄 [OVERLAY] 기존 로그인 오버레이 제거 중...');
         }
         SocialLoginProgressHelper.hide();
-        
-        // 짧은 지연 후 새 오버레이 표시 (UI 업데이트 보장)
-        await Future.delayed(const Duration(milliseconds: 50));
         
         // 1️⃣ 사용자 정보 업데이트 중 (mounted 체크 후 표시)
         if (kDebugMode) {
@@ -882,12 +879,61 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         }
         
         // 🔍 CRITICAL: 기존 사용자인지 신규 사용자인지 확인
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(result.userId!)
-            .get();
+        // ⚡ 최적화: Firestore 접근 최소화 - 조회와 업데이트를 하나의 트랜잭션으로 병합
+        final userDocRef = FirebaseFirestore.instance.collection('users').doc(result.userId!);
         
-        if (!userDoc.exists) {
+        // 🚀 트랜잭션 사용: 조회 + 업데이트를 하나의 네트워크 요청으로 처리
+        bool isNewUser = false;
+        
+        try {
+          await FirebaseFirestore.instance.runTransaction((transaction) async {
+            final userDoc = await transaction.get(userDocRef);
+            
+            if (!userDoc.exists) {
+              isNewUser = true;
+              return;
+            }
+            
+            // ♻️ 기존 사용자 - 프로필 정보 업데이트 (같은 트랜잭션 내에서)
+            if (kDebugMode) {
+              debugPrint('♻️ [SOCIAL LOGIN] 기존 사용자 - 프로필 업데이트');
+            }
+            
+            final updateData = <String, dynamic>{
+              'lastLoginAt': FieldValue.serverTimestamp(),
+              'updatedAt': FieldValue.serverTimestamp(),
+            };
+            
+            if (result.displayName != null && result.displayName!.isNotEmpty) {
+              updateData['name'] = result.displayName;
+            }
+            
+            if (result.photoUrl != null && result.photoUrl!.isNotEmpty) {
+              updateData['photoUrl'] = result.photoUrl;
+            }
+            
+            if (result.provider == SocialLoginProvider.google) {
+              updateData['provider'] = 'google';
+            } else if (result.provider == SocialLoginProvider.kakao) {
+              updateData['provider'] = 'kakao';
+            } else if (result.provider == SocialLoginProvider.apple) {
+              updateData['provider'] = 'apple';
+            }
+            
+            transaction.update(userDocRef, updateData);
+            
+            if (kDebugMode) {
+              debugPrint('✅ [TRANSACTION] 프로필 업데이트 적용: ${updateData.keys.join(", ")}');
+            }
+          });
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('❌ [TRANSACTION] 프로필 업데이트 실패: $e');
+          }
+          rethrow;
+        }
+        
+        if (isNewUser) {
           // 🆕 신규 사용자 - 회원가입 필요
           if (kDebugMode) {
             debugPrint('🆕 [SOCIAL LOGIN] 신규 사용자 - 회원가입 필요');
@@ -911,63 +957,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           return;
         }
         
-        // ♻️ 기존 사용자 - 프로필 정보 업데이트
         if (kDebugMode) {
-          debugPrint('♻️ [SOCIAL LOGIN] 기존 사용자 - 프로필 업데이트');
+          debugPrint('✅ [SOCIAL LOGIN] 프로필 업데이트 완료 (트랜잭션 내)');
         }
         
-        await _updateFirestoreUserProfile(
-          userId: result.userId!,
-          displayName: result.displayName,
-          photoUrl: result.photoUrl,
-          provider: result.provider,
-        );
+        // ⚡ 최적화: refreshUserModel() 호출 제거
+        // AuthService의 authStateChanges 리스너가 자동으로 _loadUserModel을 호출하므로
+        // 여기서 명시적으로 재로드할 필요 없음 (중복 Firestore 조회 방지)
         
-        if (kDebugMode) {
-          debugPrint('✅ [SOCIAL LOGIN] 프로필 업데이트 완료');
-        }
-        
-        // 기존 사용자 모델 새로고침
-        try {
-          await authService.refreshUserModel();
-          
-          if (kDebugMode) {
-            debugPrint('✅ [SOCIAL LOGIN] 기존 사용자 모델 재로드 완료');
-          }
-        } on ServiceSuspendedException catch (e) {
-          // 🛑 서비스 이용 중지 계정
-          if (kDebugMode) {
-            debugPrint('🛑 [SOCIAL LOGIN] 서비스 이용 중지 계정 감지');
-          }
-          
-          // 항상 오버레이 제거 (mounted 체크 불필요 - static 메서드)
-          SocialLoginProgressHelper.hide();
-          
-          // navigatorKey.currentContext를 사용하여 다이얼로그 표시
-          // mounted 상태와 무관하게 항상 표시 가능
-          if (kDebugMode) {
-            debugPrint('🔍 [SOCIAL LOGIN] navigatorKey.currentContext 확인: ${navigatorKey.currentContext != null}');
-          }
-          
-          if (navigatorKey.currentContext != null) {
-            await _showServiceSuspendedDialogGlobal(
-              context: navigatorKey.currentContext!,
-              suspendedAt: e.suspendedAt,
-              deviceId: e.deviceId,
-              deviceName: e.deviceName,
-            );
-          } else {
-            if (kDebugMode) {
-              debugPrint('⚠️ [SOCIAL LOGIN] navigatorKey.currentContext가 null입니다');
-            }
-          }
-          
-          return;
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('⚠️ [SOCIAL LOGIN] 기존 사용자 모델 재로드 실패: $e');
-          }
-        }
+        // 🛑 서비스 이용 중지 계정 체크는 authStateChanges에서 자동 처리됨
+        // (ServiceSuspendedException이 발생하면 자동으로 로그아웃)
         
         // 🔒 mounted 재확인
         if (!mounted) {
@@ -1092,12 +1091,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isSocialLoginLoading = true);
     
     try {
-      // 🎯 구글 로그인 진행 중 오버레이 표시
+      // ⚡ 최적화: 구글 로그인 진행 중 오버레이 즉시 표시
       if (mounted) {
         SocialLoginProgressHelper.show(
           context,
-          message: '구글로 로그인 중입니다',
-          subMessage: '잠시만 기다려주세요',
+          message: '구글로 로그인 중...',
+          subMessage: '빠른 로그인을 위해 최적화 중',
         );
       }
       
