@@ -793,8 +793,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                           ),
                                           actions: [
                                             TextButton(
-                                              onPressed: () {
+                                              onPressed: () async {
+                                                // 다이얼로그 닫기
                                                 Navigator.of(context).pop();
+                                                
+                                                // ✅ 사용자가 "확인" 버튼을 클릭한 후에 로그아웃 실행
+                                                debugPrint('🔐 [MAIN] 사용자 확인 → 로그아웃 시작');
+                                                
+                                                try {
+                                                  await authService.signOut();
+                                                  debugPrint('✅ [MAIN] 로그아웃 완료');
+                                                  // 🔓 로그아웃 완료 후 플래그 리셋
+                                                  _isMaxDeviceLimitLogoutInProgress = false;
+                                                } catch (error) {
+                                                  debugPrint('⚠️ [MAIN] 로그아웃 오류: $error');
+                                                  // 🔓 오류 발생 시에도 플래그 리셋
+                                                  _isMaxDeviceLimitLogoutInProgress = false;
+                                                }
                                               },
                                               child: Text(
                                                 '확인',
@@ -813,18 +828,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                       },
                                   );
                                   
-                                  debugPrint('⚡ [MAIN] 다이얼로그 즉시 표시 완료');
-                                  
-                                  // ⚡ 백그라운드 로그아웃 (다이얼로그와 병렬 실행)
-                                  authService.signOut().then((_) {
-                                    debugPrint('✅ [MAIN] 백그라운드 로그아웃 완료');
-                                    // 🔓 로그아웃 완료 후 플래그 리셋 (다음 로그인 가능)
-                                    _isMaxDeviceLimitLogoutInProgress = false;
-                                  }).catchError((error) {
-                                    debugPrint('⚠️ [MAIN] 로그아웃 오류 (무시): $error');
-                                    // 🔓 오류 발생 시에도 플래그 리셋
-                                    _isMaxDeviceLimitLogoutInProgress = false;
-                                  });
+                                  debugPrint('⚡ [MAIN] 다이얼로그 표시 완료 (사용자 확인 대기 중)');
                                 }
                                 
                                 debugPrint('');
