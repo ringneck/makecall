@@ -1195,23 +1195,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         SocialLoginProgressHelper.hide();
         await DialogUtils.showError(
           context,
-          '로그인 중 오류가 발생했습니다: ${e.toString()}',
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSocialLoginLoading = false);
-      }
-    }
-    } catch (e) {
-      // 에러 시 오버레이 제거
-      if (mounted) {
-        // 이벤트 기반 오버레이 제거 (다음 프레임에서 실행)
-        SocialLoginProgressHelper.hide();
-      }
-      if (mounted) {
-        await DialogUtils.showError(
-          context,
           'Kakao 로그인 중 오류가 발생했습니다: ${e.toString()}',
         );
       }
@@ -1498,22 +1481,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     } catch (e) {
       if (mounted) {
         SocialLoginProgressHelper.hide();
-        await DialogUtils.showError(
-          context,
-          '로그인 중 오류가 발생했습니다: ${e.toString()}',
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSocialLoginLoading = false);
-      }
-    }
-    } catch (e) {
-      // 에러 시 오버레이 제거
-      if (mounted) {
-        SocialLoginProgressHelper.hide();
-      }
-      if (mounted) {
         await DialogUtils.showError(
           context,
           'Apple 로그인 중 오류가 발생했습니다.\n\n${e.toString()}',
