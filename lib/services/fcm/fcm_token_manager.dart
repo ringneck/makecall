@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../database_service.dart';
 import '../../models/fcm_token_model.dart';
+import '../../exceptions/max_device_limit_exception.dart';
 import 'fcm_platform_utils.dart';
 
 /// FCM 토큰 관리자
@@ -187,6 +188,69 @@ class FCMTokenManager {
         // ignore: avoid_print
         print('   - 🚨 다른 플랫폼으로 간주하여 승인 요청 진행');
       }
+      
+      // 🔒 STEP 1: 사용자 정보 조회 (maxDevices 확인)
+      int maxDevices = 1; // 기본값
+      try {
+        // ignore: avoid_print
+        print('📊 [FCM-SAVE] 사용자 정보 조회 중 (maxDevices 확인)...');
+        final userDoc = await _firestore.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          final userData = userDoc.data();
+          maxDevices = userData?['maxDevices'] as int? ?? 1;
+          // ignore: avoid_print
+          print('📊 [FCM-SAVE] 사용자 최대 기기 수: $maxDevices개');
+        } else {
+          // ignore: avoid_print
+          print('⚠️ [FCM-SAVE] 사용자 문서 없음 (기본값 1 사용)');
+        }
+      } catch (e) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-SAVE] 사용자 정보 조회 실패 (기본값 1 사용): $e');
+      }
+      
+      // 🔒 STEP 2: 기기 수 제한 체크
+      if (otherDevices.length >= maxDevices) {
+        // ignore: avoid_print
+        print('');
+        // ignore: avoid_print
+        print('🚫 [FCM-SAVE] ========================================');
+        // ignore: avoid_print
+        print('🚫 [FCM-SAVE] 최대 사용 기기 수 초과!');
+        // ignore: avoid_print
+        print('🚫 [FCM-SAVE] ========================================');
+        // ignore: avoid_print
+        print('   - 최대 허용 기기 수: $maxDevices개');
+        // ignore: avoid_print
+        print('   - 현재 활성 기기 수: ${otherDevices.length}개');
+        // ignore: avoid_print
+        print('   - 새 기기: $deviceName ($platform)');
+        // ignore: avoid_print
+        print('');
+        // ignore: avoid_print
+        print('   📋 현재 활성 기기 목록:');
+        for (var i = 0; i < otherDevices.length; i++) {
+          final device = otherDevices[i];
+          // ignore: avoid_print
+          print('   ${i + 1}. ${device.deviceName} (${device.platform})');
+        }
+        // ignore: avoid_print
+        print('');
+        // ignore: avoid_print
+        print('🚫 [FCM-SAVE] ========================================');
+        // ignore: avoid_print
+        print('');
+        
+        // 🔧 특별한 Exception 던지기 (UI에서 감지 가능)
+        throw MaxDeviceLimitException(
+          maxDevices: maxDevices,
+          currentDevices: otherDevices.length,
+          deviceName: deviceName,
+        );
+      }
+      
+      // ignore: avoid_print
+      print('✅ [FCM-SAVE] 기기 수 체크 통과 (${otherDevices.length}/$maxDevices개)');
       
       bool needsApproval = false;
       

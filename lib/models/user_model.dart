@@ -27,6 +27,7 @@ class UserModel {
   final bool isPremium; // 프리미엄 사용자 여부 (하위 호환성 유지)
   final bool isAdmin; // 관리자 여부 (API 설정 내보내기 권한)
   final int maxExtensions; // 사용자별 단말번호 저장 가능 개수
+  final int maxDevices; // 사용자별 최대 동시 접속 기기 수 (기본: 1)
   final List<String>? myExtensions; // 내 단말번호 목록
   final String? loginProvider; // 로그인 제공자 (google, kakao, apple, email)
   
@@ -69,6 +70,7 @@ class UserModel {
     this.isPremium = false, // 기본값: 무료 사용자 (하위 호환성)
     this.isAdmin = false, // 기본값: 일반 사용자
     this.maxExtensions = 1, // 기본값: 1개
+    this.maxDevices = 1, // 기본값: 1개 (동시 접속 기기)
     this.myExtensions,
     this.loginProvider,
     // 🆕 동의 관리 필드
@@ -136,6 +138,7 @@ class UserModel {
       isPremium: map['isPremium'] as bool? ?? false,
       isAdmin: map['isAdmin'] as bool? ?? false,
       maxExtensions: map['maxExtensions'] as int? ?? 1, // 기본값 1개
+      maxDevices: map['maxDevices'] as int? ?? 1, // 기본값 1개 (동시 접속 기기)
       myExtensions: map['myExtensions'] != null 
           ? List<String>.from(map['myExtensions'] as List)
           : null,
@@ -185,6 +188,7 @@ class UserModel {
       'isPremium': isPremium,
       'isAdmin': isAdmin,
       'maxExtensions': maxExtensions,
+      'maxDevices': maxDevices,
       'myExtensions': myExtensions,
       if (loginProvider != null) 'loginProvider': loginProvider,
       // 🆕 동의 관리 필드
@@ -228,6 +232,7 @@ class UserModel {
     bool? isPremium,
     bool? isAdmin,
     int? maxExtensions,
+    int? maxDevices,
     List<String>? myExtensions,
   }) {
     return UserModel(
@@ -257,6 +262,7 @@ class UserModel {
       isPremium: isPremium ?? this.isPremium,
       isAdmin: isAdmin ?? this.isAdmin,
       maxExtensions: maxExtensions ?? this.maxExtensions,
+      maxDevices: maxDevices ?? this.maxDevices,
       myExtensions: myExtensions ?? this.myExtensions,
     );
   }

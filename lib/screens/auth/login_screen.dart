@@ -13,6 +13,7 @@ import '../../utils/common_utils.dart';
 import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
 import '../../main.dart' show navigatorKey;
+import '../../exceptions/max_device_limit_exception.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -945,6 +946,33 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           );
         }
       }
+    } on MaxDeviceLimitException catch (e) {
+      // 🚫 최대 기기 수 초과 다이얼로그 표시
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.devices, color: Colors.red),
+                SizedBox(width: 8),
+                Text('최대 사용 기기 수 초과'),
+              ],
+            ),
+            content: Text(e.getUserMessage()),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
       // 에러 시 오버레이 제거
       if (mounted) {
@@ -1006,6 +1034,33 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             result.errorMessage ?? 'Kakao 로그인에 실패했습니다.',
           );
         }
+      }
+    } on MaxDeviceLimitException catch (e) {
+      // 🚫 최대 기기 수 초과 다이얼로그 표시
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.devices, color: Colors.red),
+                SizedBox(width: 8),
+                Text('최대 사용 기기 수 초과'),
+              ],
+            ),
+            content: Text(e.getUserMessage()),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          ),
+        );
       }
     } catch (e) {
       // 에러 시 오버레이 제거
@@ -1293,6 +1348,33 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             result.errorMessage ?? 'Apple 로그인에 실패했습니다.\n\niOS 설정 > Apple ID > 암호 및 보안에서\nApple로 로그인 설정을 확인해주세요.',
           );
         }
+      }
+    } on MaxDeviceLimitException catch (e) {
+      // 🚫 최대 기기 수 초과 다이얼로그 표시
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.devices, color: Colors.red),
+                SizedBox(width: 8),
+                Text('최대 사용 기기 수 초과'),
+              ],
+            ),
+            content: Text(e.getUserMessage()),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          ),
+        );
       }
     } catch (e) {
       // 에러 시 오버레이 제거

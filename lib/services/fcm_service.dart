@@ -18,6 +18,7 @@ import '../utils/dialog_utils.dart';
 import 'fcm/fcm_platform_utils.dart';
 import 'fcm/fcm_token_manager.dart';
 import 'fcm/fcm_device_approval_service.dart';
+import '../exceptions/max_device_limit_exception.dart';
 import 'fcm/fcm_message_handler.dart';
 import 'fcm/fcm_notification_service.dart';
 import 'fcm/fcm_incoming_call_handler.dart';
@@ -489,6 +490,18 @@ class FCMService {
         }
         
       }
+      
+    } on MaxDeviceLimitException catch (e) {
+      // 🚫 최대 기기 수 초과 처리
+      // ignore: avoid_print
+      print('🚫 [FCM] 최대 기기 수 초과: ${e.toString()}');
+      // ignore: avoid_print
+      print('🚫 [FCM] 상세 정보:');
+      // ignore: avoid_print
+      print(e.getDetailedMessage());
+      
+      // ⚠️ 중요: Exception을 그대로 던져서 UI에서 감지하도록 함
+      rethrow;
       
     } catch (e, stackTrace) {
       
