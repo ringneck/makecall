@@ -8,8 +8,8 @@ typings/
 # Node.js dependency directory
 node_modules/
 
-# Package lock file
-package-lock.json
+# Package lock file (주석 처리: Firebase 배포 시 필요)
+# package-lock.json
 
 # Firebase configuration (deprecated)
 .runtimeconfig.json

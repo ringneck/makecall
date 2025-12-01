@@ -646,12 +646,13 @@ class FCMDeviceApprovalService {
           for (var doc in tokensQuery.docs) {
             await doc.reference.update({
               'isApproved': true,
+              'isActive': true,  // 🔧 FIX: 승인 시 활성화도 함께 처리
               'approvedAt': FieldValue.serverTimestamp(),
             }).timeout(const Duration(seconds: 5));
           }
           
           if (kDebugMode) {
-            debugPrint('✅ [FCM] fcm_tokens 업데이트 완료 (${tokensQuery.docs.length}개)');
+            debugPrint('✅ [FCM] fcm_tokens 업데이트 완료 (${tokensQuery.docs.length}개 - isApproved + isActive)');
           }
         }
       } catch (e) {

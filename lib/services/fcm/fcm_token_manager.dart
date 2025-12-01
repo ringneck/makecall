@@ -94,7 +94,10 @@ class FCMTokenManager {
           .toList();
       
       // 🔒 CRITICAL: 같은 기기의 기존 토큰이 승인되지 않았는지 확인
+      // 🔧 FIX: 모든 기기의 승인 대기 상태도 체크 (같은 기기만이 아니라)
       bool hasUnapprovedToken = false;
+      
+      // 1) 같은 기기의 승인되지 않은 토큰 체크
       if (sameDeviceTokens.isNotEmpty) {
         // ignore: avoid_print
         print('🧹 [FCM-SAVE] 같은 기기의 기존 토큰 ${sameDeviceTokens.length}개 발견 - 비활성화 중...');
@@ -118,6 +121,22 @@ class FCMTokenManager {
           });
           // ignore: avoid_print
           print('   ✅ 비활성화 완료: ${oldToken.fcmToken.substring(0, 20)}...');
+        }
+      }
+      
+      // 2) 🔧 FIX: 다른 기기 중에서도 승인 대기 중인 기기가 있는지 체크
+      final otherUnapprovedTokens = existingTokens
+          .where((token) => 
+              '${token.deviceId}_${token.platform}' != currentDeviceKey && 
+              !token.isApproved)
+          .toList();
+      
+      if (otherUnapprovedTokens.isNotEmpty) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-SAVE] 다른 기기에 승인 대기 중인 토큰 ${otherUnapprovedTokens.length}개 발견');
+        for (var token in otherUnapprovedTokens) {
+          // ignore: avoid_print
+          print('   - ${token.deviceName} (${token.platform})');
         }
       }
       
@@ -197,17 +216,17 @@ class FCMTokenManager {
       }
       
       // 🔐 기기 승인 상태 결정
-      // - 첫 기기: 자동 승인 (isApproved: true)
-      // - 동일 기기 토큰 갱신: 자동 승인 (isApproved: true)
-      // - 추가 기기: 승인 대기 (isApproved: false, needsApproval: true)
+      // - 첫 기기: 자동 승인 (isApproved: true, isActive: true)
+      // - 동일 기기 토큰 갱신: 자동 승인 (isApproved: true, isActive: true)
+      // - 추가 기기: 승인 대기 (isApproved: false, isActive: false) ← 🔧 FIX
       final bool isApproved = !needsApproval;
       
       if (needsApproval) {
         // ignore: avoid_print
-        print('🔒 [FCM-SAVE] 새 기기 승인 대기 상태로 저장 (isApproved: false)');
+        print('🔒 [FCM-SAVE] 새 기기 승인 대기 상태로 저장 (isApproved: false, isActive: false)');
       } else {
         // ignore: avoid_print
-        print('✅ [FCM-SAVE] 기기 자동 승인 (isApproved: true)');
+        print('✅ [FCM-SAVE] 기기 자동 승인 (isApproved: true, isActive: true)');
       }
       
       // 2. 새 토큰 모델 생성 및 저장
@@ -219,7 +238,7 @@ class FCMTokenManager {
         platform: platform,
         createdAt: DateTime.now(),
         lastActiveAt: DateTime.now(),
-        isActive: true,
+        isActive: isApproved,  // 🔧 FIX: 승인 전에는 비활성 상태
         isApproved: isApproved,
       );
       

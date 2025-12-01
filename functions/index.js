@@ -307,47 +307,141 @@ exports.sendApprovalNotification = functions.region(region).firestore
  * 만료된 인증 요청 정리 Cloud Function (스케줄링)
  *
  * 매시간 실행되어 5분 이상 경과한 미처리 인증 요청을 삭제합니다.
+ * 
+ * ✅ 개선 사항 (2025-12-01):
+ * - 만료된 기기 승인 요청을 업데이트 대신 완전 삭제
+ * - 승인된 요청도 30일 후 자동 삭제 (히스토리 정리)
+ * - 배치 처리 최적화 (500개 단위)
  */
 exports.cleanupExpiredRequests = functions.region(region).pubsub
     .schedule("every 1 hours")
     .onRun(async (context) => {
       try {
-        console.log("🧹 만료된 인증 요청 정리 시작");
+        console.log("🧹 [CLEANUP] 만료된 인증 요청 정리 시작");
+        console.log(`   실행 시간: ${new Date().toISOString()}`);
 
         const now = admin.firestore.Timestamp.now();
         const fiveMinutesAgo = new Date(now.toDate().getTime() - 5 * 60 * 1000);
+        const thirtyDaysAgo = new Date(now.toDate().getTime() - 30 * 24 * 60 * 60 * 1000);
 
-        // 만료된 이메일 인증 요청 삭제
+        // ==========================================
+        // 1. 만료된 이메일 인증 요청 삭제
+        // ==========================================
+        console.log("📧 [CLEANUP] 이메일 인증 요청 정리 중...");
+        
         const expiredEmailRequests = await admin.firestore()
             .collection("email_verification_requests")
             .where("createdAt", "<", fiveMinutesAgo)
             .where("used", "==", false)
+            .limit(500) // 배치 크기 제한
             .get();
 
-        const emailBatch = admin.firestore().batch();
-        expiredEmailRequests.docs.forEach((doc) => {
-          emailBatch.delete(doc.ref);
-        });
-        await emailBatch.commit();
+        if (!expiredEmailRequests.empty) {
+          const emailBatch = admin.firestore().batch();
+          expiredEmailRequests.docs.forEach((doc) => {
+            emailBatch.delete(doc.ref);
+          });
+          await emailBatch.commit();
 
-        console.log(`✅ 만료된 이메일 인증 요청 ${expiredEmailRequests.size}개 삭제`);
+          console.log(`✅ [CLEANUP] 만료된 이메일 인증 요청 ${expiredEmailRequests.size}개 삭제`);
+        } else {
+          console.log("   ℹ️  삭제할 이메일 인증 요청 없음");
+        }
 
-        // 만료된 기기 승인 요청 정리
+        // ==========================================
+        // 2. 만료된 기기 승인 요청 완전 삭제 (✅ 개선)
+        // ==========================================
+        console.log("📱 [CLEANUP] 만료된 기기 승인 요청 정리 중...");
+        
         const expiredApprovalRequests = await admin.firestore()
             .collection("device_approval_requests")
             .where("expiresAt", "<", now)
-            .where("status", "==", "pending")
+            .limit(500) // 배치 크기 제한
             .get();
 
-        const approvalBatch = admin.firestore().batch();
-        expiredApprovalRequests.docs.forEach((doc) => {
-          approvalBatch.update(doc.ref, {status: "expired"});
-        });
-        await approvalBatch.commit();
+        if (!expiredApprovalRequests.empty) {
+          const approvalBatch = admin.firestore().batch();
+          let pendingCount = 0;
+          let approvedCount = 0;
+          let deniedCount = 0;
 
-        console.log(`✅ 만료된 기기 승인 요청 ${expiredApprovalRequests.size}개 업데이트`);
+          expiredApprovalRequests.docs.forEach((doc) => {
+            const status = doc.data().status;
+            
+            // ✅ 만료된 요청은 상태 무관하게 모두 삭제
+            approvalBatch.delete(doc.ref);
+            
+            // 통계 수집
+            if (status === "pending") pendingCount++;
+            else if (status === "approved") approvedCount++;
+            else if (status === "denied") deniedCount++;
+          });
+          
+          await approvalBatch.commit();
+
+          console.log(`✅ [CLEANUP] 만료된 기기 승인 요청 ${expiredApprovalRequests.size}개 삭제`);
+          console.log(`   - Pending: ${pendingCount}개`);
+          console.log(`   - Approved: ${approvedCount}개`);
+          console.log(`   - Denied: ${deniedCount}개`);
+        } else {
+          console.log("   ℹ️  삭제할 기기 승인 요청 없음");
+        }
+
+        // ==========================================
+        // 3. 오래된 승인 완료 요청 삭제 (30일 이상 경과)
+        // ==========================================
+        console.log("🗄️  [CLEANUP] 오래된 승인 완료 요청 정리 중...");
+        
+        const oldApprovedRequests = await admin.firestore()
+            .collection("device_approval_requests")
+            .where("requestedAt", "<", thirtyDaysAgo)
+            .where("status", "in", ["approved", "denied"])
+            .limit(500)
+            .get();
+
+        if (!oldApprovedRequests.empty) {
+          const oldBatch = admin.firestore().batch();
+          oldApprovedRequests.docs.forEach((doc) => {
+            oldBatch.delete(doc.ref);
+          });
+          await oldBatch.commit();
+
+          console.log(`✅ [CLEANUP] 오래된 승인 완료 요청 ${oldApprovedRequests.size}개 삭제`);
+        } else {
+          console.log("   ℹ️  삭제할 오래된 요청 없음");
+        }
+
+        // ==========================================
+        // 4. 처리된 FCM 알림 큐 정리 (24시간 이상 경과)
+        // ==========================================
+        console.log("🔔 [CLEANUP] 처리된 FCM 알림 큐 정리 중...");
+        
+        const oneDayAgo = new Date(now.toDate().getTime() - 24 * 60 * 60 * 1000);
+        
+        const processedNotifications = await admin.firestore()
+            .collection("fcm_approval_notification_queue")
+            .where("processedAt", "<", oneDayAgo)
+            .where("processed", "==", true)
+            .limit(500)
+            .get();
+
+        if (!processedNotifications.empty) {
+          const notificationBatch = admin.firestore().batch();
+          processedNotifications.docs.forEach((doc) => {
+            notificationBatch.delete(doc.ref);
+          });
+          await notificationBatch.commit();
+
+          console.log(`✅ [CLEANUP] 처리된 FCM 알림 ${processedNotifications.size}개 삭제`);
+        } else {
+          console.log("   ℹ️  삭제할 FCM 알림 없음");
+        }
+
+        console.log("✅ [CLEANUP] 정리 작업 완료");
       } catch (error) {
-        console.error("❌ 정리 작업 오류:", error);
+        console.error("❌ [CLEANUP] 정리 작업 오류:", error);
+        console.error("   에러 메시지:", error.message);
+        console.error("   스택 트레이스:", error.stack);
       }
     });
 

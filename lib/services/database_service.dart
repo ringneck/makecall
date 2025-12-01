@@ -1696,14 +1696,26 @@ class DatabaseService {
     int? amiServerId,
   }) async {
     try {
-      // 동일한 조직명 + App-Key 조합이 이미 있는지 확인
+      if (kDebugMode) {
+        debugPrint('📤 [DB] API 설정 내보내기 시작');
+        debugPrint('   조직명: $organizationName');
+        debugPrint('   App-Key: $appKey');
+        debugPrint('   사용자: $userEmail');
+      }
+      
+      // ⚡ 최적화: 단일 where() + 메모리 필터링 (복합 인덱스 불필요)
+      // exportedByUserId로 조회하고 organizationName, appKey는 메모리에서 필터링
       final existingQuery = await _firestore
           .collection('shared_api_settings')
-          .where('organizationName', isEqualTo: organizationName)
-          .where('appKey', isEqualTo: appKey)
           .where('exportedByUserId', isEqualTo: userId)
-          .limit(1)
           .get();
+      
+      // 메모리에서 organizationName과 appKey로 필터링
+      final existingDocs = existingQuery.docs.where((doc) {
+        final data = doc.data();
+        return data['organizationName'] == organizationName && 
+               data['appKey'] == appKey;
+      }).toList();
       
       final now = DateTime.now();
       final settingsData = {
@@ -1725,9 +1737,12 @@ class DatabaseService {
         'lastUpdatedAt': now.toIso8601String(),
       };
       
-      if (existingQuery.docs.isNotEmpty) {
+      if (existingDocs.isNotEmpty) {
         // 기존 설정 업데이트
-        final docId = existingQuery.docs.first.id;
+        final docId = existingDocs.first.id;
+        if (kDebugMode) {
+          debugPrint('🔄 [DB] 기존 설정 업데이트: $docId');
+        }
         await _firestore
             .collection('shared_api_settings')
             .doc(docId)
@@ -1736,9 +1751,16 @@ class DatabaseService {
         // 새로운 설정 생성
         settingsData['exportedAt'] = now.toIso8601String();
         
+        if (kDebugMode) {
+          debugPrint('✨ [DB] 새 설정 생성');
+        }
         await _firestore
             .collection('shared_api_settings')
             .add(settingsData);
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ [DB] API 설정 내보내기 완료');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -1819,6 +1841,18 @@ class DatabaseService {
     required String organizationName,
   }) async {
     try {
+      if (kDebugMode) {
+        debugPrint('🔍 [DB] 공유 API 설정 조회 시작');
+        debugPrint('   조직명: $organizationName');
+        // Firebase Auth 상태 확인
+        final currentUser = _auth.currentUser;
+        if (currentUser != null) {
+          debugPrint('   ✅ Firebase Auth: 인증됨 (UID: ${currentUser.uid})');
+        } else {
+          debugPrint('   ⚠️  Firebase Auth: 인증되지 않음');
+        }
+      }
+      
       // ⚡ 단일 where() 사용 (복합 인덱스 불필요)
       final querySnapshot = await _firestore
           .collection('shared_api_settings')
@@ -1867,20 +1901,24 @@ class DatabaseService {
     required String appKey,
   }) async {
     try {
-      // 현재 사용자가 이전에 내보낸 설정이 있는지 조회
+      // ⚡ 최적화: 단일 where() + 메모리 필터링 (복합 인덱스 불필요)
       final querySnapshot = await _firestore
           .collection('shared_api_settings')
-          .where('organizationName', isEqualTo: organizationName)
-          .where('appKey', isEqualTo: appKey)
           .where('exportedByUserId', isEqualTo: userId)
-          .limit(1)
           .get();
       
-      if (querySnapshot.docs.isEmpty) {
+      // 메모리에서 organizationName과 appKey로 필터링
+      final filtered = querySnapshot.docs.where((doc) {
+        final data = doc.data();
+        return data['organizationName'] == organizationName && 
+               data['appKey'] == appKey;
+      }).toList();
+      
+      if (filtered.isEmpty) {
         return null;
       }
       
-      final doc = querySnapshot.docs.first;
+      final doc = filtered.first;
       final data = doc.data();
       data['id'] = doc.id;
       
