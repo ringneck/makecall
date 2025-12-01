@@ -635,36 +635,187 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                 // 강제 로그아웃
                                 await authService.signOut();
                                 
-                                debugPrint('✅ [MAIN] 로그아웃 완료 - 다이얼로그 표시');
+                                debugPrint('✅ [MAIN] 로그아웃 완료 - 다이얼로그 표시 예약');
                                 
-                                // ⏱️ 짧은 지연 후 다이얼로그 표시 (Navigator 안정화 대기)
-                                await Future.delayed(const Duration(milliseconds: 500));
-                                
-                                // 다이얼로그 표시 (navigatorKey 사용)
-                                if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
-                                  showDialog(
-                                    context: navigatorKey.currentContext!,
-                                    barrierDismissible: false,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text('🔴 최대 사용 기기 수 초과'),
-                                      content: Text(
-                                        '최대 사용 기기 수를 초과했습니다.\n'
-                                        '본 기기에서 계속 사용하시려면, 다른 기기에서\n'
-                                        '로그아웃 하신 후 본 기기에서 로그인하세요.\n\n'
-                                        '현재 활성 기기 (${e.currentDevices}개):\n'
-                                        '${e.getActiveDevicesList()}',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.of(context).pop();
-                                          },
-                                          child: const Text('확인'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }
+                                // 🎯 이벤트 기반: 다음 프레임에 다이얼로그 표시 (Navigator 빌드 완료 대기)
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
+                                    showDialog(
+                                      context: navigatorKey.currentContext!,
+                                      barrierDismissible: false,
+                                      builder: (context) {
+                                        final theme = Theme.of(context);
+                                        final isDark = theme.brightness == Brightness.dark;
+                                        
+                                        return AlertDialog(
+                                          icon: Icon(
+                                            Icons.devices_other,
+                                            size: 48,
+                                            color: theme.colorScheme.error,
+                                          ),
+                                          title: Text(
+                                            '최대 사용 기기 수 초과',
+                                            style: theme.textTheme.headlineSmall?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: theme.colorScheme.onSurface,
+                                            ),
+                                          ),
+                                          content: SingleChildScrollView(
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                // 안내 메시지
+                                                Text(
+                                                  '최대 사용 기기 수를 초과했습니다.',
+                                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                    color: theme.colorScheme.onSurface,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 12),
+                                                Text(
+                                                  '본 기기에서 계속 사용하시려면, 다른 기기에서 로그아웃 하신 후 본 기기에서 로그인하세요.',
+                                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                                    color: theme.colorScheme.onSurfaceVariant,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 20),
+                                                
+                                                // 구분선
+                                                Divider(
+                                                  color: theme.colorScheme.outlineVariant,
+                                                  thickness: 1,
+                                                ),
+                                                const SizedBox(height: 16),
+                                                
+                                                // 현재 활성 기기 헤더
+                                                Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.phone_android,
+                                                      size: 20,
+                                                      color: theme.colorScheme.primary,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      '현재 활성 기기 (${e.currentDevices}개)',
+                                                      style: theme.textTheme.titleSmall?.copyWith(
+                                                        fontWeight: FontWeight.bold,
+                                                        color: theme.colorScheme.primary,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 12),
+                                                
+                                                // 활성 기기 목록
+                                                Container(
+                                                  padding: const EdgeInsets.all(12),
+                                                  decoration: BoxDecoration(
+                                                    color: isDark 
+                                                        ? theme.colorScheme.surfaceContainerHighest
+                                                        : theme.colorScheme.surfaceContainerHigh,
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    border: Border.all(
+                                                      color: theme.colorScheme.outlineVariant,
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: e.getActiveDevicesList()
+                                                        .split('\n')
+                                                        .where((line) => line.trim().isNotEmpty)
+                                                        .map((device) {
+                                                          return Padding(
+                                                            padding: const EdgeInsets.symmetric(vertical: 4),
+                                                            child: Row(
+                                                              children: [
+                                                                Icon(
+                                                                  device.contains('iOS') 
+                                                                      ? Icons.phone_iphone
+                                                                      : Icons.phone_android,
+                                                                  size: 16,
+                                                                  color: theme.colorScheme.secondary,
+                                                                ),
+                                                                const SizedBox(width: 8),
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    device.replaceAll('• ', ''),
+                                                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                                                      color: theme.colorScheme.onSurface,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          );
+                                                        }).toList(),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 16),
+                                                
+                                                // 조치 방법 안내
+                                                Container(
+                                                  padding: const EdgeInsets.all(12),
+                                                  decoration: BoxDecoration(
+                                                    color: theme.colorScheme.errorContainer.withOpacity(0.3),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    border: Border.all(
+                                                      color: theme.colorScheme.error.withOpacity(0.3),
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Icon(
+                                                        Icons.info_outline,
+                                                        size: 20,
+                                                        color: theme.colorScheme.error,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Expanded(
+                                                        child: Text(
+                                                          '위 기기에서 로그아웃 후 다시 시도하세요.',
+                                                          style: theme.textTheme.bodySmall?.copyWith(
+                                                            color: theme.colorScheme.onErrorContainer,
+                                                            fontWeight: FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: Text(
+                                                '확인',
+                                                style: TextStyle(
+                                                  color: theme.colorScheme.primary,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                          actionsPadding: const EdgeInsets.only(
+                                            right: 16,
+                                            bottom: 16,
+                                          ),
+                                        );
+                                      },
+                                    );
+                                    
+                                    debugPrint('✅ [MAIN] 다이얼로그 표시 완료 (이벤트 기반)');
+                                  }
+                                });
                                 
                                 debugPrint('');
                               } catch (e, stackTrace) {
