@@ -449,6 +449,15 @@ class AuthService extends ChangeNotifier {
       debugPrint('🔓 ========== 로그아웃 시작 ==========');
       debugPrint('   📧 현재 사용자: ${_currentUserModel?.email ?? "없음"}');
       debugPrint('   🆔 UID: ${_auth.currentUser!.uid}');
+      
+      // 🐛 디버깅: 누가 로그아웃을 호출했는지 추적
+      try {
+        throw Exception('signOut() 호출 스택');
+      } catch (e, stackTrace) {
+        debugPrint('📍 로그아웃 호출 스택 추적:');
+        debugPrint(stackTrace.toString().split('\n').take(5).join('\n'));
+      }
+      
       debugPrint('');
       
       // Firestore에서 실제 데이터 확인
