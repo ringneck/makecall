@@ -14,6 +14,7 @@ import '../models/fcm_token_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   
   /// 🛡️ Stream 에러 핸들러: 로그아웃 시 Permission Denied 에러를 조용히 무시
   Stream<T> _handleStreamErrors<T>(Stream<T> stream) {
