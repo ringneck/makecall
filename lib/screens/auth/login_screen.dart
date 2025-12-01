@@ -190,6 +190,32 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // 로그인 성공 시 이메일 저장 설정 적용
       await _saveCredentials();
       
+    } on MaxDeviceLimitException catch (e) {
+      // 🚫 최대 기기 수 초과 다이얼로그 표시
+      if (mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.devices, color: Colors.red),
+                SizedBox(width: 8),
+                Text('최대 사용 기기 수 초과'),
+              ],
+            ),
+            content: Text(e.getUserMessage()),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          ),
+        );
+      }
     } on ServiceSuspendedException catch (e) {
       // 🛑 서비스 이용 중지 계정 - 안내 다이얼로그 표시
       if (mounted) {
