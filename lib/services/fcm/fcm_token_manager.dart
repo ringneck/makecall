@@ -327,6 +327,12 @@ class FCMTokenManager {
       
       return (needsApproval, otherDevices);
       
+    } on MaxDeviceLimitException catch (e) {
+      // 🚫 최대 기기 수 초과 - 반드시 상위로 전파하여 로그인 차단
+      // ignore: avoid_print
+      print('🚫 [FCM-SAVE] 최대 기기 수 초과 예외 전파');
+      rethrow;
+      
     } catch (e, stackTrace) {
       // ignore: avoid_print
       print('❌ [FCM-SAVE] 토큰 저장 오류: $e');
