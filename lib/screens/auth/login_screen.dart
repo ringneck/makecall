@@ -191,30 +191,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       await _saveCredentials();
       
     } on MaxDeviceLimitException catch (e) {
-      // 🚫 최대 기기 수 초과 다이얼로그 표시
+      // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
       if (mounted) {
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.devices, color: Colors.red),
-                SizedBox(width: 8),
-                Text('최대 사용 기기 수 초과'),
-              ],
-            ),
-            content: Text(e.getUserMessage()),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('확인'),
-              ),
-            ],
-          ),
-        );
+        _showMaxDeviceLimitDialog(e);
       }
     } on ServiceSuspendedException catch (e) {
       // 🛑 서비스 이용 중지 계정 - 안내 다이얼로그 표시
@@ -681,6 +660,176 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
   }
   
+  /// ⚡ 최대 기기 수 초과 다이얼로그 표시 (Material Design 3 + 최적화)
+  /// 
+  /// 즉시 다이얼로그를 표시하여 사용자에게 빠른 피드백 제공
+  void _showMaxDeviceLimitDialog(MaxDeviceLimitException e) {
+    if (!mounted) return;
+    
+    // 소셜 로그인 로딩 오버레이 숨기기
+    SocialLoginProgressHelper.hide();
+    
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // ⚡ 즉시 다이얼로그 표시 (await 없음 - 비동기 실행)
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.devices_other,
+          size: 48,
+          color: theme.colorScheme.error,
+        ),
+        title: Text(
+          '최대 사용 기기 수 초과',
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 안내 메시지
+              Text(
+                '최대 사용 기기 수를 초과했습니다.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '본 기기에서 계속 사용하시려면, 다른 기기에서 로그아웃 하신 후 본 기기에서 로그인하세요.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // 구분선
+              Divider(
+                color: theme.colorScheme.outlineVariant,
+                thickness: 1,
+              ),
+              const SizedBox(height: 16),
+              
+              // 현재 활성 기기 헤더
+              Row(
+                children: [
+                  Icon(
+                    Icons.phone_android,
+                    size: 20,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '현재 활성 기기 (${e.currentDevices}개)',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              // 활성 기기 정보
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark 
+                      ? theme.colorScheme.surfaceContainerHighest
+                      : theme.colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.smartphone,
+                      size: 20,
+                      color: theme.colorScheme.secondary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '다른 기기에서 이미 로그인되어 있습니다.\n'
+                        '해당 기기에서 로그아웃 후 다시 시도하세요.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // 조치 방법 안내
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.errorContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.error.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 20,
+                      color: theme.colorScheme.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '위 기기에서 로그아웃 후 다시 시도하세요.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text(
+              '확인',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.only(
+          right: 16,
+          bottom: 16,
+        ),
+      ),
+    );
+  }
+  
   // 소셜 로그인 성공 처리
   Future<void> _handleSocialLoginSuccess(SocialLoginResult result) async {
     try {
@@ -973,48 +1122,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         }
       }
     } on MaxDeviceLimitException catch (e) {
-      // 🚫 최대 기기 수 초과 다이얼로그 표시
+      // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
       if (mounted) {
-        SocialLoginProgressHelper.hide();
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.devices, color: Colors.red),
-                SizedBox(width: 8),
-                Text('최대 사용 기기 수 초과'),
-              ],
-            ),
-            content: Text(e.getUserMessage()),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('확인'),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      // 에러 시 오버레이 제거
-      if (mounted) {
-        SocialLoginProgressHelper.hide();
-      }
-      if (mounted) {
-        await DialogUtils.showError(
-          context,
-          'Google 로그인 중 오류가 발생했습니다: ${e.toString()}',
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSocialLoginLoading = false);
-      }
-    }
+        _showMaxDeviceLimitDialog(e);
   }
   
   // 카카오 로그인
@@ -1062,30 +1172,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         }
       }
     } on MaxDeviceLimitException catch (e) {
-      // 🚫 최대 기기 수 초과 다이얼로그 표시
+      // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
       if (mounted) {
-        SocialLoginProgressHelper.hide();
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.devices, color: Colors.red),
-                SizedBox(width: 8),
-                Text('최대 사용 기기 수 초과'),
-              ],
-            ),
-            content: Text(e.getUserMessage()),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('확인'),
-              ),
-            ],
-          ),
+        _showMaxDeviceLimitDialog(e);
         );
       }
     } catch (e) {
@@ -1376,30 +1465,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         }
       }
     } on MaxDeviceLimitException catch (e) {
-      // 🚫 최대 기기 수 초과 다이얼로그 표시
+      // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
       if (mounted) {
-        SocialLoginProgressHelper.hide();
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.devices, color: Colors.red),
-                SizedBox(width: 8),
-                Text('최대 사용 기기 수 초과'),
-              ],
-            ),
-            content: Text(e.getUserMessage()),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('확인'),
-              ),
-            ],
-          ),
+        _showMaxDeviceLimitDialog(e);
         );
       }
     } catch (e) {
