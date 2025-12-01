@@ -702,13 +702,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   color: theme.colorScheme.onSurface,
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                '본 기기에서 계속 사용하시려면, 다른 기기에서 로그아웃 하신 후 본 기기에서 로그인하세요.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
               const SizedBox(height: 20),
               
               // 구분선
@@ -718,88 +711,98 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
               const SizedBox(height: 16),
               
-              // 현재 활성 기기 헤더
-              Row(
-                children: [
-                  Icon(
-                    Icons.phone_android,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '현재 활성 기기 (${e.currentDevices}개)',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              
-              // 활성 기기 정보
+              // 현재 활성 기기 정보 카드
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isDark 
                       ? theme.colorScheme.surfaceContainerHighest
                       : theme.colorScheme.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: theme.colorScheme.outlineVariant,
-                    width: 1,
+                    color: theme.colorScheme.primary.withOpacity(0.3),
+                    width: 2,
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.smartphone,
-                      size: 20,
-                      color: theme.colorScheme.secondary,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '다른 기기에서 이미 로그인되어 있습니다.\n'
-                        '해당 기기에서 로그아웃 후 다시 시도하세요.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              // 조치 방법 안내
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.error.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 20,
-                      color: theme.colorScheme.error,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '위 기기에서 로그아웃 후 다시 시도하세요.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onErrorContainer,
-                          fontWeight: FontWeight.w500,
+                    // 헤더
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.devices,
+                          size: 24,
+                          color: theme.colorScheme.primary,
                         ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '현재 활성 기기',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // 활성 기기 수
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${e.currentDevices}개',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '/ ${e.maxDevices}개 (최대)',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // 시도한 기기 정보
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.errorContainer.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.block,
+                            size: 18,
+                            color: theme.colorScheme.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '시도한 기기: ${e.deviceName}',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onErrorContainer,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -809,23 +812,36 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: Text(
-              '확인',
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
+          // 큰 확인 버튼 (전체 너비)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  '확인',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 16,
+                  ),
+                ),
               ),
             ),
           ),
         ],
-        actionsPadding: const EdgeInsets.only(
-          right: 16,
-          bottom: 16,
-        ),
       ),
     );
   }
