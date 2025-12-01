@@ -15,6 +15,7 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'firebase_options.dart';
 import 'config/kakao_config.dart';
+import 'exceptions/max_device_limit_exception.dart';
 import 'services/auth_service.dart';
 import 'services/fcm_service.dart';
 import 'services/user_session_manager.dart';
@@ -623,6 +624,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                 await fcmService.initialize(currentUserId);
                                 
                                 debugPrint('✅ [MAIN] FCM 초기화 완료 (앱 시작 시)');
+                              } on MaxDeviceLimitException catch (e) {
+                                // 🚫 CRITICAL: 최대 기기 수 초과 - 로그아웃 처리
+                                debugPrint('');
+                                debugPrint('🚫 [MAIN] 최대 기기 수 초과 - 강제 로그아웃');
+                                debugPrint('   MaxDevices: ${e.maxDevices}');
+                                debugPrint('   Current Devices: ${e.currentDevices}');
+                                debugPrint('   Device Name: ${e.deviceName}');
+                                
+                                // 강제 로그아웃
+                                await authService.signOut();
+                                
+                                debugPrint('✅ [MAIN] 로그아웃 완료 - 로그인 화면으로 이동');
+                                debugPrint('');
                               } catch (e, stackTrace) {
                                 debugPrint('❌ [MAIN] FCM 초기화 오류: $e');
                                 debugPrint('Stack trace: $stackTrace');
