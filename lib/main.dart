@@ -271,6 +271,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   String? _lastCheckedUserId;
   bool _providersRegistered = false; // Provider 등록 플래그
   
+  // 🚫 MaxDeviceLimitException 로그아웃 중복 실행 방지
+  bool _isMaxDeviceLimitLogoutInProgress = false;
+  
   // 🚀 WebSocket 연결 관리자
   final DCMIWSConnectionManager _connectionManager = DCMIWSConnectionManager();
   
@@ -626,6 +629,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                 debugPrint('✅ [MAIN] FCM 초기화 완료 (앱 시작 시)');
                               } on MaxDeviceLimitException catch (e) {
                                 // 🚫 CRITICAL: 최대 기기 수 초과 - 즉시 다이얼로그 표시 + 백그라운드 로그아웃
+                                
+                                // 🔒 중복 실행 방지: 이미 로그아웃 중이면 무시
+                                if (_isMaxDeviceLimitLogoutInProgress) {
+                                  debugPrint('⚠️ [MAIN] MaxDeviceLimit 로그아웃 이미 진행 중 - 중복 실행 방지');
+                                  return;
+                                }
+                                
+                                _isMaxDeviceLimitLogoutInProgress = true;
+                                
                                 debugPrint('');
                                 debugPrint('🚫 [MAIN] 최대 기기 수 초과 감지');
                                 debugPrint('   MaxDevices: ${e.maxDevices}');
@@ -806,8 +818,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                   // ⚡ 백그라운드 로그아웃 (다이얼로그와 병렬 실행)
                                   authService.signOut().then((_) {
                                     debugPrint('✅ [MAIN] 백그라운드 로그아웃 완료');
+                                    // 🔓 로그아웃 완료 후 플래그 리셋 (다음 로그인 가능)
+                                    _isMaxDeviceLimitLogoutInProgress = false;
                                   }).catchError((error) {
                                     debugPrint('⚠️ [MAIN] 로그아웃 오류 (무시): $error');
+                                    // 🔓 오류 발생 시에도 플래그 리셋
+                                    _isMaxDeviceLimitLogoutInProgress = false;
                                   });
                                 }
                                 
