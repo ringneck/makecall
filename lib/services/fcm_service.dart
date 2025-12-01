@@ -374,6 +374,19 @@ class FCMService {
         }
       } else {
       }
+    } on MaxDeviceLimitException catch (e, stackTrace) {
+      // 🚫 CRITICAL: 최대 기기 수 초과 - 반드시 상위로 전파
+      // ignore: avoid_print
+      print('🚫 [FCM-INIT] 최대 기기 수 초과 예외 감지 - 상위로 전파');
+      
+      // 🔒 CRITICAL: Completer에 에러를 전달
+      _isInitializing = false;
+      if (_initializationCompleter != null && !_initializationCompleter!.isCompleted) {
+        _initializationCompleter!.completeError(e, stackTrace);
+      }
+      
+      rethrow;
+      
     } catch (e, stackTrace) {
       
       // 🔒 CRITICAL: 기기 승인 관련 오류는 반드시 상위로 전파
