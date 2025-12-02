@@ -32,29 +32,40 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
   /// Firestore에서 활성 기기 목록 조회
   Future<void> _loadActiveDevices() async {
     try {
+      debugPrint('🔍 [MaxDeviceLimitDialog] 활성 기기 목록 로드 시작');
+      debugPrint('   userId: ${widget.userId}');
+      
       final querySnapshot = await FirebaseFirestore.instance
           .collection('fcm_tokens')
-          .where('user_id', isEqualTo: widget.userId)
-          .where('is_active', isEqualTo: true)
-          .orderBy('last_updated', descending: true)
+          .where('userId', isEqualTo: widget.userId)  // ← 카멜케이스로 수정
+          .where('isActive', isEqualTo: true)         // ← 카멜케이스로 수정
           .get();
 
-      setState(() {
-        _activeDevices = querySnapshot.docs.map((doc) {
-          final data = doc.data();
-          return {
-            'device_name': data['device_name'] ?? 'Unknown Device',
-            'platform': data['platform'] ?? 'Unknown',
-            'last_updated': data['last_updated'] as Timestamp?,
-          };
-        }).toList();
-        _isLoading = false;
-      });
+      debugPrint('📊 [MaxDeviceLimitDialog] 조회 결과: ${querySnapshot.docs.length}개');
+
+      if (mounted) {
+        setState(() {
+          _activeDevices = querySnapshot.docs.map((doc) {
+            final data = doc.data();
+            debugPrint('   - ${data['deviceName']} (${data['platform']})');
+            return {
+              'device_name': data['deviceName'] ?? 'Unknown Device',  // ← 카멜케이스로 수정
+              'platform': data['platform'] ?? 'Unknown',
+              'last_updated': data['lastUpdated'] as Timestamp?,      // ← 카멜케이스로 수정
+            };
+          }).toList();
+          _isLoading = false;
+        });
+      }
+      
+      debugPrint('✅ [MaxDeviceLimitDialog] 활성 기기 목록 로드 완료');
     } catch (e) {
       debugPrint('⚠️  [MaxDeviceLimitDialog] 활성 기기 목록 로드 실패: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
