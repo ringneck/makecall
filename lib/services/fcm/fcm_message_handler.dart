@@ -320,11 +320,29 @@ class FCMMessageHandler {
     try {
       final notificationsPlugin = FlutterLocalNotificationsPlugin();
       
-      // 모든 알림 제거 (배지 포함)
+      // 모든 알림 제거
       await notificationsPlugin.cancelAll();
       
+      // 🔥 CRITICAL FIX: 배지를 명시적으로 0으로 설정
+      await notificationsPlugin.show(
+        0, // notification ID
+        null, // no title
+        null, // no body
+        const NotificationDetails(
+          iOS: DarwinNotificationDetails(
+            presentAlert: false,
+            presentBadge: true,
+            presentSound: false,
+            badgeNumber: 0, // ← 배지를 0으로 명시적 설정
+          ),
+        ),
+      );
+      
+      // 바로 알림 제거 (배지만 설정하고 알림은 표시 안 함)
+      await notificationsPlugin.cancel(0);
+      
       if (kDebugMode) {
-        debugPrint('✅ [Badge] 알림 탭으로 iOS 배지 제거');
+        debugPrint('✅ [Badge] 알림 탭으로 iOS 배지 제거 (배지: 0)');
       }
     } catch (e) {
       if (kDebugMode) {

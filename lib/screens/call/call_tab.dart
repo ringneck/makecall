@@ -256,11 +256,31 @@ class _CallTabState extends State<CallTab> {
     
     try {
       // Android: 알림 제거 시 배지도 자동 제거
-      // iOS: 알림 제거 + 배지 카운트 0으로 설정
       await _notificationsPlugin.cancelAll();
       
+      // iOS: 배지를 명시적으로 0으로 설정
+      if (Platform.isIOS) {
+        // 🔥 CRITICAL FIX: 배지를 명시적으로 0으로 설정
+        await _notificationsPlugin.show(
+          0, // notification ID
+          null, // no title
+          null, // no body
+          const NotificationDetails(
+            iOS: DarwinNotificationDetails(
+              presentAlert: false,
+              presentBadge: true,
+              presentSound: false,
+              badgeNumber: 0, // ← 배지를 0으로 명시적 설정
+            ),
+          ),
+        );
+        
+        // 바로 알림 제거 (배지만 설정하고 알림은 표시 안 함)
+        await _notificationsPlugin.cancel(0);
+      }
+      
       if (kDebugMode) {
-        debugPrint('✅ [CallTab] 최근통화 탭 진입 - ${Platform.isAndroid ? 'Android' : 'iOS'} 배지/알림 제거 완료');
+        debugPrint('✅ [CallTab] 최근통화 탭 진입 - ${Platform.isAndroid ? 'Android' : 'iOS'} 배지/알림 제거 완료 (배지: 0)');
       }
     } catch (e) {
       if (kDebugMode) {

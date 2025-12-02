@@ -408,14 +408,37 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       
       // iOS 추가 처리: 배지를 명시적으로 0으로 설정
       if (Platform.isIOS) {
-        await _notificationsPlugin
+        final iosPlugin = _notificationsPlugin
             .resolvePlatformSpecificImplementation<
-                IOSFlutterLocalNotificationsPlugin>()
-            ?.requestPermissions(badge: true);
+                IOSFlutterLocalNotificationsPlugin>();
+        
+        if (iosPlugin != null) {
+          // 권한 요청
+          await iosPlugin.requestPermissions(badge: true);
+          
+          // 🔥 CRITICAL FIX: 배지를 명시적으로 0으로 설정
+          // requestPermissions만으로는 배지가 초기화되지 않음!
+          await _notificationsPlugin.show(
+            0, // notification ID
+            null, // no title
+            null, // no body
+            const NotificationDetails(
+              iOS: DarwinNotificationDetails(
+                presentAlert: false,
+                presentBadge: true,
+                presentSound: false,
+                badgeNumber: 0, // ← 배지를 0으로 명시적 설정
+              ),
+            ),
+          );
+          
+          // 바로 알림 제거 (배지만 설정하고 알림은 표시 안 함)
+          await _notificationsPlugin.cancel(0);
+        }
       }
       
       if (kDebugMode) {
-        debugPrint('✅ [Badge] ${Platform.isIOS ? 'iOS' : 'Android'} 배지/알림 초기화 완료');
+        debugPrint('✅ [Badge] ${Platform.isIOS ? 'iOS' : 'Android'} 배지/알림 초기화 완료 (배지: 0)');
       }
     } catch (e) {
       if (kDebugMode) {
