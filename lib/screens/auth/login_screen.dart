@@ -1026,6 +1026,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           // Firebase Auth 로그아웃
           await FirebaseAuth.instance.signOut();
           
+          // 플래그 해제 (MaxDeviceLimit 예외)
+          authService.setInSocialLoginFlow(false);
+          
           // LoginScreen에 남아있음 (이미 LoginScreen이므로 추가 네비게이션 불필요)
           return;
         }
@@ -1038,6 +1041,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           
           // 기존 오버레이 제거
           SocialLoginProgressHelper.hide();
+          
+          // 플래그 해제 (FCM 초기화 완료)
+          authService.setInSocialLoginFlow(false);
           
           // AuthService의 user stream이 자동으로 홈 화면으로 이동시킴
           if (kDebugMode) {
@@ -1057,6 +1063,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // 에러 시 오버레이 제거 (mounted 체크)
       if (mounted) {
         SocialLoginProgressHelper.hide();
+        
+        // 플래그 해제 (에러 발생)
+        authService.setInSocialLoginFlow(false);
         
         // 에러 다이얼로그 표시 (mounted 재확인)
         if (mounted) {
@@ -1147,6 +1156,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     
     if (_isSocialLoginLoading) return;
     
+    // 🔒 소셜 로그인 플래그 설정 (main.dart FCM 자동 초기화 방지)
+    final authService = context.read<AuthService>();
+    authService.setInSocialLoginFlow(true);
+    
     setState(() => _isSocialLoginLoading = true);
     
     try {
@@ -1212,6 +1225,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
     
     if (_isSocialLoginLoading) return;
+    
+    // 🔒 소셜 로그인 플래그 설정 (main.dart FCM 자동 초기화 방지)
+    final authService = context.read<AuthService>();
+    authService.setInSocialLoginFlow(true);
     
     setState(() => _isSocialLoginLoading = true);
     
@@ -1500,6 +1517,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     if (!shouldContinue) return;
     
     if (_isSocialLoginLoading) return;
+    
+    // 🔒 소셜 로그인 플래그 설정 (main.dart FCM 자동 초기화 방지)
+    final authService = context.read<AuthService>();
+    authService.setInSocialLoginFlow(true);
     
     setState(() => _isSocialLoginLoading = true);
     
