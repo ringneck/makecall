@@ -1070,11 +1070,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           authService.setInSocialLoginFlow(false);
           
           if (kDebugMode) {
-            debugPrint('🏁 [LOGIN] MaxDeviceLimitException 처리 완료 - return');
+            debugPrint('🏁 [LOGIN] MaxDeviceLimitException 처리 완료 - rethrow로 외부 전파');
           }
           
-          // LoginScreen에 남아있음 (return으로 메서드 종료)
-          return;
+          // ⚠️ rethrow로 외부 try-catch로 전파 (return 사용 시 외부 catch 실행 안됨)
+          rethrow;
         }
         
         // ⚡ FCM 초기화 완료 후 오버레이 제거
