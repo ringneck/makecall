@@ -341,8 +341,13 @@ class FCMService {
             }
             
             if (apnsToken != null) {
+              // ignore: avoid_print
+              print('✅ [FCM-INIT] APNs 토큰 취득 성공');
             } else {
-              return;
+              // ignore: avoid_print
+              print('⚠️  [FCM-INIT] APNs 토큰 없음 - FCM 토큰 취득 시도는 계속');
+              // 🔧 TEMP FIX: APNs 토큰이 없어도 FCM 토큰 취득 시도
+              // return; // ← 주석 처리!
             }
           }
           
@@ -394,12 +399,14 @@ class FCMService {
       // ignore: avoid_print
       print('🚫 [FCM-INIT] 최대 기기 수 초과 예외 감지 - 상위로 전파');
       
-      // 🔒 CRITICAL: Completer 상태만 업데이트 (completeError 제거 - Unhandled Exception 방지)
+      // 🔒 CRITICAL: FCM 상태 완전 리셋 (재시도 시 다시 토큰 저장 시도하도록)
+      _fcmToken = null;
+      _initializedUserId = null;
       _isInitializing = false;
-      // ⚠️ completeError() 제거: 이것이 Unhandled Exception의 원인!
-      // if (_initializationCompleter != null && !_initializationCompleter!.isCompleted) {
-      //   _initializationCompleter!.completeError(e, stackTrace);
-      // }
+      _initializationCompleter = null;
+      
+      // ignore: avoid_print
+      print('🧹 [FCM-INIT] FCM 상태 리셋 완료 - 다음 로그인 시 재시도 가능');
       
       rethrow;
       
