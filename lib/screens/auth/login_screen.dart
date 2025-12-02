@@ -1038,8 +1038,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           authService.setIsSigningOut(false);
           authService.setInSocialLoginFlow(false);
           
-          // LoginScreen에 남아있음 (이미 LoginScreen이므로 추가 네비게이션 불필요)
-          return;
+          // 🚨 CRITICAL: rethrow를 사용하여 외부 try-catch로 예외 전파
+          // 이렇게 하면 _handleSocialLoginSuccess() 메서드 전체가 종료됨
+          // return; 만으로는 내부 try-catch만 종료되고 외부 try 블록이 계속 실행됨
+          rethrow;
         }
         
         // ⚡ FCM 초기화 완료 후 오버레이 제거
@@ -1063,6 +1065,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       // 🎯 모든 비동기 처리 완료 후 홈 화면으로 이동
       // AuthService의 user stream이 자동으로 업데이트되어 홈 화면으로 이동
+      
+    } on MaxDeviceLimitException catch (e) {
+      // 🚨 MaxDeviceLimitException은 이미 내부에서 처리되었으므로
+      // 여기서는 rethrow만 수행하여 _handleGoogleLogin()으로 전파
+      rethrow;
       
     } catch (e) {
       if (kDebugMode) {
@@ -1203,10 +1210,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         }
       }
     } on MaxDeviceLimitException catch (e) {
-      // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
-      if (mounted) {
-        _showMaxDeviceLimitDialog(e);
+      // ⚡ 최대 기기 수 초과 - 이미 _handleSocialLoginSuccess에서 처리됨
+      // 여기서는 로그만 출력 (다이얼로그와 로그아웃은 이미 처리됨)
+      if (kDebugMode) {
+        debugPrint('🚫 [HANDLE-GOOGLE] MaxDeviceLimitException 전파됨 (이미 처리 완료)');
       }
+      // 다이얼로그는 이미 _handleSocialLoginSuccess에서 표시되었으므로
+      // 여기서는 추가 처리 불필요
     } catch (e) {
       if (mounted) {
         SocialLoginProgressHelper.hide();
