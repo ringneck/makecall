@@ -394,11 +394,12 @@ class FCMService {
       // ignore: avoid_print
       print('🚫 [FCM-INIT] 최대 기기 수 초과 예외 감지 - 상위로 전파');
       
-      // 🔒 CRITICAL: Completer에 에러를 전달
+      // 🔒 CRITICAL: Completer 상태만 업데이트 (completeError 제거 - Unhandled Exception 방지)
       _isInitializing = false;
-      if (_initializationCompleter != null && !_initializationCompleter!.isCompleted) {
-        _initializationCompleter!.completeError(e, stackTrace);
-      }
+      // ⚠️ completeError() 제거: 이것이 Unhandled Exception의 원인!
+      // if (_initializationCompleter != null && !_initializationCompleter!.isCompleted) {
+      //   _initializationCompleter!.completeError(e, stackTrace);
+      // }
       
       rethrow;
       
