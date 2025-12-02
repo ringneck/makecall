@@ -664,6 +664,133 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   /// ⚡ 최대 기기 수 초과 다이얼로그 표시 (Material Design 3 + 최적화)
   /// 
   /// 즉시 다이얼로그를 표시하여 사용자에게 빠른 피드백 제공
+  // ⚡ navigatorKey.currentContext를 사용하는 버전
+  Future<void> _showMaxDeviceLimitDialogWithContext(BuildContext dialogContext, MaxDeviceLimitException e) async {
+    // 소셜 로그인 로딩 오버레이 숨기기
+    SocialLoginProgressHelper.hide();
+    
+    final theme = Theme.of(dialogContext);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // 다이얼로그 표시
+    await showDialog(
+      context: dialogContext,  // ← navigatorKey.currentContext 사용
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.devices_other,
+          size: 48,
+          color: theme.colorScheme.error,
+        ),
+        title: Text(
+          '최대 사용 기기 수 초과',
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '최대 사용 기기 수를 초과했습니다.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Divider(color: theme.colorScheme.outlineVariant, thickness: 1),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark 
+                      ? theme.colorScheme.surfaceContainerHighest
+                      : theme.colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.devices, size: 24, color: theme.colorScheme.primary),
+                        const SizedBox(width: 10),
+                        Text(
+                          '현재 활성 기기',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '현재 활성 기기 수',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          '${e.currentDevices}개',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '최대 허용 기기 수',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          '${e.maxDevices}개',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+            ),
+            child: const Text('확인', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showMaxDeviceLimitDialog(MaxDeviceLimitException e) async {
     if (!mounted) return;
     
@@ -1039,7 +1166,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             }
             
             try {
-              await _showMaxDeviceLimitDialog(e);
+              // ⚠️ CRITICAL: navigatorKey.currentContext를 명시적으로 사용
+              final dialogContext = navigatorKey.currentContext!;
+              await _showMaxDeviceLimitDialogWithContext(dialogContext, e);
               
               if (kDebugMode) {
                 debugPrint('✅ [LOGIN] MaxDeviceLimit 다이얼로그 표시 완료 - 사용자가 확인함');
