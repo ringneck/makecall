@@ -732,44 +732,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                 }
                 
                 try {
-                  // 3️⃣ 소셜 로그인 재실행 (Firebase Auth 재인증)
+                  // 3️⃣ Firebase Auth가 이미 로그인된 상태이므로 userId 확인
                   if (kDebugMode) {
-                    debugPrint('🔄 [SIGNUP] ${provider.name} 소셜 로그인 재실행');
-                  }
-                  
-                  final socialLoginService = SocialLoginService();
-                  late SocialLoginResult reLoginResult;
-                  
-                  switch (provider) {
-                    case SocialLoginProvider.google:
-                      reLoginResult = await socialLoginService.signInWithGoogle();
-                      break;
-                    case SocialLoginProvider.kakao:
-                      reLoginResult = await socialLoginService.signInWithKakao();
-                      break;
-                    case SocialLoginProvider.apple:
-                      reLoginResult = await socialLoginService.signInWithApple();
-                      break;
-                  }
-                  
-                  if (kDebugMode) {
-                    debugPrint('📊 [SIGNUP] 소셜 로그인 재인증 결과:');
-                    debugPrint('   success: ${reLoginResult.success}');
-                    debugPrint('   userId: ${reLoginResult.userId}');
-                    debugPrint('   email: ${reLoginResult.email}');
-                    debugPrint('   errorMessage: ${reLoginResult.errorMessage}');
-                  }
-                  
-                  if (!reLoginResult.success || reLoginResult.userId == null) {
-                    if (kDebugMode) {
-                      debugPrint('❌ [SIGNUP] 소셜 로그인 재인증 실패 - 예외 발생');
-                    }
-                    throw Exception('소셜 로그인 재인증 실패: ${reLoginResult.errorMessage ?? "Unknown error"}');
-                  }
-                  
-                  if (kDebugMode) {
-                    debugPrint('✅ [SIGNUP] 소셜 로그인 재인증 성공');
-                    debugPrint('   User ID: ${reLoginResult.userId}');
+                    debugPrint('🔍 [SIGNUP] Firebase Auth 현재 userId: $userId');
                   }
                   
                   // 4️⃣ FCM 초기화 (MaxDeviceLimitException 체크 포함)
@@ -777,7 +742,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     debugPrint('🔔 [SIGNUP] 기존 계정 FCM 초기화 시작');
                   }
                   
-                  await FCMService().initialize(reLoginResult.userId!);
+                  await FCMService().initialize(userId);
                   
                   if (kDebugMode) {
                     debugPrint('✅ [SIGNUP] 기존 계정 FCM 초기화 완료');
