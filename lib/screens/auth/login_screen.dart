@@ -1028,12 +1028,38 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           
           // 🚨 STEP 3: MaxDeviceLimit 다이얼로그 표시 (로그아웃 후)
           // navigatorKey 사용으로 mounted 여부와 무관하게 표시
+          if (kDebugMode) {
+            debugPrint('📱 [LOGIN] navigatorKey.currentContext: ${navigatorKey.currentContext != null ? "있음" : "null"}');
+          }
+          
           if (navigatorKey.currentContext != null) {
-            await _showMaxDeviceLimitDialog(e);
+            if (kDebugMode) {
+              debugPrint('🔔 [LOGIN] MaxDeviceLimit 다이얼로그 표시 시작...');
+            }
+            
+            try {
+              await _showMaxDeviceLimitDialog(e);
+              
+              if (kDebugMode) {
+                debugPrint('✅ [LOGIN] MaxDeviceLimit 다이얼로그 표시 완료');
+              }
+            } catch (dialogError) {
+              if (kDebugMode) {
+                debugPrint('❌ [LOGIN] 다이얼로그 표시 오류: $dialogError');
+              }
+            }
+          } else {
+            if (kDebugMode) {
+              debugPrint('⚠️ [LOGIN] navigatorKey.currentContext가 null - 다이얼로그 표시 불가');
+            }
           }
           
           // 플래그 해제
           authService.setInSocialLoginFlow(false);
+          
+          if (kDebugMode) {
+            debugPrint('🏁 [LOGIN] MaxDeviceLimitException 처리 완료 - return');
+          }
           
           // LoginScreen에 남아있음 (return으로 메서드 종료)
           return;
