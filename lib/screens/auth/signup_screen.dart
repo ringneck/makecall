@@ -9,6 +9,7 @@ import '../../services/auth_service.dart';
 import '../../services/social_login_service.dart';
 import '../../services/fcm_service.dart';
 import '../../exceptions/max_device_limit_exception.dart';
+import '../../widgets/max_device_limit_dialog.dart';
 import '../../utils/dialog_utils.dart';
 import '../../utils/common_utils.dart';
 import '../../widgets/social_login_buttons.dart';
@@ -1926,179 +1927,16 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     // 소셜 로그인 로딩 오버레이 숨기기
     SocialLoginProgressHelper.hide();
     
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
     
-    // 다이얼로그 표시
+    // 공통 다이얼로그 표시
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        icon: Icon(
-          Icons.devices_other,
-          size: 48,
-          color: theme.colorScheme.error,
-        ),
-        title: Text(
-          '최대 사용 기기 수 초과',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurface,
-          ),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 안내 메시지
-              Text(
-                '최대 사용 기기 수를 초과했습니다.',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 20),
-              
-              // 구분선
-              Divider(
-                color: theme.colorScheme.outlineVariant,
-                thickness: 1,
-              ),
-              const SizedBox(height: 16),
-              
-              // 현재 활성 기기 정보 카드
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark 
-                      ? theme.colorScheme.surfaceContainerHighest
-                      : theme.colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.3),
-                    width: 2,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 헤더
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.devices,
-                          size: 24,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '현재 활성 기기',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // 활성 기기 수
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '${e.currentDevices}개',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onPrimary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          '/ ${e.maxDevices}개 (최대)',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    // 시도한 기기 정보
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.errorContainer.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.block,
-                            size: 18,
-                            color: theme.colorScheme.error,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '시도한 기기: ${e.deviceName}',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onErrorContainer,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          // 큰 확인 버튼 (전체 너비)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  '확인',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimary,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+      builder: (context) => MaxDeviceLimitDialog(
+        exception: e,
+        userId: userId,
       ),
     );
   }
