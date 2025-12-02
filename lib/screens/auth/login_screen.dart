@@ -680,6 +680,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       builder: (context) => MaxDeviceLimitDialog(
         exception: e,
         userId: userId,
+        onConfirm: () {
+          // 확인 버튼 클릭 시 LoginScreen으로 명시적 이동
+          if (mounted) {
+            debugPrint('🔄 [DIALOG] MaxDeviceLimit 확인 - LoginScreen으로 이동');
+            // 모든 navigation stack 제거 후 LoginScreen으로 이동
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+              (route) => false,
+            );
+          }
+        },
       ),
     );
   }

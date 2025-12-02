@@ -15,6 +15,7 @@ import '../../utils/common_utils.dart';
 import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
 import '../home/main_screen.dart';
+import 'login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -1937,6 +1938,17 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       builder: (context) => MaxDeviceLimitDialog(
         exception: e,
         userId: userId,
+        onConfirm: () {
+          // 확인 버튼 클릭 시 LoginScreen으로 명시적 이동
+          if (mounted) {
+            debugPrint('🔄 [DIALOG] MaxDeviceLimit 확인 - LoginScreen으로 이동 (회원가입 → 로그인)');
+            // 모든 navigation stack 제거 후 LoginScreen으로 이동
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+              (route) => false,
+            );
+          }
+        },
       ),
     );
   }

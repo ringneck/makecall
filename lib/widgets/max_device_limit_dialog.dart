@@ -6,11 +6,13 @@ import '../exceptions/max_device_limit_exception.dart';
 class MaxDeviceLimitDialog extends StatefulWidget {
   final MaxDeviceLimitException exception;
   final String userId;
+  final VoidCallback? onConfirm; // 확인 버튼 클릭 시 실행할 콜백
 
   const MaxDeviceLimitDialog({
     super.key,
     required this.exception,
     required this.userId,
+    this.onConfirm,
   });
 
   @override
@@ -345,6 +347,8 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
+                // 확인 버튼 클릭 시 콜백 실행 (LoginScreen으로 이동)
+                widget.onConfirm?.call();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
