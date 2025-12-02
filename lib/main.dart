@@ -770,9 +770,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       
                       // ✅ 로그인 상태 체크: currentUser와 currentUserModel 존재 여부
                       // isAuthenticated 대신 직접 체크 (승인 대기 상태와 독립적)
+                      // 🚫 MaxDeviceLimit 차단 시 LoginScreen 유지
                       if (authService.currentUser != null && 
                           authService.currentUserModel != null &&
-                          !authService.isLoggingOut) {
+                          !authService.isLoggingOut &&
+                          !authService.isBlockedByMaxDeviceLimit) {
                         
                         // 🔄 개인정보보호법 준수: 동의 만료 체크 (2년 주기) - 현재 비활성화
                         // final userModel = authService.currentUserModel!;

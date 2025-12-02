@@ -195,7 +195,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     } on MaxDeviceLimitException catch (e) {
       // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
       if (mounted) {
-        _showMaxDeviceLimitDialog(e);
+        await _showMaxDeviceLimitDialog(e);
+        
+        // 다이얼로그 표시 완료 후 차단 플래그 해제
+        final authService = context.read<AuthService>();
+        authService.setBlockedByMaxDeviceLimit(false);
       }
     } on ServiceSuspendedException catch (e) {
       // 🛑 서비스 이용 중지 계정 - 안내 다이얼로그 표시

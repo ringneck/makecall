@@ -80,9 +80,22 @@ class AuthService extends ChangeNotifier {
   bool _isFcmInitialized = false;
   bool get isFcmInitialized => _isFcmInitialized;
   
+  // 🚫 MaxDeviceLimit 차단 상태 (로그인 차단 + 다이얼로그 표시용)
+  bool _isBlockedByMaxDeviceLimit = false;
+  bool get isBlockedByMaxDeviceLimit => _isBlockedByMaxDeviceLimit;
+  MaxDeviceLimitException? _maxDeviceLimitException;
+  MaxDeviceLimitException? get maxDeviceLimitException => _maxDeviceLimitException;
+  
   /// FCM 초기화 완료 상태 설정
   void setFcmInitialized(bool initialized) {
     _isFcmInitialized = initialized;
+    notifyListeners();
+  }
+  
+  /// MaxDeviceLimit 차단 상태 설정
+  void setBlockedByMaxDeviceLimit(bool blocked, {MaxDeviceLimitException? exception}) {
+    _isBlockedByMaxDeviceLimit = blocked;
+    _maxDeviceLimitException = exception;
     notifyListeners();
   }
   
@@ -372,21 +385,25 @@ class AuthService extends ChangeNotifier {
           // ignore: avoid_print
           print('✅ [AUTH] FCM 초기화 완료');
         } on MaxDeviceLimitException catch (e) {
-          // 🚫 CRITICAL: 최대 기기 수 초과 - 즉시 로그아웃 후 예외 전파
+          // 🚫 CRITICAL: 최대 기기 수 초과 - 플래그 설정 후 예외 전파
           // ignore: avoid_print
           print('');
           // ignore: avoid_print
-          print('🚫 [AUTH] 최대 기기 수 초과 감지 - 즉시 로그아웃 처리');
+          print('🚫 [AUTH] 최대 기기 수 초과 감지 - 차단 플래그 설정');
+          
+          // 차단 플래그 설정 (main.dart에서 LoginScreen 유지)
+          setBlockedByMaxDeviceLimit(true, exception: e);
           
           // Firebase Authentication 로그아웃 (currentUser를 null로 만듦)
           await _auth.signOut();
           _tempPassword = null;
           
           // ignore: avoid_print
-          print('✅ [AUTH] 로그아웃 완료 - 다이얼로그는 login_screen.dart에서 표시');
+          print('✅ [AUTH] 로그아웃 완료 - 차단 플래그 활성화됨');
+          print('   다이얼로그는 login_screen.dart에서 표시');
           print('');
           
-          // 예외 재전파 (main.dart에서 로그아웃 및 다이얼로그 표시)
+          // 예외 재전파 (login_screen.dart의 catch 블록에서 다이얼로그 표시)
           rethrow;
         } catch (e, stackTrace) {
           // ignore: avoid_print
