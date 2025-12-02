@@ -192,6 +192,19 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           debugPrint('   - Email: ${result.email ?? 'Unknown'}');
         }
         
+        // 🔥 CRITICAL: 다이얼로그 표시 전에 Firebase Auth 로그아웃
+        // (main.dart의 authStateChanges가 자동으로 MainScreen 전환하는 것을 방지)
+        if (kDebugMode) {
+          debugPrint('🔄 [SIGNUP] Firebase Auth 임시 로그아웃 (다이얼로그 표시 전)');
+        }
+        await FirebaseAuth.instance.signOut();
+        
+        // 플래그 해제 (이제 로그아웃 상태이므로)
+        if (mounted) {
+          final authService = context.read<AuthService>();
+          authService.setInSocialLoginFlow(false);
+        }
+        
         if (mounted) {
           await _showExistingAccountDialog(
             email: result.email,
@@ -714,32 +727,59 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                   SocialLoginProgressHelper.show(
                     context,
                     message: '로그인 처리 중...',
-                    subMessage: 'FCM 초기화 및 기기 확인',
+                    subMessage: '소셜 로그인 재인증 및 FCM 초기화',
                   );
                 }
                 
                 try {
-                  // 3️⃣ FCM 초기화 (MaxDeviceLimitException 체크 포함)
+                  // 3️⃣ 소셜 로그인 재실행 (Firebase Auth 재인증)
                   if (kDebugMode) {
-                    debugPrint('🔔 [SIGNUP] 기존 계정 FCM 초기화 시작');
-                    debugPrint('   User ID: $userId');
+                    debugPrint('🔄 [SIGNUP] ${provider.name} 소셜 로그인 재실행');
                   }
                   
-                  await FCMService().initialize(userId);
+                  late SocialLoginResult reLoginResult;
+                  
+                  switch (provider) {
+                    case SocialLoginProvider.google:
+                      reLoginResult = await SocialLoginService.signInWithGoogle();
+                      break;
+                    case SocialLoginProvider.kakao:
+                      reLoginResult = await SocialLoginService.signInWithKakao();
+                      break;
+                    case SocialLoginProvider.apple:
+                      reLoginResult = await SocialLoginService.signInWithApple();
+                      break;
+                  }
+                  
+                  if (!reLoginResult.success || reLoginResult.userId == null) {
+                    throw Exception('소셜 로그인 재인증 실패');
+                  }
+                  
+                  if (kDebugMode) {
+                    debugPrint('✅ [SIGNUP] 소셜 로그인 재인증 성공');
+                    debugPrint('   User ID: ${reLoginResult.userId}');
+                  }
+                  
+                  // 4️⃣ FCM 초기화 (MaxDeviceLimitException 체크 포함)
+                  if (kDebugMode) {
+                    debugPrint('🔔 [SIGNUP] 기존 계정 FCM 초기화 시작');
+                  }
+                  
+                  await FCMService().initialize(reLoginResult.userId!);
                   
                   if (kDebugMode) {
                     debugPrint('✅ [SIGNUP] 기존 계정 FCM 초기화 완료');
                   }
                   
-                  // 4️⃣ 플래그 해제 (MainScreen으로 전환 허용)
+                  // 5️⃣ 플래그 해제 (MainScreen으로 전환 허용)
                   authService.setInSocialLoginFlow(false);
                   
-                  // 5️⃣ 로딩 오버레이 제거
+                  // 6️⃣ 로딩 오버레이 제거
                   if (mounted) {
                     SocialLoginProgressHelper.hide();
                   }
                   
-                  // 6️⃣ Navigator stack 정리 (root로 돌아가기)
+                  // 7️⃣ Navigator stack 정리 (root로 돌아가기)
                   // main.dart의 Consumer<AuthService>가 자동으로 MainScreen 표시
                   if (context.mounted && Navigator.of(context).canPop()) {
                     Navigator.of(context).popUntil((route) => route.isFirst);
