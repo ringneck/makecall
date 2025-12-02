@@ -934,6 +934,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         bool isNewUser = false;
         
         try {
+          // ⏱️ 타임아웃 추가: 네트워크 hang 방지 (10초)
           await FirebaseFirestore.instance.runTransaction((transaction) async {
             final userDoc = await transaction.get(userDocRef);
             
@@ -973,7 +974,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             if (kDebugMode) {
               debugPrint('✅ [TRANSACTION] 프로필 업데이트 적용: ${updateData.keys.join(", ")}');
             }
-          });
+          }, timeout: const Duration(seconds: 10));
         } catch (e) {
           if (kDebugMode) {
             debugPrint('❌ [TRANSACTION] 프로필 업데이트 실패: $e');
