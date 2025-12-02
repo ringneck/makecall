@@ -17,9 +17,8 @@ class FCMTokenManager {
   final DatabaseService _databaseService = DatabaseService();
   final FCMPlatformUtils _platformUtils = FCMPlatformUtils();
 
-  // 🔒 중복 저장 방지
-  String? _lastSavedToken;
-  DateTime? _lastSaveTime;
+  // 🔒 이벤트 기반 중복 저장 방지 (Firestore 데이터 기반)
+  // 메모리 기반 시간 추적 제거 - Firestore 실제 데이터로 판단
 
   /// FCM 토큰을 Firestore에 저장 (중복 로그인 방지 포함)
   /// 
@@ -39,17 +38,8 @@ class FCMTokenManager {
       // ignore: avoid_print
       print('💾 [FCM-SAVE] 토큰 저장 시작');
       
-      // 🔒 중복 저장 방지: 동일 토큰이 최근 1분 내에 저장되었으면 스킵
-      if (_lastSavedToken == token && 
-          _lastSaveTime != null && 
-          DateTime.now().difference(_lastSaveTime!) < const Duration(minutes: 1)) {
-        // ignore: avoid_print
-        print('⏭️  [FCM-SAVE] 동일 토큰이 최근에 저장됨 - 중복 저장 스킵');
-        // ignore: avoid_print
-        print('   - 마지막 저장: ${DateTime.now().difference(_lastSaveTime!).inSeconds}초 전');
-        return (false, <FcmTokenModel>[]);
-      }
-      
+      // 🎯 이벤트 기반 중복 저장 방지: Firestore 실제 데이터 기반 판단
+      // Step 1: 기기 정보 먼저 수집
       final deviceId = await _platformUtils.getDeviceId();
       final deviceName = await _platformUtils.getDeviceName();
       final platformLower = _platformUtils.getPlatformName();
@@ -84,6 +74,37 @@ class FCMTokenManager {
       // ignore: avoid_print
       print('🔍 [FCM-SAVE] 모든 활성 토큰 조회 중...');
       final existingTokens = await _databaseService.getAllActiveFcmTokens(userId);
+      
+      // 🎯 이벤트 기반 중복 체크: Firestore 데이터로 판단
+      // Step 2: 현재 기기의 기존 토큰 확인
+      final currentDeviceKey = '${deviceId}_$platform';
+      final existingSameDeviceToken = existingTokens
+          .where((t) => '${t.deviceId}_${t.platform}' == currentDeviceKey)
+          .where((t) => t.fcmToken == token)
+          .where((t) => t.isActive && t.isApproved)
+          .firstOrNull;
+      
+      // 🚫 중복 저장 방지: 동일 기기 + 동일 토큰 + 활성 + 승인됨
+      if (existingSameDeviceToken != null) {
+        // ignore: avoid_print
+        print('⏭️  [FCM-SAVE] 동일 토큰이 이미 활성화되어 있음 - 중복 저장 스킵');
+        // ignore: avoid_print
+        print('   - 토큰: ${token.substring(0, 20)}...');
+        // ignore: avoid_print
+        print('   - 상태: isActive=${existingSameDeviceToken.isActive}, isApproved=${existingSameDeviceToken.isApproved}');
+        // ignore: avoid_print
+        print('   - 마지막 업데이트: ${existingSameDeviceToken.updatedAt}');
+        
+        // 🔒 CRITICAL: otherDevices 계산 (중복 체크 통과 시에도 필요)
+        final otherDevices = existingTokens
+            .where((token) => '${token.deviceId}_${token.platform}' != currentDeviceKey)
+            .toList();
+        
+        return (false, otherDevices);
+      }
+      
+      // ignore: avoid_print
+      print('✅ [FCM-SAVE] 중복 체크 통과 - 토큰 저장 진행');
       
       // 🔑 CRITICAL: Device ID + Platform 조합으로 기기 구분
       // 같은 Device ID라도 플랫폼이 다르면 다른 기기로 취급
@@ -319,11 +340,9 @@ class FCMTokenManager {
       // ignore: avoid_print
       print('   - 기기: $deviceName ($platform)');
       
-      // 🔒 저장 성공 - 추적 정보 업데이트
-      _lastSavedToken = token;
-      _lastSaveTime = DateTime.now();
+      // ✅ 저장 성공 (이벤트 기반 - Firestore 데이터가 추적의 단일 진실 공급원)
       // ignore: avoid_print
-      print('🔒 [FCM-SAVE] 중복 저장 추적 업데이트 완료');
+      print('✅ [FCM-SAVE] 토큰 저장 완료 - Firestore 데이터 기반 중복 체크');
       
       return (needsApproval, otherDevices);
       
@@ -412,9 +431,11 @@ class FCMTokenManager {
     }
   }
 
-  /// 중복 저장 추적 정보 초기화
+  /// 중복 저장 추적 정보 초기화 (Deprecated - 이벤트 기반으로 전환됨)
+  /// Firestore 데이터가 단일 진실 공급원(Single Source of Truth)
+  @Deprecated('이벤트 기반 중복 체크로 전환됨 - Firestore 데이터 사용')
   void clearSaveTracking() {
-    _lastSavedToken = null;
-    _lastSaveTime = null;
+    // 더 이상 메모리 기반 추적을 사용하지 않음
+    // Firestore에서 실시간으로 중복 여부를 판단
   }
 }
