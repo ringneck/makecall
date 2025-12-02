@@ -1011,7 +1011,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           // 🚨 STEP 1: 조용한 로그아웃 먼저 실행 (다이얼로그 표시 전)
           // authStateChanges가 발생하면 화면이 전환되어 다이얼로그가 사라지므로
           // 로그아웃 플래그를 먼저 설정하여 화면 전환 방지
-          final authService = Provider.of<AuthService>(navigatorKey.currentContext!, listen: false);
+          
+          if (kDebugMode) {
+            debugPrint('🔍 [LOGIN] navigatorKey.currentContext 확인: ${navigatorKey.currentContext != null ? "있음" : "null"}');
+          }
+          
+          // navigatorKey.currentContext가 null일 수 있으므로 안전하게 처리
+          final context = navigatorKey.currentContext ?? this.context;
+          final authService = Provider.of<AuthService>(context, listen: false);
+          
+          if (kDebugMode) {
+            debugPrint('🔐 [LOGIN] AuthService 가져옴 - 조용한 로그아웃 시작');
+          }
+          
           authService.setIsSigningOut(true);
           
           // Firebase Auth만 로그아웃 (FCM 토큰은 그대로 유지)
