@@ -704,16 +704,102 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
               if (context.mounted) {
                 final authService = context.read<AuthService>();
                 
-                // 1️⃣ 먼저 플래그 해제 (MainScreen으로 전환 허용)
-                authService.setInSocialLoginFlow(false);
-                
-                // 2️⃣ 다이얼로그 닫기
+                // 1️⃣ 다이얼로그 닫기
                 Navigator.of(context).pop();
                 
-                // 3️⃣ Navigator stack 정리 (root로 돌아가기)
-                // main.dart의 Consumer<AuthService>가 자동으로 MainScreen 표시
-                if (context.mounted && Navigator.of(context).canPop()) {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
+                // 2️⃣ 로딩 오버레이 표시
+                if (mounted) {
+                  SocialLoginProgressHelper.show(
+                    context,
+                    message: '로그인 처리 중...',
+                    subMessage: 'FCM 초기화 및 기기 확인',
+                  );
+                }
+                
+                try {
+                  // 3️⃣ FCM 초기화 (MaxDeviceLimitException 체크 포함)
+                  if (kDebugMode) {
+                    debugPrint('🔔 [SIGNUP] 기존 계정 FCM 초기화 시작');
+                    debugPrint('   User ID: $userId');
+                  }
+                  
+                  await FCMService().initialize(userId);
+                  
+                  if (kDebugMode) {
+                    debugPrint('✅ [SIGNUP] 기존 계정 FCM 초기화 완료');
+                  }
+                  
+                  // 4️⃣ 플래그 해제 (MainScreen으로 전환 허용)
+                  authService.setInSocialLoginFlow(false);
+                  
+                  // 5️⃣ 로딩 오버레이 제거
+                  if (mounted) {
+                    SocialLoginProgressHelper.hide();
+                  }
+                  
+                  // 6️⃣ Navigator stack 정리 (root로 돌아가기)
+                  // main.dart의 Consumer<AuthService>가 자동으로 MainScreen 표시
+                  if (context.mounted && Navigator.of(context).canPop()) {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
+                } on MaxDeviceLimitException catch (e) {
+                  // 최대 기기 수 초과 예외 처리
+                  if (kDebugMode) {
+                    debugPrint('🚫 [SIGNUP] MaxDeviceLimitException 발생');
+                    debugPrint('   maxDevices: ${e.maxDevices}');
+                    debugPrint('   currentDevices: ${e.currentDevices}');
+                    debugPrint('   deviceName: ${e.deviceName}');
+                  }
+                  
+                  // 로딩 오버레이 제거
+                  if (mounted) {
+                    SocialLoginProgressHelper.hide();
+                  }
+                  
+                  // MaxDeviceLimit 다이얼로그 표시
+                  if (mounted) {
+                    await _showMaxDeviceLimitDialog(e);
+                  }
+                  
+                  // Firebase Auth 로그아웃
+                  await FirebaseAuth.instance.signOut();
+                  
+                  // 플래그 해제
+                  authService.setInSocialLoginFlow(false);
+                  
+                  // LoginScreen으로 돌아가기
+                  if (context.mounted && Navigator.of(context).canPop()) {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
+                } catch (e) {
+                  // 기타 FCM 초기화 오류
+                  if (kDebugMode) {
+                    debugPrint('❌ [SIGNUP] FCM 초기화 실패: $e');
+                  }
+                  
+                  // 로딩 오버레이 제거
+                  if (mounted) {
+                    SocialLoginProgressHelper.hide();
+                  }
+                  
+                  // 오류 다이얼로그 표시
+                  if (mounted) {
+                    await DialogUtils.showError(
+                      context,
+                      'FCM 초기화에 실패했습니다.\n다시 시도해주세요.',
+                    );
+                  }
+                  
+                  // Firebase Auth 로그아웃
+                  await FirebaseAuth.instance.signOut();
+                  
+                  // 플래그 해제
+                  authService.setInSocialLoginFlow(false);
+                  
+                  // LoginScreen으로 돌아가기
+                  if (context.mounted && Navigator.of(context).canPop()) {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
                 }
               }
             },
@@ -1803,6 +1889,190 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
             ),
           ),
         ),
+      ),
+    );
+  }
+  
+  // MaxDeviceLimit 다이얼로그
+  void _showMaxDeviceLimitDialog(MaxDeviceLimitException e) {
+    if (!mounted) return;
+    
+    // 소셜 로그인 로딩 오버레이 숨기기
+    SocialLoginProgressHelper.hide();
+    
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // ⚡ 즉시 다이얼로그 표시 (await 없음 - 비동기 실행)
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.devices_other,
+          size: 48,
+          color: theme.colorScheme.error,
+        ),
+        title: Text(
+          '최대 사용 기기 수 초과',
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 안내 메시지
+              Text(
+                '최대 사용 기기 수를 초과했습니다.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // 구분선
+              Divider(
+                color: theme.colorScheme.outlineVariant,
+                thickness: 1,
+              ),
+              const SizedBox(height: 16),
+              
+              // 현재 활성 기기 정보 카드
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark 
+                      ? theme.colorScheme.surfaceContainerHighest
+                      : theme.colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 헤더
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.devices,
+                          size: 24,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '현재 활성 기기',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // 활성 기기 수
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${e.currentDevices}개',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '/ ${e.maxDevices}개 (최대)',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // 시도한 기기 정보
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.errorContainer.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.block,
+                            size: 18,
+                            color: theme.colorScheme.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '시도한 기기: ${e.deviceName}',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onErrorContainer,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          // 큰 확인 버튼 (전체 너비)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  '확인',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
