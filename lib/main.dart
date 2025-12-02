@@ -617,24 +617,39 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           if (mounted) {
                             await UserSessionManager().checkAndInitializeSession(currentUserId);
                             
-                            // 🔔 FCM 자동 초기화 (앱 업데이트 후 자동 로그인 시)
+                            // 🚫 FCM 자동 초기화 제거 (이벤트 기반으로 전환)
+                            // login_screen.dart와 signup_screen.dart에서 명시적으로 FCM 초기화
+                            // 이렇게 하면 타이밍 문제 없이 MaxDeviceLimit 체크가 정상 작동
                             if (currentUserId != null && authService.isAuthenticated) {
-                              // 🔒 소셜 로그인 진행 중이면 FCM 초기화 건너뛰기
-                              // (signup_screen.dart에서 직접 처리)
-                              if (authService.isInSocialLoginFlow) {
-                                debugPrint('⏭️ [MAIN] 소셜 로그인 진행 중 - FCM 자동 초기화 건너뛰기');
-                                return;
+                              if (kDebugMode) {
+                                debugPrint('✅ [MAIN] 로그인 감지 - FCM은 로그인 화면에서 초기화');
                               }
                               
-                              try {
-                                debugPrint('🔔 [MAIN] 자동 로그인 감지 - FCM 초기화 시작');
-                                debugPrint('   User ID: $currentUserId');
-                                
-                                final fcmService = FCMService();
-                                await fcmService.initialize(currentUserId);
-                                
-                                debugPrint('✅ [MAIN] FCM 초기화 완료 (앱 시작 시)');
-                              } on MaxDeviceLimitException catch (e) {
+                              // MaxDeviceLimitException 처리는 각 로그인 화면에서 담당
+                              // 여기서는 아무것도 하지 않음
+                              
+                              // 기존 코드 제거:
+                              // - FCM 자동 초기화 제거
+                              // - MaxDeviceLimitException catch 제거
+                              // - 로그아웃 로직 제거
+                              
+                              // 대신 각 로그인 경로에서 FCM 초기화:
+                              // 1. login_screen.dart: _handleSocialLoginSuccess에서 FCM 초기화
+                              // 2. signup_screen.dart: "로그인" 버튼에서 FCM 초기화
+                              
+                              // 기존 MaxDeviceLimitException 처리 코드 완전히 제거
+                              // (각 로그인 화면에서 직접 처리)
+                              
+                              if (false) {
+                                // 아래 코드는 실행되지 않음 (기존 구조 유지를 위한 더미)
+                                throw MaxDeviceLimitException(maxDevices: 0, currentDevices: 0, deviceName: '');
+                              }
+                            }
+                            
+                            // 기존 catch 블록 비활성화
+                            if (false) {
+                              // 이 catch 블록은 더 이상 사용되지 않음
+                              final e = MaxDeviceLimitException(maxDevices: 0, currentDevices: 0, deviceName: '');
                                 // 🚫 CRITICAL: 최대 기기 수 초과 - 즉시 다이얼로그 표시 + 백그라운드 로그아웃
                                 
                                 // 🔒 중복 실행 방지: 이미 로그아웃 중이면 무시
@@ -855,10 +870,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                 }
                                 
                                 debugPrint('');
-                              } catch (e, stackTrace) {
-                                debugPrint('❌ [MAIN] FCM 초기화 오류: $e');
-                                debugPrint('Stack trace: $stackTrace');
-                              }
+                              // catch 블록 제거 (더 이상 FCM 초기화하지 않음)
+                            }
                             }
                             
                             // ⏱️ 비활성 서비스 초기화 (로그인 시에만)
