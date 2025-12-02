@@ -106,46 +106,55 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         ),
         child: Stack(
           children: [
-            // 배경 파티클 효과
-            AnimatedBuilder(
-              animation: _particleController,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: ParticlePainter(
-                    animation: _particleController.value,
-                    isDark: isDark,
-                  ),
-                  size: Size.infinite,
-                );
-              },
+            // 배경 파티클 효과 (반응형)
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _particleController,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: ParticlePainter(
+                      animation: _particleController.value,
+                      isDark: isDark,
+                    ),
+                  );
+                },
+              ),
             ),
             
             // 메인 컨텐츠
             SafeArea(
-              child: Center(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // 앱 아이콘 + 펄스 효과
-                      AnimatedBuilder(
-                        animation: _pulseAnimation,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _pulseAnimation.value,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                // 외부 회전 링
-                                AnimatedBuilder(
-                                  animation: _rotationAnimation,
-                                  builder: (context, child) {
-                                    return Transform.rotate(
-                                      angle: _rotationAnimation.value,
-                                      child: Container(
-                                        width: 160,
-                                        height: 160,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // 반응형 크기 계산
+                  final screenWidth = constraints.maxWidth;
+                  final screenHeight = constraints.maxHeight;
+                  final iconSize = (screenWidth * 0.3).clamp(100.0, 140.0);
+                  final ringSize = iconSize * 1.33;
+                  
+                  return Center(
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // 앱 아이콘 + 펄스 효과
+                          AnimatedBuilder(
+                            animation: _pulseAnimation,
+                            builder: (context, child) {
+                              return Transform.scale(
+                                scale: _pulseAnimation.value,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    // 외부 회전 링
+                                    AnimatedBuilder(
+                                      animation: _rotationAnimation,
+                                      builder: (context, child) {
+                                        return Transform.rotate(
+                                          angle: _rotationAnimation.value,
+                                          child: Container(
+                                            width: ringSize,
+                                            height: ringSize,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
                                           border: Border.all(
@@ -163,14 +172,14 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                     );
                                   },
                                 ),
-                                
-                                // 앱 아이콘
-                                Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(28),
+                                    
+                                    // 앱 아이콘
+                                    Container(
+                                      width: iconSize,
+                                      height: iconSize,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(iconSize * 0.23),
                                     boxShadow: [
                                       BoxShadow(
                                         color: isDark
@@ -187,139 +196,136 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                         offset: const Offset(0, -5),
                                       ),
                                     ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(28),
-                                    child: Image.asset(
-                                      'assets/icons/app_icon.png',
-                                      fit: BoxFit.cover,
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(iconSize * 0.23),
+                                        child: Image.asset(
+                                          'assets/icons/app_icon.png',
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
                                     ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                          
+                          SizedBox(height: screenHeight * 0.06),
+                          
+                          // 앱 이름 (글로우 효과)
+                          ShaderMask(
+                            shaderCallback: (bounds) => LinearGradient(
+                              colors: [
+                                Colors.white,
+                                Colors.white.withOpacity(0.8),
+                                Colors.white,
+                              ],
+                              stops: const [0.0, 0.5, 1.0],
+                            ).createShader(bounds),
+                            child: Text(
+                              'MAKECALL',
+                              style: TextStyle(
+                                fontSize: (screenWidth * 0.09).clamp(28.0, 40.0),
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 4,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.white,
+                                    blurRadius: 20,
                                   ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          
+                          SizedBox(height: screenHeight * 0.015),
+                          
+                          // 부제목
+                          Text(
+                            '당신의 더 나은 커뮤니케이션',
+                            style: TextStyle(
+                              fontSize: (screenWidth * 0.038).clamp(13.0, 16.0),
+                              color: Colors.white.withOpacity(0.95),
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          
+                          SizedBox(height: screenHeight * 0.08),
+                          
+                          // 미래지향적 로딩 인디케이터
+                          SizedBox(
+                            width: (screenWidth * 0.15).clamp(50.0, 70.0),
+                            height: (screenWidth * 0.15).clamp(50.0, 70.0),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // 외부 회전 링
+                                AnimatedBuilder(
+                                  animation: _rotationController,
+                                  builder: (context, child) {
+                                    final loadingSize = (screenWidth * 0.15).clamp(50.0, 70.0);
+                                    return Transform.rotate(
+                                      angle: _rotationAnimation.value,
+                                      child: SizedBox(
+                                        width: loadingSize,
+                                        height: loadingSize,
+                                        child: CustomPaint(
+                                          painter: LoadingRingPainter(
+                                            color: Colors.white,
+                                            isDark: isDark,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                
+                                // 내부 펄스 점
+                                AnimatedBuilder(
+                                  animation: _pulseController,
+                                  builder: (context, child) {
+                                    final dotSize = (screenWidth * 0.03).clamp(10.0, 14.0);
+                                    return Container(
+                                      width: dotSize * _pulseAnimation.value,
+                                      height: dotSize * _pulseAnimation.value,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.white.withOpacity(0.5),
+                                            blurRadius: 10 * _pulseAnimation.value,
+                                            spreadRadius: 2 * _pulseAnimation.value,
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
-                          );
-                        },
-                      ),
-                      
-                      const SizedBox(height: 48),
-                      
-                      // 앱 이름 (글로우 효과)
-                      ShaderMask(
-                        shaderCallback: (bounds) => LinearGradient(
-                          colors: [
-                            Colors.white,
-                            Colors.white.withOpacity(0.8),
-                            Colors.white,
-                          ],
-                          stops: const [0.0, 0.5, 1.0],
-                        ).createShader(bounds),
-                        child: const Text(
-                          'MAKECALL',
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 4,
-                            shadows: [
-                              Shadow(
-                                color: Colors.white,
-                                blurRadius: 20,
-                              ),
-                            ],
                           ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 12),
-                      
-                      // 부제목
-                      Text(
-                        '당신의 더 나은 커뮤니케이션',
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.white.withOpacity(0.95),
-                          letterSpacing: 1.2,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 64),
-                      
-                      // 미래지향적 로딩 인디케이터
-                      SizedBox(
-                        width: 60,
-                        height: 60,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // 외부 회전 링
-                            AnimatedBuilder(
-                              animation: _rotationController,
-                              builder: (context, child) {
-                                return Transform.rotate(
-                                  angle: _rotationAnimation.value,
-                                  child: Container(
-                                    width: 60,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.transparent,
-                                        width: 3,
-                                      ),
-                                    ),
-                                    child: CustomPaint(
-                                      painter: LoadingRingPainter(
-                                        color: Colors.white,
-                                        isDark: isDark,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
+                          
+                          SizedBox(height: screenHeight * 0.03),
+                          
+                          // 로딩 메시지
+                          Text(
+                            '초기화 중...',
+                            style: TextStyle(
+                              fontSize: (screenWidth * 0.038).clamp(13.0, 16.0),
+                              color: Colors.white.withOpacity(0.9),
+                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w400,
                             ),
-                            
-                            // 내부 펄스 점
-                            AnimatedBuilder(
-                              animation: _pulseController,
-                              builder: (context, child) {
-                                return Container(
-                                  width: 12 * _pulseAnimation.value,
-                                  height: 12 * _pulseAnimation.value,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.white.withOpacity(0.5),
-                                        blurRadius: 10 * _pulseAnimation.value,
-                                        spreadRadius: 2 * _pulseAnimation.value,
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // 로딩 메시지
-                      Text(
-                        '초기화 중...',
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.white.withOpacity(0.9),
-                          letterSpacing: 0.5,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
