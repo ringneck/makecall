@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
 import '../../services/account_manager_service.dart';
 import '../../services/social_login_service.dart';
+import '../../services/fcm_service.dart';
 import '../../utils/dialog_utils.dart';
 import '../../utils/common_utils.dart';
 import '../../widgets/social_login_buttons.dart';
@@ -663,7 +664,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   /// ⚡ 최대 기기 수 초과 다이얼로그 표시 (Material Design 3 + 최적화)
   /// 
   /// 즉시 다이얼로그를 표시하여 사용자에게 빠른 피드백 제공
-  void _showMaxDeviceLimitDialog(MaxDeviceLimitException e) {
+  Future<void> _showMaxDeviceLimitDialog(MaxDeviceLimitException e) async {
     if (!mounted) return;
     
     // 소셜 로그인 로딩 오버레이 숨기기
@@ -672,8 +673,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    // ⚡ 즉시 다이얼로그 표시 (await 없음 - 비동기 실행)
-    showDialog(
+    // 다이얼로그 표시
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
