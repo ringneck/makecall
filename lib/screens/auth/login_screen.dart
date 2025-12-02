@@ -1008,40 +1008,35 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('   deviceName: ${e.deviceName}');
           }
           
-          // 오버레이 제거
-          if (mounted) {
-            SocialLoginProgressHelper.hide();
-          }
-          
-          // MaxDeviceLimit 다이얼로그 표시
-          if (mounted) {
-            await _showMaxDeviceLimitDialog(e);
-          }
-          
-          // 🚨 CRITICAL: 조용한 로그아웃 (FCM 토큰 비활성화 없이)
-          // FirebaseAuth.instance.signOut()을 직접 호출하면 authStateChanges 트리거 →
-          // AuthService.signOut() 자동 호출 → 기존 활성 기기의 FCM 토큰 비활성화 발생!
-          // 따라서 Firebase Auth만 조용히 로그아웃
+          // 🚨 STEP 1: 조용한 로그아웃 먼저 실행 (다이얼로그 표시 전)
+          // authStateChanges가 발생하면 화면이 전환되어 다이얼로그가 사라지므로
+          // 로그아웃 플래그를 먼저 설정하여 화면 전환 방지
           final authService = Provider.of<AuthService>(navigatorKey.currentContext!, listen: false);
-          
-          if (kDebugMode) {
-            debugPrint('🔇 [LOGIN] 조용한 로그아웃 수행 (FCM 토큰 비활성화 없이)');
-          }
-          
-          // AuthService의 로그아웃 플래그 설정 (authStateChanges 무시)
           authService.setIsSigningOut(true);
           
           // Firebase Auth만 로그아웃 (FCM 토큰은 그대로 유지)
           await FirebaseAuth.instance.signOut();
           
-          // 플래그 해제 (MaxDeviceLimit 예외)
           authService.setIsSigningOut(false);
+          
+          if (kDebugMode) {
+            debugPrint('🔇 [LOGIN] 조용한 로그아웃 완료 - 이제 다이얼로그 표시');
+          }
+          
+          // 🚨 STEP 2: 오버레이 제거 (로그아웃 후)
+          SocialLoginProgressHelper.hide();
+          
+          // 🚨 STEP 3: MaxDeviceLimit 다이얼로그 표시 (로그아웃 후)
+          // navigatorKey 사용으로 mounted 여부와 무관하게 표시
+          if (navigatorKey.currentContext != null) {
+            await _showMaxDeviceLimitDialog(e);
+          }
+          
+          // 플래그 해제
           authService.setInSocialLoginFlow(false);
           
-          // 🚨 CRITICAL: rethrow를 사용하여 외부 try-catch로 예외 전파
-          // 이렇게 하면 _handleSocialLoginSuccess() 메서드 전체가 종료됨
-          // return; 만으로는 내부 try-catch만 종료되고 외부 try 블록이 계속 실행됨
-          rethrow;
+          // LoginScreen에 남아있음 (return으로 메서드 종료)
+          return;
         }
         
         // ⚡ FCM 초기화 완료 후 오버레이 제거
@@ -1065,11 +1060,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       // 🎯 모든 비동기 처리 완료 후 홈 화면으로 이동
       // AuthService의 user stream이 자동으로 업데이트되어 홈 화면으로 이동
-      
-    } on MaxDeviceLimitException catch (e) {
-      // 🚨 MaxDeviceLimitException은 이미 내부에서 처리되었으므로
-      // 여기서는 rethrow만 수행하여 _handleGoogleLogin()으로 전파
-      rethrow;
       
     } catch (e) {
       if (kDebugMode) {
@@ -1209,14 +1199,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           );
         }
       }
-    } on MaxDeviceLimitException catch (e) {
-      // ⚡ 최대 기기 수 초과 - 이미 _handleSocialLoginSuccess에서 처리됨
-      // 여기서는 로그만 출력 (다이얼로그와 로그아웃은 이미 처리됨)
-      if (kDebugMode) {
-        debugPrint('🚫 [HANDLE-GOOGLE] MaxDeviceLimitException 전파됨 (이미 처리 완료)');
-      }
-      // 다이얼로그는 이미 _handleSocialLoginSuccess에서 표시되었으므로
-      // 여기서는 추가 처리 불필요
     } catch (e) {
       if (mounted) {
         SocialLoginProgressHelper.hide();
