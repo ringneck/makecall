@@ -400,11 +400,36 @@ class AuthService extends ChangeNotifier {
           
           // ignore: avoid_print
           print('✅ [AUTH] 로그아웃 완료 - 차단 플래그 활성화됨');
-          print('   다이얼로그는 login_screen.dart에서 표시');
           print('');
           
-          // 예외 재전파 (login_screen.dart의 catch 블록에서 다이얼로그 표시)
-          rethrow;
+          // ⚠️ CRITICAL: navigatorKey를 사용하여 어디서든 다이얼로그 표시
+          // login_screen의 catch 블록을 거치지 않고 직접 표시
+          if (navigatorKey.currentContext != null) {
+            // ignore: avoid_print
+            print('🔔 [AUTH] MaxDeviceLimit 다이얼로그 표시 시작 (AuthService에서 직접)');
+            
+            // 다이얼로그 표시 (동기 방식)
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              if (navigatorKey.currentContext != null) {
+                await _showMaxDeviceLimitDialogFromAuthService(
+                  navigatorKey.currentContext!,
+                  e,
+                );
+                
+                // 다이얼로그 닫힌 후 차단 플래그 해제
+                setBlockedByMaxDeviceLimit(false);
+                
+                // ignore: avoid_print
+                print('✅ [AUTH] MaxDeviceLimit 다이얼로그 표시 완료');
+              }
+            });
+          } else {
+            // ignore: avoid_print
+            print('⚠️ [AUTH] navigatorKey.currentContext가 null - 예외 rethrow');
+            
+            // navigatorKey가 없으면 예외 재전파 (login_screen catch 블록으로)
+            rethrow;
+          }
         } catch (e, stackTrace) {
           // ignore: avoid_print
           print('❌ [AUTH] FCM 초기화 오류: $e');
@@ -1168,5 +1193,132 @@ class AuthService extends ChangeNotifier {
       default:
         return '오류가 발생했습니다. 다시 시도해주세요.';
     }
+  }
+  
+  /// 🚫 MaxDeviceLimit 다이얼로그 표시 (AuthService에서 직접 호출)
+  /// 
+  /// navigatorKey를 사용하여 어디서든 다이얼로그 표시 가능
+  /// login_screen의 catch 블록을 거치지 않아도 됨
+  static Future<void> _showMaxDeviceLimitDialogFromAuthService(
+    BuildContext context,
+    MaxDeviceLimitException exception,
+  ) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.devices_other,
+                color: Colors.red,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  '최대 사용 기기 수 초과',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '현재 계정은 최대 ${exception.maxDevices}개의 기기에서만 사용할 수 있습니다.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: isDark ? Colors.grey[300] : Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey[850] : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.phone_android,
+                            color: Colors.blue,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            '시도한 기기',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text('${exception.deviceName}'),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.orange,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            '현재 상태',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text('활성 기기: ${exception.currentDevices}개 / ${exception.maxDevices}개'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '계속하려면 다른 기기에서 로그아웃한 후 다시 시도해주세요.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text(
+                '확인',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
