@@ -1936,7 +1936,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   }
   
   // MaxDeviceLimit 다이얼로그
-  void _showMaxDeviceLimitDialog(MaxDeviceLimitException e) {
+  Future<void> _showMaxDeviceLimitDialog(MaxDeviceLimitException e) async {
     if (!mounted) return;
     
     // 소셜 로그인 로딩 오버레이 숨기기
@@ -1945,8 +1945,8 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    // ⚡ 즉시 다이얼로그 표시 (await 없음 - 비동기 실행)
-    showDialog(
+    // 다이얼로그 표시
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
