@@ -494,18 +494,24 @@ class AuthService extends ChangeNotifier {
     
     final userId = _auth.currentUser?.uid;
     
-    // 1️⃣ FCM 토큰 비활성화
-    try {
-      if (userId != null) {
-        final fcmService = FCMService();
-        await fcmService.deactivateToken(userId);
+    // 1️⃣ FCM 토큰 비활성화 (조용한 로그아웃 시 건너뛰기)
+    if (!_isSigningOut) {
+      try {
+        if (userId != null) {
+          final fcmService = FCMService();
+          await fcmService.deactivateToken(userId);
+          if (kDebugMode) {
+            debugPrint('✅ [1/4] FCM 토큰 비활성화 완료');
+          }
+        }
+      } catch (e) {
         if (kDebugMode) {
-          debugPrint('✅ [1/4] FCM 토큰 비활성화 완료');
+          debugPrint('⚠️  [1/4] FCM 토큰 비활성화 오류: $e');
         }
       }
-    } catch (e) {
+    } else {
       if (kDebugMode) {
-        debugPrint('⚠️  [1/4] FCM 토큰 비활성화 오류: $e');
+        debugPrint('⏭️  [1/4] 조용한 로그아웃 - FCM 토큰 비활성화 건너뛰기 (토큰 유지)');
       }
     }
     
