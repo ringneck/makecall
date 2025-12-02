@@ -372,13 +372,18 @@ class AuthService extends ChangeNotifier {
           // ignore: avoid_print
           print('✅ [AUTH] FCM 초기화 완료');
         } on MaxDeviceLimitException catch (e) {
-          // 🚫 CRITICAL: 최대 기기 수 초과 - main.dart에서 로그아웃 처리됨
+          // 🚫 CRITICAL: 최대 기기 수 초과 - 즉시 로그아웃 후 예외 전파
           // ignore: avoid_print
           print('');
           // ignore: avoid_print
-          print('🚫 [AUTH] 최대 기기 수 초과 감지 - 예외 전파');
+          print('🚫 [AUTH] 최대 기기 수 초과 감지 - 즉시 로그아웃 처리');
+          
+          // Firebase Authentication 로그아웃 (currentUser를 null로 만듦)
+          await _auth.signOut();
+          _tempPassword = null;
+          
           // ignore: avoid_print
-          print('   (로그아웃은 main.dart에서 처리)');
+          print('✅ [AUTH] 로그아웃 완료 - 다이얼로그는 login_screen.dart에서 표시');
           print('');
           
           // 예외 재전파 (main.dart에서 로그아웃 및 다이얼로그 표시)
