@@ -6,8 +6,10 @@ service cloud.firestore {
     // 1. users 컬렉션 - 사용자 계정 정보
     // ============================================
     match /users/{userId} {
-      // 본인 문서만 읽기/쓰기 가능
+      // 본인 문서 읽기/쓰기 가능
       allow read, write: if request.auth != null && request.auth.uid == userId;
+      // 🔧 FIX: 새 사용자 문서 생성 허용 (회원가입/첫 로그인 시)
+      allow create: if request.auth != null && request.auth.uid == userId;
     }
     
     // ============================================

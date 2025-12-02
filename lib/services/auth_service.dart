@@ -219,10 +219,31 @@ class AuthService extends ChangeNotifier {
           }
         }
         
-        // 일반 로그인 사용자인데 문서 없음 - 로그인 거부
-        await _auth.signOut();
-        _tempPassword = null;
-        throw Exception('Account not authorized. Please contact administrator to create your account in the system.');
+        // 🔧 FIX: 이메일 로그인 신규 사용자도 자동으로 문서 생성
+        if (kDebugMode) {
+          debugPrint('📝 [AUTH] 신규 이메일 사용자 - users 문서 자동 생성');
+          debugPrint('   UID: $uid');
+          debugPrint('   Email: ${currentUser?.email}');
+        }
+        
+        // 기본 사용자 문서 생성
+        await _firestore.collection('users').doc(uid).set({
+          'email': currentUser?.email ?? '',
+          'displayName': currentUser?.displayName ?? '',
+          'photoUrl': currentUser?.photoURL ?? '',
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastLoginAt': FieldValue.serverTimestamp(),
+          'isActive': true,
+          'maxDevices': 1,  // 기본 최대 기기 수
+        });
+        
+        if (kDebugMode) {
+          debugPrint('✅ [AUTH] users 문서 생성 완료 - 재로드');
+        }
+        
+        // 생성된 문서 다시 로드
+        await _loadUserModel(uid, password: password);
+        return;
       }
     } catch (e) {
       if (kDebugMode) {
