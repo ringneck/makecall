@@ -1237,6 +1237,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           );
         }
       }
+    } on MaxDeviceLimitException catch (e) {
+      // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
+      // _handleSocialLoginSuccess()에서 이미 다이얼로그 표시 및 조용한 로그아웃 처리됨
+      if (kDebugMode) {
+        debugPrint('🚫 [GOOGLE-LOGIN] MaxDeviceLimitException 전파됨 (이미 처리 완료)');
+      }
     } catch (e) {
       if (mounted) {
         SocialLoginProgressHelper.hide();
