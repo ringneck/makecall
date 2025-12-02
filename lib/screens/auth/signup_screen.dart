@@ -192,17 +192,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           debugPrint('   - Email: ${result.email ?? 'Unknown'}');
         }
         
-        // 🔥 CRITICAL: 다이얼로그 표시 전에 Firebase Auth 로그아웃
-        // (main.dart의 authStateChanges가 자동으로 MainScreen 전환하는 것을 방지)
+        // 🔥 CRITICAL: Firebase Auth는 로그인 상태 유지
+        // isInSocialLoginFlow 플래그로 main.dart의 자동 전환 방지
+        // (다이얼로그에서 "로그인" 버튼 클릭 시 userId를 사용하기 위함)
         if (kDebugMode) {
-          debugPrint('🔄 [SIGNUP] Firebase Auth 임시 로그아웃 (다이얼로그 표시 전)');
-        }
-        await FirebaseAuth.instance.signOut();
-        
-        // 플래그 해제 (이제 로그아웃 상태이므로)
-        if (mounted) {
-          final authService = context.read<AuthService>();
-          authService.setInSocialLoginFlow(false);
+          debugPrint('✅ [SIGNUP] Firebase Auth 로그인 상태 유지 (userId: ${result.userId})');
         }
         
         if (mounted) {
