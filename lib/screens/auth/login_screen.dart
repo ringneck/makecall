@@ -992,20 +992,55 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           return;
         }
         
-        // ⚡ 최적화: 오버레이 즉시 제거 + 성공 피드백 표시
-        // FCM 초기화를 기다리지 않고 로그인 완료 피드백 즉시 제공
+        // 🔔 FCM 초기화 (MaxDeviceLimitException 체크 포함)
+        if (kDebugMode) {
+          debugPrint('🔔 [LOGIN] FCM 초기화 시작 (userId: ${result.userId})');
+        }
+        
+        try {
+          await FCMService().initialize(result.userId!);
+          
+          if (kDebugMode) {
+            debugPrint('✅ [LOGIN] FCM 초기화 완료');
+          }
+        } on MaxDeviceLimitException catch (e) {
+          // 최대 기기 수 초과 예외 처리
+          if (kDebugMode) {
+            debugPrint('🚫 [LOGIN] MaxDeviceLimitException 발생');
+            debugPrint('   maxDevices: ${e.maxDevices}');
+            debugPrint('   currentDevices: ${e.currentDevices}');
+            debugPrint('   deviceName: ${e.deviceName}');
+          }
+          
+          // 오버레이 제거
+          if (mounted) {
+            SocialLoginProgressHelper.hide();
+          }
+          
+          // MaxDeviceLimit 다이얼로그 표시
+          if (mounted) {
+            await _showMaxDeviceLimitDialog(e);
+          }
+          
+          // Firebase Auth 로그아웃
+          await FirebaseAuth.instance.signOut();
+          
+          // LoginScreen에 남아있음 (이미 LoginScreen이므로 추가 네비게이션 불필요)
+          return;
+        }
+        
+        // ⚡ FCM 초기화 완료 후 오버레이 제거
         if (mounted) {
           if (kDebugMode) {
-            debugPrint('✅ [OVERLAY] 로그인 완료 - 오버레이 즉시 제거');
+            debugPrint('✅ [OVERLAY] 로그인 완료 - 오버레이 제거');
           }
           
           // 기존 오버레이 제거
           SocialLoginProgressHelper.hide();
           
-          // ⚡ 즉시 홈 화면으로 전환 (FCM 초기화는 백그라운드에서 진행)
           // AuthService의 user stream이 자동으로 홈 화면으로 이동시킴
           if (kDebugMode) {
-            debugPrint('🚀 [SOCIAL LOGIN] 홈 화면 전환 준비 완료 (FCM은 백그라운드 초기화)');
+            debugPrint('🚀 [LOGIN] 홈 화면 전환 준비 완료');
           }
         }
       }
