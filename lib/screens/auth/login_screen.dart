@@ -1018,11 +1018,24 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             await _showMaxDeviceLimitDialog(e);
           }
           
-          // Firebase Auth 로그아웃
+          // 🚨 CRITICAL: 조용한 로그아웃 (FCM 토큰 비활성화 없이)
+          // FirebaseAuth.instance.signOut()을 직접 호출하면 authStateChanges 트리거 →
+          // AuthService.signOut() 자동 호출 → 기존 활성 기기의 FCM 토큰 비활성화 발생!
+          // 따라서 Firebase Auth만 조용히 로그아웃
+          final authService = Provider.of<AuthService>(navigatorKey.currentContext!, listen: false);
+          
+          if (kDebugMode) {
+            debugPrint('🔇 [LOGIN] 조용한 로그아웃 수행 (FCM 토큰 비활성화 없이)');
+          }
+          
+          // AuthService의 로그아웃 플래그 설정 (authStateChanges 무시)
+          authService.setIsSigningOut(true);
+          
+          // Firebase Auth만 로그아웃 (FCM 토큰은 그대로 유지)
           await FirebaseAuth.instance.signOut();
           
           // 플래그 해제 (MaxDeviceLimit 예외)
-          final authService = Provider.of<AuthService>(navigatorKey.currentContext!, listen: false);
+          authService.setIsSigningOut(false);
           authService.setInSocialLoginFlow(false);
           
           // LoginScreen에 남아있음 (이미 LoginScreen이므로 추가 네비게이션 불필요)

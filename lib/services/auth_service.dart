@@ -50,6 +50,12 @@ class AuthService extends ChangeNotifier {
   // 🔒 로그아웃 진행 중 플래그 (authStateChanges 리스너 무시)
   bool _isSigningOut = false;
   
+  /// 로그아웃 플래그 설정 (authStateChanges 리스너 무시용)
+  /// MaxDeviceLimitException 발생 시 조용한 로그아웃에 사용
+  void setIsSigningOut(bool value) {
+    _isSigningOut = value;
+  }
+  
   // 🔥 CRITICAL FIX: 로그아웃 진행 중 플래그
   // FCM pushReplacement로 생성된 route가 남아있어도 LoginScreen 표시 강제
   bool _isLoggingOut = false;

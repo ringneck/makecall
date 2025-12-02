@@ -347,12 +347,19 @@ class FCMService {
           }
           
           _fcmToken = await _messaging.getToken();
+          // ignore: avoid_print
+          print('🔑 [FCM-INIT] FCM 토큰 취득 시도: ${_fcmToken != null ? "성공 (${_fcmToken!.substring(0, 20)}...)" : "실패 (null)"}');
         }
         
         if (_fcmToken != null) {
+          // ignore: avoid_print
+          print('💾 [FCM-INIT] FCM 토큰 저장 시작 (userId: $userId)');
           
           // Firestore에 토큰 저장 (🔧 Phase 1: FCMTokenManager 사용)
           await _saveFCMTokenWithApproval(userId, _fcmToken!);
+          
+          // ignore: avoid_print
+          print('✅ [FCM-INIT] FCM 토큰 저장 완료');
           
           // 🔒 토큰 갱신 리스너 중복 등록 방지
           if (_tokenRefreshSubscription == null) {
@@ -369,10 +376,18 @@ class FCMService {
           // 백그라운드 메시지 핸들러는 main.dart에서 설정
           
         } else {
+          // ignore: avoid_print
+          print('⚠️ [FCM-INIT] FCM 토큰이 null입니다 - 토큰 저장 스킵');
           if (_isIOS) {
+            // ignore: avoid_print
+            print('   iOS 플랫폼: APNs 토큰 확인 필요');
           }
         }
       } else {
+        // ignore: avoid_print
+        print('⚠️ [FCM-INIT] 알림 권한이 거부되었습니다');
+        // ignore: avoid_print
+        print('   권한 상태: ${settings.authorizationStatus}');
       }
     } on MaxDeviceLimitException catch (e, stackTrace) {
       // 🚫 CRITICAL: 최대 기기 수 초과 - 반드시 상위로 전파
