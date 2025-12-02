@@ -166,62 +166,80 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
   }
 
   /// 착신번호 정보 조회 (WebSocket)
+  /// 
+  /// 🎯 앱 최초 실행 시 콜서버의 실제 값을 가져와 Firestore DB를 동기화합니다.
+  /// - DB에 데이터가 없으면: WebSocket 조회 → DB 저장 (초기 동기화)
+  /// - DB에 데이터가 있으면: WebSocket 조회 → DB 값과 비교 → 다르면 업데이트
   Future<void> _fetchCallForwardInfo() async {
     try {
-      // 착신전환 활성화 상태 조회
-      final enabled = await _wsService.getCallForwardEnabled(
+      // 🔑 STEP 1: WebSocket에서 콜서버의 현재 값 조회
+      final wsEnabled = await _wsService.getCallForwardEnabled(
         amiServerId: widget.amiServerId ?? 1,
         tenantId: widget.tenantId!,
         extensionId: widget.extension.extension,
         diversionType: 'CFI',
       );
 
-      // 착신번호 조회
-      String? destination = await _wsService.getCallForwardDestination(
+      String? wsDestination = await _wsService.getCallForwardDestination(
         amiServerId: widget.amiServerId ?? 1,
         tenantId: widget.tenantId!,
         extensionId: widget.extension.extension,
         diversionType: 'CFI',
       );
 
-      // 🔥 CRITICAL FIX: WebSocket 조회 결과가 없을 때 DB 값 유지
-      // 조회된 착신번호가 없으면 현재 값 유지 (DB에서 로드한 값)
-      if (destination == null || destination.isEmpty) {
-        // 현재 값이 기본값이면 기본값 유지, 아니면 DB 값 유지
-        if (_destination == '00000000000') {
-          destination = '00000000000';
-        } else {
-          destination = _destination; // DB에서 로드한 값 유지
-          if (kDebugMode) {
-            debugPrint('⚠️ WebSocket 조회 실패 - DB 저장 값 유지: $_destination');
-          }
-        }
+      // 🔥 WebSocket 조회 실패 시 기본값 처리
+      if (wsDestination == null || wsDestination.isEmpty) {
+        wsDestination = '00000000000'; // 빈 값은 기본값으로 처리
       }
 
-      if (mounted) {
-        setState(() {
-          _isEnabled = enabled;
-          _destination = destination!;
-          _lastUpdated = DateTime.now();
-          _errorMessage = null;
-        });
-
-        // DB에 저장 (WebSocket 조회 성공 시에만)
-        if (destination != _destination || enabled != _isEnabled) {
-          await _saveToDatabase();
-          if (kDebugMode) {
-            debugPrint('💾 WebSocket 조회 결과를 DB에 저장: enabled=$enabled, destination=$destination');
-          }
-        }
-      }
+      // 🔑 STEP 2: DB에 저장된 값과 WebSocket 값 비교
+      final dbEnabled = _isEnabled;
+      final dbDestination = _destination;
+      
+      // 값 변경 여부 체크
+      final hasChanged = (wsEnabled != dbEnabled) || (wsDestination != dbDestination);
+      final isFirstSync = (dbDestination == '00000000000' && dbEnabled == false); // 앱 최초 실행
 
       if (kDebugMode) {
         debugPrint('');
         debugPrint('📡 ========== WebSocket 착신전환 조회 완료 ==========');
         debugPrint('   📱 단말번호: ${widget.extension.extension}');
-        debugPrint('   🔄 착신전환 활성화: $enabled');
-        debugPrint('   ➡️  착신번호: $destination');
-        debugPrint('   💾 DB 저장 여부: ${destination != _destination || enabled != _isEnabled ? "예" : "아니오 (변경 없음)"}');
+        debugPrint('   🔄 WebSocket 값: enabled=$wsEnabled, destination=$wsDestination');
+        debugPrint('   💾 DB 저장 값: enabled=$dbEnabled, destination=$dbDestination');
+        debugPrint('   📊 비교 결과: hasChanged=$hasChanged, isFirstSync=$isFirstSync');
+      }
+
+      // 🔑 STEP 3: UI 업데이트 (WebSocket 값으로)
+      if (mounted) {
+        setState(() {
+          _isEnabled = wsEnabled;
+          _destination = wsDestination!;
+          _lastUpdated = DateTime.now();
+          _errorMessage = null;
+        });
+      }
+
+      // 🔑 STEP 4: DB 동기화 결정
+      // - 앱 최초 실행: 무조건 저장 (콜서버 값으로 초기화)
+      // - 값 변경됨: DB 업데이트 (콜서버와 동기화)
+      if (isFirstSync || hasChanged) {
+        await _saveToDatabase();
+        
+        if (kDebugMode) {
+          if (isFirstSync) {
+            debugPrint('   🆕 앱 최초 실행 - 콜서버 값으로 DB 초기화');
+          } else {
+            debugPrint('   🔄 콜서버 값 변경 감지 - DB 업데이트');
+          }
+          debugPrint('   💾 Firestore 저장 완료: enabled=$wsEnabled, destination=$wsDestination');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('   ✅ DB와 콜서버 값 일치 - 저장 건너뜀');
+        }
+      }
+
+      if (kDebugMode) {
         debugPrint('================================================');
         debugPrint('');
       }
