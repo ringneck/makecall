@@ -737,17 +737,18 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     debugPrint('🔄 [SIGNUP] ${provider.name} 소셜 로그인 재실행');
                   }
                   
+                  final socialLoginService = SocialLoginService();
                   late SocialLoginResult reLoginResult;
                   
                   switch (provider) {
                     case SocialLoginProvider.google:
-                      reLoginResult = await SocialLoginService.signInWithGoogle();
+                      reLoginResult = await socialLoginService.signInWithGoogle();
                       break;
                     case SocialLoginProvider.kakao:
-                      reLoginResult = await SocialLoginService.signInWithKakao();
+                      reLoginResult = await socialLoginService.signInWithKakao();
                       break;
                     case SocialLoginProvider.apple:
-                      reLoginResult = await SocialLoginService.signInWithApple();
+                      reLoginResult = await socialLoginService.signInWithApple();
                       break;
                   }
                   
