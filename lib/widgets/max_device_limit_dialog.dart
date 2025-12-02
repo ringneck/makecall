@@ -49,9 +49,9 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
             final data = doc.data();
             debugPrint('   - ${data['deviceName']} (${data['platform']})');
             return {
-              'device_name': data['deviceName'] ?? 'Unknown Device',  // ← 카멜케이스로 수정
+              'device_name': data['deviceName'] ?? 'Unknown Device',  // ← 카멜케이스
               'platform': data['platform'] ?? 'Unknown',
-              'last_updated': data['lastUpdated'] as Timestamp?,      // ← 카멜케이스로 수정
+              'last_updated': data['lastActiveAt'] as Timestamp?,      // ← 실제 Firestore 필드명 (lastActiveAt)
             };
           }).toList();
           _isLoading = false;
