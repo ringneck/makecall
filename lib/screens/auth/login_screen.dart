@@ -1024,22 +1024,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('🔐 [LOGIN] AuthService 가져옴 - 조용한 로그아웃 시작');
           }
           
-          authService.setIsSigningOut(true);
-          
-          // Firebase Auth만 로그아웃 (FCM 토큰은 그대로 유지)
-          await FirebaseAuth.instance.signOut();
-          
-          // ⚠️ CRITICAL: setIsSigningOut(false)를 다이얼로그 표시 후로 이동!
-          // 다이얼로그 표시 중에는 계속 조용한 로그아웃 상태 유지
-          
-          if (kDebugMode) {
-            debugPrint('🔇 [LOGIN] 조용한 로그아웃 완료 - 이제 다이얼로그 표시');
-          }
-          
-          // 🚨 STEP 2: 오버레이 제거 (로그아웃 후)
+          // 🚨 STEP 1: 오버레이 제거
           SocialLoginProgressHelper.hide();
           
-          // 🚨 STEP 3: MaxDeviceLimit 다이얼로그 표시 (로그아웃 후)
+          // 🚨 STEP 2: MaxDeviceLimit 다이얼로그 표시 (로그아웃 하지 않고!)
           // navigatorKey 사용으로 mounted 여부와 무관하게 표시
           if (kDebugMode) {
             debugPrint('📱 [LOGIN] navigatorKey.currentContext: ${navigatorKey.currentContext != null ? "있음" : "null"}');
@@ -1054,7 +1042,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               await _showMaxDeviceLimitDialog(e);
               
               if (kDebugMode) {
-                debugPrint('✅ [LOGIN] MaxDeviceLimit 다이얼로그 표시 완료');
+                debugPrint('✅ [LOGIN] MaxDeviceLimit 다이얼로그 표시 완료 - 사용자가 확인함');
               }
             } catch (dialogError) {
               if (kDebugMode) {
@@ -1067,8 +1055,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             }
           }
           
-          // 🚨 STEP 4: 다이얼로그 표시 완료 후 플래그 해제
+          // 🚨 STEP 3: 다이얼로그 확인 후 조용한 로그아웃
+          authService.setIsSigningOut(true);
+          
+          if (kDebugMode) {
+            debugPrint('🔇 [LOGIN] 다이얼로그 확인 후 조용한 로그아웃 시작');
+          }
+          
+          // Firebase Auth만 로그아웃 (FCM 토큰은 그대로 유지)
+          await FirebaseAuth.instance.signOut();
+          
           authService.setIsSigningOut(false);
+          
+          if (kDebugMode) {
+            debugPrint('✅ [LOGIN] 조용한 로그아웃 완료');
+          }
           
           // 플래그 해제
           authService.setInSocialLoginFlow(false);
