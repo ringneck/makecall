@@ -1029,7 +1029,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           // Firebase Auth만 로그아웃 (FCM 토큰은 그대로 유지)
           await FirebaseAuth.instance.signOut();
           
-          authService.setIsSigningOut(false);
+          // ⚠️ CRITICAL: setIsSigningOut(false)를 다이얼로그 표시 후로 이동!
+          // 다이얼로그 표시 중에는 계속 조용한 로그아웃 상태 유지
           
           if (kDebugMode) {
             debugPrint('🔇 [LOGIN] 조용한 로그아웃 완료 - 이제 다이얼로그 표시');
@@ -1065,6 +1066,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               debugPrint('⚠️ [LOGIN] navigatorKey.currentContext가 null - 다이얼로그 표시 불가');
             }
           }
+          
+          // 🚨 STEP 4: 다이얼로그 표시 완료 후 플래그 해제
+          authService.setIsSigningOut(false);
           
           // 플래그 해제
           authService.setInSocialLoginFlow(false);
