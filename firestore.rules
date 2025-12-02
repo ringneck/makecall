@@ -64,25 +64,22 @@ service cloud.firestore {
     // 6. call_forward_info 컬렉션 - 착신전환 정보
     // ============================================
     match /call_forward_info/{documentId} {
-      // 🔧 FIX: userId 필드 기반으로 변경 (documentId 패턴 매칭 제거)
-      allow read, write: if request.auth != null 
-                         && request.auth.uid == resource.data.userId;
-      // 새 문서 생성 시
-      allow create: if request.auth != null 
-                    && request.auth.uid == request.resource.data.userId;
+      // 🔧 FIX: documentId 기반 접근 제어
+      // documentId 형식: {userId}_{extensionNumber}
+      // documentId가 본인 userId로 시작하면 모두 허용
+      allow read, write, create: if request.auth != null 
+                                 && documentId.split('_')[0] == request.auth.uid;
     }
     
     // ============================================
     // 7. fcm_tokens 컬렉션 - FCM 토큰 관리
     // ============================================
     match /fcm_tokens/{documentId} {
-      // 🔧 FIX: userId 필드 기반으로 변경 (documentId 패턴 매칭 제거)
-      // 로그인한 사용자이고, 문서의 userId 필드가 본인과 일치하면 읽기/쓰기 가능
-      allow read, write: if request.auth != null 
-                         && request.auth.uid == resource.data.userId;
-      // 새 문서 생성 시
-      allow create: if request.auth != null 
-                    && request.auth.uid == request.resource.data.userId;
+      // 🔧 FIX: documentId 기반 접근 제어 (문서 존재 여부와 무관)
+      // documentId 형식: {userId}_{deviceId}_{platform}
+      // documentId가 본인 userId로 시작하면 읽기/쓰기/생성 모두 허용
+      allow read, write, create: if request.auth != null 
+                                 && documentId.split('_')[0] == request.auth.uid;
     }
     
     // ============================================
