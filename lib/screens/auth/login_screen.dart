@@ -1099,6 +1099,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // 🎯 모든 비동기 처리 완료 후 홈 화면으로 이동
       // AuthService의 user stream이 자동으로 업데이트되어 홈 화면으로 이동
       
+    } on MaxDeviceLimitException catch (e) {
+      // MaxDeviceLimitException은 이미 내부에서 완전히 처리됨 (다이얼로그 표시 + 조용한 로그아웃)
+      // ⚠️ rethrow 제거: 내부 처리 완료 후 return으로 메서드 종료
+      if (kDebugMode) {
+        debugPrint('✅ [SOCIAL LOGIN] MaxDeviceLimitException 내부 처리 완료 - 메서드 종료');
+      }
+      return;  // ← rethrow 대신 return (Unhandled Exception 방지)
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ [SOCIAL LOGIN] 후처리 오류: $e');
@@ -1237,13 +1244,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           );
         }
       }
-    } on MaxDeviceLimitException catch (e) {
-      // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
-      // _handleSocialLoginSuccess()에서 이미 다이얼로그 표시 및 조용한 로그아웃 처리됨
-      if (kDebugMode) {
-        debugPrint('🚫 [GOOGLE-LOGIN] MaxDeviceLimitException 전파됨 (이미 처리 완료)');
-      }
     } catch (e) {
+      // MaxDeviceLimitException은 _handleSocialLoginSuccess()에서 완전히 처리되고 return됨
       if (mounted) {
         SocialLoginProgressHelper.hide();
         await DialogUtils.showError(
