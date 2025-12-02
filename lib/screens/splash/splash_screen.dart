@@ -1,98 +1,442 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
-/// 스플래시 스크린
+/// 미래지향적 스플래시 스크린
 /// 
 /// 앱 초기화 중 표시되는 로딩 화면
-/// - Firebase Auth 세션 확인
-/// - FCM 초기화
-/// - 자동 로그인 시도
-class SplashScreen extends StatelessWidget {
+/// - 시스템 다크모드 자동 감지 및 적용
+/// - 미래지향적 애니메이션 효과
+/// - 그라디언트 배경 + 파티클 효과
+/// - 펄스 애니메이션 + 회전 효과
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late AnimationController _rotationController;
+  late AnimationController _fadeController;
+  late AnimationController _particleController;
+  
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _rotationAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // 펄스 애니메이션 (아이콘 크기 변화)
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    
+    // 회전 애니메이션 (로딩 링)
+    _rotationController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat();
+    
+    _rotationAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(
+      _rotationController,
+    );
+    
+    // 페이드 인 애니메이션
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
+    );
+    
+    // 파티클 애니메이션
+    _particleController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    )..repeat();
+    
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _rotationController.dispose();
+    _fadeController.dispose();
+    _particleController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // 다크모드에 따른 그라디언트 색상
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF0D47A1), // 다크 블루
+            const Color(0xFF1565C0), // 미드 블루
+            const Color(0xFF1976D2), // 라이트 블루
+          ]
+        : [
+            const Color(0xFF1976D2), // 라이트 블루
+            const Color(0xFF2196F3), // 브라이트 블루
+            const Color(0xFF42A5F5), // 스카이 블루
+          ];
+
     return Scaffold(
-      backgroundColor: const Color(0xFF2196F3),
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 앱 아이콘
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Image.asset(
-                    'assets/icons/app_icon.png',
-                    fit: BoxFit.cover,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradientColors,
+          ),
+        ),
+        child: Stack(
+          children: [
+            // 배경 파티클 효과
+            AnimatedBuilder(
+              animation: _particleController,
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: ParticlePainter(
+                    animation: _particleController.value,
+                    isDark: isDark,
+                  ),
+                  size: Size.infinite,
+                );
+              },
+            ),
+            
+            // 메인 컨텐츠
+            SafeArea(
+              child: Center(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 앱 아이콘 + 펄스 효과
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _pulseAnimation.value,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // 외부 회전 링
+                                AnimatedBuilder(
+                                  animation: _rotationAnimation,
+                                  builder: (context, child) {
+                                    return Transform.rotate(
+                                      angle: _rotationAnimation.value,
+                                      child: Container(
+                                        width: 160,
+                                        height: 160,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white.withOpacity(0.3),
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: CustomPaint(
+                                          painter: ArcPainter(
+                                            color: Colors.white,
+                                            isDark: isDark,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                
+                                // 앱 아이콘
+                                Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(28),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: isDark
+                                            ? Colors.black.withOpacity(0.5)
+                                            : Colors.black.withOpacity(0.3),
+                                        blurRadius: 30,
+                                        spreadRadius: 5,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                      BoxShadow(
+                                        color: Colors.white.withOpacity(0.1),
+                                        blurRadius: 20,
+                                        spreadRadius: -5,
+                                        offset: const Offset(0, -5),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(28),
+                                    child: Image.asset(
+                                      'assets/icons/app_icon.png',
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      
+                      const SizedBox(height: 48),
+                      
+                      // 앱 이름 (글로우 효과)
+                      ShaderMask(
+                        shaderCallback: (bounds) => LinearGradient(
+                          colors: [
+                            Colors.white,
+                            Colors.white.withOpacity(0.8),
+                            Colors.white,
+                          ],
+                          stops: const [0.0, 0.5, 1.0],
+                        ).createShader(bounds),
+                        child: const Text(
+                          'MAKECALL',
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 4,
+                            shadows: [
+                              Shadow(
+                                color: Colors.white,
+                                blurRadius: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 12),
+                      
+                      // 부제목
+                      Text(
+                        '당신의 더 나은 커뮤니케이션',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.white.withOpacity(0.95),
+                          letterSpacing: 1.2,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 64),
+                      
+                      // 미래지향적 로딩 인디케이터
+                      SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // 외부 회전 링
+                            AnimatedBuilder(
+                              animation: _rotationController,
+                              builder: (context, child) {
+                                return Transform.rotate(
+                                  angle: _rotationAnimation.value,
+                                  child: Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.transparent,
+                                        width: 3,
+                                      ),
+                                    ),
+                                    child: CustomPaint(
+                                      painter: LoadingRingPainter(
+                                        color: Colors.white,
+                                        isDark: isDark,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            
+                            // 내부 펄스 점
+                            AnimatedBuilder(
+                              animation: _pulseController,
+                              builder: (context, child) {
+                                return Container(
+                                  width: 12 * _pulseAnimation.value,
+                                  height: 12 * _pulseAnimation.value,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.white.withOpacity(0.5),
+                                        blurRadius: 10 * _pulseAnimation.value,
+                                        spreadRadius: 2 * _pulseAnimation.value,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // 로딩 메시지
+                      Text(
+                        '초기화 중...',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.white.withOpacity(0.9),
+                          letterSpacing: 0.5,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              
-              const SizedBox(height: 32),
-              
-              // 앱 이름
-              const Text(
-                'MAKECALL',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 2,
-                ),
-              ),
-              
-              const SizedBox(height: 8),
-              
-              // 부제목
-              Text(
-                '당신의 더 나은 커뮤니케이션',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withOpacity(0.9),
-                  letterSpacing: 1,
-                ),
-              ),
-              
-              const SizedBox(height: 48),
-              
-              // 로딩 인디케이터
-              const SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // 로딩 메시지
-              Text(
-                '초기화 중...',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withOpacity(0.8),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+  }
+}
+
+/// 회전하는 아크 페인터 (앱 아이콘 주변)
+class ArcPainter extends CustomPainter {
+  final Color color;
+  final bool isDark;
+
+  ArcPainter({required this.color, required this.isDark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withOpacity(isDark ? 0.6 : 0.8)
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    // 3개의 아크 그리기
+    for (int i = 0; i < 3; i++) {
+      final startAngle = (i * 2 * math.pi / 3);
+      final sweepAngle = math.pi / 3;
+      
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// 로딩 링 페인터
+class LoadingRingPainter extends CustomPainter {
+  final Color color;
+  final bool isDark;
+
+  LoadingRingPainter({required this.color, required this.isDark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withOpacity(isDark ? 0.7 : 0.9)
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    // 2개의 아크 그리기 (로딩 효과)
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      0,
+      math.pi * 1.5,
+      false,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// 배경 파티클 효과 페인터
+class ParticlePainter extends CustomPainter {
+  final double animation;
+  final bool isDark;
+
+  ParticlePainter({required this.animation, required this.isDark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(isDark ? 0.1 : 0.15)
+      ..style = PaintingStyle.fill;
+
+    final random = math.Random(42); // 고정 시드로 일관된 파티클 위치
+
+    // 20개의 파티클 그리기
+    for (int i = 0; i < 20; i++) {
+      final x = random.nextDouble() * size.width;
+      final baseY = random.nextDouble() * size.height;
+      
+      // 파티클이 위로 올라가는 애니메이션
+      final y = (baseY + (animation * size.height * 0.5)) % size.height;
+      
+      final particleSize = 2 + random.nextDouble() * 3;
+      
+      // 파티클 페이드 효과
+      final opacity = (1 - (y / size.height)) * (isDark ? 0.3 : 0.4);
+      paint.color = Colors.white.withOpacity(opacity);
+      
+      canvas.drawCircle(
+        Offset(x, y),
+        particleSize,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(ParticlePainter oldDelegate) {
+    return animation != oldDelegate.animation;
   }
 }
