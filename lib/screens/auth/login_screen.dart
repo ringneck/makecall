@@ -985,15 +985,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         // 🛑 서비스 이용 중지 계정 체크는 authStateChanges에서 자동 처리됨
         // (ServiceSuspendedException이 발생하면 자동으로 로그아웃)
         
-        // 🔒 mounted 재확인
-        if (!mounted) {
-          if (kDebugMode) {
-            debugPrint('⚠️ [SOCIAL LOGIN] Widget unmounted after user check');
-          }
-          return;
-        }
-        
         // 🔔 FCM 초기화 (MaxDeviceLimitException 체크 포함)
+        // ⚠️ CRITICAL: mounted 체크 전에 FCM 초기화를 실행해야 함
+        // main.dart의 authStateChanges 리스너가 먼저 반응하여 홈 화면으로 이동시키면
+        // login_screen이 unmount되어 FCM 초기화가 실행되지 않음
         if (kDebugMode) {
           debugPrint('🔔 [LOGIN] FCM 초기화 시작 (userId: ${result.userId})');
         }
