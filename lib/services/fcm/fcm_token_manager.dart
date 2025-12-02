@@ -93,7 +93,7 @@ class FCMTokenManager {
         // ignore: avoid_print
         print('   - 상태: isActive=${existingSameDeviceToken.isActive}, isApproved=${existingSameDeviceToken.isApproved}');
         // ignore: avoid_print
-        print('   - 마지막 업데이트: ${existingSameDeviceToken.updatedAt}');
+        print('   - 마지막 업데이트: ${existingSameDeviceToken.lastActiveAt}');
         
         // 🔒 CRITICAL: otherDevices 계산 (중복 체크 통과 시에도 필요)
         final otherDevices = existingTokens
@@ -105,10 +105,6 @@ class FCMTokenManager {
       
       // ignore: avoid_print
       print('✅ [FCM-SAVE] 중복 체크 통과 - 토큰 저장 진행');
-      
-      // 🔑 CRITICAL: Device ID + Platform 조합으로 기기 구분
-      // 같은 Device ID라도 플랫폼이 다르면 다른 기기로 취급
-      final currentDeviceKey = '${deviceId}_$platform';
       
       // 🔧 FIX: 같은 기기의 기존 토큰을 먼저 비활성화 (중복 방지)
       final sameDeviceTokens = existingTokens
