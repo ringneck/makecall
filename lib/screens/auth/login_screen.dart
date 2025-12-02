@@ -1027,6 +1027,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           await FirebaseAuth.instance.signOut();
           
           // 플래그 해제 (MaxDeviceLimit 예외)
+          final authService = Provider.of<AuthService>(navigatorKey.currentContext!, listen: false);
           authService.setInSocialLoginFlow(false);
           
           // LoginScreen에 남아있음 (이미 LoginScreen이므로 추가 네비게이션 불필요)
@@ -1065,6 +1066,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         SocialLoginProgressHelper.hide();
         
         // 플래그 해제 (에러 발생)
+        final authService = context.read<AuthService>();
         authService.setInSocialLoginFlow(false);
         
         // 에러 다이얼로그 표시 (mounted 재확인)
