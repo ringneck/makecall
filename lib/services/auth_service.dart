@@ -409,21 +409,29 @@ class AuthService extends ChangeNotifier {
             // ignore: avoid_print
             print('🔔 [AUTH] MaxDeviceLimit 다이얼로그 표시 시작 (AuthService에서 직접)');
             
-            // 다이얼로그 표시 (동기 방식)
-            WidgetsBinding.instance.addPostFrameCallback((_) async {
-              if (navigatorKey.currentContext != null) {
-                await _showMaxDeviceLimitDialogFromAuthService(
-                  navigatorKey.currentContext!,
-                  e,
-                );
-                
-                // 다이얼로그 닫힌 후 차단 플래그 해제
-                setBlockedByMaxDeviceLimit(false);
-                
-                // ignore: avoid_print
-                print('✅ [AUTH] MaxDeviceLimit 다이얼로그 표시 완료');
-              }
-            });
+            // 🚨 CRITICAL: addPostFrameCallback 제거
+            // → 직접 await로 다이얼로그 표시 (차단 플래그로 LoginScreen 유지됨)
+            try {
+              await _showMaxDeviceLimitDialogFromAuthService(
+                navigatorKey.currentContext!,
+                e,
+              );
+              
+              // ignore: avoid_print
+              print('✅ [AUTH] MaxDeviceLimit 다이얼로그 표시 완료');
+              
+              // 다이얼로그 닫힌 후 차단 플래그 해제
+              setBlockedByMaxDeviceLimit(false);
+              
+              // ignore: avoid_print
+              print('🏁 [AUTH] 차단 플래그 해제 - LoginScreen 유지');
+            } catch (dialogError) {
+              // ignore: avoid_print
+              print('❌ [AUTH] 다이얼로그 표시 오류: $dialogError');
+              
+              // 에러 발생 시에도 차단 플래그 해제
+              setBlockedByMaxDeviceLimit(false);
+            }
           } else {
             // ignore: avoid_print
             print('⚠️ [AUTH] navigatorKey.currentContext가 null - 예외 rethrow');
