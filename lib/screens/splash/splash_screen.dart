@@ -155,23 +155,23 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                           child: Container(
                                             width: ringSize,
                                             height: ringSize,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white.withOpacity(0.3),
-                                            width: 2,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: Colors.white.withOpacity(0.3),
+                                                width: 2,
+                                              ),
+                                            ),
+                                            child: CustomPaint(
+                                              painter: ArcPainter(
+                                                color: Colors.white,
+                                                isDark: isDark,
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                        child: CustomPaint(
-                                          painter: ArcPainter(
-                                            color: Colors.white,
-                                            isDark: isDark,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
+                                        );
+                                      },
+                                    ),
                                     
                                     // 앱 아이콘
                                     Container(
