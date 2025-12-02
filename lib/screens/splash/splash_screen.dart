@@ -202,6 +202,17 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                         child: Image.asset(
                                           'assets/icons/app_icon.png',
                                           fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            // 이미지 로드 실패 시 대체 아이콘 표시
+                                            return Container(
+                                              color: Colors.white,
+                                              child: Icon(
+                                                Icons.phone_enabled,
+                                                size: iconSize * 0.6,
+                                                color: const Color(0xFF2196F3),
+                                              ),
+                                            );
+                                          },
                                         ),
                                       ),
                                     ),
