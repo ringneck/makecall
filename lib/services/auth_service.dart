@@ -1214,8 +1214,17 @@ class AuthService extends ChangeNotifier {
   ) async {
     // 🎯 소셜로그인 다이얼로그와 동일하게 MaxDeviceLimitDialog 위젯 사용
     // ✅ 활성 기기 목록 자동 로드 및 표시
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
+    
+    // 🔑 CRITICAL: exception에서 userId 가져오기 (로그아웃 후에는 currentUser가 null)
+    final userId = exception.userId ?? FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      // ignore: avoid_print
+      print('⚠️ [AUTH] userId 없음 - 다이얼로그 표시 불가');
+      return;
+    }
+    
+    // ignore: avoid_print
+    print('✅ [AUTH] userId 확인: $userId');
     
     return showDialog<void>(
       context: context,

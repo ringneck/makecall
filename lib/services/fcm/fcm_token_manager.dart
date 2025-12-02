@@ -263,6 +263,7 @@ class FCMTokenManager {
           maxDevices: maxDevices,
           currentDevices: otherDevices.length,
           deviceName: deviceName,
+          userId: userId,  // ✅ userId 추가 (다이얼로그에서 활성 기기 목록 조회용)
         );
       }
       

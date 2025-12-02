@@ -26,10 +26,14 @@ class MaxDeviceLimitException implements Exception {
   /// 로그인을 시도한 새 기기 이름
   final String deviceName;
   
+  /// 사용자 ID (활성 기기 목록 조회용)
+  final String? userId;
+  
   MaxDeviceLimitException({
     required this.maxDevices,
     required this.currentDevices,
     required this.deviceName,
+    this.userId,
   });
   
   @override
