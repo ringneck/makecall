@@ -752,8 +752,19 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                       break;
                   }
                   
+                  if (kDebugMode) {
+                    debugPrint('📊 [SIGNUP] 소셜 로그인 재인증 결과:');
+                    debugPrint('   success: ${reLoginResult.success}');
+                    debugPrint('   userId: ${reLoginResult.userId}');
+                    debugPrint('   email: ${reLoginResult.email}');
+                    debugPrint('   errorMessage: ${reLoginResult.errorMessage}');
+                  }
+                  
                   if (!reLoginResult.success || reLoginResult.userId == null) {
-                    throw Exception('소셜 로그인 재인증 실패');
+                    if (kDebugMode) {
+                      debugPrint('❌ [SIGNUP] 소셜 로그인 재인증 실패 - 예외 발생');
+                    }
+                    throw Exception('소셜 로그인 재인증 실패: ${reLoginResult.errorMessage ?? "Unknown error"}');
                   }
                   
                   if (kDebugMode) {
@@ -814,10 +825,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                   if (context.mounted && Navigator.of(context).canPop()) {
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   }
-                } catch (e) {
-                  // 기타 FCM 초기화 오류
+                } catch (e, stackTrace) {
+                  // 기타 오류 (소셜 로그인 재인증 실패 또는 FCM 초기화 실패)
                   if (kDebugMode) {
-                    debugPrint('❌ [SIGNUP] FCM 초기화 실패: $e');
+                    debugPrint('❌ [SIGNUP] 오류 발생: $e');
+                    debugPrint('   Stack trace: $stackTrace');
                   }
                   
                   // 로딩 오버레이 제거

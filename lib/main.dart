@@ -619,6 +619,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                             
                             // 🔔 FCM 자동 초기화 (앱 업데이트 후 자동 로그인 시)
                             if (currentUserId != null && authService.isAuthenticated) {
+                              // 🔒 소셜 로그인 진행 중이면 FCM 초기화 건너뛰기
+                              // (signup_screen.dart에서 직접 처리)
+                              if (authService.isInSocialLoginFlow) {
+                                debugPrint('⏭️ [MAIN] 소셜 로그인 진행 중 - FCM 자동 초기화 건너뛰기');
+                                return;
+                              }
+                              
                               try {
                                 debugPrint('🔔 [MAIN] 자동 로그인 감지 - FCM 초기화 시작');
                                 debugPrint('   User ID: $currentUserId');
