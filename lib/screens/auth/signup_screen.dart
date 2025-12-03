@@ -389,113 +389,14 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   }
   
   // REST API 설정 필요 안내 다이얼로그
+  // ✅ iOS/Android와 통일된 DialogUtils.showInfo() 사용
   Future<void> _showApiSettingsRequiredDialog() async {
     if (!mounted) return;
     
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.settings_outlined,
-              color: isDark ? Colors.orange[300] : Colors.orange[700],
-              size: 28,
-            ),
-            const SizedBox(width: 12),
-            const Text('REST API 설정 필요'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '통화 기능을 사용하기 위해서는\nREST API 서버 설정이 필요합니다.',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.orange[900]!.withAlpha(77)
-                    : Colors.orange.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.orange[700]!
-                      : Colors.orange.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.touch_app,
-                    size: 20,
-                    color: isDark ? Colors.orange[300] : Colors.orange[700],
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '왼쪽 상단 프로필 아이콘을 눌러\nREST API 서버 정보를 입력해주세요.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? Colors.orange[300] : Colors.orange[800],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '※ WebSocket 설정은 선택사항입니다',
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.grey[500] : Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          ElevatedButton.icon(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              
-              // 다이얼로그가 완전히 닫힌 후 기본 API 설정 다이얼로그 표시
-              await Future.delayed(const Duration(milliseconds: 300));
-              
-              if (context.mounted) {
-                await showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => const ApiSettingsDialog(),
-                );
-              }
-            },
-            icon: const Icon(Icons.settings, size: 18),
-            label: const Text('설정하기'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? Colors.orange[700] : Colors.orange[600],
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ],
-      ),
+    await DialogUtils.showInfo(
+      context,
+      '통화 기능을 사용하기 위해서는\nREST API 서버 설정이 필요합니다.\n\n왼쪽 상단 프로필 아이콘을 눌러\n설정 정보를 입력해주세요.',
+      title: '초기 등록 필요',
     );
   }
   
