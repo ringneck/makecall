@@ -15,10 +15,10 @@ class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, this.onFadeOutStart});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<SplashScreen> createState() => SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+class SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late AnimationController _rotationController;
   late AnimationController _fadeInController;
@@ -365,7 +365,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         ],
                       ),
                     ),
-                  ),
                   );
                 },
               ),

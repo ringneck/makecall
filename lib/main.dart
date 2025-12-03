@@ -287,7 +287,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _isFadingOut = false;
   
   // 🔑 스플래시 스크린 GlobalKey (Fade Out 제어용)
-  final GlobalKey<_SplashScreenState> _splashKey = GlobalKey<_SplashScreenState>();
+  final GlobalKey<SplashScreenState> _splashKey = GlobalKey<SplashScreenState>();
   
   // 🔒 로그인 유지 다이얼로그 표시 여부
   bool _isLoginKeepDialogShowing = false;
