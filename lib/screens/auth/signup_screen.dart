@@ -174,15 +174,18 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           print('🔙 [SIGNUP] SignupScreen 닫고 MainScreen으로 전환');
           
           // LoginScreen까지 모두 닫고 MainScreen으로 이동
+          // showWelcomeDialog: true → MainScreen 렌더링 후 다이얼로그 표시 (이벤트 기반)
           await Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (context) => const MainScreen(),
+              builder: (context) => const MainScreen(
+                showWelcomeDialog: true,  // 🎯 이벤트 기반: MainScreen 렌더링 완료 후 다이얼로그 표시
+              ),
             ),
             (route) => false, // 모든 이전 화면 제거
           );
           
           // ignore: avoid_print
-          print('✅ [SIGNUP] MainScreen 전환 완료');
+          print('✅ [SIGNUP] MainScreen 전환 완료 - 다이얼로그는 렌더링 후 표시됨');
         }
       }
     } on FirebaseAuthException catch (e) {

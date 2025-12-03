@@ -214,19 +214,33 @@ class _CallTabState extends State<CallTab> {
   }
   
   /// 🔄 순차적 초기화 체인
-  /// 고급 패턴: Early Return + Fail-Fast + Single Responsibility
+  /// 고급 패턴: Early Return + Fail-Fast + Single Responsibility + Event-Based
   Future<void> _initializeSequentially() async {
     if (!mounted) return;
     
-    // 🎯 STEP 1: 단말번호 자동 초기화 (ExtensionInitializer 사용)
+    // 🎯 STEP 1: 회원가입 완료 다이얼로그 표시 (이벤트 기반)
+    // MainScreen 전환 후 렌더링 완료 시점에만 실행
+    if (widget.showWelcomeDialog && mounted) {
+      // ignore: avoid_print
+      print('🎉 [CALL_TAB] 회원가입 완료 다이얼로그 표시 시작');
+      await DialogUtils.showSuccess(
+        context,
+        '🎉 회원가입이 완료되었습니다',
+      );
+      // ignore: avoid_print
+      print('✅ [CALL_TAB] 회원가입 완료 다이얼로그 닫힘');
+    }
+    
+    if (!mounted) return;
+    
+    // 🎯 STEP 2: 단말번호 자동 초기화 (ExtensionInitializer 사용)
     // 클릭투콜 기능을 위해 로그인 즉시 단말번호 설정
     await _extensionInitializer.initializeExtensions(context);
     
     if (!mounted) return;
     
-    // 🎯 STEP 2: 설정 확인 (모든 로그인 시나리오에서 실행)
-    // signup_screen.dart에서 "회원가입 완료" 다이얼로그를 먼저 표시하고
-    // 여기서는 "초기 설정 필요" 안내만 표시
+    // 🎯 STEP 3: 설정 확인 및 안내 다이얼로그 표시 (이벤트 기반)
+    // 모든 로그인 시나리오에서 실행
     await _checkSettingsAndShowGuide();
   }
   
