@@ -34,11 +34,13 @@ import 'services/call_manager.dart';
 class CallTab extends StatefulWidget {
   final bool autoOpenProfileForNewUser; // 신규 사용자 자동 ProfileDrawer 열기
   final int? initialTabIndex; // 초기 탭 인덱스 (FCM에서 지정 가능)
+  final bool showWelcomeDialog; // 회원가입 완료 다이얼로그 표시 여부
   
   const CallTab({
     super.key,
     this.autoOpenProfileForNewUser = false,
     this.initialTabIndex,
+    this.showWelcomeDialog = false,
   });
 
   @override
@@ -211,8 +213,13 @@ class _CallTabState extends State<CallTab> {
       // 순차적 초기화 실행
       await _initializeSequentially();
       
-      // ✅ 이메일 회원가입 이벤트 처리는 AuthService 리스너에서만 수행
-      // (initState에서 처리하면 중복 실행됨)
+      // 🎉 회원가입 완료 다이얼로그 표시 (signup_screen에서 요청한 경우)
+      if (widget.showWelcomeDialog && mounted) {
+        await DialogUtils.showSuccess(
+          context,
+          '🎉 회원가입이 완료되었습니다',
+        );
+      }
     });
   }
   

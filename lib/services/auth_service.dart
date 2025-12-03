@@ -730,74 +730,10 @@ class AuthService extends ChangeNotifier {
     }
     
     // 6️⃣ Navigator 스택 정리 및 로그인 화면으로 이동
-    try {
-      if (navigatorKey.currentContext != null) {
-        if (kDebugMode) {
-          debugPrint('🔔 [6/6] Navigator 스택 정리 시작...');
-        }
-        
-        // 충분한 지연을 두어 이전 화면의 pop() 완료 대기
-        await Future.delayed(const Duration(milliseconds: 200));
-        
-        // 현재 context가 여전히 유효한지 확인
-        if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
-          try {
-            final navigator = Navigator.of(navigatorKey.currentContext!);
-            
-            // 🔥 CRITICAL FIX: Navigator 스택에서 MainScreen 제거
-            final canPop = navigator.canPop();
-            if (kDebugMode) {
-              debugPrint('🔄 [6/6] Navigator 스택 상태 확인');
-              debugPrint('   canPop: $canPop');
-            }
-            
-            // Navigator 스택에 MainScreen이 있으면 제거
-            if (canPop) {
-              try {
-                // root (MaterialApp.home)까지 pop
-                navigator.popUntil((route) => route.isFirst);
-                if (kDebugMode) {
-                  debugPrint('✅ [6/6] Navigator 스택 정리 완료 (MainScreen 제거)');
-                }
-              } catch (e) {
-                if (kDebugMode) {
-                  debugPrint('⚠️  [6/6] Navigator popUntil 오류: $e');
-                }
-              }
-            } else {
-              if (kDebugMode) {
-                debugPrint('ℹ️  [6/6] Navigator 스택이 이미 비어있음');
-              }
-            }
-            
-            // 🔧 짧은 지연으로 Navigator 정리 대기
-            await Future.delayed(const Duration(milliseconds: 100));
-            
-            if (kDebugMode) {
-              debugPrint('✅ [6/6] Navigator 정리 완료');
-            }
-            
-          } catch (e) {
-            if (kDebugMode) {
-              debugPrint('⚠️  [6/6] Navigator 정리 오류: $e');
-              debugPrint('   → Consumer가 자동으로 LoginScreen 표시합니다');
-            }
-          }
-        } else {
-          if (kDebugMode) {
-            debugPrint('⚠️  [6/6] context 무효화됨 - Consumer가 처리합니다');
-          }
-        }
-      } else {
-        if (kDebugMode) {
-          debugPrint('⚠️  [6/6] NavigatorKey context 없음 - Consumer가 처리합니다');
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('⚠️  [6/6] Navigator 정리 오류: $e');
-        debugPrint('   → Consumer가 자동으로 LoginScreen 표시');
-      }
+    // ℹ️ Navigator 스택 정리 로직 제거
+    // Consumer<AuthService>의 notifyListeners()가 자동으로 LoginScreen 전환 처리
+    if (kDebugMode) {
+      debugPrint('ℹ️  [6/6] Navigator 정리는 Consumer<AuthService>가 자동 처리');
     }
     
     // 🔥 CRITICAL FIX: 로그아웃 플래그 해제 및 최종 상태 업데이트
