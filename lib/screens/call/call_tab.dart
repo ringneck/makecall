@@ -206,6 +206,33 @@ class _CallTabState extends State<CallTab> {
       
       // 순차적 초기화 실행
       await _initializeSequentially();
+      
+      // 🎯 CRITICAL: CallTab 생성 후 이메일 회원가입 플래그 확인
+      // SignupScreen이 닫힌 후 CallTab이 생성되면 여기서 확인
+      if ((_authService?.isInEmailSignupFlow ?? false) && !_hasCheckedSettings) {
+        if (kDebugMode) {
+          debugPrint('🔔 [initState] 이메일 회원가입 플래그 감지 → 성공 메시지 + 설정 안내');
+        }
+        
+        // 이메일 회원가입 플래그 해제
+        _authService?.setInEmailSignupFlow(false);
+        
+        // 성공 메시지 + 설정 안내 순차적 실행
+        Future.microtask(() async {
+          if (!mounted) return;
+          
+          // ✅ STEP 1: 성공 메시지 표시 (MainScreen에서)
+          await DialogUtils.showSuccess(
+            context,
+            '🎉 회원가입이 완료되었습니다',
+          );
+          
+          if (!mounted) return;
+          
+          // ✅ STEP 2: 설정 안내 다이얼로그 표시 (MainScreen에서)
+          await _checkSettingsAndShowGuide();
+        });
+      }
     });
   }
   
