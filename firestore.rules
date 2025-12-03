@@ -3,133 +3,176 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // ============================================
-    // 1. users 컬렉션 - 사용자 계정 정보
+    // 🔵 TYPE A: User-Scoped Collections
+    // 본인 데이터만 접근 가능한 컬렉션
     // ============================================
+    
+    // 1. users - 사용자 계정 정보
     match /users/{userId} {
-      // 본인 문서 읽기/쓰기 가능
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      // 🔧 FIX: 새 사용자 문서 생성 허용 (회원가입/첫 로그인 시)
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow read, write, create: if request.auth != null 
+                                 && request.auth.uid == userId;
     }
     
-    // ============================================
-    // 2. my_extensions 컬렉션 - 단말번호 정보
-    // ============================================
-    match /my_extensions/{documentId} {
-      // 로그인한 사용자이고, 문서의 userId 필드가 본인과 일치하면 읽기/쓰기 가능
-      allow read, write: if request.auth != null 
-                         && request.auth.uid == resource.data.userId;
-      // 새 문서 생성 시 (resource.data 없음)
+    // 2. main_numbers - 대표번호 관리
+    match /main_numbers/{documentId} {
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+      allow write: if request.auth != null 
+                   && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null 
-                    && request.auth.uid == request.resource.data.userId;
+                    && request.resource.data.userId == request.auth.uid;
     }
     
-    // ============================================
-    // 3. call_history 컬렉션 - 통화 기록
-    // ============================================
+    // 3. extensions - 단말번호 목록
+    match /extensions/{documentId} {
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+      allow write: if request.auth != null 
+                   && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // 4. call_history - 통화 기록
     match /call_history/{documentId} {
-      // 로그인한 사용자이고, 문서의 userId 필드가 본인과 일치하면 읽기/쓰기 가능
-      allow read, write: if request.auth != null 
-                         && request.auth.uid == resource.data.userId;
-      // 새 문서 생성 시
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+      allow write: if request.auth != null 
+                   && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null 
-                    && request.auth.uid == request.resource.data.userId;
+                    && request.resource.data.userId == request.auth.uid;
     }
     
-    // ============================================
-    // 4. contacts 컬렉션 - 연락처
-    // ============================================
+    // 5. contacts - 연락처
     match /contacts/{documentId} {
-      // 로그인한 사용자이고, 문서의 userId 필드가 본인과 일치하면 읽기/쓰기 가능
-      allow read, write: if request.auth != null 
-                         && request.auth.uid == resource.data.userId;
-      // 새 문서 생성 시
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+      allow write: if request.auth != null 
+                   && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null 
-                    && request.auth.uid == request.resource.data.userId;
+                    && request.resource.data.userId == request.auth.uid;
     }
     
-    // ============================================
-    // 5. phonebook_contacts 컬렉션 - 주소록 연락처
-    // ============================================
+    // 6. phonebook_contacts - 주소록 연락처
     match /phonebook_contacts/{documentId} {
-      // 로그인한 사용자이고, 문서의 userId 필드가 본인과 일치하면 읽기/쓰기 가능
-      allow read, write: if request.auth != null 
-                         && request.auth.uid == resource.data.userId;
-      // 새 문서 생성 시
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+      allow write: if request.auth != null 
+                   && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null 
-                    && request.auth.uid == request.resource.data.userId;
+                    && request.resource.data.userId == request.auth.uid;
     }
     
-    // ============================================
-    // 6. call_forward_info 컬렉션 - 착신전환 정보
-    // ============================================
-    match /call_forward_info/{documentId} {
-      // 🔧 FIX: documentId 기반 접근 제어
-      // documentId 형식: {userId}_{extensionNumber}
-      // documentId가 본인 userId로 시작하면 모두 허용
+    // 7. phonebooks - 주소록
+    match /phonebooks/{documentId} {
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+      allow write: if request.auth != null 
+                   && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // 8. my_extensions - 내 단말번호 정보
+    match /my_extensions/{documentId} {
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+      allow write: if request.auth != null 
+                   && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // 9. device_approval_requests - 기기 승인 요청
+    match /device_approval_requests/{documentId} {
+      allow read: if request.auth != null 
+                  && resource.data.userId == request.auth.uid;
+      allow write: if request.auth != null 
+                   && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // 10. user_notification_settings - 사용자 알림 설정
+    match /user_notification_settings/{userId} {
       allow read, write, create: if request.auth != null 
-                                 && documentId.split('_')[0] == request.auth.uid;
+                                 && request.auth.uid == userId;
     }
     
     // ============================================
-    // 7. fcm_tokens 컬렉션 - FCM 토큰 관리
+    // 🟢 TYPE B: Composite-ID Collections
+    // Document ID로 소유권 판별 가능한 컬렉션
     // ============================================
+    
+    // 11. fcm_tokens - FCM 토큰 관리
+    // Document ID 형식: {userId}_{deviceId}_{platform}
+    // 예: BATARjeeg2aGpggaCOl9J2Hz17T2_5B03AB9F_iOS
     match /fcm_tokens/{documentId} {
-      // 🔧 FIX: documentId 기반 접근 제어 (문서 존재 여부와 무관)
-      // documentId 형식: {userId}_{deviceId}_{platform}
-      // documentId가 본인 userId로 시작하면 읽기/쓰기/생성 모두 허용
+      allow read, write, create: if request.auth != null 
+                                 && documentId.split('_')[0] == request.auth.uid;
+    }
+    
+    // 12. call_forward_info - 착신전환 정보
+    // Document ID 형식: {userId}_{extensionNumber}
+    // 예: BATARjeeg2aGpggaCOl9J2Hz17T2_1234
+    match /call_forward_info/{documentId} {
       allow read, write, create: if request.auth != null 
                                  && documentId.split('_')[0] == request.auth.uid;
     }
     
     // ============================================
-    // 8. device_approval_requests 컬렉션 - 기기 승인 요청
+    // 🟡 TYPE C: Shared Collections
+    // 여러 사용자가 접근 가능한 공유 데이터
     // ============================================
-    match /device_approval_requests/{requestId} {
-      // 로그인한 사용자이고, 문서의 userId 필드가 본인과 일치하면 읽기/쓰기 가능
-      allow read, write: if request.auth != null 
-                         && request.auth.uid == resource.data.userId;
-      // 새 문서 생성 시
-      allow create: if request.auth != null 
-                    && request.auth.uid == request.resource.data.userId;
-    }
     
-    // ============================================
-    // 9. fcm_approval_notification_queue - FCM 승인 알림 큐
-    // ============================================
-    match /fcm_approval_notification_queue/{queueId} {
-      // 로그인한 모든 사용자가 읽기/쓰기 가능 (알림 전송용)
-      allow read, write: if request.auth != null;
-    }
-    
-    // ============================================
-    // 10. settings 컬렉션 - 사용자 설정
-    // ============================================
-    match /settings/{userId} {
-      // 본인 설정만 읽기/쓰기 가능
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // ============================================
-    // 11. registered_extensions 컬렉션 - 등록된 단말번호
-    // ============================================
+    // 13. registered_extensions - 등록된 단말번호 (공개 정보)
+    // 모든 인증된 사용자가 단말번호 조회 가능
+    // 쓰기는 본인 문서만 가능
     match /registered_extensions/{documentId} {
-      // 🔧 FIX V5: listening query 지원
-      // - 모든 인증된 사용자에게 읽기 허용 (단말번호는 공개 정보)
-      // - 쓰기는 본인 문서만 가능 (보안 유지)
       allow read: if request.auth != null;
-      
       allow write: if request.auth != null 
                    && resource != null
-                   && request.auth.uid == resource.data.userId;
-      
-      // 새 문서 생성 시
+                   && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null 
-                    && request.auth.uid == request.resource.data.userId;
+                    && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // 14. fcm_approval_notification_queue - FCM 승인 알림 큐
+    // 알림 전송용 임시 큐, 모든 인증된 사용자 접근 가능
+    match /fcm_approval_notification_queue/{queueId} {
+      allow read, write, create: if request.auth != null;
+    }
+    
+    // 15. app_config - 앱 전역 설정 (읽기 전용)
+    match /app_config/{configId} {
+      allow read: if request.auth != null;
+      allow write: if false; // 백엔드/관리자만 수정 가능
+    }
+    
+    // 16. shared_api_settings - 공유 API 설정 (읽기 전용)
+    match /shared_api_settings/{settingId} {
+      allow read: if request.auth != null;
+      allow write: if false; // 백엔드/관리자만 수정 가능
     }
     
     // ============================================
-    // 기타 모든 문서 - 기본 거부
+    // 🔴 TYPE D: Admin-Only Collections
+    // 백엔드/관리자 전용, 클라이언트 접근 차단
+    // ============================================
+    
+    // 17. email_verification_requests - 이메일 인증 요청
+    match /email_verification_requests/{requestId} {
+      allow read, write: if false; // 백엔드만 접근
+    }
+    
+    // 18. fcm_notifications - FCM 알림 이력
+    match /fcm_notifications/{notificationId} {
+      allow read, write: if false; // 백엔드만 접근
+    }
+    
+    // ============================================
+    // ⚫ DEFAULT: 기타 모든 문서
+    // 명시되지 않은 모든 경로는 기본 거부
     // ============================================
     match /{document=**} {
       allow read, write: if false;
