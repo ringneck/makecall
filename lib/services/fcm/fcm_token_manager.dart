@@ -45,14 +45,16 @@ class FCMTokenManager {
       final platformLower = _platformUtils.getPlatformName();
       
       // 🔑 CRITICAL: 플랫폼 이름을 대문자로 변환 (Firestore 문서 ID 형식 통일)
-      // fcm_tokens 문서 ID: userId_deviceId_Android 또는 userId_deviceId_iOS
+      // fcm_tokens 문서 ID: userId_deviceId_Android, userId_deviceId_iOS, userId_deviceId_Web
       String platform;
       if (platformLower == 'android') {
         platform = 'Android';
       } else if (platformLower == 'ios') {
         platform = 'iOS';
+      } else if (platformLower == 'web') {
+        platform = 'Web';  // ✅ 웹 플랫폼도 대문자로 통일
       } else {
-        platform = platformLower; // web, unknown 등
+        platform = platformLower; // unknown 등 기타
       }
       
       // ignore: avoid_print
