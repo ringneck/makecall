@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/database_service.dart';
+import '../../profile/api_settings_dialog.dart';
 
 /// 설정 확인 및 안내 서비스
 /// 
@@ -269,11 +270,15 @@ class SettingsChecker {
               onPressed: () async {
                 Navigator.pop(dialogContext);
 
-                // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
+                // 다이얼로그가 완전히 닫힌 후 기본 API 설정 다이얼로그 표시
                 await Future.delayed(const Duration(milliseconds: 300));
 
-                if (context.mounted && scaffoldKey.currentState != null) {
-                  scaffoldKey.currentState!.openDrawer();
+                if (context.mounted) {
+                  await showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const ApiSettingsDialog(),
+                  );
                 }
               },
               icon: const Icon(Icons.settings, size: 18),

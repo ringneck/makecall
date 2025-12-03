@@ -15,6 +15,7 @@ import '../../utils/common_utils.dart';
 import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
 import '../home/main_screen.dart';
+import '../profile/api_settings_dialog.dart';
 import 'login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -429,10 +430,23 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           ],
         ),
         actions: [
-          ElevatedButton(
-            onPressed: () {
+          ElevatedButton.icon(
+            onPressed: () async {
               Navigator.of(context).pop();
+              
+              // 다이얼로그가 완전히 닫힌 후 기본 API 설정 다이얼로그 표시
+              await Future.delayed(const Duration(milliseconds: 300));
+              
+              if (context.mounted) {
+                await showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const ApiSettingsDialog(),
+                );
+              }
             },
+            icon: const Icon(Icons.settings, size: 18),
+            label: const Text('설정하기'),
             style: ElevatedButton.styleFrom(
               backgroundColor: isDark ? Colors.orange[700] : Colors.orange[600],
               foregroundColor: Colors.white,
@@ -441,7 +455,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: const Text('확인'),
           ),
         ],
       ),
