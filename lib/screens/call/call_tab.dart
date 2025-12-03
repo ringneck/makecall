@@ -357,24 +357,8 @@ class _CallTabState extends State<CallTab> {
       return;
     }
     
-    // 3️⃣ 소셜 로그인 플래그 해제 이벤트 감지 (사용자가 "로그인/닫기" 버튼 클릭)
-    // ⚠️ 이메일 회원가입 이벤트 처리 중이거나 이미 처리 완료된 경우 소셜 로그인 이벤트 무시
-    if (!(_authService?.isInSocialLoginFlow ?? true) && 
-        !_hasCheckedSettings && 
-        !_hasProcessedEmailSignupEvent) {  // 🔒 CRITICAL: 이메일 회원가입 이벤트 처리 완료 체크 강화
-      if (kDebugMode) {
-        debugPrint('🔔 [이벤트] 소셜 로그인 완료 감지 → 설정 체크 실행');
-      }
-      
-      // 설정 체크 실행 (API 설정 및 단말번호)
-      Future.microtask(() async {
-        if (mounted && !_hasProcessedEmailSignupEvent) {  // 🔒 CRITICAL: 한 번 더 체크 (Race Condition 방지)
-          await _checkSettingsAndShowGuide();
-        }
-      });
-    }
-    
-    // 4️⃣ 이메일 회원가입 이벤트 감지 (완전한 이벤트 기반 처리)
+    // 🔒 CRITICAL: 이메일 회원가입 이벤트를 최우선으로 체크 (소셜 로그인보다 먼저!)
+    // 3️⃣ 이메일 회원가입 이벤트 감지 (완전한 이벤트 기반 처리)
     // 타이밍이 아닌 이벤트 발생 여부로 판단 (한 번만 실행 보장)
     if ((_authService?.isInEmailSignupFlow ?? false) && !_hasProcessedEmailSignupEvent) {
       if (kDebugMode) {
@@ -413,6 +397,24 @@ class _CallTabState extends State<CallTab> {
           debugPrint('🎬 [리스너] 설정 안내 다이얼로그 표시 시작');
         }
         await _checkSettingsAndShowGuide();
+      });
+      return;  // 🔒 이메일 회원가입 이벤트 처리 후 즉시 리턴 (다른 이벤트 무시)
+    }
+    
+    // 4️⃣ 소셜 로그인 플래그 해제 이벤트 감지 (사용자가 "로그인/닫기" 버튼 클릭)
+    // ⚠️ 이메일 회원가입 이벤트보다 낮은 우선순위 (이메일 회원가입이 먼저 처리됨)
+    if (!(_authService?.isInSocialLoginFlow ?? true) && 
+        !_hasCheckedSettings && 
+        !_hasProcessedEmailSignupEvent) {  // 🔒 이메일 회원가입 이벤트 처리 완료 체크
+      if (kDebugMode) {
+        debugPrint('🔔 [이벤트] 소셜 로그인 완료 감지 → 설정 체크 실행');
+      }
+      
+      // 설정 체크 실행 (API 설정 및 단말번호)
+      Future.microtask(() async {
+        if (mounted && !_hasProcessedEmailSignupEvent) {  // 🔒 한 번 더 체크 (Race Condition 방지)
+          await _checkSettingsAndShowGuide();
+        }
       });
     }
   }
