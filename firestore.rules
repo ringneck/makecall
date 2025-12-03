@@ -122,9 +122,16 @@ service cloud.firestore {
     // 12. call_forward_info - 착신전환 정보
     // Document ID 형식: {userId}_{extensionNumber}
     // 예: BATARjeeg2aGpggaCOl9J2Hz17T2_1234
+    // 
+    // 🔑 CRITICAL: 쿼리 지원을 위해 resource.data.userId 사용
+    // account_manager_service.dart:207에서 .where('userId', isEqualTo: uid) 쿼리 사용
     match /call_forward_info/{documentId} {
-      allow read, write, create: if request.auth != null 
-                                 && documentId.split('_')[0] == request.auth.uid;
+      allow read: if request.auth != null 
+                  && (resource == null || resource.data.userId == request.auth.uid);
+      allow write: if request.auth != null 
+                   && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
     }
     
     // ============================================
