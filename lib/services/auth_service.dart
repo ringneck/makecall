@@ -804,15 +804,13 @@ class AuthService extends ChangeNotifier {
     _isLoggingOut = false;
     _isSigningOut = false;
     
+    // 🔔 CRITICAL: notifyListeners() 호출하여 UI 업데이트 (LoginScreen으로 전환)
+    notifyListeners();
+    
     if (kDebugMode) {
       debugPrint('✅ [LOGOUT] 로그아웃 완료 - LoginScreen으로 전환');
       debugPrint('');
     }
-    
-    // 🔓 로그아웃 플래그 해제 (authStateChanges 리스너 재활성화)
-    _isSigningOut = false;
-    
-    // ✅ notifyListeners() 제거 (450줄에서 이미 호출됨, 중복 rebuild 방지)
   }
   
   /// 🛑 서비스 이용 중지 (계정 비활성화)

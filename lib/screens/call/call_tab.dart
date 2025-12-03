@@ -227,19 +227,10 @@ class _CallTabState extends State<CallTab> {
     
     if (!mounted) return;
     
-    // 🎯 STEP 2: 설정 확인 (선택적 안내)
-    // 이메일 회원가입 또는 소셜 로그인인 경우는 _onAuthServiceStateChanged에서 이벤트 기반으로 처리
-    // 일반 로그인만 여기서 즉시 실행
-    final isInSignupFlow = _authService?.isInEmailSignupFlow ?? false;
-    final isInSocialLoginFlow = widget.autoOpenProfileForNewUser;
-    
-    if (!isInSignupFlow && !isInSocialLoginFlow) {
-      await _checkSettingsAndShowGuide();
-    } else {
-      if (kDebugMode) {
-        debugPrint('🎯 이메일 회원가입 또는 소셜 로그인 감지 - 초기 설정 체크는 이벤트 기반으로 처리');
-      }
-    }
+    // 🎯 STEP 2: 설정 확인 (모든 로그인 시나리오에서 실행)
+    // signup_screen.dart에서 "회원가입 완료" 다이얼로그를 먼저 표시하고
+    // 여기서는 "초기 설정 필요" 안내만 표시
+    await _checkSettingsAndShowGuide();
   }
   
   @override
@@ -357,48 +348,13 @@ class _CallTabState extends State<CallTab> {
       return;
     }
     
-    // 🔒 CRITICAL: 이메일 회원가입 이벤트를 최우선으로 체크 (소셜 로그인보다 먼저!)
-    // 3️⃣ 이메일 회원가입 이벤트 감지 (완전한 이벤트 기반 처리)
-    // 타이밍이 아닌 이벤트 발생 여부로 판단 (한 번만 실행 보장)
+    // 🔒 이메일 회원가입 이벤트 처리는 signup_screen.dart에서 직접 처리
+    // (MainScreen 전환 후 addPostFrameCallback으로 다이얼로그 표시)
+    // 여기서는 플래그만 체크하고 넘어감
     if ((_authService?.isInEmailSignupFlow ?? false) && !_hasProcessedEmailSignupEvent) {
-      if (kDebugMode) {
-        debugPrint('🔔 [리스너-이벤트] 이메일 회원가입 이벤트 감지 → 성공 메시지 + 설정 안내');
-      }
-      
-      // 🔒 이벤트 처리 완료 플래그 설정 (중복 방지)
       _hasProcessedEmailSignupEvent = true;
-      
-      // 이메일 회원가입 플래그 해제
       _authService?.setInEmailSignupFlow(false);
-      
-      // 성공 메시지 + 설정 안내 순차적 실행
-      // Future.microtask 대신 addPostFrameCallback 사용 (context 안정성 보장)
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted) return;
-        
-        if (kDebugMode) {
-          debugPrint('🎬 [리스너] 성공 메시지 다이얼로그 표시 시작');
-        }
-        
-        // ✅ STEP 1: 성공 메시지 표시 (MainScreen에서)
-        await DialogUtils.showSuccess(
-          context,
-          '🎉 회원가입이 완료되었습니다',
-        );
-        
-        if (kDebugMode) {
-          debugPrint('✅ [리스너] 성공 메시지 다이얼로그 닫힘');
-        }
-        
-        if (!mounted) return;
-        
-        // ✅ STEP 2: 설정 안내 다이얼로그 표시 (MainScreen에서)
-        if (kDebugMode) {
-          debugPrint('🎬 [리스너] 설정 안내 다이얼로그 표시 시작');
-        }
-        await _checkSettingsAndShowGuide();
-      });
-      return;  // 🔒 이메일 회원가입 이벤트 처리 후 즉시 리턴 (다른 이벤트 무시)
+      return;  // 이벤트 플래그만 해제하고 리턴
     }
     
     // 4️⃣ 소셜 로그인 플래그 해제 이벤트 감지 (사용자가 "로그인/닫기" 버튼 클릭)
