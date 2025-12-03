@@ -168,17 +168,16 @@ class ExtensionInitializer {
       final userId = authService.currentUser?.uid;
       if (userId == null) return false;
 
-      // userModel 로드 완료까지 대기 (최대 3초)
-      int waitCount = 0;
-      while (authService.currentUserModel == null && waitCount < 30) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        waitCount++;
-      }
-      
+      // 🔐 userModel 로드 확인 (이벤트 기반)
+      // ❌ 시간 기반 polling 제거: while + Future.delayed (불안정)
+      // ✅ 이벤트 기반: currentUserModel 직접 체크 (안정적)
       final userModel = authService.currentUserModel;
       if (userModel == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [신규사용자] userModel 아직 로드 안 됨 - AuthService 리스너가 재호출');
+        }
         _hasCheckedNewUser = false;
-        return false;
+        return false;  // AuthService의 notifyListeners()가 다시 호출할 것
       }
 
       // 🔐 소셜 로그인 진행 중인 경우 설정 체크 건너뛰기 (이벤트 기반)

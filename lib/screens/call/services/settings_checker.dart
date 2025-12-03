@@ -72,20 +72,16 @@ class SettingsChecker {
       return;
     }
 
-    // 🔐 CRITICAL: userModel 로드 완료까지 대기 (소셜 로그인 시 필수)
-    int waitCount = 0;
-    while (authService.currentUserModel == null && waitCount < 50) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      waitCount++;
-    }
-
+    // 🔐 CRITICAL: userModel 로드 확인 (이벤트 기반)
+    // ❌ 시간 기반 polling 제거: while + Future.delayed (불안정)
+    // ✅ 이벤트 기반: currentUserModel 직접 체크 (안정적)
     final userModel = authService.currentUserModel;
     if (userModel == null) {
       if (kDebugMode) {
-        debugPrint('⚠️ userModel 로드 실패 - 설정 체크 재시도 가능');
+        debugPrint('⚠️ userModel 아직 로드 안 됨 - AuthService 리스너가 재호출할 것');
       }
       _hasCheckedSettings = false; // 재시도 가능하도록 플래그 리셋
-      return;
+      return;  // AuthService의 notifyListeners()가 다시 호출할 것
     }
 
     // 🔐 CRITICAL: 소셜 로그인 진행 중인 경우 설정 체크 건너뛰기
