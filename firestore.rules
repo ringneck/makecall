@@ -114,9 +114,15 @@ service cloud.firestore {
     // 11. registered_extensions 컬렉션 - 등록된 단말번호
     // ============================================
     match /registered_extensions/{documentId} {
-      // 로그인한 사용자이고, 문서의 userId 필드가 본인과 일치하면 읽기/쓰기 가능
-      allow read, write: if request.auth != null 
-                         && request.auth.uid == resource.data.userId;
+      // 🔧 FIX V5: listening query 지원
+      // - 모든 인증된 사용자에게 읽기 허용 (단말번호는 공개 정보)
+      // - 쓰기는 본인 문서만 가능 (보안 유지)
+      allow read: if request.auth != null;
+      
+      allow write: if request.auth != null 
+                   && resource != null
+                   && request.auth.uid == resource.data.userId;
+      
       // 새 문서 생성 시
       allow create: if request.auth != null 
                     && request.auth.uid == request.resource.data.userId;
