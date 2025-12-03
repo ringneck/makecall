@@ -283,6 +283,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   // 💡 스플래시 스크린 표시 상태
   bool _isInitializing = true;
   
+  // 🎬 스플래시 Fade Out 시작 여부
+  bool _isFadingOut = false;
+  
+  // 🔑 스플래시 스크린 GlobalKey (Fade Out 제어용)
+  final GlobalKey<_SplashScreenState> _splashKey = GlobalKey<_SplashScreenState>();
+  
   // 🔒 로그인 유지 다이얼로그 표시 여부
   bool _isLoginKeepDialogShowing = false;
   
@@ -452,18 +458,33 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     try {
       debugPrint('🚀 [스플래시] 앱 초기화 시작');
       
-      // 스플래시 애니메이션이 충분히 보이도록 최소 2.5초 대기
+      // 스플래시 애니메이션이 충분히 보이도록 최소 2.0초 대기
       // - 펄스 애니메이션 (1.5초 주기) 최소 1회 완료
       // - 회전 애니메이션 (2초 주기) 1회 이상 보장
       // - 파티클 애니메이션 (3초 주기) 충분히 표시
-      await Future.delayed(const Duration(milliseconds: 2500));
+      await Future.delayed(const Duration(milliseconds: 2000));
       
       debugPrint('✅ [스플래시] Firebase Auth 세션 확인 및 애니메이션 표시 완료');
       
-      if (mounted) {
+      // 🎬 Fade Out 애니메이션 시작 (500ms 전에 미리 시작)
+      if (mounted && !_isFadingOut) {
         setState(() {
-          _isInitializing = false;
+          _isFadingOut = true;
         });
+        
+        debugPrint('🎬 [스플래시] Fade Out 애니메이션 시작');
+        
+        // Fade Out 애니메이션 실행 (600ms)
+        await _splashKey.currentState?.startFadeOut();
+        
+        debugPrint('✅ [스플래시] Fade Out 애니메이션 완료');
+        
+        // Fade Out 완료 후 화면 전환
+        if (mounted) {
+          setState(() {
+            _isInitializing = false;
+          });
+        }
       }
     } catch (e) {
       debugPrint('❌ [스플래시] 초기화 오류: $e');
@@ -617,7 +638,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   );
                 },
             home: _isInitializing
-                ? const SplashScreen() // 💡 스플래시 스크린 표시
+                ? SplashScreen(key: _splashKey) // 💡 스플래시 스크린 표시 (Fade Out 제어용 key 추가)
                 : Consumer<AuthService>(
                     builder: (context, authService, _) {
                       // 🔔 FCM BuildContext 및 AuthService 설정

@@ -8,8 +8,11 @@ import 'dart:math' as math;
 /// - 미래지향적 애니메이션 효과
 /// - 그라디언트 배경 + 파티클 효과
 /// - 펄스 애니메이션 + 회전 효과
+/// - 부드러운 Fade Out 전환
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  final VoidCallback? onFadeOutStart;
+  
+  const SplashScreen({super.key, this.onFadeOutStart});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -18,12 +21,14 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late AnimationController _rotationController;
-  late AnimationController _fadeController;
+  late AnimationController _fadeInController;
+  late AnimationController _fadeOutController;
   late AnimationController _particleController;
   
   late Animation<double> _pulseAnimation;
   late Animation<double> _rotationAnimation;
-  late Animation<double> _fadeAnimation;
+  late Animation<double> _fadeInAnimation;
+  late Animation<double> _fadeOutAnimation;
 
   @override
   void initState() {
@@ -49,14 +54,24 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       _rotationController,
     );
     
-    // 페이드 인 애니메이션
-    _fadeController = AnimationController(
+    // 페이드 인 애니메이션 (시작 시)
+    _fadeInController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
     
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
+    _fadeInAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeInController, curve: Curves.easeIn),
+    );
+    
+    // 페이드 아웃 애니메이션 (종료 시)
+    _fadeOutController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    
+    _fadeOutAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _fadeOutController, curve: Curves.easeOut),
     );
     
     // 파티클 애니메이션
@@ -65,14 +80,21 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       vsync: this,
     )..repeat();
     
-    _fadeController.forward();
+    _fadeInController.forward();
+  }
+  
+  /// Fade Out 시작 (외부에서 호출 가능)
+  Future<void> startFadeOut() async {
+    widget.onFadeOutStart?.call();
+    await _fadeOutController.forward();
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
     _rotationController.dispose();
-    _fadeController.dispose();
+    _fadeInController.dispose();
+    _fadeOutController.dispose();
     _particleController.dispose();
     super.dispose();
   }
@@ -132,8 +154,16 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   final ringSize = iconSize * 1.33;
                   
                   return Center(
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
+                    child: AnimatedBuilder(
+                      animation: Listenable.merge([_fadeInAnimation, _fadeOutAnimation]),
+                      builder: (context, child) {
+                        // Fade In 후 Fade Out 적용
+                        final opacity = _fadeInAnimation.value * _fadeOutAnimation.value;
+                        return Opacity(
+                          opacity: opacity,
+                          child: child,
+                        );
+                      },
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -335,6 +365,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         ],
                       ),
                     ),
+                  ),
                   );
                 },
               ),
