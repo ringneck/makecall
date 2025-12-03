@@ -265,14 +265,6 @@ class SettingsChecker {
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                if (!context.mounted) return;
-                _hasCheckedSettings = true;
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('나중에'),
-            ),
             ElevatedButton.icon(
               onPressed: () async {
                 Navigator.pop(dialogContext);
@@ -289,6 +281,10 @@ class SettingsChecker {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2196F3),
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ],
