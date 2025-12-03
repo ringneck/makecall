@@ -298,11 +298,15 @@ class SettingsChecker {
                 // 다이얼로그가 완전히 닫힌 후 기본 API 설정 다이얼로그 표시
                 await Future.delayed(const Duration(milliseconds: 300));
 
-                if (context.mounted) {
+                if (dialogContext.mounted) {
+                  // 현재 다이얼로그 닫기
+                  Navigator.of(dialogContext).pop();
+                  
+                  // 기본 API 설정 다이얼로그 표시
                   await showDialog(
-                    context: context,
+                    context: context,  // 원본 context 사용
                     barrierDismissible: false,
-                    builder: (context) => const ApiSettingsDialog(),
+                    builder: (ctx) => const ApiSettingsDialog(),
                   );
                 }
               },
