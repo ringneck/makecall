@@ -69,6 +69,10 @@ class _CallTabState extends State<CallTab> {
   // Note: Device contacts state는 ContactManager에서 관리됨
   // Note: _hasCheckedNewUser는 ExtensionInitializer에서 관리됨
   
+  // 🎯 이벤트 기반 플래그: 이메일 회원가입 이벤트 처리 완료 여부
+  // 타이밍에 의존하지 않고 이벤트 발생 시 한 번만 처리하도록 보장
+  bool _hasProcessedEmailSignupEvent = false;
+  
   // 🔒 고급 개발자 패턴: AuthService 참조를 안전하게 저장
   // dispose()에서 context 사용을 피하기 위한 전략
   AuthService? _authService;
@@ -207,13 +211,15 @@ class _CallTabState extends State<CallTab> {
       // 순차적 초기화 실행
       await _initializeSequentially();
       
-      // 🎯 CRITICAL: CallTab 생성 후 이메일 회원가입 플래그 확인
-      // SignupScreen이 닫힌 후 CallTab이 생성되면 여기서 확인
-      // _hasCheckedSettings 조건 제거 (타이밍 이슈로 항상 true일 수 있음)
-      if (_authService?.isInEmailSignupFlow ?? false) {
+      // 🎯 CRITICAL: 이벤트 기반 이메일 회원가입 처리
+      // 타이밍이 아닌 이벤트 발생 여부로 판단 (한 번만 실행 보장)
+      if ((_authService?.isInEmailSignupFlow ?? false) && !_hasProcessedEmailSignupEvent) {
         if (kDebugMode) {
-          debugPrint('🔔 [initState] 이메일 회원가입 플래그 감지 → 성공 메시지 + 설정 안내');
+          debugPrint('🔔 [initState] 이메일 회원가입 이벤트 감지 → 성공 메시지 + 설정 안내');
         }
+        
+        // 🔒 이벤트 처리 완료 플래그 설정 (중복 방지)
+        _hasProcessedEmailSignupEvent = true;
         
         // 이메일 회원가입 플래그 해제
         _authService?.setInEmailSignupFlow(false);
@@ -382,11 +388,15 @@ class _CallTabState extends State<CallTab> {
       });
     }
     
-    // 4️⃣ 이메일 회원가입 플래그 감지 (이벤트 기반 처리)
-    if ((_authService?.isInEmailSignupFlow ?? false) && !_hasCheckedSettings) {
+    // 4️⃣ 이메일 회원가입 이벤트 감지 (완전한 이벤트 기반 처리)
+    // 타이밍이 아닌 이벤트 발생 여부로 판단 (한 번만 실행 보장)
+    if ((_authService?.isInEmailSignupFlow ?? false) && !_hasProcessedEmailSignupEvent) {
       if (kDebugMode) {
-        debugPrint('🔔 [이벤트] 이메일 회원가입 완료 감지 → 성공 메시지 + 설정 안내');
+        debugPrint('🔔 [리스너-이벤트] 이메일 회원가입 이벤트 감지 → 성공 메시지 + 설정 안내');
       }
+      
+      // 🔒 이벤트 처리 완료 플래그 설정 (중복 방지)
+      _hasProcessedEmailSignupEvent = true;
       
       // 이메일 회원가입 플래그 해제
       _authService?.setInEmailSignupFlow(false);
