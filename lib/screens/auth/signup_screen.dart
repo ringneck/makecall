@@ -131,6 +131,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         // ignore: avoid_print
         print('   User ID: ${credential.user!.uid}');
         
+        // ✅ CRITICAL: 이메일 회원가입 플래그 먼저 설정 (FCM 이벤트 우선 차단)
+        authService.setInEmailSignupFlow(true);
+        // ignore: avoid_print
+        print('🏳️ [SIGNUP] 이메일 회원가입 플래그 설정 (FCM 이벤트 차단)');
+        
         // FCM 초기화 (자동 로그인)
         try {
           final fcmService = FCMService();
@@ -156,9 +161,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           print('⚠️ [SIGNUP] FCM 초기화 실패: $e');
           // FCM 실패 시에도 로그인 상태는 유지 (나중에 초기화 재시도)
         }
-        
-        // ✅ CRITICAL: 이메일 회원가입 플래그 설정 (이벤트 기반 처리)
-        authService.setInEmailSignupFlow(true);
         
         // ✅ CRITICAL: SignupScreen 즉시 닫기 (delay 제거)
         if (mounted && Navigator.canPop(context)) {
