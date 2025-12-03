@@ -211,47 +211,8 @@ class _CallTabState extends State<CallTab> {
       // 순차적 초기화 실행
       await _initializeSequentially();
       
-      // 🎯 CRITICAL: 이벤트 기반 이메일 회원가입 처리
-      // 타이밍이 아닌 이벤트 발생 여부로 판단 (한 번만 실행 보장)
-      if ((_authService?.isInEmailSignupFlow ?? false) && !_hasProcessedEmailSignupEvent) {
-        if (kDebugMode) {
-          debugPrint('🔔 [initState] 이메일 회원가입 이벤트 감지 → 성공 메시지 + 설정 안내');
-        }
-        
-        // 🔒 이벤트 처리 완료 플래그 설정 (중복 방지)
-        _hasProcessedEmailSignupEvent = true;
-        
-        // 이메일 회원가입 플래그 해제
-        _authService?.setInEmailSignupFlow(false);
-        
-        // 성공 메시지 + 설정 안내 순차적 실행
-        // Future.microtask 대신 addPostFrameCallback 사용 (context 안정성 보장)
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (!mounted) return;
-          
-          if (kDebugMode) {
-            debugPrint('🎬 [initState] 성공 메시지 다이얼로그 표시 시작');
-          }
-          
-          // ✅ STEP 1: 성공 메시지 표시 (MainScreen에서)
-          await DialogUtils.showSuccess(
-            context,
-            '🎉 회원가입이 완료되었습니다',
-          );
-          
-          if (kDebugMode) {
-            debugPrint('✅ [initState] 성공 메시지 다이얼로그 닫힘');
-          }
-          
-          if (!mounted) return;
-          
-          // ✅ STEP 2: 설정 안내 다이얼로그 표시 (MainScreen에서)
-          if (kDebugMode) {
-            debugPrint('🎬 [initState] 설정 안내 다이얼로그 표시 시작');
-          }
-          await _checkSettingsAndShowGuide();
-        });
-      }
+      // ✅ 이메일 회원가입 이벤트 처리는 AuthService 리스너에서만 수행
+      // (initState에서 처리하면 중복 실행됨)
     });
   }
   
