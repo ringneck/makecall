@@ -209,7 +209,8 @@ class _CallTabState extends State<CallTab> {
       
       // 🎯 CRITICAL: CallTab 생성 후 이메일 회원가입 플래그 확인
       // SignupScreen이 닫힌 후 CallTab이 생성되면 여기서 확인
-      if ((_authService?.isInEmailSignupFlow ?? false) && !_hasCheckedSettings) {
+      // _hasCheckedSettings 조건 제거 (타이밍 이슈로 항상 true일 수 있음)
+      if (_authService?.isInEmailSignupFlow ?? false) {
         if (kDebugMode) {
           debugPrint('🔔 [initState] 이메일 회원가입 플래그 감지 → 성공 메시지 + 설정 안내');
         }
