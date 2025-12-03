@@ -54,6 +54,9 @@ class SettingsChecker {
       if (kDebugMode) debugPrint('✅ 설정 체크 이미 완료됨');
       return;
     }
+    
+    // 🔒 CRITICAL: 다이얼로그 표시 플래그를 체크 직후 바로 설정 (Race Condition 방지)
+    _isDialogShowing = true;
 
     // 🔒 Early Return: 인증 상태 검증
     if (authService.currentUser == null || !authService.isAuthenticated) {
@@ -116,6 +119,7 @@ class SettingsChecker {
     // 🔒 REST API 설정 완료 시 체크 종료
     if (hasApiSettings && hasExtensions) {
       _hasCheckedSettings = true;
+      _isDialogShowing = false; // 플래그 해제
       if (kDebugMode) debugPrint('✅ REST API 설정 완료');
       return;
     }
@@ -123,7 +127,6 @@ class SettingsChecker {
     // 🔒 REST API 설정 미완료 시 안내 다이얼로그
     if (!hasApiSettings) {
       _hasCheckedSettings = true; // 1회만 표시
-      _isDialogShowing = true; // 다이얼로그 표시 중 플래그 설정
 
       if (context.mounted) {
         try {
@@ -140,7 +143,6 @@ class SettingsChecker {
     // 🔒 단말번호 미등록 시 안내 다이얼로그
     if (!hasExtensions) {
       _hasCheckedSettings = true; // 1회만 표시
-      _isDialogShowing = true; // 다이얼로그 표시 중 플래그 설정
       
       if (context.mounted) {
         try {
