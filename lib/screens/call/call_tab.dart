@@ -417,8 +417,13 @@ class _CallTabState extends State<CallTab> {
       _authService?.setInEmailSignupFlow(false);
       
       // 성공 메시지 + 설정 안내 순차적 실행
-      Future.microtask(() async {
+      // Future.microtask 대신 addPostFrameCallback 사용 (context 안정성 보장)
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
+        
+        if (kDebugMode) {
+          debugPrint('🎬 [리스너] 성공 메시지 다이얼로그 표시 시작');
+        }
         
         // ✅ STEP 1: 성공 메시지 표시 (MainScreen에서)
         await DialogUtils.showSuccess(
@@ -426,9 +431,16 @@ class _CallTabState extends State<CallTab> {
           '🎉 회원가입이 완료되었습니다',
         );
         
+        if (kDebugMode) {
+          debugPrint('✅ [리스너] 성공 메시지 다이얼로그 닫힘');
+        }
+        
         if (!mounted) return;
         
         // ✅ STEP 2: 설정 안내 다이얼로그 표시 (MainScreen에서)
+        if (kDebugMode) {
+          debugPrint('🎬 [리스너] 설정 안내 다이얼로그 표시 시작');
+        }
         await _checkSettingsAndShowGuide();
       });
     }
