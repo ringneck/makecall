@@ -1695,6 +1695,7 @@ class DatabaseService {
     String? websocketHttpAuthId,
     String? websocketHttpAuthPassword,
     int? amiServerId,
+    int? maxExtensions, // 🔧 maxExtensions 추가
   }) async {
     try {
       if (kDebugMode) {
@@ -1733,6 +1734,7 @@ class DatabaseService {
         'websocketHttpAuthId': websocketHttpAuthId,
         'websocketHttpAuthPassword': websocketHttpAuthPassword,
         'amiServerId': amiServerId ?? 1,
+        'maxExtensions': maxExtensions ?? 1, // 🔧 maxExtensions 포함
         'exportedByUserId': userId,
         'exportedByEmail': userEmail,
         'lastUpdatedAt': now.toIso8601String(),
@@ -1945,7 +1947,59 @@ class DatabaseService {
         debugPrint('   조직명: ${sharedSettings['organizationName']}');
       }
       
-      // 사용자 문서에 API 설정 필드만 업데이트
+      // 🔧 STEP 1: 현재 사용자의 maxExtensions 값 확인
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      final currentMaxExtensions = userDoc.data()?['maxExtensions'] as int? ?? 1;
+      final newMaxExtensions = sharedSettings['maxExtensions'] as int? ?? 1;
+      
+      if (kDebugMode) {
+        debugPrint('🔍 [DB] maxExtensions 변경 확인:');
+        debugPrint('   현재 maxExtensions: $currentMaxExtensions');
+        debugPrint('   새로운 maxExtensions: $newMaxExtensions');
+      }
+      
+      // 🔧 STEP 2: maxExtensions가 변경되거나 1로 제한되는 경우 기존 registered_extensions 삭제
+      if (newMaxExtensions != currentMaxExtensions) {
+        if (kDebugMode) {
+          debugPrint('⚠️  [DB] maxExtensions 변경 감지 - 기존 등록된 단말번호 삭제 필요');
+        }
+        
+        // 현재 사용자의 모든 registered_extensions 문서 조회
+        final registeredQuery = await _firestore
+            .collection('registered_extensions')
+            .where('userId', isEqualTo: userId)
+            .get();
+        
+        if (registeredQuery.docs.isNotEmpty) {
+          if (kDebugMode) {
+            debugPrint('🗑️  [DB] 삭제할 registered_extensions: ${registeredQuery.docs.length}개');
+          }
+          
+          // 배치 삭제
+          final batch = _firestore.batch();
+          for (final doc in registeredQuery.docs) {
+            batch.delete(doc.reference);
+            if (kDebugMode) {
+              debugPrint('   - 삭제: ${doc.id} (userId: ${doc.data()['userId']})');
+            }
+          }
+          await batch.commit();
+          
+          if (kDebugMode) {
+            debugPrint('✅ [DB] registered_extensions 삭제 완료');
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('ℹ️  [DB] 삭제할 registered_extensions 없음');
+          }
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('ℹ️  [DB] maxExtensions 변경 없음 - registered_extensions 유지');
+        }
+      }
+      
+      // 🔧 STEP 3: 사용자 문서에 API 설정 필드 업데이트 (maxExtensions 포함)
       await _firestore.collection('users').doc(userId).update({
         'companyName': sharedSettings['companyName'],
         'companyId': sharedSettings['companyId'],
@@ -1959,10 +2013,12 @@ class DatabaseService {
         'websocketHttpAuthId': sharedSettings['websocketHttpAuthId'],
         'websocketHttpAuthPassword': sharedSettings['websocketHttpAuthPassword'],
         'amiServerId': sharedSettings['amiServerId'] ?? 1,
+        'maxExtensions': newMaxExtensions, // 🔧 maxExtensions 업데이트
+        'lastMaxExtensionsUpdate': FieldValue.serverTimestamp(), // 업데이트 시간 기록
       });
       
       if (kDebugMode) {
-        debugPrint('✅ [DB] API 설정 가져오기 완료');
+        debugPrint('✅ [DB] API 설정 가져오기 완료 (maxExtensions: $newMaxExtensions)');
       }
     } catch (e) {
       if (kDebugMode) {

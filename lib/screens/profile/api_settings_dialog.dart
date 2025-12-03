@@ -251,6 +251,7 @@ class _ApiSettingsDialogState extends State<ApiSettingsDialog> {
         websocketHttpAuthId: userModel.websocketHttpAuthId,
         websocketHttpAuthPassword: userModel.websocketHttpAuthPassword,
         amiServerId: userModel.amiServerId,
+        maxExtensions: userModel.maxExtensions, // 🔧 maxExtensions 추가
       );
       
       if (mounted) {
