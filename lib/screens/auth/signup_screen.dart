@@ -146,6 +146,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
               barrierDismissible: false,
               builder: (context) => MaxDeviceLimitDialog(
                 exception: e,
+                userId: credential.user!.uid,
               ),
             );
           }
