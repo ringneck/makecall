@@ -458,9 +458,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     try {
       debugPrint('🚀 [스플래시] 앱 초기화 시작');
       
-      // 스플래시 애니메이션이 충분히 보이도록 최소 1.0초 대기
-      // - 빠른 앱 시작을 위한 최적화된 대기시간
-      await Future.delayed(const Duration(milliseconds: 1000));
+      // 스플래시 애니메이션이 충분히 보이도록 최소 1.5초 대기
+      // - 펄스 애니메이션 (1.5초 주기) 최소 1회 완료 보장
+      await Future.delayed(const Duration(milliseconds: 1500));
       
       debugPrint('✅ [스플래시] Firebase Auth 세션 확인 및 애니메이션 표시 완료');
       
