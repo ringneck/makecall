@@ -913,7 +913,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     
     // 🔒 CRITICAL: 동의 확인 (필수 항목)
     if (!_termsAgreed || !_privacyPolicyAgreed) {
-      await DialogUtils.showWarning(
+      await DialogUtils.showInfo(
         context,
         '회원가입을 진행하려면\n필수 항목에 동의해주세요.\n\n✓ 이용약관\n✓ 개인정보처리방침',
       );
@@ -991,7 +991,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     
     // 🔒 CRITICAL: 동의 확인 (필수 항목)
     if (!_termsAgreed || !_privacyPolicyAgreed) {
-      await DialogUtils.showWarning(
+      await DialogUtils.showInfo(
         context,
         '회원가입을 진행하려면\n필수 항목에 동의해주세요.\n\n✓ 이용약관\n✓ 개인정보처리방침',
       );
@@ -1070,7 +1070,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     
     // 🔒 CRITICAL: 동의 확인 (필수 항목)
     if (!_termsAgreed || !_privacyPolicyAgreed) {
-      await DialogUtils.showWarning(
+      await DialogUtils.showInfo(
         context,
         '회원가입을 진행하려면\n필수 항목에 동의해주세요.\n\n✓ 이용약관\n✓ 개인정보처리방침',
       );
