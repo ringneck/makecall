@@ -314,12 +314,19 @@ class FCMService {
           try {
             _fcmToken = await _webConfig.getWebFCMToken();
             if (_fcmToken == null) {
-              // 웹에서 FCM 실패해도 앱은 계속 동작
-              return;
+              // 웹에서 FCM 토큰은 없지만, 웹 기기 정보는 저장해야 함
+              if (kDebugMode) {
+                debugPrint('⚠️ [FCM-WEB] FCM 토큰 없음 - 더미 토큰으로 기기 정보 저장');
+              }
+              // 웹 플랫폼용 더미 토큰 생성 (fcm_tokens에 기기 등록용)
+              _fcmToken = 'web_dummy_token_${DateTime.now().millisecondsSinceEpoch}';
             }
           } catch (e) {
-            // 웹에서 FCM 실패해도 앱은 계속 동작
-            return;
+            // 웹에서 FCM 실패 시에도 더미 토큰으로 기기 정보 저장
+            if (kDebugMode) {
+              debugPrint('⚠️ [FCM-WEB] FCM 에러 발생 - 더미 토큰으로 기기 정보 저장: $e');
+            }
+            _fcmToken = 'web_dummy_token_${DateTime.now().millisecondsSinceEpoch}';
           }
         } else {
           
