@@ -122,6 +122,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       final credential = await authService.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        termsAgreed: _termsAgreed,
+        privacyPolicyAgreed: _privacyPolicyAgreed,
+        marketingConsent: _marketingConsent,
       );
       
       // ✅ CRITICAL: 회원가입 성공 후 자동 로그인 처리

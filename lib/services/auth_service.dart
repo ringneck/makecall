@@ -318,6 +318,9 @@ class AuthService extends ChangeNotifier {
   Future<UserCredential?> signUp({
     required String email,
     required String password,
+    bool termsAgreed = false,
+    bool privacyPolicyAgreed = false,
+    bool marketingConsent = false,
   }) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -327,16 +330,55 @@ class AuthService extends ChangeNotifier {
       
       // Firestore에 사용자 정보 저장
       if (credential.user != null) {
-        final userModel = UserModel(
-          uid: credential.user!.uid,
-          email: email,
-          createdAt: DateTime.now(),
-        );
+        final nowDateTime = DateTime.now();
+        final now = FieldValue.serverTimestamp();
+        final twoYearsLater = nowDateTime.add(const Duration(days: 730));
+        
+        final userData = {
+          'uid': credential.user!.uid,
+          'email': email,
+          'organizationName': '',
+          'role': 'user',
+          'loginProvider': 'email',
+          'createdAt': now,
+          'updatedAt': now,
+          'lastLoginAt': now,
+          'isActive': true,
+          'accountStatus': 'approved',
+          'maxDevices': 1,
+          // 동의 정보 (SignupScreen에서 수집됨)
+          'consentVersion': '1.0',
+          'termsAgreed': termsAgreed,
+          'termsAgreedAt': termsAgreed ? now : null,
+          'privacyPolicyAgreed': privacyPolicyAgreed,
+          'privacyPolicyAgreedAt': privacyPolicyAgreed ? now : null,
+          'marketingConsent': marketingConsent,
+          'marketingConsentAt': marketingConsent ? now : null,
+          'lastConsentCheckAt': now,
+          'nextConsentCheckDue': Timestamp.fromDate(twoYearsLater),
+          'consentHistory': [
+            {
+              'version': '1.0',
+              'agreedAt': Timestamp.fromDate(nowDateTime),
+              'type': 'initial',
+              'termsAgreed': termsAgreed,
+              'privacyPolicyAgreed': privacyPolicyAgreed,
+              'marketingConsent': marketingConsent,
+            }
+          ],
+        };
         
         await _firestore
             .collection('users')
             .doc(credential.user!.uid)
-            .set(userModel.toMap());
+            .set(userData);
+        
+        // UserModel은 간단한 정보만 저장
+        final userModel = UserModel(
+          uid: credential.user!.uid,
+          email: email,
+          createdAt: nowDateTime,
+        );
         
         _currentUserModel = userModel;
         notifyListeners();
