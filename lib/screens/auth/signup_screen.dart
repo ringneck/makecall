@@ -1687,22 +1687,35 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         const SizedBox(height: 32),
                         
                         // Sign Up Button (Gradient)
-                        Container(
+                        // ✅ UX 개선: 필수 동의 체크 여부에 따라 버튼 활성화/비활성화
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
                           height: 56,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
+                            gradient: (_termsAgreed && _privacyPolicyAgreed)
+                                ? const LinearGradient(
+                                    colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  )
+                                : LinearGradient(
+                                    colors: [
+                                      Colors.grey[400]!,
+                                      Colors.grey[500]!,
+                                    ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
                             borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF2196F3).withValues(alpha: 0.4),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
+                            boxShadow: (_termsAgreed && _privacyPolicyAgreed)
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFF2196F3).withValues(alpha: 0.4),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ]
+                                : [],
                           ),
                           child: ElevatedButton(
                             onPressed: (_isLoading || !_termsAgreed || !_privacyPolicyAgreed) 
@@ -1711,6 +1724,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
+                              disabledBackgroundColor: Colors.transparent,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -1724,12 +1738,14 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                                       strokeWidth: 2.5,
                                     ),
                                   )
-                                : const Text(
+                                : Text(
                                     '가입하기',
                                     style: TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                      color: (_termsAgreed && _privacyPolicyAgreed)
+                                          ? Colors.white
+                                          : Colors.grey[300],
                                       letterSpacing: 0.5,
                                     ),
                                   ),
