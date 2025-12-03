@@ -361,12 +361,16 @@ class _CallTabState extends State<CallTab> {
       return;
     }
     
-    // 🔒 이메일 회원가입 이벤트 처리는 signup_screen.dart에서 직접 처리
+    // 3️⃣ 이메일 회원가입 이벤트 처리는 CallTab initState에서 처리
     // (MainScreen 전환 후 addPostFrameCallback으로 다이얼로그 표시)
     // 여기서는 플래그만 체크하고 넘어감
     if ((_authService?.isInEmailSignupFlow ?? false) && !_hasProcessedEmailSignupEvent) {
       _hasProcessedEmailSignupEvent = true;
       _authService?.setInEmailSignupFlow(false);
+      _hasCheckedSettings = true; // 🔒 CRITICAL: 소셜 로그인 로직 실행 방지
+      if (kDebugMode) {
+        debugPrint('✅ [리스너] 이메일 회원가입 이벤트 감지 → 플래그 설정 (initState가 다이얼로그 처리)');
+      }
       return;  // 이벤트 플래그만 해제하고 리턴
     }
     

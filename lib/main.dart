@@ -793,6 +793,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       // ✅ 로그인 상태 체크: currentUser와 currentUserModel 존재 여부
                       // isAuthenticated 대신 직접 체크 (승인 대기 상태와 독립적)
                       // 🚫 MaxDeviceLimit 차단 시 LoginScreen 유지
+                      if (kDebugMode) {
+                        debugPrint('🔍 [MAIN] Consumer rebuild - 로그인 상태 체크:');
+                        debugPrint('   currentUser: ${authService.currentUser?.uid}');
+                        debugPrint('   currentUserModel: ${authService.currentUserModel?.email}');
+                        debugPrint('   isLoggingOut: ${authService.isLoggingOut}');
+                      }
+                      
                       if (authService.currentUser != null && 
                           authService.currentUserModel != null &&
                           !authService.isLoggingOut &&
