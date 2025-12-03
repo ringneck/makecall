@@ -119,22 +119,54 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
 
     try {
       final authService = context.read<AuthService>();
-      await authService.signUp(
+      final credential = await authService.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
       
-      if (mounted && Navigator.canPop(context)) {
-        Navigator.pop(context);
-        // Navigator.pop 후 약간의 딜레이를 주어 안전하게 새 다이얼로그 표시
-        await Future.delayed(const Duration(milliseconds: 100));
+      // ✅ CRITICAL: 회원가입 성공 후 자동 로그인 처리
+      if (credential != null && credential.user != null) {
+        // ignore: avoid_print
+        print('✅ [SIGNUP] 회원가입 성공 - 자동 로그인 시작');
+        // ignore: avoid_print
+        print('   User ID: ${credential.user!.uid}');
         
+        // FCM 초기화 (자동 로그인)
+        try {
+          final fcmService = FCMService();
+          await fcmService.initialize(credential.user!.uid);
+          // ignore: avoid_print
+          print('✅ [SIGNUP] FCM 초기화 완료 - MainScreen으로 자동 전환됨');
+        } on MaxDeviceLimitException catch (e) {
+          // 최대 기기 수 초과 시 다이얼로그 표시
+          if (mounted) {
+            setState(() => _isLoading = false);
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => MaxDeviceLimitDialog(
+                exception: e,
+              ),
+            );
+          }
+          return;
+        } catch (e) {
+          // ignore: avoid_print
+          print('⚠️ [SIGNUP] FCM 초기화 실패: $e');
+          // FCM 실패 시에도 로그인 상태는 유지 (나중에 초기화 재시도)
+        }
+        
+        // 성공 메시지 표시 (짧게)
         if (mounted) {
           await DialogUtils.showSuccess(
             context,
             '회원가입이 완료되었습니다',
           );
         }
+        
+        // MainScreen으로 자동 전환 (AuthService의 authStateChanges가 처리)
+        // ignore: avoid_print
+        print('🚀 [SIGNUP] MainScreen으로 자동 전환 대기 중...');
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
@@ -142,6 +174,11 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           context,
           context.read<AuthService>().getErrorMessage(e.code),
         );
+      }
+    } on MaxDeviceLimitException catch (e) {
+      // 최대 기기 수 초과 처리는 위에서 이미 처리됨
+      if (kDebugMode) {
+        debugPrint('🚫 [SIGNUP] 최대 기기 수 초과');
       }
     } finally {
       if (mounted) {
