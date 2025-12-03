@@ -313,6 +313,14 @@ class _CallTabState extends State<CallTab> {
       return;
     }
     
+    // 🔒 CRITICAL: 이메일 회원가입 이벤트 처리 중이면 다른 모든 이벤트 무시 (Race Condition 완전 차단)
+    if (_hasProcessedEmailSignupEvent && (_authService?.isInEmailSignupFlow ?? false)) {
+      if (kDebugMode) {
+        debugPrint('⏭️ [리스너] 이메일 회원가입 이벤트 처리 중 - 다른 이벤트 무시');
+      }
+      return;
+    }
+    
     // 1️⃣ FCM 초기화 완료 이벤트 감지
     // ⚠️ 이메일 회원가입 중이면 FCM 이벤트 무시 (중복 방지)
     if ((_authService?.isFcmInitialized ?? false) && !_extensionInitializer.hasCheckedNewUser && widget.autoOpenProfileForNewUser) {
@@ -350,18 +358,17 @@ class _CallTabState extends State<CallTab> {
     }
     
     // 3️⃣ 소셜 로그인 플래그 해제 이벤트 감지 (사용자가 "로그인/닫기" 버튼 클릭)
-    // ⚠️ 이메일 회원가입 플래그 또는 이벤트 처리 완료 플래그가 있으면 소셜 로그인 이벤트 무시
+    // ⚠️ 이메일 회원가입 이벤트 처리 중이거나 이미 처리 완료된 경우 소셜 로그인 이벤트 무시
     if (!(_authService?.isInSocialLoginFlow ?? true) && 
         !_hasCheckedSettings && 
-        !(_authService?.isInEmailSignupFlow ?? false) && 
-        !_hasProcessedEmailSignupEvent) {
+        !_hasProcessedEmailSignupEvent) {  // 🔒 CRITICAL: 이메일 회원가입 이벤트 처리 완료 체크 강화
       if (kDebugMode) {
         debugPrint('🔔 [이벤트] 소셜 로그인 완료 감지 → 설정 체크 실행');
       }
       
       // 설정 체크 실행 (API 설정 및 단말번호)
       Future.microtask(() async {
-        if (mounted) {
+        if (mounted && !_hasProcessedEmailSignupEvent) {  // 🔒 CRITICAL: 한 번 더 체크 (Race Condition 방지)
           await _checkSettingsAndShowGuide();
         }
       });
