@@ -16,6 +16,9 @@ class SettingsChecker {
   final GlobalKey<ScaffoldState> scaffoldKey;
   
   bool _hasCheckedSettings = false;
+  
+  // 🔒 CRITICAL: 다이얼로그 중복 표시 방지를 위한 static 플래그
+  static bool _isDialogShowing = false;
 
   SettingsChecker({
     required this.authService,
@@ -38,7 +41,14 @@ class SettingsChecker {
   /// **최적화 전략**:
   /// - Idempotent: _hasCheckedSettings 플래그로 중복 실행 방지
   /// - Lazy Loading: userModel 로드 전에는 실행하지 않음
+  /// - Static Flag: _isDialogShowing으로 다이얼로그 중복 표시 완전 차단
   Future<void> checkAndShowGuide(BuildContext context) async {
+    // 🔒 CRITICAL: 다이얼로그가 이미 표시 중이면 즉시 리턴 (중복 방지)
+    if (_isDialogShowing) {
+      if (kDebugMode) debugPrint('⏭️ 설정 안내 다이얼로그 이미 표시 중 - 중복 실행 방지');
+      return;
+    }
+    
     // 🔒 중복 실행 방지
     if (_hasCheckedSettings) {
       if (kDebugMode) debugPrint('✅ 설정 체크 이미 완료됨');
@@ -113,9 +123,16 @@ class SettingsChecker {
     // 🔒 REST API 설정 미완료 시 안내 다이얼로그
     if (!hasApiSettings) {
       _hasCheckedSettings = true; // 1회만 표시
+      _isDialogShowing = true; // 다이얼로그 표시 중 플래그 설정
 
       if (context.mounted) {
-        await _showApiSettingsDialog(context, userModel);
+        try {
+          await _showApiSettingsDialog(context, userModel);
+        } finally {
+          _isDialogShowing = false; // 다이얼로그 닫힌 후 플래그 해제
+        }
+      } else {
+        _isDialogShowing = false; // context가 없으면 플래그 해제
       }
       return;
     }
@@ -123,8 +140,16 @@ class SettingsChecker {
     // 🔒 단말번호 미등록 시 안내 다이얼로그
     if (!hasExtensions) {
       _hasCheckedSettings = true; // 1회만 표시
+      _isDialogShowing = true; // 다이얼로그 표시 중 플래그 설정
+      
       if (context.mounted) {
-        await _showExtensionRegistrationDialog(context);
+        try {
+          await _showExtensionRegistrationDialog(context);
+        } finally {
+          _isDialogShowing = false; // 다이얼로그 닫힌 후 플래그 해제
+        }
+      } else {
+        _isDialogShowing = false; // context가 없으면 플래그 해제
       }
     }
   }
