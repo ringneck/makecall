@@ -157,17 +157,26 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           // FCM 실패 시에도 로그인 상태는 유지 (나중에 초기화 재시도)
         }
         
-        // 성공 메시지 표시 (짧게)
-        if (mounted) {
-          await DialogUtils.showSuccess(
-            context,
-            '회원가입이 완료되었습니다',
-          );
+        // ✅ CRITICAL: SignupScreen 닫기 (MainScreen으로 자동 전환을 위해)
+        if (mounted && Navigator.canPop(context)) {
+          // ignore: avoid_print
+          print('🔙 [SIGNUP] SignupScreen 닫는 중...');
+          Navigator.pop(context);
+          
+          // 짧은 지연 후 성공 메시지 표시
+          await Future.delayed(const Duration(milliseconds: 200));
+          
+          if (mounted) {
+            await DialogUtils.showSuccess(
+              context,
+              '회원가입이 완료되었습니다',
+            );
+          }
         }
         
         // MainScreen으로 자동 전환 (AuthService의 authStateChanges가 처리)
         // ignore: avoid_print
-        print('🚀 [SIGNUP] MainScreen으로 자동 전환 대기 중...');
+        print('🚀 [SIGNUP] MainScreen으로 자동 전환 완료');
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
