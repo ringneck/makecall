@@ -174,12 +174,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           print('🔙 [SIGNUP] SignupScreen 닫고 MainScreen으로 전환');
           
           // LoginScreen까지 모두 닫고 MainScreen으로 이동
-          // showWelcomeDialog 플래그를 true로 설정하여 MainScreen에서 회원가입 완료 다이얼로그 표시
           await Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (context) => const MainScreen(
-                showWelcomeDialog: true,  // 회원가입 완료 다이얼로그 표시 요청
-              ),
+              builder: (context) => const MainScreen(),
             ),
             (route) => false, // 모든 이전 화면 제거
           );

@@ -233,6 +233,7 @@ class SettingsChecker {
               ),
               const SizedBox(height: 16),
               Text(
+                '🎉 회원가입이 완료되었습니다!\n\n'
                 '클릭투콜 서비스를 이용하려면\nREST API 설정이 필요합니다.',
                 style: TextStyle(
                   fontSize: 14,
