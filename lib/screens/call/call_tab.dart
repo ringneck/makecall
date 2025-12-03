@@ -340,10 +340,10 @@ class _CallTabState extends State<CallTab> {
     // 1️⃣ FCM 초기화 완료 이벤트 감지
     // ⚠️ 이메일 회원가입 중이면 FCM 이벤트 무시 (중복 방지)
     if ((_authService?.isFcmInitialized ?? false) && !_extensionInitializer.hasCheckedNewUser && widget.autoOpenProfileForNewUser) {
-      // 이메일 회원가입 플래그가 있으면 FCM 이벤트 무시
-      if (_authService?.isInEmailSignupFlow ?? false) {
+      // 이메일 회원가입 플래그 또는 이벤트 처리 플래그가 있으면 FCM 이벤트 무시
+      if ((_authService?.isInEmailSignupFlow ?? false) || _hasProcessedEmailSignupEvent) {
         if (kDebugMode) {
-          debugPrint('🛑 [FCM-이벤트] 이메일 회원가입 중 - FCM 이벤트 무시');
+          debugPrint('🛑 [FCM-이벤트] 이메일 회원가입 중 또는 이벤트 처리 완료 - FCM 이벤트 무시');
         }
         return;
       }
