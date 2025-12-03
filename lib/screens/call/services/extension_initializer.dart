@@ -121,13 +121,13 @@ class ExtensionInitializer {
     }
   }
   
-  /// 🎉 신규 사용자 감지 및 ProfileDrawer 자동 열기 (고급 이벤트 기반 패턴)
+  /// 🎉 신규 사용자 설정 완료 여부 감지 (고급 이벤트 기반 패턴)
   /// 
-  /// **기능**: 회원가입 직후 기본 설정이 필요한 신규 사용자를 감지하고 ProfileDrawer를 자동으로 엽니다
-  /// - API 설정, WebSocket 설정, 단말번호 모두 완료된 경우 ProfileDrawer 열지 않음
-  /// - 설정이 부족한 경우에만 ProfileDrawer 자동 열기
-  /// - 안내 메시지 없이 바로 ProfileDrawer 열기
-  /// - 최초 1회만 실행 (중복 열기 방지)
+  /// **기능**: 회원가입 직후 기본 설정이 필요한 신규 사용자를 감지합니다
+  /// - API 설정, WebSocket 설정, 단말번호 모두 완료된 경우 설정 완료로 처리
+  /// - 설정이 부족한 경우 로그만 출력 (ProfileDrawer 자동 열기 비활성화됨)
+  /// - 사용자가 직접 ProfileDrawer를 열어 설정을 완료해야 함
+  /// - 최초 1회만 실행 (중복 체크 방지)
   /// 
   /// **고급 패턴**:
   /// - FCM 초기화 완료 대기 (이벤트 기반)
@@ -205,32 +205,20 @@ class ExtensionInitializer {
         return true; // 설정 완료됨
       }
 
-      // 🔒 설정이 부족한 경우 ProfileDrawer 자동 열기
+      // 🔒 설정이 부족한 경우에도 ProfileDrawer 자동 열기 비활성화
       if (kDebugMode) {
         debugPrint('');
         debugPrint('='*60);
         debugPrint('⚠️ 설정 미완료 감지!');
         debugPrint('='*60);
-        debugPrint('   → ProfileDrawer 자동 열기 실행');
-        debugPrint('   → 초기 등록 안내 팝업 비활성화');
+        debugPrint('   → 사용자가 직접 설정을 완료해야 합니다');
+        debugPrint('   → ProfileDrawer 자동 열기 비활성화됨');
         debugPrint('='*60);
         debugPrint('');
       }
 
-      // 🔒 설정 미완료 사용자는 초기 등록 안내 팝업을 표시하지 않음
+      // 설정 체크 완료 플래그 설정
       setHasCheckedSettings(true);
-
-      // 약간의 지연 후 ProfileDrawer 자동 열기 (UI가 완전히 로드된 후)
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      if (!context.mounted) return true;
-      
-      // ProfileDrawer 열기
-      scaffoldKey.currentState?.openDrawer();
-      
-      if (kDebugMode) {
-        debugPrint('✅ ProfileDrawer 자동 열기 완료');
-      }
       
       return true; // 설정 체크 완료
     } catch (e) {
