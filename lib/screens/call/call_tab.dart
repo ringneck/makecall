@@ -374,8 +374,11 @@ class _CallTabState extends State<CallTab> {
     }
     
     // 3️⃣ 소셜 로그인 플래그 해제 이벤트 감지 (사용자가 "로그인/닫기" 버튼 클릭)
-    // ⚠️ 이메일 회원가입 플래그가 있으면 소셜 로그인 이벤트 무시
-    if (!(_authService?.isInSocialLoginFlow ?? true) && !_hasCheckedSettings && !(_authService?.isInEmailSignupFlow ?? false)) {
+    // ⚠️ 이메일 회원가입 플래그 또는 이벤트 처리 완료 플래그가 있으면 소셜 로그인 이벤트 무시
+    if (!(_authService?.isInSocialLoginFlow ?? true) && 
+        !_hasCheckedSettings && 
+        !(_authService?.isInEmailSignupFlow ?? false) && 
+        !_hasProcessedEmailSignupEvent) {
       if (kDebugMode) {
         debugPrint('🔔 [이벤트] 소셜 로그인 완료 감지 → 설정 체크 실행');
       }
