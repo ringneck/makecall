@@ -157,26 +157,20 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           // FCM 실패 시에도 로그인 상태는 유지 (나중에 초기화 재시도)
         }
         
-        // ✅ CRITICAL: SignupScreen 닫기 (MainScreen으로 자동 전환을 위해)
+        // ✅ CRITICAL: 이메일 회원가입 플래그 설정 (이벤트 기반 처리)
+        authService.setInEmailSignupFlow(true);
+        
+        // ✅ CRITICAL: SignupScreen 즉시 닫기 (delay 제거)
         if (mounted && Navigator.canPop(context)) {
           // ignore: avoid_print
-          print('🔙 [SIGNUP] SignupScreen 닫는 중...');
+          print('🔙 [SIGNUP] SignupScreen 즉시 닫기 (메인 화면 전환 시작)');
           Navigator.pop(context);
-          
-          // 짧은 지연 후 성공 메시지 표시
-          await Future.delayed(const Duration(milliseconds: 200));
-          
-          if (mounted) {
-            await DialogUtils.showSuccess(
-              context,
-              '회원가입이 완료되었습니다',
-            );
-          }
         }
         
         // MainScreen으로 자동 전환 (AuthService의 authStateChanges가 처리)
+        // 성공 메시지 및 안내 다이얼로그는 call_tab에서 이벤트 기반으로 처리
         // ignore: avoid_print
-        print('🚀 [SIGNUP] MainScreen으로 자동 전환 완료');
+        print('🚀 [SIGNUP] MainScreen 전환 대기 중 (authStateChanges 처리)');
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {

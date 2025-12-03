@@ -77,6 +77,11 @@ class AuthService extends ChangeNotifier {
   bool _isInSocialLoginFlow = false;
   bool get isInSocialLoginFlow => _isInSocialLoginFlow;
   
+  // 🎯 이메일 회원가입 진행 중 플래그 (이벤트 기반)
+  // SignupScreen에서 이메일 회원가입이 완료된 직후 true
+  bool _isInEmailSignupFlow = false;
+  bool get isInEmailSignupFlow => _isInEmailSignupFlow;
+  
   // 🚀 고급 패턴: FCM 초기화 완료 상태 (이벤트 기반)
   bool _isFcmInitialized = false;
   bool get isFcmInitialized => _isFcmInitialized;
@@ -117,6 +122,13 @@ class AuthService extends ChangeNotifier {
   /// SignupScreen에서 "기존 계정 확인" 다이얼로그 표시 전/후 호출
   void setInSocialLoginFlow(bool inFlow) {
     _isInSocialLoginFlow = inFlow;
+    notifyListeners();
+  }
+  
+  /// 이메일 회원가입 진행 중 상태 설정
+  /// SignupScreen에서 이메일 회원가입 완료 직후 호출
+  void setInEmailSignupFlow(bool inFlow) {
+    _isInEmailSignupFlow = inFlow;
     notifyListeners();
   }
   
