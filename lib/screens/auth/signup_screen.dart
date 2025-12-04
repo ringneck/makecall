@@ -170,30 +170,15 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           // 프로필 이미지 업로드 실패 시에도 회원가입은 유지
         }
         
-        // FCM 초기화 (자동 로그인)
+        // ⚡ CRITICAL: 이메일 미인증 상태에서 MainScreen 진입 방지
+        // 회원가입 성공 후 즉시 로그아웃하여 이메일 인증 전까지 LoginScreen 유지
         try {
-          final fcmService = FCMService();
-          await fcmService.initialize(credential.user!.uid);
+          await FirebaseAuth.instance.signOut();
           // ignore: avoid_print
-          print('✅ [SIGNUP] FCM 초기화 완료 - MainScreen으로 자동 전환됨');
-        } on MaxDeviceLimitException catch (e) {
-          // 최대 기기 수 초과 시 다이얼로그 표시
-          if (mounted) {
-            setState(() => _isLoading = false);
-            await showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => MaxDeviceLimitDialog(
-                exception: e,
-                userId: credential.user!.uid,
-              ),
-            );
-          }
-          return;
+          print('✅ [SIGNUP] 이메일 인증 대기 - 로그아웃 완료');
         } catch (e) {
           // ignore: avoid_print
-          print('⚠️ [SIGNUP] FCM 초기화 실패: $e');
-          // FCM 실패 시에도 로그인 상태는 유지 (나중에 초기화 재시도)
+          print('⚠️ [SIGNUP] 로그아웃 실패: $e');
         }
         
         // 📧 이메일 인증 안내 다이얼로그 표시 (다크모드 최적화)
@@ -439,24 +424,25 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           );
         }
         
-        // ✅ CRITICAL: SignupScreen 닫고 MainScreen으로 직접 전환
+        // ⚡ CRITICAL: SignupScreen 닫고 LoginScreen으로 전환
+        // 이메일 인증 완료 전까지는 로그인 불가 상태 유지
         if (mounted) {
           // ignore: avoid_print
-          print('🔙 [SIGNUP] SignupScreen 닫고 MainScreen으로 전환');
+          print('🔙 [SIGNUP] SignupScreen 닫고 LoginScreen으로 전환');
+          print('   → 이메일 인증 완료 후 재로그인 필요');
           
-          // LoginScreen까지 모두 닫고 MainScreen으로 이동
-          // showWelcomeDialog: true → MainScreen 렌더링 후 다이얼로그 표시 (이벤트 기반)
-          await Navigator.of(context).pushAndRemoveUntil(
+          // SignupScreen 닫고 LoginScreen으로 이동 (이메일 자동 입력)
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (context) => const MainScreen(
-                showWelcomeDialog: true,  // 🎯 이벤트 기반: MainScreen 렌더링 완료 후 다이얼로그 표시
+              builder: (context) => LoginScreen(
+                prefilledEmail: _emailController.text.trim(),  // 이메일 자동 입력
               ),
             ),
             (route) => false, // 모든 이전 화면 제거
           );
           
           // ignore: avoid_print
-          print('✅ [SIGNUP] MainScreen 전환 완료 - 다이얼로그는 렌더링 후 표시됨');
+          print('✅ [SIGNUP] LoginScreen 전환 완료 - 이메일 인증 후 로그인 가능');
         }
       }
     } on FirebaseAuthException catch (e) {
