@@ -719,7 +719,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white.withOpacity(opacity),
+                color: Colors.white.withValues(alpha: opacity),
                 width: 2,
               ),
             ),
@@ -944,7 +944,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.white.withOpacity(0.3 * _glowController.value),
+                    color: Colors.white.withValues(alpha: 0.3 * _glowController.value),
                     blurRadius: 40 * _glowController.value,
                     spreadRadius: 10 * _glowController.value,
                   ),
@@ -1085,7 +1085,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.white.withOpacity(0.3 * _glowController.value),
+                    color: Colors.white.withValues(alpha: 0.3 * _glowController.value),
                     blurRadius: 40 * _glowController.value,
                     spreadRadius: 10 * _glowController.value,
                   ),
@@ -1263,7 +1263,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.blue.withOpacity(0.5 * _glowController.value),
+                        color: Colors.blue.withValues(alpha: 0.5 * _glowController.value),
                         blurRadius: 30 * _glowController.value,
                         spreadRadius: 5 * _glowController.value,
                       ),
@@ -1365,7 +1365,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                   boxShadow: isPrimary
                       ? [
                           BoxShadow(
-                            color: color.withOpacity(0.5 * _glowController.value),
+                            color: color.withValues(alpha: 0.5 * _glowController.value),
                             blurRadius: 30 * _glowController.value,
                             spreadRadius: 5 * _glowController.value,
                           ),

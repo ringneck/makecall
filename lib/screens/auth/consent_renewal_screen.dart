@@ -206,7 +206,7 @@ class _ConsentRenewalScreenState extends State<ConsentRenewalScreen> {
             ),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            activeColor: const Color(0xFF2196F3),
+            activeThumbColor: const Color(0xFF2196F3),
           ),
           
           Divider(
@@ -258,7 +258,7 @@ class _ConsentRenewalScreenState extends State<ConsentRenewalScreen> {
             ),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            activeColor: const Color(0xFF2196F3),
+            activeThumbColor: const Color(0xFF2196F3),
           ),
           
           // 필수 2: 개인정보처리방침
@@ -302,7 +302,7 @@ class _ConsentRenewalScreenState extends State<ConsentRenewalScreen> {
             ),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            activeColor: const Color(0xFF2196F3),
+            activeThumbColor: const Color(0xFF2196F3),
           ),
           
           // 선택: 마케팅 수신 동의
@@ -331,7 +331,7 @@ class _ConsentRenewalScreenState extends State<ConsentRenewalScreen> {
             ),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            activeColor: const Color(0xFF2196F3),
+            activeThumbColor: const Color(0xFF2196F3),
             isThreeLine: true,
           ),
         ],

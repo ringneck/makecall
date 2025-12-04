@@ -31,7 +31,7 @@ class SocialLoginProgressOverlay extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.4 : 0.1),
+                color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.1),
                 blurRadius: 20,
                 spreadRadius: 0,
                 offset: const Offset(0, 10),

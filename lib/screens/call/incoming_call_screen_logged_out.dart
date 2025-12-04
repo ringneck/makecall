@@ -316,7 +316,7 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white.withOpacity(opacity),
+                color: Colors.white.withValues(alpha: opacity),
                 width: 2,
               ),
             ),
@@ -541,7 +541,7 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.white.withOpacity(0.3 * _glowController.value),
+                    color: Colors.white.withValues(alpha: 0.3 * _glowController.value),
                     blurRadius: 40 * _glowController.value,
                     spreadRadius: 10 * _glowController.value,
                   ),
@@ -682,7 +682,7 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.white.withOpacity(0.3 * _glowController.value),
+                    color: Colors.white.withValues(alpha: 0.3 * _glowController.value),
                     blurRadius: 40 * _glowController.value,
                     spreadRadius: 10 * _glowController.value,
                   ),
@@ -840,7 +840,7 @@ class _IncomingCallScreenLoggedOutState extends State<IncomingCallScreenLoggedOu
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.green.withOpacity(0.6 * _glowController.value),
+                        color: Colors.green.withValues(alpha: 0.6 * _glowController.value),
                         blurRadius: 35 * _glowController.value,
                         spreadRadius: 8 * _glowController.value,
                       ),

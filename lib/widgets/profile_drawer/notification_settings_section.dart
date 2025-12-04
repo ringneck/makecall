@@ -393,7 +393,7 @@ class _NotificationSettingsSectionState extends State<NotificationSettingsSectio
                           ),
                         ),
                       ),
-                      activeColor: isDark ? Colors.green[400] : Colors.green[600],
+                      activeThumbColor: isDark ? Colors.green[400] : Colors.green[600],
                     ),
                   ),
                   
@@ -465,7 +465,7 @@ class _NotificationSettingsSectionState extends State<NotificationSettingsSectio
                                   ),
                                 ),
                               ),
-                              activeColor: isDark ? Colors.blue[400] : Colors.blue[600],
+                              activeThumbColor: isDark ? Colors.blue[400] : Colors.blue[600],
                             ),
                             Divider(
                               height: 1, 
@@ -522,7 +522,7 @@ class _NotificationSettingsSectionState extends State<NotificationSettingsSectio
                                   ),
                                 ),
                               ),
-                              activeColor: isDark ? Colors.blue[400] : Colors.blue[600],
+                              activeThumbColor: isDark ? Colors.blue[400] : Colors.blue[600],
                             ),
                           ],
                         ),

@@ -388,7 +388,7 @@ class ArcPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withOpacity(isDark ? 0.6 : 0.8)
+      ..color = color.withValues(alpha: isDark ? 0.6 : 0.8)
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -425,7 +425,7 @@ class LoadingRingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withOpacity(isDark ? 0.7 : 0.9)
+      ..color = color.withValues(alpha: isDark ? 0.7 : 0.9)
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -457,7 +457,7 @@ class ParticlePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(isDark ? 0.1 : 0.15)
+      ..color = Colors.white.withValues(alpha: isDark ? 0.1 : 0.15)
       ..style = PaintingStyle.fill;
 
     final random = math.Random(42); // 고정 시드로 일관된 파티클 위치
@@ -474,7 +474,7 @@ class ParticlePainter extends CustomPainter {
       
       // 파티클 페이드 효과
       final opacity = (1 - (y / size.height)) * (isDark ? 0.3 : 0.4);
-      paint.color = Colors.white.withOpacity(opacity);
+      paint.color = Colors.white.withValues(alpha: opacity);
       
       canvas.drawCircle(
         Offset(x, y),
