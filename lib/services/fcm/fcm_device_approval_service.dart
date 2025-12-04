@@ -412,6 +412,14 @@ class FCMDeviceApprovalService {
       return;
     }
     
+    // 🔍 CRITICAL: Context 유효성 검사
+    if (!context.mounted) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-APPROVAL] Context가 이미 dispose됨 - 대기 후 재시도');
+      _waitForContextAndShowApprovalDialog(message);
+      return;
+    }
+    
     _currentDisplayedApprovalId = approvalRequestId;
     
     // 🔒 FCMService에도 현재 표시 중인 승인 ID 설정 (취소 메시지 처리용)
@@ -419,8 +427,34 @@ class FCMDeviceApprovalService {
     
     // ignore: avoid_print
     print('✅ [FCM-APPROVAL] 다이얼로그 표시 시작');
+    print('   - context.mounted: ${context.mounted}');
     
-    // 다이얼로그 표시
+    // 🔧 FIX: 다음 프레임에 다이얼로그 표시 (BuildContext 유효성 보장)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 다시 한 번 context 유효성 확인
+      final currentContext = navigatorKey.currentContext;
+      if (currentContext == null || !currentContext.mounted) {
+        // ignore: avoid_print
+        print('⚠️ [FCM-APPROVAL] PostFrameCallback에서도 context 무효 - 재시도');
+        _waitForContextAndShowApprovalDialog(message);
+        return;
+      }
+      
+      // ignore: avoid_print
+      print('🎬 [FCM-APPROVAL] PostFrameCallback에서 다이얼로그 표시');
+      
+      // 다이얼로그 표시
+      _showApprovalDialogInternal(currentContext, approvalRequestId, newDeviceName, newPlatform);
+    });
+  }
+  
+  /// 다이얼로그 표시 내부 함수
+  void _showApprovalDialogInternal(
+    BuildContext context,
+    String approvalRequestId,
+    String newDeviceName,
+    String newPlatform,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false,
