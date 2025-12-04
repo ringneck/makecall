@@ -120,12 +120,15 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     try {
       final authService = context.read<AuthService>();
       
-      // 🚨 CRITICAL: 이메일 회원가입 플래그를 signUp() 호출 전에 설정!
-      // signUp()이 Firestore에 사용자를 생성하면 즉시 authStateChanges가 트리거되므로
-      // 플래그를 미리 설정하여 모든 이벤트를 차단해야 함
+      // 🔥 CRITICAL: 이메일 회원가입 플래그를 signUp() 호출 **전**에 설정!
+      // Firebase Auth의 authStateChanges 이벤트가 signUp() 실행 중 즉시 발생하므로
+      // FCM 초기화 및 다이얼로그 표시를 차단하기 위해 플래그를 먼저 설정
       authService.setInEmailSignupFlow(true);
-      // ignore: avoid_print
-      print('🏳️ [SIGNUP] 이메일 회원가입 플래그 설정 (FCM 이벤트 차단) - signUp() 호출 전');
+      if (kDebugMode) {
+        debugPrint('🏳️ [SIGNUP] 이메일 회원가입 플래그 설정 완료 (signUp() 호출 전)');
+        debugPrint('   → FCM 이벤트 차단');
+        debugPrint('   → AuthService 리스너 무시');
+      }
       
       final credential = await authService.signUp(
         email: _emailController.text.trim(),
