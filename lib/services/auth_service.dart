@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'dart:io';
 import '../models/user_model.dart';
 import '../main.dart' show navigatorKey;
@@ -168,7 +169,14 @@ class AuthService extends ChangeNotifier {
           debugPrint('✅ [AUTH STATE] 로그아웃 감지 - 플래그 해제 및 UI 업데이트');
         }
         
-        notifyListeners();
+        // 🔒 CRITICAL: 다음 프레임에서 notifyListeners() 호출
+        // authStateChanges 콜백 내에서 즉시 호출하면 Consumer가 rebuild되지 않을 수 있음
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (kDebugMode) {
+            debugPrint('🔔 [AUTH STATE] notifyListeners() 호출 - Consumer rebuild 트리거');
+          }
+          notifyListeners();
+        });
       }
     });
   }

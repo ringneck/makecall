@@ -213,16 +213,7 @@ class _CallTabState extends State<CallTab> {
         }
       });
       
-      // 🎉 신규 사용자 체크 및 ProfileDrawer 자동 열기 (ExtensionInitializer 사용)
-      if (widget.autoOpenProfileForNewUser) {
-        await _extensionInitializer.checkAndOpenProfileDrawerForNewUser(
-          context,
-          () => _hasCheckedSettings,
-          (value) => _hasCheckedSettings = value,
-        );
-      }
-      
-      // 순차적 초기화 실행
+      // 순차적 초기화 실행 (ExtensionInitializer 포함)
       await _initializeSequentially();
     });
   }
@@ -256,15 +247,32 @@ class _CallTabState extends State<CallTab> {
     
     if (!mounted) return;
     
-    // 🎯 STEP 2: 단말번호 자동 초기화 (ExtensionInitializer 사용)
-    // 클릭투콜 기능을 위해 로그인 즉시 단말번호 설정
-    await _extensionInitializer.initializeExtensions(context);
+    // 🎯 STEP 2: 초기 설정 필요 다이얼로그 표시 (이벤트 기반)
+    // 이메일 회원가입 시에만 표시 (일반 로그인/소셜 로그인은 스킵)
+    if (widget.showWelcomeDialog) {
+      if (kDebugMode) {
+        debugPrint('🔍 [CALL_TAB] 초기 설정 체크 시작 (이메일 회원가입)');
+      }
+      await _checkSettingsAndShowGuide();
+    }
     
     if (!mounted) return;
     
-    // 🎯 STEP 3: 설정 확인 및 안내 다이얼로그 표시 (이벤트 기반)
-    // 모든 로그인 시나리오에서 실행
-    await _checkSettingsAndShowGuide();
+    // 🎯 STEP 3: 신규 사용자 체크 및 ProfileDrawer 자동 열기 (ExtensionInitializer 사용)
+    // 일반 로그인/소셜 로그인 시에만 실행
+    if (widget.autoOpenProfileForNewUser && !widget.showWelcomeDialog) {
+      await _extensionInitializer.checkAndOpenProfileDrawerForNewUser(
+        context,
+        () => _hasCheckedSettings,
+        (value) => _hasCheckedSettings = value,
+      );
+    }
+    
+    if (!mounted) return;
+    
+    // 🎯 STEP 4: 단말번호 자동 초기화 (ExtensionInitializer 사용)
+    // 클릭투콜 기능을 위해 로그인 즉시 단말번호 설정
+    await _extensionInitializer.initializeExtensions(context);
   }
   
   @override
