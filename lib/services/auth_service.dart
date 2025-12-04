@@ -257,6 +257,11 @@ class AuthService extends ChangeNotifier {
         _tempPassword = null;
         
         notifyListeners();
+        
+        if (kDebugMode) {
+          debugPrint('✅ [_loadUserModel] UserModel 로드 완료: ${_currentUserModel!.email}');
+          debugPrint('   - notifyListeners() 호출됨');
+        }
       } else {
         final currentUser = _auth.currentUser;
         
@@ -469,6 +474,14 @@ class AuthService extends ChangeNotifier {
         // 🛑 CRITICAL: _loadUserModel에서 ServiceSuspendedException이 발생하면 즉시 리턴
         try {
           await _loadUserModel(credential.user!.uid, password: password);
+          
+          // 🔥 CRITICAL: _loadUserModel 완료 후 명시적으로 notifyListeners() 호출
+          // authStateChanges 리스너와 별개로 즉시 UI 업데이트 보장
+          notifyListeners();
+          
+          if (kDebugMode) {
+            debugPrint('✅ [AUTH] UserModel 로드 완료 - UI 업데이트 트리거');
+          }
         } on ServiceSuspendedException catch (e) {
           // 서비스 이용 중지 계정 - 로그아웃 처리 후 예외 재전파
           if (kDebugMode) {
