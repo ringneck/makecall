@@ -254,7 +254,7 @@ class FCMTokenManager {
           return {
             'device_name': device.deviceName,
             'platform': device.platform,
-            'last_updated': device.lastActiveAt,
+            'last_updated': device.lastActiveAt,  // Timestamp 그대로 전달 (다이얼로그에서 처리)
           };
         }).toList();
         

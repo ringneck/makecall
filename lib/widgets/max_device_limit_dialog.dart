@@ -301,7 +301,11 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
                 final device = entry.value;
                 final deviceName = device['device_name'] as String;
                 final platform = device['platform'] as String;
-                final lastUpdated = device['last_updated'] as Timestamp?;
+                // ✅ 웹 환경 호환성: Timestamp 타입 안전 처리
+                final lastUpdatedRaw = device['last_updated'];
+                final Timestamp? lastUpdated = lastUpdatedRaw is Timestamp 
+                    ? lastUpdatedRaw 
+                    : null;
                 
                 return Container(
                   margin: EdgeInsets.only(
