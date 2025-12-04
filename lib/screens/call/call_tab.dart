@@ -247,12 +247,14 @@ class _CallTabState extends State<CallTab> {
     
     if (!mounted) return;
     
-    // 🎯 STEP 2: 이메일 회원가입 이벤트 처리 완료 플래그만 설정
-    // '초기 등록 필요' 다이얼로그는 표시하지 않음 (사용자 요청에 따라 제거)
+    // 🎯 STEP 2: '초기 등록 필요' 다이얼로그 표시 (이메일 회원가입 시에만)
     if (widget.showWelcomeDialog) {
       if (kDebugMode) {
-        debugPrint('✅ [CALL_TAB] 이메일 회원가입 이벤트 처리 완료 플래그 설정');
+        debugPrint('🔍 [CALL_TAB] 초기 설정 체크 시작 (이메일 회원가입)');
       }
+      
+      // 🔥 CRITICAL: 설정 체크 및 '초기 등록 필요' 다이얼로그 표시
+      await _checkSettingsAndShowGuide();
       
       // 🔒 CRITICAL: 이메일 회원가입 이벤트 처리 완료 플래그 설정
       // AuthService 리스너에서 중복 실행 방지

@@ -173,9 +173,9 @@ class AuthService extends ChangeNotifier {
           }
           notifyListeners();
           
-          // 🔥 CRITICAL: notifyListeners() 후 다음 프레임에 플래그 해제
-          // LoginScreen 전환이 완료된 후에 플래그 해제
-          SchedulerBinding.instance.addPostFrameCallback((_) {
+          // 🔥 CRITICAL: notifyListeners() 후 500ms 지연하여 플래그 해제
+          // LoginScreen 전환이 완전히 완료된 후에 플래그 해제
+          Future.delayed(const Duration(milliseconds: 500), () {
             _isLoggingOut = false;
             _isSigningOut = false;
             if (kDebugMode) {
