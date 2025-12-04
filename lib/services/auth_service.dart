@@ -150,17 +150,30 @@ class AuthService extends ChangeNotifier {
       if (user != null) {
         // 로그인 상태
         _lastUserId = user.uid;
-        try {
-          await _loadUserModel(user.uid);
-        } on ServiceSuspendedException catch (e) {
-          // 🛑 서비스 이용 중지 계정 - authStateChanges에서는 무시
-          // UI의 signIn()에서 이미 처리했으므로 여기서는 조용히 무시
-          if (kDebugMode) {
-            debugPrint('🛑 [AUTH STATE] 서비스 이용 중지 계정 - 무시');
+        
+        // 🔥 CRITICAL: signIn()에서 이미 _loadUserModel()을 호출하므로
+        // authStateChanges에서는 _currentUserModel이 null일 때만 호출
+        // (앱 재시작 등으로 자동 로그인되는 경우에만 필요)
+        if (_currentUserModel == null || _currentUserModel!.uid != user.uid) {
+          try {
+            if (kDebugMode) {
+              debugPrint('🔄 [AUTH STATE] UserModel 로드 필요 - _loadUserModel() 호출');
+            }
+            await _loadUserModel(user.uid);
+          } on ServiceSuspendedException catch (e) {
+            // 🛑 서비스 이용 중지 계정 - authStateChanges에서는 무시
+            // UI의 signIn()에서 이미 처리했으므로 여기서는 조용히 무시
+            if (kDebugMode) {
+              debugPrint('🛑 [AUTH STATE] 서비스 이용 중지 계정 - 무시');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('⚠️ [AUTH STATE] _loadUserModel 오류: $e');
+            }
           }
-        } catch (e) {
+        } else {
           if (kDebugMode) {
-            debugPrint('⚠️ [AUTH STATE] _loadUserModel 오류: $e');
+            debugPrint('✅ [AUTH STATE] UserModel 이미 존재 - _loadUserModel() 건너뛰기');
           }
         }
       } else if (_lastUserId != null) {
