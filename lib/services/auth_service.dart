@@ -486,6 +486,8 @@ class AuthService extends ChangeNotifier {
           'isActive': true,
           'accountStatus': 'approved',
           'maxDevices': 1,
+          // ⚡ CRITICAL: 이메일 회원가입 후 첫 로그인 플래그
+          'isFirstLogin': true,  // 재로그인 시 초기 설정 다이얼로그 표시용
           // 동의 정보 (SignupScreen에서 수집됨)
           'consentVersion': '1.0',
           'termsAgreed': termsAgreed,

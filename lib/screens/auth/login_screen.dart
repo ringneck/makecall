@@ -169,6 +169,60 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
 
+  /// ⚡ 이메일 회원가입 후 첫 로그인 여부 확인 및 플래그 업데이트
+  Future<bool> _checkFirstLogin() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [FIRST_LOGIN] currentUser가 null - 체크 불가');
+        }
+        return false;
+      }
+      
+      // Firestore에서 사용자 문서 읽기
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      
+      if (!userDoc.exists) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [FIRST_LOGIN] 사용자 문서 없음');
+        }
+        return false;
+      }
+      
+      final data = userDoc.data();
+      final isFirstLogin = data?['isFirstLogin'] == true;
+      
+      if (kDebugMode) {
+        debugPrint('🔍 [FIRST_LOGIN] 체크 결과: $isFirstLogin');
+        debugPrint('   - UID: ${currentUser.uid}');
+        debugPrint('   - Email: ${currentUser.email}');
+      }
+      
+      // 첫 로그인이면 플래그를 false로 업데이트
+      if (isFirstLogin) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .update({'isFirstLogin': false});
+        
+        if (kDebugMode) {
+          debugPrint('✅ [FIRST_LOGIN] 플래그 업데이트 완료: true → false');
+        }
+      }
+      
+      return isFirstLogin;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [FIRST_LOGIN] 체크 오류: $e');
+      }
+      return false;
+    }
+  }
+  
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -218,14 +272,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         return;
       }
       
+      // ⚡ CRITICAL: 이메일 회원가입 후 첫 로그인 체크
+      final isFirstLogin = await _checkFirstLogin();
+      
       // LoginScreen을 스택에서 완전히 제거하고 MainScreen으로 교체
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const MainScreen()),
+        MaterialPageRoute(
+          builder: (context) => MainScreen(
+            showWelcomeDialog: isFirstLogin, // 첫 로그인 시 환영 다이얼로그 표시
+          ),
+        ),
         (route) => false, // 모든 이전 화면 제거
       );
       
       if (kDebugMode) {
         debugPrint('✅ [LOGIN] MainScreen으로 화면 전환 완료');
+        debugPrint('   - 첫 로그인 여부: $isFirstLogin');
       }
       
     } on MaxDeviceLimitException catch (e) {
