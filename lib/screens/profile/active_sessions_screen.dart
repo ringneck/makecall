@@ -86,9 +86,9 @@ class _ActiveSessionsScreenState extends State<ActiveSessionsScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,8 +332,8 @@ class _ActiveSessionsScreenState extends State<ActiveSessionsScreen> {
                               contentPadding: const EdgeInsets.all(16),
                               leading: CircleAvatar(
                                 backgroundColor: session.isActive
-                                    ? Colors.green.withOpacity(0.2)
-                                    : Colors.grey.withOpacity(0.2),
+                                    ? Colors.green.withValues(alpha: 0.2)
+                                    : Colors.grey.withValues(alpha: 0.2),
                                 child: Icon(
                                   _getPlatformIcon(session.platform),
                                   color: session.isActive ? Colors.green[700] : Colors.grey[600],

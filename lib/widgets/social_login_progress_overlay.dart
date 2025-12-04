@@ -21,7 +21,7 @@ class SocialLoginProgressOverlay extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Container(
-      color: (isDark ? Colors.black : Colors.white).withOpacity(0.85),
+      color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.85),
       child: Center(
         child: Container(
           padding: const EdgeInsets.all(24),

@@ -26,9 +26,9 @@ class _ConsentRenewalScreenState extends State<ConsentRenewalScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return WillPopScope(
+    return PopScope(
       // 뒤로가기 비활성화 (반드시 동의해야 함)
-      onWillPop: () async => false,
+      canPop: false,
       child: Scaffold(
         backgroundColor: isDark
             ? Theme.of(context).scaffoldBackgroundColor

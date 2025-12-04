@@ -405,7 +405,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Theme check removed (unused)
     return Scaffold(
       body: SafeArea(
         bottom: true, // 하단 SafeArea 명시적 적용
@@ -432,7 +432,7 @@ class _DialpadScreenState extends State<DialpadScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         // 사용 가능한 높이 계산 (SafeArea bottom padding 고려)
-        final availableHeight = constraints.maxHeight;
+        // Available height calculation removed (unused)
         final screenWidth = constraints.maxWidth;
         
         // 반응형 크기 계산 (소형 화면 최적화)

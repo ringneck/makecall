@@ -189,7 +189,7 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
                     : theme.colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.3),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),
@@ -251,7 +251,7 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.errorContainer.withOpacity(0.3),
+                      color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -354,7 +354,7 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
                         : theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: theme.colorScheme.outline.withOpacity(0.2),
+                      color: theme.colorScheme.outline.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(

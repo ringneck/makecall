@@ -746,18 +746,18 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     // 통화 타입별 색상
     Color borderColor;
     if (widget.callType == 'external') {
-      borderColor = const Color(0xFFe76f51).withOpacity(0.4);
+      borderColor = const Color(0xFFe76f51).withValues(alpha: 0.4);
     } else if (widget.callType == 'internal') {
-      borderColor = const Color(0xFF06d6a0).withOpacity(0.4);
+      borderColor = const Color(0xFF06d6a0).withValues(alpha: 0.4);
     } else {
-      borderColor = Colors.white.withOpacity(0.3);
+      borderColor = Colors.white.withValues(alpha: 0.3);
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       margin: const EdgeInsets.symmetric(horizontal: 40),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: borderColor,
@@ -771,7 +771,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
             Text(
               widget.myCompanyName!,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.95),
+                color: Colors.white.withValues(alpha: 0.95),
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
@@ -802,7 +802,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           Text(
             widget.receiverNumber,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: 15,
               fontWeight: FontWeight.w500,
               letterSpacing: 1,
@@ -835,14 +835,14 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         children: [
           Icon(
             Icons.phone_in_talk,
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             size: 16,
           ),
           const SizedBox(width: 8),
           Text(
             widget.receiverNumber,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: 15,
               fontWeight: FontWeight.w500,
               letterSpacing: 1,
@@ -880,15 +880,15 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
-            color: accentColor.withOpacity(0.15),
+            color: accentColor.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
-              color: accentColor.withOpacity(0.4),
+              color: accentColor.withValues(alpha: 0.4),
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: accentColor.withOpacity(0.3),
+                color: accentColor.withValues(alpha: 0.3),
                 blurRadius: 12,
                 spreadRadius: 2,
               ),
@@ -899,14 +899,14 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
             children: [
               Icon(
                 headerIcon,
-                color: accentColor.withOpacity(0.95),
+                color: accentColor.withValues(alpha: 0.95),
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
                 headerText,
                 style: TextStyle(
-                  color: accentColor.withOpacity(0.95),
+                  color: accentColor.withValues(alpha: 0.95),
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,
@@ -993,10 +993,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.25),
+                  color: Colors.white.withValues(alpha: 0.25),
                   width: 1,
                 ),
               ),
@@ -1006,14 +1006,14 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 children: [
                   Icon(
                     Icons.call_made,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     size: 16,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     widget.myExternalCidNumber!,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                       letterSpacing: 1,
@@ -1051,17 +1051,17 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
           child: Text(
             widget.callerNumber,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: 18,
               fontWeight: FontWeight.w500,
               letterSpacing: 2,
@@ -1123,17 +1123,17 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
           child: Text(
             widget.callerNumber,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: 18,
               fontWeight: FontWeight.w500,
               letterSpacing: 2,
@@ -1283,7 +1283,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                         ],
                       ),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         width: 2,
                       ),
                     ),
@@ -1303,7 +1303,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
             Text(
               '확인',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
@@ -1382,11 +1382,11 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                       end: Alignment.bottomRight,
                       colors: [
                         color,
-                        color.withOpacity(0.8),
+                        color.withValues(alpha: 0.8),
                       ],
                     ),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                       width: 2,
                     ),
                   ),
@@ -1406,7 +1406,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontSize: 16,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,

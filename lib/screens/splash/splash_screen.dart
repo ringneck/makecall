@@ -190,7 +190,7 @@ class SplashScreenState extends State<SplashScreen> with TickerProviderStateMixi
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
                                               border: Border.all(
-                                                color: Colors.white.withOpacity(0.3),
+                                                color: Colors.white.withValues(alpha: 0.3),
                                                 width: 2,
                                               ),
                                             ),
@@ -215,14 +215,14 @@ class SplashScreenState extends State<SplashScreen> with TickerProviderStateMixi
                                     boxShadow: [
                                       BoxShadow(
                                         color: isDark
-                                            ? Colors.black.withOpacity(0.5)
-                                            : Colors.black.withOpacity(0.3),
+                                            ? Colors.black.withValues(alpha: 0.5)
+                                            : Colors.black.withValues(alpha: 0.3),
                                         blurRadius: 30,
                                         spreadRadius: 5,
                                         offset: const Offset(0, 10),
                                       ),
                                       BoxShadow(
-                                        color: Colors.white.withOpacity(0.1),
+                                        color: Colors.white.withValues(alpha: 0.1),
                                         blurRadius: 20,
                                         spreadRadius: -5,
                                         offset: const Offset(0, -5),
@@ -261,7 +261,7 @@ class SplashScreenState extends State<SplashScreen> with TickerProviderStateMixi
                             shaderCallback: (bounds) => LinearGradient(
                               colors: [
                                 Colors.white,
-                                Colors.white.withOpacity(0.8),
+                                Colors.white.withValues(alpha: 0.8),
                                 Colors.white,
                               ],
                               stops: const [0.0, 0.5, 1.0],
@@ -290,7 +290,7 @@ class SplashScreenState extends State<SplashScreen> with TickerProviderStateMixi
                             '당신의 더 나은 커뮤니케이션',
                             style: TextStyle(
                               fontSize: (screenWidth * 0.038).clamp(13.0, 16.0),
-                              color: Colors.white.withOpacity(0.95),
+                              color: Colors.white.withValues(alpha: 0.95),
                               letterSpacing: 1.2,
                               fontWeight: FontWeight.w500,
                             ),
@@ -339,7 +339,7 @@ class SplashScreenState extends State<SplashScreen> with TickerProviderStateMixi
                                         shape: BoxShape.circle,
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.white.withOpacity(0.5),
+                                            color: Colors.white.withValues(alpha: 0.5),
                                             blurRadius: 10 * _pulseAnimation.value,
                                             spreadRadius: 2 * _pulseAnimation.value,
                                           ),
@@ -359,7 +359,7 @@ class SplashScreenState extends State<SplashScreen> with TickerProviderStateMixi
                             '초기화 중...',
                             style: TextStyle(
                               fontSize: (screenWidth * 0.038).clamp(13.0, 16.0),
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               letterSpacing: 0.5,
                               fontWeight: FontWeight.w400,
                             ),

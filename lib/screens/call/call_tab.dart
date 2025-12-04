@@ -1173,13 +1173,13 @@ class _CallTabState extends State<CallTab> {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        callTypeColor.withOpacity(0.8),
+                        callTypeColor.withValues(alpha: 0.8),
                         callTypeColor,
                       ],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: callTypeColor.withOpacity(0.3),
+                        color: callTypeColor.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),

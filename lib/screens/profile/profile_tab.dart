@@ -13,7 +13,6 @@ import '../../models/my_extension_model.dart';
 import 'api_settings_dialog.dart';
 import 'active_sessions_screen.dart';
 import '../../widgets/theme_settings_dialog.dart';
-import '../../widgets/cached_network_image_widget.dart';
 import '../../widgets/safe_circle_avatar.dart';
 
 class ProfileTab extends StatefulWidget {

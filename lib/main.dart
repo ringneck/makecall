@@ -776,8 +776,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                     showDialog(
                                       context: navigatorKey.currentContext!,
                                       barrierDismissible: false,
-                                      builder: (dialogContext) => WillPopScope(
-                                        onWillPop: () async => false,
+                                      builder: (dialogContext) => PopScope(
+                                        canPop: false,
                                         child: AlertDialog(
                                           title: const Row(
                                             children: [
@@ -831,8 +831,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                       showDialog(
                                         context: navigatorKey.currentContext!,
                                         barrierDismissible: false,
-                                        builder: (dialogContext) => WillPopScope(
-                                          onWillPop: () async => false,
+                                        builder: (dialogContext) => PopScope(
+                                          canPop: false,
                                           child: AlertDialog(
                                             title: const Row(
                                               children: [

@@ -428,7 +428,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: const Color(0xFF1e3c72).withOpacity(0.1),
+            color: const Color(0xFF1e3c72).withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -505,7 +505,7 @@ class _AudioPlayerDialogState extends State<AudioPlayerDialog> {
                         activeTrackColor: Colors.transparent,
                         inactiveTrackColor: Colors.transparent,
                         thumbColor: const Color(0xFF1e3c72),
-                        overlayColor: const Color(0xFF1e3c72).withOpacity(0.2),
+                        overlayColor: const Color(0xFF1e3c72).withValues(alpha: 0.2),
                       ),
                       child: Slider(
                         value: _position.inSeconds.toDouble().clamp(0.0, _duration.inSeconds.toDouble()),
