@@ -9,6 +9,8 @@ import '../models/user_model.dart';
 import '../main.dart' show navigatorKey;
 import '../exceptions/max_device_limit_exception.dart';
 import '../widgets/max_device_limit_dialog.dart';
+import '../screens/auth/login_screen.dart';
+import '../screens/auth/web_login_wrapper.dart';
 import 'account_manager_service.dart';
 import 'fcm_service.dart';
 import 'dcmiws_connection_manager.dart';
@@ -787,6 +789,46 @@ class AuthService extends ChangeNotifier {
     if (kDebugMode) {
       debugPrint('✅ [LOGOUT] 로그아웃 완료 - isLoggingOut 상태 유지 (LoginScreen 표시)');
       debugPrint('');
+    }
+    
+    // 🔥 ULTIMATE FIX: Navigator로 강제로 LoginScreen 전환
+    // notifyListeners()와 ValueNotifier가 모두 실패하는 경우를 대비
+    if (navigatorKey.currentContext != null) {
+      if (kDebugMode) {
+        debugPrint('🚀 [LOGOUT] Navigator로 강제 LoginScreen 전환 시도');
+      }
+      
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
+          try {
+            // 모든 화면을 닫고 LoginScreen으로 전환
+            Navigator.of(navigatorKey.currentContext!).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => WebLoginWrapper(
+                  child: LoginScreen(
+                    key: ValueKey('login_forced_logout_${DateTime.now().millisecondsSinceEpoch}'),
+                  ),
+                ),
+              ),
+              (route) => false, // 모든 이전 route 제거
+            );
+            
+            if (kDebugMode) {
+              debugPrint('✅ [LOGOUT] LoginScreen 강제 전환 성공!');
+            }
+            
+            // 플래그 해제
+            _isLoggingOut = false;
+            _isSigningOut = false;
+            notifyListeners();
+            
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('⚠️ [LOGOUT] Navigator 전환 실패: $e');
+            }
+          }
+        }
+      });
     }
   }
   
