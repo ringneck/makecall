@@ -1138,12 +1138,6 @@ class AuthService extends ChangeNotifier {
           .child('profile_images')
           .child('$userId.jpg');
       
-      if (kDebugMode) {
-        debugPrint('📸 Uploading profile image for user: $userId');
-        debugPrint('📁 File path: ${imageFile.path}');
-        debugPrint('📊 File size: ${await imageFile.length()} bytes');
-      }
-      
       // 파일 크기 확인 (10MB 제한)
       final fileSize = await imageFile.length();
       if (fileSize > 10 * 1024 * 1024) {
@@ -1162,14 +1156,6 @@ class AuthService extends ChangeNotifier {
         ),
       );
       
-      // 업로드 진행 상황 로깅 (디버그 모드)
-      if (kDebugMode) {
-        uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-          final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          debugPrint('📤 Upload progress: ${progress.toStringAsFixed(2)}%');
-        });
-      }
-      
       // 업로드 완료 대기
       final snapshot = await uploadTask.timeout(
         const Duration(seconds: 30),
@@ -1181,12 +1167,7 @@ class AuthService extends ChangeNotifier {
       // 다운로드 URL 가져오기
       final downloadUrl = await snapshot.ref.getDownloadURL();
       
-      if (kDebugMode) {
-        debugPrint('✅ Profile image uploaded successfully');
-        debugPrint('🔗 Download URL: $downloadUrl');
-      }
-      
-      // Firestore에 URL 저장
+      // Firestore에 URL 저장 (타임스탬프 추가로 캐싱 방지)
       await _firestore
           .collection('users')
           .doc(userId)
@@ -1200,12 +1181,15 @@ class AuthService extends ChangeNotifier {
         },
       );
       
-      if (kDebugMode) {
-        debugPrint('✅ Firestore updated with new profile image URL');
-      }
-      
-      // UserModel 새로고침
+      // UserModel 새로고침 + 이미지 캐시 버스트
       await _loadUserModel(userId);
+      
+      // 🔥 CRITICAL: 즉시 UI 업데이트를 위해 추가 notifyListeners() 호출
+      notifyListeners();
+      
+      if (kDebugMode) {
+        debugPrint('✅ [PROFILE] 프로필 이미지 업로드 완료 - UI 업데이트 트리거');
+      }
       
       return downloadUrl;
     } on FirebaseException catch (e) {
@@ -1271,8 +1255,11 @@ class AuthService extends ChangeNotifier {
       // UserModel 새로고침
       await _loadUserModel(userId);
       
+      // 🔥 CRITICAL: 즉시 UI 업데이트를 위해 추가 notifyListeners() 호출
+      notifyListeners();
+      
       if (kDebugMode) {
-        debugPrint('✅ Profile image URL removed from Firestore');
+        debugPrint('✅ [PROFILE] 프로필 사진 삭제 완료 - UI 업데이트 트리거');
       }
     } catch (e) {
       if (kDebugMode) {

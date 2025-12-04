@@ -130,10 +130,6 @@ class ProfileImageUtils {
     bool useModernLoadingUI = true,
   }) async {
     try {
-      if (kDebugMode) {
-        debugPrint('🖼️ [ProfileImageUtils] Starting image picker with source: $source');
-      }
-
       final picker = ImagePicker();
 
       // iOS hang 방지: UI 스레드가 완전히 정리되도록 지연
@@ -149,57 +145,18 @@ class ProfileImageUtils {
       );
 
       if (pickedFile == null) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [ProfileImageUtils] Image picker cancelled by user');
-        }
-        return;
-      }
-
-      if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] Image picked: ${pickedFile.path}');
+        return; // 사용자가 취소
       }
 
       // Image picker 후 짧은 지연 (context가 다시 mount될 시간 제공)
       await Future.delayed(const Duration(milliseconds: 100));
-
-      // 마운트 확인 (경고만 출력하고 계속 진행)
-      if (kDebugMode) {
-        debugPrint('🔍 [ProfileImageUtils] Context mount status: ${context.mounted}');
-        if (!context.mounted) {
-          debugPrint('⚠️ [ProfileImageUtils] Context not mounted but continuing anyway');
-        }
-      }
-      
-      if (kDebugMode) {
-        debugPrint('🖼️ [ProfileImageUtils] Preparing image file...');
-        try {
-          debugPrint('🖼️ [ProfileImageUtils] Platform: ${Theme.of(context).platform}');
-        } catch (e) {
-          debugPrint('⚠️ [ProfileImageUtils] Cannot access Theme: $e');
-        }
-      }
-
-      if (kDebugMode) {
-        debugPrint('📂 [ProfileImageUtils] Creating File object from path...');
-      }
       
       final imageFile = File(pickedFile.path);
-      
-      if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] File object created');
-        debugPrint('📊 [ProfileImageUtils] File exists: ${await imageFile.exists()}');
-        if (await imageFile.exists()) {
-          debugPrint('📊 [ProfileImageUtils] File size: ${await imageFile.length()} bytes');
-        }
-      }
 
       // Native 크롭 UI 사용 (image_cropper 패키지)
       CroppedFile? croppedFile;
       
       try {
-        if (kDebugMode) {
-          debugPrint('🖼️ [ProfileImageUtils] Starting native image cropper...');
-        }
 
         // image_cropper는 native UI를 사용하므로 context 문제 없음
         croppedFile = await ImageCropper().cropImage(
@@ -232,15 +189,8 @@ class ProfileImageUtils {
             ),
           ],
         );
-
-        if (kDebugMode) {
-          debugPrint('🖼️ [ProfileImageUtils] Crop result: ${croppedFile != null ? "success" : "cancelled"}');
-        }
       } catch (cropError) {
-        if (kDebugMode) {
-          debugPrint('❌ [ProfileImageUtils] Crop UI failed: $cropError');
-          debugPrint('⚠️ [ProfileImageUtils] Falling back to direct upload without crop');
-        }
+        // 크롭 실패 시 원본 이미지 사용
         croppedFile = null;
       }
 
@@ -248,35 +198,18 @@ class ProfileImageUtils {
       ui.Image originalImage;
       
       if (croppedFile == null) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [ProfileImageUtils] No crop result - loading original image');
-        }
-        
         // 원본 이미지 로드
         final bytes = await imageFile.readAsBytes();
         final codec = await ui.instantiateImageCodec(bytes);
         final frame = await codec.getNextFrame();
         originalImage = frame.image;
-        
-        if (kDebugMode) {
-          debugPrint('✅ [ProfileImageUtils] Original image loaded: ${originalImage.width}x${originalImage.height}');
-        }
       } else {
-        if (kDebugMode) {
-          debugPrint('✅ [ProfileImageUtils] Image cropped successfully');
-          debugPrint('📁 [ProfileImageUtils] Cropped file path: ${croppedFile.path}');
-        }
-        
         // 크롭된 이미지 로드
         final croppedImageFile = File(croppedFile.path);
         final bytes = await croppedImageFile.readAsBytes();
         final codec = await ui.instantiateImageCodec(bytes);
         final frame = await codec.getNextFrame();
         originalImage = frame.image;
-        
-        if (kDebugMode) {
-          debugPrint('✅ [ProfileImageUtils] Cropped image loaded: ${originalImage.width}x${originalImage.height}');
-        }
       }
 
       // 이미지를 적절한 크기로 리사이즈 (512x512)
@@ -289,12 +222,6 @@ class ProfileImageUtils {
       
       final cropX = (originalImage.width - minDimension) / 2;
       final cropY = (originalImage.height - minDimension) / 2;
-      
-      if (kDebugMode) {
-        debugPrint('📐 [ProfileImageUtils] Original image: ${originalImage.width}x${originalImage.height}');
-        debugPrint('📐 [ProfileImageUtils] Cropping to square: ${minDimension}x$minDimension');
-        debugPrint('📐 [ProfileImageUtils] Crop offset: ($cropX, $cropY)');
-      }
       
       // 정사각형으로 크롭하고 리사이즈
       final recorder = ui.PictureRecorder();
@@ -309,118 +236,49 @@ class ProfileImageUtils {
       
       final picture = recorder.endRecording();
       final resizedImage = await picture.toImage(targetSize, targetSize);
-      
-      if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] Image resized to ${targetSize}x$targetSize');
-      }
 
       // 리사이즈된 이미지를 Uint8List로 변환
-      if (kDebugMode) {
-        debugPrint('🔄 [ProfileImageUtils] Converting image to bytes...');
-      }
-      
       final byteData = await resizedImage.toByteData(
         format: ui.ImageByteFormat.png,
       );
 
       if (byteData == null) {
-        if (kDebugMode) {
-          debugPrint('❌ [ProfileImageUtils] Failed to convert image to bytes');
-        }
         throw Exception('이미지 변환 실패');
       }
 
       final croppedBytes = byteData.buffer.asUint8List();
-      
-      if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] Image converted to bytes');
-        debugPrint('📊 [ProfileImageUtils] Final image size: ${croppedBytes.length ~/ 1024}KB');
-      }
 
-      // 로딩 다이얼로그 표시 (try-catch로 보호)
-      if (kDebugMode) {
-        debugPrint('⏳ [ProfileImageUtils] Attempting to show loading dialog...');
-      }
-      
+      // 로딩 다이얼로그 표시
       try {
         _showLoadingDialog(context, useModernUI: useModernLoadingUI);
-        if (kDebugMode) {
-          debugPrint('✅ [ProfileImageUtils] Loading dialog shown');
-        }
       } catch (e) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [ProfileImageUtils] Failed to show loading dialog (continuing anyway): $e');
-        }
+        // 로딩 다이얼로그 표시 실패 시 무시하고 계속
       }
 
       // 크롭된 이미지를 임시 파일로 저장
-      if (kDebugMode) {
-        debugPrint('💾 [ProfileImageUtils] Saving image to temp file...');
-      }
-      
       final tempDir = Directory.systemTemp;
       final tempFile = File(
         '${tempDir.path}/cropped_profile_${DateTime.now().millisecondsSinceEpoch}.png',
       );
       
-      if (kDebugMode) {
-        debugPrint('📁 [ProfileImageUtils] Temp file path: ${tempFile.path}');
-      }
-      
       await tempFile.writeAsBytes(croppedBytes);
-      
-      if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] Image saved to temp file');
-        debugPrint('📊 [ProfileImageUtils] Temp file exists: ${await tempFile.exists()}');
-        debugPrint('📊 [ProfileImageUtils] Temp file size: ${await tempFile.length()} bytes');
-      }
-
-      if (kDebugMode) {
-        debugPrint('📤 [ProfileImageUtils] Starting Firebase Storage upload...');
-        debugPrint('📤 [ProfileImageUtils] File path: ${tempFile.path}');
-        debugPrint('📤 [ProfileImageUtils] File size: ${await tempFile.length()} bytes');
-      }
 
       // Firebase Storage에 업로드
-      try {
-        await authService.uploadProfileImage(tempFile);
-        
-        if (kDebugMode) {
-          debugPrint('✅ [ProfileImageUtils] Firebase upload completed successfully');
-        }
-      } catch (uploadError) {
-        if (kDebugMode) {
-          debugPrint('❌ [ProfileImageUtils] Firebase upload failed: $uploadError');
-        }
-        rethrow;
-      }
+      await authService.uploadProfileImage(tempFile);
 
       // 로딩 다이얼로그 닫기
-      if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] Attempting to close loading dialog');
-      }
-      
       try {
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
-          if (kDebugMode) {
-            debugPrint('✅ [ProfileImageUtils] Loading dialog closed');
-          }
         }
       } catch (e) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [ProfileImageUtils] Failed to close loading dialog: $e');
-        }
+        // 로딩 다이얼로그 닫기 실패 시 무시
       }
 
-      // Navigator.pop 후 약간의 딜레이를 주어 안전하게 새 다이얼로그 표시
+      // Navigator.pop 후 약간의 딜레이
       await Future.delayed(const Duration(milliseconds: 100));
 
       // 성공 메시지
-      if (kDebugMode) {
-        debugPrint('✅ [ProfileImageUtils] Showing success message');
-      }
-      
       try {
         if (context.mounted) {
           await DialogUtils.showSuccess(
@@ -430,22 +288,16 @@ class ProfileImageUtils {
           );
         }
       } catch (e) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [ProfileImageUtils] Failed to show success message: $e');
-        }
+        // 성공 메시지 표시 실패 시 무시
       }
     } catch (e, stackTrace) {
       if (kDebugMode) {
-        debugPrint('❌ [ProfileImageUtils] Image upload error: $e');
-        debugPrint('📚 [ProfileImageUtils] Stack trace: $stackTrace');
+        debugPrint('❌ [ProfileImageUtils] 이미지 업로드 오류: $e');
       }
 
       // 로딩 다이얼로그가 열려있으면 닫기
       try {
         Navigator.of(context, rootNavigator: true).pop();
-        if (kDebugMode) {
-          debugPrint('✅ [ProfileImageUtils] Loading dialog closed after error');
-        }
       } catch (navError) {
         if (kDebugMode) {
           debugPrint('⚠️ [ProfileImageUtils] Failed to close loading dialog: $navError');
