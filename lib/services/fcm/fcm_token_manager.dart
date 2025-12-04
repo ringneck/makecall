@@ -420,8 +420,10 @@ class FCMTokenManager {
         platform = 'Android';
       } else if (platformLower == 'ios') {
         platform = 'iOS';
+      } else if (platformLower == 'web') {
+        platform = 'Web';  // ✅ 웹 플랫폼도 대문자로 통일
       } else {
-        platform = platformLower; // web, unknown 등
+        platform = platformLower; // unknown 등
       }
       
       // ignore: avoid_print
