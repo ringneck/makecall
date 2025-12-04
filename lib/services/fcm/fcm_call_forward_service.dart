@@ -156,8 +156,10 @@ class FCMCallForwardService {
         currentPlatform = 'Android';
       } else if (currentPlatformLower == 'ios') {
         currentPlatform = 'iOS';
+      } else if (currentPlatformLower == 'web') {
+        currentPlatform = 'Web';
       } else {
-        currentPlatform = currentPlatformLower; // web, unknown 등
+        currentPlatform = currentPlatformLower; // unknown 등
       }
       
       final currentDeviceKey = '${currentDeviceId}_$currentPlatform';

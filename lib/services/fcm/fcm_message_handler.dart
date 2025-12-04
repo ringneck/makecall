@@ -274,13 +274,15 @@ class FCMMessageHandler {
       final platformLower = _platformUtils.getPlatformName();
       
       // 🔑 CRITICAL: 대문자로 변환 (Firestore 문서 ID 형식에 맞춤)
-      // fcm_tokens 문서 ID: userId_deviceId_Android 또는 userId_deviceId_iOS
+      // fcm_tokens 문서 ID: userId_deviceId_Android, userId_deviceId_iOS, userId_deviceId_Web
       if (platformLower == 'android') {
         _cachedPlatform = 'Android';
       } else if (platformLower == 'ios') {
         _cachedPlatform = 'iOS';
+      } else if (platformLower == 'web') {
+        _cachedPlatform = 'Web';
       } else {
-        _cachedPlatform = platformLower; // web, unknown 등
+        _cachedPlatform = platformLower; // unknown 등
       }
       
       if (kDebugMode) {
