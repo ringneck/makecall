@@ -695,6 +695,11 @@ class AuthService extends ChangeNotifier {
               
               // ignore: avoid_print
               print('🏁 [AUTH] 차단 플래그 해제 - LoginScreen 유지');
+              
+              // 🚫 CRITICAL: 예외 다시 throw하여 login_screen이 로그인 실패로 처리하도록 함
+              // ignore: avoid_print
+              print('🚫 [AUTH] MaxDeviceLimitException 재전파 - LoginScreen 유지');
+              rethrow;
             } catch (dialogError) {
               // ignore: avoid_print
               print('❌ [AUTH] 다이얼로그 표시 오류: $dialogError');
