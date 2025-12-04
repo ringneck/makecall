@@ -23,7 +23,8 @@ class SplashScreenState extends State<SplashScreen> with TickerProviderStateMixi
   late AnimationController _rotationController;
   late AnimationController _fadeInController;
   late AnimationController _fadeOutController;
-  late AnimationController _particleController;
+  // 🔥 iOS 성능 최적화: 파티클 애니메이션 제거
+  // late AnimationController _particleController;
   
   late Animation<double> _pulseAnimation;
   late Animation<double> _rotationAnimation;
@@ -74,11 +75,11 @@ class SplashScreenState extends State<SplashScreen> with TickerProviderStateMixi
       CurvedAnimation(parent: _fadeOutController, curve: Curves.easeOut),
     );
     
-    // 파티클 애니메이션
-    _particleController = AnimationController(
-      duration: const Duration(milliseconds: 3000),
-      vsync: this,
-    )..repeat();
+    // 🔥 iOS 성능 최적화: 파티클 애니메이션 제거
+    // _particleController = AnimationController(
+    //   duration: const Duration(milliseconds: 3000),
+    //   vsync: this,
+    // )..repeat();
     
     _fadeInController.forward();
   }
@@ -95,7 +96,8 @@ class SplashScreenState extends State<SplashScreen> with TickerProviderStateMixi
     _rotationController.dispose();
     _fadeInController.dispose();
     _fadeOutController.dispose();
-    _particleController.dispose();
+    // 🔥 iOS 성능 최적화: 파티클 애니메이션 제거
+    // _particleController.dispose();
     super.dispose();
   }
 
@@ -128,20 +130,20 @@ class SplashScreenState extends State<SplashScreen> with TickerProviderStateMixi
         ),
         child: Stack(
           children: [
-            // 배경 파티클 효과 (반응형)
-            Positioned.fill(
-              child: AnimatedBuilder(
-                animation: _particleController,
-                builder: (context, child) {
-                  return CustomPaint(
-                    painter: ParticlePainter(
-                      animation: _particleController.value,
-                      isDark: isDark,
-                    ),
-                  );
-                },
-              ),
-            ),
+            // 🔥 iOS 성능 최적화: 백그라운드 파티클 효과 제거
+            // Positioned.fill(
+            //   child: AnimatedBuilder(
+            //     animation: _particleController,
+            //     builder: (context, child) {
+            //       return CustomPaint(
+            //         painter: ParticlePainter(
+            //           animation: _particleController.value,
+            //           isDark: isDark,
+            //         ),
+            //       );
+            //     },
+            //   ),
+            // ),
             
             // 메인 컨텐츠
             SafeArea(
