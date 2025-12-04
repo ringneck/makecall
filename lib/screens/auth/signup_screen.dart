@@ -860,12 +860,12 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         debugPrint('✅ [PROFILE] 다운로드 URL 취득: $downloadUrl');
       }
       
-      // 4. Firestore users 문서에 thumbnailUrl 저장
+      // 4. Firestore users 문서에 profileImageUrl 저장 (UserModel과 일치)
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .set({
-        'thumbnailUrl': downloadUrl,
+        'profileImageUrl': downloadUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       
