@@ -630,15 +630,17 @@ class FCMDeviceApprovalService {
       }
       
       // 🔑 CRITICAL: 플랫폼 이름을 대문자로 변환 (fcm_tokens 문서 ID 형식에 맞춤)
-      // device_approval_requests: 'android', 'ios' (소문자)
-      // fcm_tokens: 'Android', 'iOS' (대문자)
+      // device_approval_requests: 'android', 'ios', 'web' (소문자)
+      // fcm_tokens: 'Android', 'iOS', 'Web' (대문자)
       String newPlatform;
       if (newPlatformRaw.toLowerCase() == 'android') {
         newPlatform = 'Android';
       } else if (newPlatformRaw.toLowerCase() == 'ios') {
         newPlatform = 'iOS';
+      } else if (newPlatformRaw.toLowerCase() == 'web') {
+        newPlatform = 'Web';
       } else {
-        newPlatform = newPlatformRaw; // web, unknown 등
+        newPlatform = newPlatformRaw; // unknown 등
       }
       
       if (kDebugMode) {
