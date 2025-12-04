@@ -172,8 +172,20 @@ class _CallTabState extends State<CallTab> {
         return;
       }
       
-      // AuthService 리스너 등록 (사용자 전환 및 승인 대기 상태 변경 감지)
-      _authService?.addListener(_onAuthServiceStateChanged);
+      // 🔒 CRITICAL: 이메일 회원가입 시 리스너 등록 지연 (MainScreen 렌더링 완료 후)
+      // 이렇게 하면 모든 다이얼로그가 MainScreen context에서만 표시됨
+      if (widget.showWelcomeDialog) {
+        // 이메일 회원가입: addPostFrameCallback에서 리스너 등록 (다이얼로그 표시 후)
+        if (kDebugMode) {
+          debugPrint('⏱️ [INIT] 이메일 회원가입 - AuthService 리스너 등록 지연 (다이얼로그 표시 후)');
+        }
+      } else {
+        // 일반 로그인/소셜 로그인: 즉시 리스너 등록
+        _authService?.addListener(_onAuthServiceStateChanged);
+        if (kDebugMode) {
+          debugPrint('✅ [INIT] AuthService 리스너 등록 완료 (즉시)');
+        }
+      }
       
       // 🔔 DCMIWS 이벤트 스트림 구독 (IncomingCallScreen 결과 처리)
       _dcmiwsEventSubscription = DCMIWSService().events.listen((event) {
@@ -231,6 +243,15 @@ class _CallTabState extends State<CallTab> {
       );
       // ignore: avoid_print
       print('✅ [CALL_TAB] 회원가입 완료 다이얼로그 닫힘');
+      
+      // 🔒 CRITICAL: 이메일 회원가입 다이얼로그 표시 완료 후 AuthService 리스너 등록
+      // 이제부터 발생하는 모든 이벤트는 MainScreen context에서 처리됨
+      if (_authService != null && !_authService!.hasListeners) {
+        _authService?.addListener(_onAuthServiceStateChanged);
+        if (kDebugMode) {
+          debugPrint('✅ [CALL_TAB] AuthService 리스너 등록 완료 (다이얼로그 표시 후)');
+        }
+      }
     }
     
     if (!mounted) return;
