@@ -161,21 +161,27 @@ class AuthService extends ChangeNotifier {
         _lastUserId = null;
         _currentUserModel = null;
         
-        // 🔥 CRITICAL: 로그아웃 플래그 해제 (authStateChanges에서 currentUser == null 확인됨)
-        _isLoggingOut = false;
-        _isSigningOut = false;
-        
         if (kDebugMode) {
-          debugPrint('✅ [AUTH STATE] 로그아웃 감지 - 플래그 해제 및 UI 업데이트');
+          debugPrint('✅ [AUTH STATE] 로그아웃 감지 - UI 업데이트 시작');
         }
         
-        // 🔒 CRITICAL: 다음 프레임에서 notifyListeners() 호출
+        // 🔒 CRITICAL: 먼저 notifyListeners() 호출하여 LoginScreen 전환 트리거
         // authStateChanges 콜백 내에서 즉시 호출하면 Consumer가 rebuild되지 않을 수 있음
         SchedulerBinding.instance.addPostFrameCallback((_) {
           if (kDebugMode) {
-            debugPrint('🔔 [AUTH STATE] notifyListeners() 호출 - Consumer rebuild 트리거');
+            debugPrint('🔔 [AUTH STATE] notifyListeners() 호출 - Consumer rebuild 트리거 (isLoggingOut=true)');
           }
           notifyListeners();
+          
+          // 🔥 CRITICAL: notifyListeners() 후 다음 프레임에 플래그 해제
+          // LoginScreen 전환이 완료된 후에 플래그 해제
+          SchedulerBinding.instance.addPostFrameCallback((_) {
+            _isLoggingOut = false;
+            _isSigningOut = false;
+            if (kDebugMode) {
+              debugPrint('✅ [AUTH STATE] 로그아웃 플래그 해제 완료');
+            }
+          });
         });
       }
     });
