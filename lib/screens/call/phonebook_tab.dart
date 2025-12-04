@@ -211,20 +211,18 @@ class _PhonebookTabState extends State<PhonebookTab> {
       if (userModel?.apiBaseUrl == null || 
           userModel?.companyId == null || 
           userModel?.appKey == null) {
-        // API 설정이 없으면 에러가 아닌 안내 메시지 표시
+        // API 설정이 없으면 조용히 return (다이얼로그는 CallTab의 SettingsChecker가 통합 관리)
         if (mounted) {
           setState(() {
             _isLoading = false;
             _error = null; // 에러가 아님
           });
           
-          await DialogUtils.showInfo(
-            context,
-            '통화 기능을 사용하기 위해서는\nREST API 서버 설정이 필요합니다.\n\n왼쪽 상단 프로필 아이콘을 눌러\n설정 정보를 입력해주세요.',
-            title: '초기 등록 필요',
-          );
+          if (kDebugMode) {
+            debugPrint('⚠️ [PHONEBOOK] API 설정 없음 - CallTab에서 다이얼로그 표시 예정');
+          }
         }
-        return; // Exception을 던지지 않고 return
+        return; // CallTab의 SettingsChecker가 '초기 등록 필요' 다이얼로그 표시
       }
 
       // 0. my_extensions 등록된 단말번호 확인
