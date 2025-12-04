@@ -173,18 +173,22 @@ class AuthService extends ChangeNotifier {
           }
           notifyListeners();
           
-          // 🔥 CRITICAL: notifyListeners() 후 500ms 지연하여 플래그 해제
-          // LoginScreen 전환이 완전히 완료된 후에 플래그 해제
-          Future.delayed(const Duration(milliseconds: 500), () {
-            _isLoggingOut = false;
-            _isSigningOut = false;
-            if (kDebugMode) {
-              debugPrint('✅ [AUTH STATE] 로그아웃 플래그 해제 완료');
-            }
-          });
+          // 🔥 CRITICAL: 플래그 해제는 main.dart가 LoginScreen을 표시할 때 이벤트 기반으로 처리
+          // onLoginScreenDisplayed() 메서드가 호출될 때 플래그 해제됨
         });
       }
     });
+  }
+  
+  // 🔔 이벤트 기반 플래그 해제: LoginScreen이 표시되었을 때 main.dart가 호출
+  void onLoginScreenDisplayed() {
+    if (_isLoggingOut) {
+      _isLoggingOut = false;
+      _isSigningOut = false;
+      if (kDebugMode) {
+        debugPrint('✅ [AUTH STATE] LoginScreen 표시 확인 - 로그아웃 플래그 해제');
+      }
+    }
   }
   
   // 비밀번호를 일시적으로 저장하기 위한 변수 (로그인 시에만 사용)

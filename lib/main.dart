@@ -795,6 +795,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         if (kDebugMode) {
                           debugPrint('🚪 [MAIN] 로그아웃 중 감지 - LoginScreen 표시');
                         }
+                        // 🔔 이벤트 기반: LoginScreen이 build될 때 AuthService에 알림
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          authService.onLoginScreenDisplayed();
+                        });
                         return WebLoginWrapper(
                           child: LoginScreen(
                             key: ValueKey('login_logout_${DateTime.now().millisecondsSinceEpoch}'),
