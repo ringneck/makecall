@@ -248,6 +248,16 @@ class FCMTokenManager {
         print('');
         // ignore: avoid_print
         print('   📋 현재 활성 기기 목록:');
+        
+        // ✅ 다이얼로그 표시용 기기 목록 생성 (로그아웃 전에 미리 준비)
+        final activeDevicesList = otherDevices.map((device) {
+          return {
+            'device_name': device.deviceName,
+            'platform': device.platform,
+            'last_updated': device.lastActiveAt,
+          };
+        }).toList();
+        
         for (var i = 0; i < otherDevices.length; i++) {
           final device = otherDevices[i];
           // ignore: avoid_print
@@ -266,6 +276,7 @@ class FCMTokenManager {
           currentDevices: otherDevices.length,
           deviceName: deviceName,
           userId: userId,  // ✅ userId 추가 (다이얼로그에서 활성 기기 목록 조회용)
+          activeDevices: activeDevicesList,  // ✅ 활성 기기 목록 추가 (권한 오류 방지)
         );
       }
       

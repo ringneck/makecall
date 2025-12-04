@@ -29,11 +29,15 @@ class MaxDeviceLimitException implements Exception {
   /// 사용자 ID (활성 기기 목록 조회용)
   final String? userId;
   
+  /// 활성 기기 목록 (로그아웃 전에 미리 조회해서 전달)
+  final List<Map<String, dynamic>>? activeDevices;
+  
   MaxDeviceLimitException({
     required this.maxDevices,
     required this.currentDevices,
     required this.deviceName,
     this.userId,
+    this.activeDevices,
   });
   
   @override

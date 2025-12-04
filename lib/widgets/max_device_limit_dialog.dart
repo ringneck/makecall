@@ -35,6 +35,24 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
       debugPrint('🔍 [MaxDeviceLimitDialog] 활성 기기 목록 로드 시작');
       debugPrint('   userId: ${widget.userId}');
       
+      // ✅ Exception에 기기 목록이 포함되어 있으면 바로 사용 (권한 오류 방지)
+      if (widget.exception.activeDevices != null && widget.exception.activeDevices!.isNotEmpty) {
+        debugPrint('✅ [MaxDeviceLimitDialog] Exception에서 기기 목록 사용 (권한 오류 방지)');
+        debugPrint('   기기 수: ${widget.exception.activeDevices!.length}개');
+        
+        if (mounted) {
+          setState(() {
+            _activeDevices = widget.exception.activeDevices!;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+      
+      // ⚠️ Fallback: Exception에 기기 목록이 없으면 Firestore 조회 시도
+      // (로그아웃 전이라면 조회 가능)
+      debugPrint('⚠️  [MaxDeviceLimitDialog] Exception에 기기 목록 없음 - Firestore 조회 시도');
+      
       final querySnapshot = await FirebaseFirestore.instance
           .collection('fcm_tokens')
           .where('userId', isEqualTo: widget.userId)  // ← 카멜케이스로 수정
