@@ -670,12 +670,14 @@ class FCMDeviceApprovalService {
       
       // Step 3: fcm_tokens 컬렉션의 isApproved 필드 업데이트
       try {
-        if (kDebugMode) {
-          print('🔍 [FCM-APPROVAL] fcm_tokens 업데이트 시작');
-          print('   - userId: $userId');
-          print('   - deviceId: $newDeviceId');
-          print('   - platform: $newPlatform');
-        }
+        // ignore: avoid_print
+        print('🔍 [FCM-APPROVAL] fcm_tokens 업데이트 시작');
+        // ignore: avoid_print
+        print('   - userId: $userId');
+        // ignore: avoid_print
+        print('   - deviceId: $newDeviceId');
+        // ignore: avoid_print
+        print('   - platform: $newPlatform');
         
         final tokensQuery = await _firestore
             .collection('fcm_tokens')
@@ -685,20 +687,27 @@ class FCMDeviceApprovalService {
             .get()
             .timeout(const Duration(seconds: 5));
         
-        if (kDebugMode) {
-          print('🔍 [FCM-APPROVAL] fcm_tokens 쿼리 결과: ${tokensQuery.docs.length}개 문서 발견');
-          if (tokensQuery.docs.isEmpty) {
-            print('⚠️ [FCM-APPROVAL] 일치하는 fcm_tokens 문서를 찾지 못함!');
-            print('   쿼리 조건:');
-            print('   - userId: $userId');
-            print('   - deviceId: $newDeviceId');
-            print('   - platform: $newPlatform');
-          } else {
-            for (var doc in tokensQuery.docs) {
-              print('   - 문서 ID: ${doc.id}');
-              print('   - deviceId: ${doc.data()['deviceId']}');
-              print('   - platform: ${doc.data()['platform']}');
-            }
+        // ignore: avoid_print
+        print('🔍 [FCM-APPROVAL] fcm_tokens 쿼리 결과: ${tokensQuery.docs.length}개 문서 발견');
+        if (tokensQuery.docs.isEmpty) {
+          // ignore: avoid_print
+          print('⚠️ [FCM-APPROVAL] 일치하는 fcm_tokens 문서를 찾지 못함!');
+          // ignore: avoid_print
+          print('   쿼리 조건:');
+          // ignore: avoid_print
+          print('   - userId: $userId');
+          // ignore: avoid_print
+          print('   - deviceId: $newDeviceId');
+          // ignore: avoid_print
+          print('   - platform: $newPlatform');
+        } else {
+          for (var doc in tokensQuery.docs) {
+            // ignore: avoid_print
+            print('   - 문서 ID: ${doc.id}');
+            // ignore: avoid_print
+            print('   - deviceId: ${doc.data()['deviceId']}');
+            // ignore: avoid_print
+            print('   - platform: ${doc.data()['platform']}');
           }
         }
         
