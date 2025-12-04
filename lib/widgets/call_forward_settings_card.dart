@@ -994,7 +994,7 @@ class _CallForwardSettingsCardState extends State<CallForwardSettingsCard> {
                       value: _isEnabled && !isDefaultNumber,
                       onChanged: _isSaving ? null : _toggleCallForward,
                       activeTrackColor: const Color(0xFFFF9800).withValues(alpha: 0.5),
-                      activeThumbColor: const Color(0xFFFF9800),
+                      activeColor: const Color(0xFFFF9800),
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ],

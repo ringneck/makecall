@@ -302,7 +302,7 @@ class _DcmiwsSettingsSectionState extends State<DcmiwsSettingsSection> {
           ),
           value: value,
           onChanged: onChanged,
-          activeThumbColor: const Color(0xFF2196F3),
+          activeColor: const Color(0xFF2196F3),
         ),
       ),
     );

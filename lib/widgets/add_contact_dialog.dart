@@ -164,7 +164,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
                   });
                 },
                 activeTrackColor: Colors.amber[200],
-                activeThumbColor: Colors.amber,
+                activeColor: Colors.amber,
                 contentPadding: EdgeInsets.zero,
               ),
             ],
