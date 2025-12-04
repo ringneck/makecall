@@ -448,4 +448,240 @@ class DialogUtils {
       duration: duration,
     );
   }
+
+  /// 간편 메서드: 이메일 인증 필요 다이얼로그 (다크모드 최적화)
+  /// 
+  /// [context] - BuildContext
+  static Future<void> showEmailVerificationRequired(BuildContext context) async {
+    if (!context.mounted) return;
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: isDark ? 0.2 : 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.warning_amber_rounded,
+                color: isDark ? Colors.orange[300] : Colors.orange,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '이메일 인증 필요',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 메인 메시지
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [
+                          Colors.orange[900]!.withValues(alpha: 0.2),
+                          Colors.deepOrange[900]!.withValues(alpha: 0.2),
+                        ]
+                      : [
+                          Colors.orange[50]!,
+                          Colors.deepOrange[50]!,
+                        ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark 
+                      ? Colors.orange[700]!.withValues(alpha: 0.3)
+                      : Colors.orange[200]!,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.email_outlined,
+                        size: 20,
+                        color: isDark ? Colors.orange[300] : Colors.orange[700],
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '이메일 인증이 완료되지 않았습니다',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.orange[200] : Colors.orange[900],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '회원가입 시 발송된 인증 메일의 링크를 클릭하여 이메일 인증을 완료해주세요.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: isDark ? Colors.grey[300] : Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // 인증 방법 안내
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[850] : Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.checklist_rounded,
+                        size: 18,
+                        color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '인증 방법',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSimpleStep('1. 이메일 앱 실행', isDark),
+                  const SizedBox(height: 6),
+                  _buildSimpleStep('2. 인증 메일 찾기 (스팸함 확인)', isDark),
+                  const SizedBox(height: 6),
+                  _buildSimpleStep('3. 인증 링크 클릭', isDark),
+                  const SizedBox(height: 6),
+                  _buildSimpleStep('4. 앱으로 돌아와 재로그인', isDark),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // 추가 안내
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark 
+                    ? Colors.blue[900]!.withValues(alpha: 0.2)
+                    : Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDark 
+                      ? Colors.blue[700]!.withValues(alpha: 0.3)
+                      : Colors.blue[200]!,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline,
+                    size: 18,
+                    color: isDark ? Colors.blue[300] : Colors.blue[700],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '메일이 보이지 않으면 스팸함을 꼭 확인하세요',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.blue[200] : Colors.blue[800],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              backgroundColor: const Color(0xFF2196F3).withValues(alpha: isDark ? 0.2 : 0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              '확인',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 간단한 단계 위젯 (내부 헬퍼 메서드)
+  static Widget _buildSimpleStep(String text, bool isDark) {
+    return Row(
+      children: [
+        Icon(
+          Icons.arrow_forward_ios,
+          size: 12,
+          color: isDark ? Colors.grey[400] : Colors.grey[600],
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? Colors.grey[300] : Colors.grey[700],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }

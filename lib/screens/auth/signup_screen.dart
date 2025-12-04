@@ -196,72 +196,243 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           // FCM 실패 시에도 로그인 상태는 유지 (나중에 초기화 재시도)
         }
         
-        // 📧 이메일 인증 안내 다이얼로그 표시
+        // 📧 이메일 인증 안내 다이얼로그 표시 (다크모드 최적화)
         if (mounted) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          
           await showDialog(
             context: context,
             barrierDismissible: false,
-            builder: (context) => AlertDialog(
-              title: const Row(
+            builder: (dialogContext) => AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
                 children: [
-                  Icon(Icons.email, color: Color(0xFF2196F3)),
-                  SizedBox(width: 12),
-                  Text('이메일 인증'),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2196F3).withValues(alpha: isDark ? 0.2 : 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.mark_email_read_outlined,
+                      color: Color(0xFF2196F3),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '이메일 인증',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
                 ],
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '회원가입이 완료되었습니다!\n\n인증 메일이 ${_emailController.text.trim()}로 발송되었습니다.',
-                    style: const TextStyle(fontSize: 15),
-                  ),
-                  const SizedBox(height: 16),
+                  // 축하 메시지
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        colors: isDark
+                            ? [
+                                const Color(0xFF2196F3).withValues(alpha: 0.15),
+                                const Color(0xFF1976D2).withValues(alpha: 0.15),
+                              ]
+                            : [
+                                const Color(0xFF2196F3).withValues(alpha: 0.1),
+                                const Color(0xFF1976D2).withValues(alpha: 0.1),
+                              ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: const Color(0xFF2196F3).withValues(alpha: 0.3),
+                        color: const Color(0xFF2196F3).withValues(alpha: isDark ? 0.3 : 0.2),
                       ),
                     ),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.info_outline, size: 18, color: Color(0xFF2196F3)),
-                            SizedBox(width: 8),
+                            Icon(
+                              Icons.check_circle,
+                              color: isDark ? Colors.green[300] : Colors.green,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
                             Text(
-                              '인증 방법',
+                              '회원가입 완료!',
                               style: TextStyle(
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF2196F3),
+                                color: isDark ? Colors.white : Colors.black87,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 12),
                         Text(
-                          '1. 이메일 앱에서 인증 메일을 확인하세요\n2. 인증 링크를 클릭하세요\n3. 앱으로 돌아와서 로그인하세요',
-                          style: TextStyle(fontSize: 13, height: 1.5),
+                          '인증 메일이 발송되었습니다.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.grey[300] : Colors.grey[700],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.grey[850] : Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.email,
+                                size: 16,
+                                color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _emailController.text.trim(),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    '💡 메일이 보이지 않으면 스팸함을 확인하세요',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  const SizedBox(height: 20),
+                  
+                  // 인증 방법 안내
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey[850] : Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 18,
+                              color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '인증 방법',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildVerificationStep(
+                          isDark,
+                          '1',
+                          '이메일 앱에서 인증 메일 확인',
+                          Icons.mail_outline,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildVerificationStep(
+                          isDark,
+                          '2',
+                          '인증 링크 클릭',
+                          Icons.link,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildVerificationStep(
+                          isDark,
+                          '3',
+                          '앱으로 돌아와서 로그인',
+                          Icons.login,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // 스팸함 확인 안내
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark 
+                          ? Colors.orange[900]!.withValues(alpha: 0.2)
+                          : Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark 
+                            ? Colors.orange[700]!.withValues(alpha: 0.3)
+                            : Colors.orange[200]!,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.lightbulb_outline,
+                          size: 18,
+                          color: isDark ? Colors.orange[300] : Colors.orange[700],
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '메일이 보이지 않으면 스팸함을 확인하세요',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? Colors.orange[200] : Colors.orange[800],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('확인'),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    backgroundColor: const Color(0xFF2196F3).withValues(alpha: isDark ? 0.2 : 0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    '확인',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -2086,6 +2257,53 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           }
         },
       ),
+    );
+  }
+  
+  // 📧 인증 단계 위젯 빌더 (다크모드 지원)
+  Widget _buildVerificationStep(bool isDark, String number, String text, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2196F3).withValues(alpha: isDark ? 0.2 : 0.15),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isDark ? Colors.blue[300]! : const Color(0xFF2196F3),
+              width: 1.5,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Icon(
+          icon,
+          size: 16,
+          color: isDark ? Colors.grey[400] : Colors.grey[600],
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: isDark ? Colors.grey[300] : Colors.grey[700],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

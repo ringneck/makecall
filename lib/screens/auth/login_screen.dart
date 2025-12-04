@@ -212,10 +212,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        await DialogUtils.showError(
-          context,
-          context.read<AuthService>().getErrorMessage(e.code),
-        );
+        // 이메일 미인증 에러는 다크모드 최적화된 다이얼로그 표시
+        if (e.code == 'email-not-verified') {
+          await DialogUtils.showEmailVerificationRequired(context);
+        } else {
+          await DialogUtils.showError(
+            context,
+            context.read<AuthService>().getErrorMessage(e.code),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
