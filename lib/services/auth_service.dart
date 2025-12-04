@@ -599,7 +599,7 @@ class AuthService extends ChangeNotifier {
           await _loadUserModel(credential.user!.uid, password: password);
           
           if (kDebugMode) {
-            debugPrint('\n🔔 [signIn] _loadUserModel() 완료 - notifyListeners() 호출');
+            debugPrint('\n🔔 [signIn] _loadUserModel() 완료');
             debugPrint('   currentUserModel: ${_currentUserModel?.email}');
             debugPrint('   profileImageUrl: ${_currentUserModel?.profileImageUrl}');
           }
@@ -608,12 +608,11 @@ class AuthService extends ChangeNotifier {
           _isLoggingOut = false;
           _isSigningOut = false;
           
-          // 🔥 CRITICAL: _loadUserModel 완료 후 명시적으로 notifyListeners() 호출
-          // authStateChanges 리스너와 별개로 즉시 UI 업데이트 보장
-          notifyListeners();
+          // ⚠️ IMPORTANT: notifyListeners()는 FCM 초기화 이후에 호출
+          // → MainScreen 전환 전에 MaxDeviceLimit 체크 완료 보장
           
           if (kDebugMode) {
-            debugPrint('✅ [signIn] 로그인 성공 - 플래그 해제 및 notifyListeners() 호출 완료');
+            debugPrint('✅ [signIn] UserModel 로드 완료 - FCM 초기화 대기 중');
             debugPrint('   📊 현재 상태:');
             debugPrint('      - _currentUserModel != null: ${_currentUserModel != null}');
             debugPrint('      - email: ${_currentUserModel?.email}');
@@ -765,6 +764,15 @@ class AuthService extends ChangeNotifier {
           // ignore: avoid_print
           print('⚠️ [AUTH] FCM 초기화 실패했지만 로그인은 계속 진행');
         }
+        
+        // 🔥 CRITICAL: FCM 초기화 완료 후 notifyListeners() 호출
+        // → MainScreen 전환 시점에 MaxDeviceLimit 체크 완료 보장 (이벤트 기반)
+        if (kDebugMode) {
+          debugPrint('');
+          debugPrint('🔔 [signIn] FCM 초기화 완료 - notifyListeners() 호출');
+          debugPrint('   → MainScreen 전환 시 MaxDeviceLimit 체크 완료됨');
+        }
+        notifyListeners();
       }
       
       return credential;

@@ -262,12 +262,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         debugPrint('   - context available: ${context.mounted}');
       }
       
-      // FCM 초기화 대기 (최대 2초)
-      await Future.delayed(const Duration(milliseconds: 500));
+      // ✅ 시간 기반 대기 제거 → 이벤트 기반으로 변경
+      // signIn() 메서드가 FCM 초기화 완료 후 반환하므로
+      // 여기 도달 시점에 이미 MaxDeviceLimit 체크 완료됨
       
       if (!mounted) {
         if (kDebugMode) {
-          debugPrint('⚠️ [LOGIN] FCM 대기 중 Widget disposed - 화면 전환 불가');
+          debugPrint('⚠️ [LOGIN] Widget disposed - 화면 전환 불가');
         }
         return;
       }
