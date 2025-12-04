@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io' show Platform;
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
@@ -144,6 +146,17 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         print('✅ [SIGNUP] 회원가입 성공 - 자동 로그인 시작');
         // ignore: avoid_print
         print('   User ID: ${credential.user!.uid}');
+        
+        // 🖼️ 앱 로고를 프로필 이미지로 설정
+        try {
+          await _uploadDefaultProfileImage(credential.user!.uid);
+          // ignore: avoid_print
+          print('✅ [SIGNUP] 기본 프로필 이미지 업로드 완료');
+        } catch (e) {
+          // ignore: avoid_print
+          print('⚠️ [SIGNUP] 프로필 이미지 업로드 실패: $e');
+          // 프로필 이미지 업로드 실패 시에도 회원가입은 유지
+        }
         
         // FCM 초기화 (자동 로그인)
         try {
@@ -807,6 +820,66 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         ],
       ),
     );
+  }
+  
+  // 🖼️ 앱 로고를 기본 프로필 이미지로 설정
+  Future<void> _uploadDefaultProfileImage(String userId) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('🖼️ [PROFILE] 기본 프로필 이미지 업로드 시작');
+        debugPrint('   userId: $userId');
+      }
+      
+      // 1. assets에서 앱 로고 이미지 로드
+      final ByteData data = await rootBundle.load('assets/images/app_logo.png');
+      final Uint8List bytes = data.buffer.asUint8List();
+      
+      if (kDebugMode) {
+        debugPrint('✅ [PROFILE] 앱 로고 이미지 로드 완료 (${bytes.length} bytes)');
+      }
+      
+      // 2. Firebase Storage에 업로드
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('user_thumbnails')
+          .child('$userId.png');
+      
+      final uploadTask = await storageRef.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/png'),
+      );
+      
+      if (kDebugMode) {
+        debugPrint('✅ [PROFILE] Firebase Storage 업로드 완료');
+      }
+      
+      // 3. 다운로드 URL 가져오기
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      
+      if (kDebugMode) {
+        debugPrint('✅ [PROFILE] 다운로드 URL 취득: $downloadUrl');
+      }
+      
+      // 4. Firestore users 문서에 thumbnailUrl 저장
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .set({
+        'thumbnailUrl': downloadUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
+      if (kDebugMode) {
+        debugPrint('✅ [PROFILE] Firestore 업데이트 완료');
+        debugPrint('🎉 [PROFILE] 기본 프로필 이미지 설정 완료!');
+      }
+      
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [PROFILE] 기본 프로필 이미지 업로드 실패: $e');
+      }
+      rethrow;
+    }
   }
   
   // Firestore 사용자 프로필 업데이트 (카카오 닉네임 → 조직명, 프로필사진 → 썸네일)
