@@ -639,8 +639,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 ? SplashScreen(key: _splashKey) // 💡 스플래시 스크린 표시 (Fade Out 제어용 key 추가)
                 : Consumer<AuthService>(
                     builder: (context, authService, _) {
-                      // 🔔 FCM BuildContext 및 AuthService 설정
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                      // 🔥 CRITICAL: 로그아웃 이벤트 감지 (이중 보장)
+                      // ValueListenableBuilder로 Consumer rebuild 실패 시 보조 트리거
+                      return ValueListenableBuilder<int>(
+                        valueListenable: authService.logoutEventCounter,
+                        builder: (context, logoutEventCount, _) {
+                          if (kDebugMode && logoutEventCount > 0 && authService.isLoggingOut) {
+                            debugPrint('📢 [MAIN] 로그아웃 이벤트 #$logoutEventCount 감지 - ValueListenableBuilder 트리거');
+                            debugPrint('🔍 [MAIN] isLoggingOut: ${authService.isLoggingOut}');
+                            debugPrint('🔍 [MAIN] currentUser: ${authService.currentUser?.uid}');
+                            debugPrint('🔍 [MAIN] currentUserModel: ${authService.currentUserModel?.email}');
+                          }
+                          
+                          // 🔔 FCM BuildContext 및 AuthService 설정
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (mounted) {
                           FCMService.setContext(context);
                           FCMService.setAuthService(authService);
@@ -852,6 +864,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           ),
                         );
                       }
+                        },
+                      ); // ValueListenableBuilder 닫기
                     },
                   ),
               );

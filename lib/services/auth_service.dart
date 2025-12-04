@@ -63,6 +63,11 @@ class AuthService extends ChangeNotifier {
   bool _isLoggingOut = false;
   bool get isLoggingOut => _isLoggingOut;
   
+  // 🔥 CRITICAL: 로그아웃 이벤트 카운터 (확실한 rebuild 트리거)
+  // notifyListeners()가 실패할 경우를 대비한 보조 메커니즘
+  final ValueNotifier<int> _logoutEventCounter = ValueNotifier<int>(0);
+  ValueNotifier<int> get logoutEventCounter => _logoutEventCounter;
+  
   // 🔐 기기 승인 대기 상태
   bool _isWaitingForApproval = false;
   bool get isWaitingForApproval => _isWaitingForApproval;
@@ -165,14 +170,18 @@ class AuthService extends ChangeNotifier {
           debugPrint('✅ [AUTH STATE] 로그아웃 감지 - UI 업데이트 시작');
         }
         
-        // 🔥 CRITICAL FIX: Consumer rebuild를 강제로 보장하기 위해
-        // 다음 프레임에서 notifyListeners() 호출 (UI가 rebuild 가능한 시점 보장)
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          if (kDebugMode) {
-            debugPrint('🔔 [AUTH STATE] PostFrame에서 notifyListeners() 호출 - Consumer rebuild 트리거 (isLoggingOut=true)');
-          }
-          notifyListeners();
-        });
+        // 🔥 CRITICAL: 이벤트 기반 rebuild 트리거 (이중 보장)
+        // 1. notifyListeners() 호출
+        if (kDebugMode) {
+          debugPrint('🔔 [AUTH STATE] notifyListeners() 호출 #1 - Consumer rebuild 트리거 (isLoggingOut=true)');
+        }
+        notifyListeners();
+        
+        // 2. ValueNotifier 카운터 증가 (보조 트리거)
+        _logoutEventCounter.value++;
+        if (kDebugMode) {
+          debugPrint('📢 [AUTH STATE] 로그아웃 이벤트 발행 #${_logoutEventCounter.value} - ValueNotifier 트리거');
+        }
         
         // 🔥 CRITICAL: 플래그 해제는 main.dart가 LoginScreen을 표시할 때 이벤트 기반으로 처리
         // onLoginScreenDisplayed() 메서드가 호출될 때 플래그 해제됨
