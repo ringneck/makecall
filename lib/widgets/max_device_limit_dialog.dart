@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../exceptions/max_device_limit_exception.dart';
 
@@ -322,6 +323,14 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
                 final platform = device['platform'] as String;
                 // ✅ 플랫폼 호환성: Timestamp/DateTime 타입 안전 처리
                 final lastUpdatedRaw = device['last_updated'];
+                
+                // 🔍 디버그: 받은 데이터 타입 확인
+                if (kDebugMode) {
+                  print('🔍 [MaxDeviceLimit Dialog] 기기: $deviceName');
+                  print('   - last_updated 타입: ${lastUpdatedRaw.runtimeType}');
+                  print('   - last_updated 값: $lastUpdatedRaw');
+                }
+                
                 final DateTime? lastUpdatedDateTime;
                 if (lastUpdatedRaw is Timestamp) {
                   lastUpdatedDateTime = lastUpdatedRaw.toDate();
@@ -329,6 +338,9 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
                   lastUpdatedDateTime = lastUpdatedRaw;
                 } else {
                   lastUpdatedDateTime = null;
+                  if (kDebugMode) {
+                    print('   ⚠️ last_updated가 null이거나 지원되지 않는 타입입니다');
+                  }
                 }
                 
                 return Container(

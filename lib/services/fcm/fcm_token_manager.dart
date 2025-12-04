@@ -251,10 +251,14 @@ class FCMTokenManager {
         
         // ✅ 다이얼로그 표시용 기기 목록 생성 (로그아웃 전에 미리 준비)
         final activeDevicesList = otherDevices.map((device) {
+          // 🔍 디버그: lastActiveAt 값 확인
+          if (kDebugMode) {
+            print('🔍 [FCM-DEVICE-DATA] ${device.deviceName}: lastActiveAt = ${device.lastActiveAt}');
+          }
           return {
             'device_name': device.deviceName,
             'platform': device.platform,
-            'last_updated': device.lastActiveAt,  // Timestamp 그대로 전달 (다이얼로그에서 처리)
+            'last_updated': device.lastActiveAt,  // DateTime 그대로 전달 (다이얼로그에서 처리)
           };
         }).toList();
         
