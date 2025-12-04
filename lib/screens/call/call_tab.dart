@@ -407,7 +407,9 @@ class _CallTabState extends State<CallTab> {
     
     // 4️⃣ 소셜 로그인 플래그 해제 이벤트 감지 (사용자가 "로그인/닫기" 버튼 클릭)
     // ⚠️ 이메일 회원가입 이벤트보다 낮은 우선순위 (이메일 회원가입이 먼저 처리됨)
+    // 🚫 MaxDeviceLimit 차단 중에는 설정 체크 건너뛰기
     if (!(_authService?.isInSocialLoginFlow ?? true) && 
+        !(_authService?.isBlockedByMaxDeviceLimit ?? false) &&  // ← MaxDeviceLimit 체크 추가
         !_hasCheckedSettings && 
         !_hasProcessedEmailSignupEvent) {  // 🔒 이메일 회원가입 이벤트 처리 완료 체크
       if (kDebugMode) {
