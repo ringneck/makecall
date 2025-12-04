@@ -15,7 +15,7 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'firebase_options.dart';
 import 'config/kakao_config.dart';
-import 'exceptions/max_device_limit_exception.dart';
+
 import 'services/auth_service.dart';
 import 'services/fcm_service.dart';
 import 'services/user_session_manager.dart';
@@ -28,7 +28,7 @@ import 'providers/theme_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/web_login_wrapper.dart';
 import 'screens/auth/approval_waiting_screen.dart';
-import 'screens/auth/consent_renewal_screen.dart';
+
 import 'screens/home/main_screen.dart';
 import 'screens/splash/splash_screen.dart';
 import 'widgets/social_login_progress_overlay.dart';
@@ -137,7 +137,9 @@ void main() async {
         e.toString().contains('already created')) {
       // Firebase already initialized from native
     } else {
-      print('❌ Firebase 초기화 오류: $e');
+      if (kDebugMode) {
+        debugPrint('❌ Firebase 초기화 오류: $e');
+      }
       rethrow;
     }
   }
@@ -271,8 +273,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   String? _lastCheckedUserId;
   bool _providersRegistered = false; // Provider 등록 플래그
   
-  // 🚫 MaxDeviceLimitException 로그아웃 중복 실행 방지
-  bool _isMaxDeviceLimitLogoutInProgress = false;
+
   
   // 🚀 WebSocket 연결 관리자
   final DCMIWSConnectionManager _connectionManager = DCMIWSConnectionManager();

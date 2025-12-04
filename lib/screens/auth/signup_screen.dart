@@ -16,8 +16,8 @@ import '../../utils/dialog_utils.dart';
 import '../../utils/common_utils.dart';
 import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
-import '../home/main_screen.dart';
-import '../profile/api_settings_dialog.dart';
+
+
 import 'login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -37,7 +37,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   bool _obscureConfirmPassword = true;
   
   // 🆕 개인정보보호법 준수 - 동의 관리
-  bool _agreedToTerms = false;  // 하위 호환성 유지
   bool _allAgreed = false;                 // 전체 동의
   bool _termsAgreed = false;               // 이용약관 동의 (필수)
   bool _privacyPolicyAgreed = false;       // 개인정보처리방침 동의 (필수)
@@ -142,43 +141,38 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       
       // ✅ CRITICAL: 회원가입 성공 후 이메일 인증 메일 발송
       if (credential != null && credential.user != null) {
-        // ignore: avoid_print
-        print('✅ [SIGNUP] 회원가입 성공 - 이메일 인증 메일 발송');
-        // ignore: avoid_print
-        print('   User ID: ${credential.user!.uid}');
-        print('   Email: ${credential.user!.email}');
+        if (kDebugMode) {
+          debugPrint('✅ [SIGNUP] 회원가입 성공 - ${credential.user!.email}');
+        }
         
         // 📧 이메일 인증 메일 발송
         try {
           await credential.user!.sendEmailVerification();
-          // ignore: avoid_print
-          print('✅ [SIGNUP] 이메일 인증 메일 발송 완료');
         } catch (e) {
-          // ignore: avoid_print
-          print('⚠️ [SIGNUP] 이메일 인증 메일 발송 실패: $e');
           // 인증 메일 발송 실패 시에도 회원가입은 유지
+          if (kDebugMode) {
+            debugPrint('⚠️ [SIGNUP] 이메일 인증 메일 발송 실패: $e');
+          }
         }
         
         // 🖼️ 앱 로고를 프로필 이미지로 설정
         try {
           await _uploadDefaultProfileImage(credential.user!.uid);
-          // ignore: avoid_print
-          print('✅ [SIGNUP] 기본 프로필 이미지 업로드 완료');
         } catch (e) {
-          // ignore: avoid_print
-          print('⚠️ [SIGNUP] 프로필 이미지 업로드 실패: $e');
           // 프로필 이미지 업로드 실패 시에도 회원가입은 유지
+          if (kDebugMode) {
+            debugPrint('⚠️ [SIGNUP] 프로필 이미지 업로드 실패: $e');
+          }
         }
         
         // ⚡ CRITICAL: 이메일 미인증 상태에서 MainScreen 진입 방지
         // 회원가입 성공 후 즉시 로그아웃하여 이메일 인증 전까지 LoginScreen 유지
         try {
           await FirebaseAuth.instance.signOut();
-          // ignore: avoid_print
-          print('✅ [SIGNUP] 이메일 인증 대기 - 로그아웃 완료');
         } catch (e) {
-          // ignore: avoid_print
-          print('⚠️ [SIGNUP] 로그아웃 실패: $e');
+          if (kDebugMode) {
+            debugPrint('⚠️ [SIGNUP] 로그아웃 실패: $e');
+          }
         }
         
         // 📧 이메일 인증 안내 다이얼로그 표시 (다크모드 최적화)
@@ -427,10 +421,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         // ⚡ CRITICAL: SignupScreen 닫고 LoginScreen으로 전환
         // 이메일 인증 완료 전까지는 로그인 불가 상태 유지
         if (mounted) {
-          // ignore: avoid_print
-          print('🔙 [SIGNUP] SignupScreen 닫고 LoginScreen으로 전환');
-          print('   → 이메일 인증 완료 후 재로그인 필요');
-          
           // SignupScreen 닫고 LoginScreen으로 이동 (이메일 자동 입력)
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -440,9 +430,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
             ),
             (route) => false, // 모든 이전 화면 제거
           );
-          
-          // ignore: avoid_print
-          print('✅ [SIGNUP] LoginScreen 전환 완료 - 이메일 인증 후 로그인 가능');
         }
       }
     } on FirebaseAuthException catch (e) {

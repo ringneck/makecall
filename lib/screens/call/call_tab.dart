@@ -16,7 +16,7 @@ import '../../models/phonebook_model.dart';
 import '../../providers/selected_extension_provider.dart';
 import 'dialpad_screen.dart';
 import 'phonebook_tab.dart';
-import '../../widgets/call_method_dialog.dart';
+
 import '../../widgets/add_contact_dialog.dart';
 import '../../widgets/call_detail_dialog.dart';
 import '../../widgets/profile_drawer.dart';
@@ -226,14 +226,10 @@ class _CallTabState extends State<CallTab> {
     // 🎯 STEP 1: 회원가입 완료 다이얼로그 표시 (이벤트 기반)
     // MainScreen 전환 후 렌더링 완료 시점에만 실행
     if (widget.showWelcomeDialog && mounted) {
-      // ignore: avoid_print
-      print('🎉 [CALL_TAB] 회원가입 완료 다이얼로그 표시 시작');
       await DialogUtils.showSuccess(
         context,
         '🎉 회원가입이 완료되었습니다',
       );
-      // ignore: avoid_print
-      print('✅ [CALL_TAB] 회원가입 완료 다이얼로그 닫힘');
       
       // 🔒 CRITICAL: 이메일 회원가입 다이얼로그 표시 완료 후 AuthService 리스너 등록
       // 이제부터 발생하는 모든 이벤트는 MainScreen context에서 처리됨
@@ -2195,12 +2191,9 @@ class _CallTabState extends State<CallTab> {
         );
       }
       
-      // ignore: avoid_print
-      print('❌ [call_tab 기능번호] 발신 오류 발생');
-      // ignore: avoid_print
-      print('   에러: $e');
-      // ignore: avoid_print
-      print('   스택 트레이스: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('❌ [call_tab] 기능번호 발신 오류: $e');
+      }
     }
   }
 
