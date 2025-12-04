@@ -140,12 +140,24 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         marketingConsent: _marketingConsent,
       );
       
-      // ✅ CRITICAL: 회원가입 성공 후 자동 로그인 처리
+      // ✅ CRITICAL: 회원가입 성공 후 이메일 인증 메일 발송
       if (credential != null && credential.user != null) {
         // ignore: avoid_print
-        print('✅ [SIGNUP] 회원가입 성공 - 자동 로그인 시작');
+        print('✅ [SIGNUP] 회원가입 성공 - 이메일 인증 메일 발송');
         // ignore: avoid_print
         print('   User ID: ${credential.user!.uid}');
+        print('   Email: ${credential.user!.email}');
+        
+        // 📧 이메일 인증 메일 발송
+        try {
+          await credential.user!.sendEmailVerification();
+          // ignore: avoid_print
+          print('✅ [SIGNUP] 이메일 인증 메일 발송 완료');
+        } catch (e) {
+          // ignore: avoid_print
+          print('⚠️ [SIGNUP] 이메일 인증 메일 발송 실패: $e');
+          // 인증 메일 발송 실패 시에도 회원가입은 유지
+        }
         
         // 🖼️ 앱 로고를 프로필 이미지로 설정
         try {
@@ -182,6 +194,78 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           // ignore: avoid_print
           print('⚠️ [SIGNUP] FCM 초기화 실패: $e');
           // FCM 실패 시에도 로그인 상태는 유지 (나중에 초기화 재시도)
+        }
+        
+        // 📧 이메일 인증 안내 다이얼로그 표시
+        if (mounted) {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.email, color: Color(0xFF2196F3)),
+                  SizedBox(width: 12),
+                  Text('이메일 인증'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '회원가입이 완료되었습니다!\n\n인증 메일이 ${_emailController.text.trim()}로 발송되었습니다.',
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFF2196F3).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, size: 18, color: Color(0xFF2196F3)),
+                            SizedBox(width: 8),
+                            Text(
+                              '인증 방법',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2196F3),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '1. 이메일 앱에서 인증 메일을 확인하세요\n2. 인증 링크를 클릭하세요\n3. 앱으로 돌아와서 로그인하세요',
+                          style: TextStyle(fontSize: 13, height: 1.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    '💡 메일이 보이지 않으면 스팸함을 확인하세요',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('확인'),
+                ),
+              ],
+            ),
+          );
         }
         
         // ✅ CRITICAL: SignupScreen 닫고 MainScreen으로 직접 전환

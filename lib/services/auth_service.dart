@@ -483,6 +483,27 @@ class AuthService extends ChangeNotifier {
           }
         }
         
+        // 📧 이메일 인증 여부 확인 (회원가입 후 첫 로그인)
+        if (!credential.user!.emailVerified) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [AUTH] 이메일 미인증 계정 - 인증 필요');
+          }
+          
+          // 로그아웃 처리
+          await _auth.signOut();
+          _tempPassword = null;
+          
+          // 이메일 미인증 예외 발생
+          throw FirebaseAuthException(
+            code: 'email-not-verified',
+            message: '이메일 인증이 필요합니다.\n\n가입 시 발송된 인증 메일의 링크를 클릭하여\n이메일 인증을 완료해주세요.\n\n인증 후 다시 로그인해주세요.',
+          );
+        }
+        
+        if (kDebugMode) {
+          debugPrint('✅ [AUTH] 이메일 인증 확인 완료');
+        }
+        
         // 비밀번호를 _loadUserModel에 전달하여 자동 저장
         // 🛑 CRITICAL: _loadUserModel에서 ServiceSuspendedException이 발생하면 즉시 리턴
         try {
@@ -1346,6 +1367,8 @@ class AuthService extends ChangeNotifier {
   // Firebase Auth 에러 메시지 한글화
   String getErrorMessage(String errorCode) {
     switch (errorCode) {
+      case 'email-not-verified':
+        return '이메일 인증이 필요합니다.\n\n가입 시 발송된 인증 메일의 링크를 클릭하여\n이메일 인증을 완료해주세요.\n\n💡 메일이 보이지 않으면 스팸함을 확인하세요.';
       case 'email-already-in-use':
         return '이미 사용 중인 이메일입니다.';
       case 'invalid-email':
