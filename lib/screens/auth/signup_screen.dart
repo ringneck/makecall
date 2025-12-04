@@ -410,18 +410,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     }
   }
   
-  // REST API 설정 필요 안내 다이얼로그
-  // ✅ iOS/Android와 통일된 DialogUtils.showInfo() 사용
-  Future<void> _showApiSettingsRequiredDialog() async {
-    if (!mounted) return;
-    
-    await DialogUtils.showInfo(
-      context,
-      '통화 기능을 사용하기 위해서는\nREST API 서버 설정이 필요합니다.\n\n왼쪽 상단 프로필 아이콘을 눌러\n설정 정보를 입력해주세요.',
-      title: '초기 등록 필요',
-    );
-  }
-  
+
   // 📧 애플 로그인 이메일 안내 다이얼로그
   Future<bool> _showAppleEmailNotice() async {
     if (!mounted) return false;
