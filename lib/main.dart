@@ -837,6 +837,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           ), // 로그인 후 MAKECALL 메인 화면으로 이동
                         );
                       } else {
+                        // 🔔 이벤트 기반: LoginScreen이 build될 때 AuthService에 알림
+                        if (authService.isLoggingOut) {
+                          if (kDebugMode) {
+                            debugPrint('🚪 [MAIN-ELSE] 로그아웃 플래그 감지 - LoginScreen 표시 (currentUser/currentUserModel 없음)');
+                          }
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            authService.onLoginScreenDisplayed();
+                          });
+                        }
                         return WebLoginWrapper(
                           child: LoginScreen(
                             key: ValueKey('login_${DateTime.now().millisecondsSinceEpoch}'),
