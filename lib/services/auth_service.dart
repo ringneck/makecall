@@ -769,7 +769,7 @@ class AuthService extends ChangeNotifier {
   /// 삭제되는 데이터:
   ///   - fcm_tokens/{userId}_{deviceId}: FCM 토큰만 삭제
   ///   - _currentUserModel: 로컬 변수만 초기화 (Firestore 손대 안 함)
-  Future<void> signOut() async {
+  Future<void> signOut({bool silentLogout = false}) async {
     // 🔥 CRITICAL FIX: 로그아웃 플래그 설정 (FCM route 남아도 LoginScreen 강제 표시)
     _isLoggingOut = true;
     _isSigningOut = true; // authStateChanges 리스너 무시
@@ -821,7 +821,7 @@ class AuthService extends ChangeNotifier {
     final userId = _auth.currentUser?.uid;
     
     // 1️⃣ FCM 토큰 비활성화 (조용한 로그아웃 시 건너뛰기)
-    if (!_isSigningOut) {
+    if (!silentLogout) {
       try {
         if (userId != null) {
           final fcmService = FCMService();
@@ -837,7 +837,7 @@ class AuthService extends ChangeNotifier {
       }
     } else {
       if (kDebugMode) {
-        debugPrint('⏭️  [1/4] 조용한 로그아웃 - FCM 토큰 비활성화 건너뛰기 (토큰 유지)');
+        debugPrint('⏭️  [1/4] 조용한 로그아웃 (MaxDeviceLimit) - FCM 토큰 비활성화 건너뛰기 (토큰 유지)');
       }
     }
     
