@@ -536,6 +536,11 @@ class FCMService {
         // 🔐 AuthService에 승인 대기 상태 설정
         if (_authService != null) {
           _authService!.setWaitingForApproval(true, approvalRequestId: approvalRequestId);
+          if (kDebugMode) {
+            debugPrint('🎬 [FCM-WAIT] AuthService.setWaitingForApproval(true) 호출 완료');
+            debugPrint('   - approvalRequestId: $approvalRequestId');
+            debugPrint('   - isWaitingForApproval: ${_authService!.isWaitingForApproval}');
+          }
         }
         
         // 승인 대기 (최대 5분) - 🔧 Phase 2: FCMDeviceApprovalService 사용

@@ -184,6 +184,13 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode) {
+      debugPrint('🎬 [APPROVAL-SCREEN] build() 호출됨');
+      debugPrint('   - approvalRequestId: ${widget.approvalRequestId}');
+      debugPrint('   - userId: ${widget.userId}');
+      debugPrint('   - remainingSeconds: $_remainingSeconds');
+    }
+    
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return PopScope(

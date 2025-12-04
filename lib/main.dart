@@ -873,6 +873,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
                       // 🔐 승인 대기 중인 경우
                       if (authService.isWaitingForApproval) {
+                        if (kDebugMode) {
+                          debugPrint('📺 [MAIN] ApprovalWaitingScreen 표시');
+                          debugPrint('   - approvalRequestId: ${authService.approvalRequestId}');
+                          debugPrint('   - userId: ${authService.currentUser?.uid}');
+                        }
                         return ApprovalWaitingScreen(
                           approvalRequestId: authService.approvalRequestId!,
                           userId: authService.currentUser!.uid,
