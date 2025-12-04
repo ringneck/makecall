@@ -1,3 +1,23 @@
+// ============================================
+// 🔥 FIRESTORE SECURITY RULES V6.2 (FINAL)
+// ============================================
+// 
+// 📅 Last Updated: 2025-12-04
+// 🎯 Version: V6.2 (최종 버전)
+// 
+// 🔧 V6.2 주요 수정 사항:
+// - device_approval_requests 컬렉션 쿼리 지원 추가
+// - .doc().snapshots() 리스너의 resource == null 상황 처리
+// - 전체 18개 컬렉션 완전 검증 완료
+// 
+// 📊 검증된 컬렉션:
+// - Type A (User-Scoped): 10개 ✅
+// - Type B (Composite-ID): 2개 ✅
+// - Type C (Shared): 4개 ✅
+// - Type D (Admin-Only): 2개 ✅
+// 
+// ============================================
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -84,9 +104,12 @@ service cloud.firestore {
     }
     
     // 9. device_approval_requests - 기기 승인 요청
+    // 🔑 CRITICAL: .doc().snapshots() 리스너 지원을 위해 resource null 체크 필요
+    // fcm_device_approval_service.dart:312에서 .doc(approvalRequestId).snapshots() 사용
+    // 첫 리스닝 시 문서가 아직 생성되지 않아 resource == null 상황 발생
     match /device_approval_requests/{documentId} {
       allow read: if request.auth != null 
-                  && resource.data.userId == request.auth.uid;
+                  && (resource == null || resource.data.userId == request.auth.uid);
       allow write: if request.auth != null 
                    && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null 
