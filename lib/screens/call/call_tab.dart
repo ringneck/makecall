@@ -253,6 +253,10 @@ class _CallTabState extends State<CallTab> {
       if (kDebugMode) {
         debugPrint('🔍 [CALL_TAB] 초기 설정 체크 시작 (이메일 회원가입)');
       }
+      
+      // 🔥 CRITICAL: 플래그를 강제로 false로 설정하여 다이얼로그 표시 보장
+      _settingsChecker.hasCheckedSettings = false;
+      
       await _checkSettingsAndShowGuide();
     }
     

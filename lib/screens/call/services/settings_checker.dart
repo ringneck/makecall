@@ -292,15 +292,13 @@ class SettingsChecker {
           actions: [
             ElevatedButton.icon(
               onPressed: () async {
+                // 🔥 CRITICAL FIX: Navigator.pop()을 1번만 호출!
                 Navigator.pop(dialogContext);
 
                 // 다이얼로그가 완전히 닫힌 후 기본 API 설정 다이얼로그 표시
                 await Future.delayed(const Duration(milliseconds: 300));
 
-                if (dialogContext.mounted) {
-                  // 현재 다이얼로그 닫기
-                  Navigator.of(dialogContext).pop();
-                  
+                if (context.mounted) {
                   // 기본 API 설정 다이얼로그 표시
                   await showDialog(
                     context: context,  // 원본 context 사용
