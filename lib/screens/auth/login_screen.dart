@@ -188,26 +188,44 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       if (kDebugMode) {
         debugPrint('✅ [LOGIN] 로그인 및 승인 완료');
+        debugPrint('   ℹ️ 로그인 성공 - 화면 전환 준비');
       }
       
       // 로그인 성공 시 이메일 저장 설정 적용
       await _saveCredentials();
       
-      // ⚡ 로그인 성공 후 MainScreen으로 명시적 전환
-      if (mounted) {
+      // ⚡ CRITICAL: 로그인 성공 후 MainScreen으로 명시적 전환
+      if (!mounted) {
         if (kDebugMode) {
-          debugPrint('🔄 [LOGIN] MainScreen으로 화면 전환 시작');
+          debugPrint('⚠️ [LOGIN] Widget이 disposed됨 - 화면 전환 불가');
         }
-        
-        // LoginScreen을 스택에서 완전히 제거하고 MainScreen으로 교체
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-          (route) => false, // 모든 이전 화면 제거
-        );
-        
+        return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('🔄 [LOGIN] MainScreen으로 화면 전환 시작');
+        debugPrint('   - mounted: $mounted');
+        debugPrint('   - context available: ${context.mounted}');
+      }
+      
+      // FCM 초기화 대기 (최대 2초)
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (!mounted) {
         if (kDebugMode) {
-          debugPrint('✅ [LOGIN] MainScreen으로 화면 전환 완료');
+          debugPrint('⚠️ [LOGIN] FCM 대기 중 Widget disposed - 화면 전환 불가');
         }
+        return;
+      }
+      
+      // LoginScreen을 스택에서 완전히 제거하고 MainScreen으로 교체
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+        (route) => false, // 모든 이전 화면 제거
+      );
+      
+      if (kDebugMode) {
+        debugPrint('✅ [LOGIN] MainScreen으로 화면 전환 완료');
       }
       
     } on MaxDeviceLimitException catch (e) {

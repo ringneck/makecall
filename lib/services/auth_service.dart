@@ -563,7 +563,11 @@ class AuthService extends ChangeNotifier {
         }
         
         // 📧 이메일 인증 여부 확인 (회원가입 후 첫 로그인)
-        if (!credential.user!.emailVerified) {
+        // ⚡ CRITICAL: 이메일 인증 체크 전 토큰 새로고침 (Firebase 서버에서 최신 상태 가져오기)
+        await credential.user!.reload();
+        final currentUser = _auth.currentUser;
+        
+        if (currentUser != null && !currentUser.emailVerified) {
           if (kDebugMode) {
             debugPrint('⚠️ [AUTH] 이메일 미인증 계정 - 인증 필요');
           }
