@@ -107,6 +107,25 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
     }
   }
 
+  String _formatLastUpdatedFromDateTime(DateTime? dateTime) {
+    if (dateTime == null) return '알 수 없음';
+    
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return '방금 전';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}분 전';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}시간 전';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}일 전';
+    } else {
+      return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
+    }
+  }
+
   IconData _getPlatformIcon(String platform) {
     switch (platform.toLowerCase()) {
       case 'android':
@@ -301,11 +320,16 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
                 final device = entry.value;
                 final deviceName = device['device_name'] as String;
                 final platform = device['platform'] as String;
-                // ✅ 웹 환경 호환성: Timestamp 타입 안전 처리
+                // ✅ 플랫폼 호환성: Timestamp/DateTime 타입 안전 처리
                 final lastUpdatedRaw = device['last_updated'];
-                final Timestamp? lastUpdated = lastUpdatedRaw is Timestamp 
-                    ? lastUpdatedRaw 
-                    : null;
+                final DateTime? lastUpdatedDateTime;
+                if (lastUpdatedRaw is Timestamp) {
+                  lastUpdatedDateTime = lastUpdatedRaw.toDate();
+                } else if (lastUpdatedRaw is DateTime) {
+                  lastUpdatedDateTime = lastUpdatedRaw;
+                } else {
+                  lastUpdatedDateTime = null;
+                }
                 
                 return Container(
                   margin: EdgeInsets.only(
@@ -354,7 +378,7 @@ class _MaxDeviceLimitDialogState extends State<MaxDeviceLimitDialog> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '마지막 활동: ${_formatLastUpdated(lastUpdated)}',
+                              '마지막 활동: ${_formatLastUpdatedFromDateTime(lastUpdatedDateTime)}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
