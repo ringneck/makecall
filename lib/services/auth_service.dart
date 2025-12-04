@@ -158,8 +158,11 @@ class AuthService extends ChangeNotifier {
           try {
             if (kDebugMode) {
               debugPrint('🔄 [AUTH STATE] UserModel 로드 필요 - _loadUserModel() 호출');
+              debugPrint('   ⚠️ shouldNotify=false → MainScreen 조기 표시 방지');
             }
-            await _loadUserModel(user.uid);
+            // shouldNotify: false → notifyListeners() 호출 안 함
+            // signIn()에서 FCM 완료 후 호출할 예정
+            await _loadUserModel(user.uid, shouldNotify: false);
           } on ServiceSuspendedException catch (e) {
             // 🛑 서비스 이용 중지 계정 - authStateChanges에서는 무시
             // UI의 signIn()에서 이미 처리했으므로 여기서는 조용히 무시
@@ -218,13 +221,18 @@ class AuthService extends ChangeNotifier {
   // 비밀번호를 일시적으로 저장하기 위한 변수 (로그인 시에만 사용)
   String? _tempPassword;
   
-  Future<void> _loadUserModel(String uid, {String? password}) async {
+  Future<void> _loadUserModel(
+    String uid, {
+    String? password,
+    bool shouldNotify = true,  // 🔥 CRITICAL: notifyListeners() 제어 플래그
+  }) async {
     if (kDebugMode) {
       debugPrint('\n╔════════════════════════════════════════╗');
       debugPrint('║  _loadUserModel() 시작                ║');
       debugPrint('╚════════════════════════════════════════╝');
       debugPrint('   uid: $uid');
       debugPrint('   password: ${password != null ? "제공됨" : "null"}');
+      debugPrint('   shouldNotify: $shouldNotify');
       debugPrint('   _isLoggingOut: $_isLoggingOut');
       debugPrint('   현재 _currentUserModel: ${_currentUserModel?.email ?? "null"}');
     }
@@ -315,20 +323,33 @@ class AuthService extends ChangeNotifier {
           debugPrint('✅ [_loadUserModel] 계정 정보 저장 완료');
         }
         
-        if (kDebugMode) {
-          debugPrint('🔔 [_loadUserModel] notifyListeners() 호출...');
-        }
-        
-        notifyListeners();
-        
-        if (kDebugMode) {
-          debugPrint('\n╔════════════════════════════════════════╗');
-          debugPrint('║  _loadUserModel() 완료                ║');
-          debugPrint('╚════════════════════════════════════════╝');
-          debugPrint('   ✅ email: ${_currentUserModel!.email}');
-          debugPrint('   ✅ profileImageUrl: ${_currentUserModel!.profileImageUrl}');
-          debugPrint('   ✅ notifyListeners() 호출 완료');
-          debugPrint('');
+        // 🔥 CRITICAL: shouldNotify 플래그에 따라 notifyListeners() 호출
+        if (shouldNotify) {
+          if (kDebugMode) {
+            debugPrint('🔔 [_loadUserModel] notifyListeners() 호출...');
+          }
+          
+          notifyListeners();
+          
+          if (kDebugMode) {
+            debugPrint('\n╔════════════════════════════════════════╗');
+            debugPrint('║  _loadUserModel() 완료                ║');
+            debugPrint('╚════════════════════════════════════════╝');
+            debugPrint('   ✅ email: ${_currentUserModel!.email}');
+            debugPrint('   ✅ profileImageUrl: ${_currentUserModel!.profileImageUrl}');
+            debugPrint('   ✅ notifyListeners() 호출 완료');
+            debugPrint('');
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('\n╔════════════════════════════════════════╗');
+            debugPrint('║  _loadUserModel() 완료                ║');
+            debugPrint('╚════════════════════════════════════════╝');
+            debugPrint('   ✅ email: ${_currentUserModel!.email}');
+            debugPrint('   ✅ profileImageUrl: ${_currentUserModel!.profileImageUrl}');
+            debugPrint('   ⏭️ notifyListeners() 건너뛰기 (shouldNotify=false)');
+            debugPrint('');
+          }
         }
       } else {
         final currentUser = _auth.currentUser;
