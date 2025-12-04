@@ -30,6 +30,7 @@ class FCMWebConfig {
     try {
       if (kDebugMode) {
         debugPrint('🌐 [FCM-WEB] 웹 FCM 토큰 요청 시작...');
+        debugPrint('   VAPID Key: ${vapidKey.substring(0, 20)}...');
       }
       
       // VAPID key를 사용하여 토큰 요청
@@ -39,10 +40,16 @@ class FCMWebConfig {
         if (kDebugMode) {
           debugPrint('✅ [FCM-WEB] 웹 FCM 토큰 획득 성공');
           debugPrint('   토큰 길이: ${token.length}');
+          debugPrint('   토큰 일부: ${token.substring(0, 30)}...');
         }
       } else {
         if (kDebugMode) {
           debugPrint('⚠️ [FCM-WEB] 웹 FCM 토큰이 null입니다');
+          debugPrint('   가능한 원인:');
+          debugPrint('   1. 브라우저 알림 권한 거부됨');
+          debugPrint('   2. VAPID Key 불일치');
+          debugPrint('   3. Service Worker 등록 실패');
+          debugPrint('   4. 브라우저 호환성 문제 (Safari 등)');
         }
       }
       
@@ -50,7 +57,10 @@ class FCMWebConfig {
     } catch (e, stackTrace) {
       if (kDebugMode) {
         debugPrint('❌ [FCM-WEB] 웹 FCM 토큰 요청 실패: $e');
-        debugPrint('Stack trace: $stackTrace');
+        debugPrint('   에러 타입: ${e.runtimeType}');
+        debugPrint('   Stack trace: $stackTrace');
+        debugPrint('   🔍 Firebase Console에서 VAPID Key 확인:');
+        debugPrint('   Project Settings > Cloud Messaging > Web Push certificates');
       }
       return null;
     }
@@ -71,6 +81,10 @@ class FCMWebConfig {
       
       if (kDebugMode) {
         debugPrint('🔔 [FCM-WEB] 알림 권한 상태: ${settings.authorizationStatus}');
+        if (!isGranted) {
+          debugPrint('   ⚠️ 알림 권한이 필요합니다!');
+          debugPrint('   브라우저 설정에서 알림 권한을 허용해주세요.');
+        }
       }
       
       return isGranted;

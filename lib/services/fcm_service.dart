@@ -318,19 +318,35 @@ class FCMService {
         if (kIsWeb) {
           // 🔧 Phase 5: FCMWebConfig 클래스 사용
           try {
+            // 먼저 알림 권한 확인
+            final hasPermission = await _webConfig.checkWebNotificationPermission();
+            if (kDebugMode) {
+              debugPrint('🔔 [FCM-WEB] 알림 권한: ${hasPermission ? "허용됨" : "거부됨/미설정"}');
+            }
+            
             _fcmToken = await _webConfig.getWebFCMToken();
             if (_fcmToken == null) {
               // 웹에서 FCM 토큰은 없지만, 웹 기기 정보는 저장해야 함
               if (kDebugMode) {
                 debugPrint('⚠️ [FCM-WEB] FCM 토큰 없음 - 더미 토큰으로 기기 정보 저장');
+                debugPrint('⚠️ [FCM-WEB] ❌ 감지됨: 더미 토큰 사용 시 FCM 알림 수신 불가!');
+                debugPrint('   해결 방법:');
+                debugPrint('   1. 로그아웃 후 다시 로그인');
+                debugPrint('   2. 브라우저 설정에서 알림 권한 허용');
+                debugPrint('   3. VAPID Key 확인 (fcm_web_config.dart)');
               }
               // 웹 플랫폼용 더미 토큰 생성 (fcm_tokens에 기기 등록용)
               _fcmToken = 'web_dummy_token_${DateTime.now().millisecondsSinceEpoch}';
+            } else {
+              if (kDebugMode) {
+                debugPrint('✅ [FCM-WEB] 웹 FCM 토큰 획듍 성공 - 알림 수신 가능');
+              }
             }
           } catch (e) {
-            // 웹에서 FCM 실패 시에도 더미 토큰으로 기기 정보 저장
+            // 웹에서 FCM 실패 시에도 더미 토판으로 기기 정보 저장
             if (kDebugMode) {
-              debugPrint('⚠️ [FCM-WEB] FCM 에러 발생 - 더미 토큰으로 기기 정보 저장: $e');
+              debugPrint('⚠️ [FCM-WEB] FCM 에러 발생 - 더미 토판으로 기기 정보 저장: $e');
+              debugPrint('⚠️ [FCM-WEB] ❌ 감지됨: 더미 토판 사용 시 FCM 알림 수신 불가!');
             }
             _fcmToken = 'web_dummy_token_${DateTime.now().millisecondsSinceEpoch}';
           }
