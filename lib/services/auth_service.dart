@@ -874,16 +874,28 @@ class AuthService extends ChangeNotifier {
     // 1️⃣ FCM 토큰 비활성화 (조용한 로그아웃 시 건너뛰기)
     if (!silentLogout) {
       try {
+        if (kDebugMode) {
+          debugPrint('🔓 [LOGOUT] FCM 토큰 비활성화 시작...');
+          debugPrint('   userId: $userId');
+          debugPrint('   Platform: ${kIsWeb ? "Web" : "Mobile"}');
+        }
+        
         if (userId != null) {
           final fcmService = FCMService();
           await fcmService.deactivateToken(userId);
           if (kDebugMode) {
             debugPrint('✅ [1/4] FCM 토큰 비활성화 완료');
           }
+        } else {
+          if (kDebugMode) {
+            debugPrint('⚠️  [1/4] userId가 null - FCM 토큰 비활성화 건너뛰기');
+          }
         }
-      } catch (e) {
+      } catch (e, stackTrace) {
         if (kDebugMode) {
-          debugPrint('⚠️  [1/4] FCM 토큰 비활성화 오류: $e');
+          debugPrint('❌ [1/4] FCM 토큰 비활성화 오류: $e');
+          debugPrint('   Stack trace:');
+          debugPrint('   $stackTrace');
         }
       }
     } else {
