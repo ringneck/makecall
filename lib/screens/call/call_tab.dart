@@ -254,10 +254,12 @@ class _CallTabState extends State<CallTab> {
         debugPrint('🔍 [CALL_TAB] 초기 설정 체크 시작 (이메일 회원가입)');
       }
       
-      // 🔥 CRITICAL: 플래그를 강제로 false로 설정하여 다이얼로그 표시 보장
-      _settingsChecker.hasCheckedSettings = false;
-      
+      // 🔥 CRITICAL: 설정 체크 및 다이얼로그 표시 (1회만)
       await _checkSettingsAndShowGuide();
+      
+      // 🔒 CRITICAL: 이메일 회원가입 이벤트 처리 완료 플래그 설정
+      // AuthService 리스너에서 중복 실행 방지
+      _hasProcessedEmailSignupEvent = true;
     }
     
     if (!mounted) return;
