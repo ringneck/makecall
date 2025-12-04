@@ -154,7 +154,7 @@ class AuthService extends ChangeNotifier {
         // 🔥 CRITICAL: signIn()에서 이미 _loadUserModel()을 호출하므로
         // authStateChanges에서는 _currentUserModel이 null일 때만 호출
         // (앱 재시작 등으로 자동 로그인되는 경우에만 필요)
-        if (_currentUserModel == null || _currentUserModel!.uid != user.uid) {
+        if (_currentUserModel == null) {
           try {
             if (kDebugMode) {
               debugPrint('🔄 [AUTH STATE] UserModel 로드 필요 - _loadUserModel() 호출');
@@ -173,7 +173,7 @@ class AuthService extends ChangeNotifier {
           }
         } else {
           if (kDebugMode) {
-            debugPrint('✅ [AUTH STATE] UserModel 이미 존재 - _loadUserModel() 건너뛰기');
+            debugPrint('✅ [AUTH STATE] UserModel 이미 존재 (uid: ${_currentUserModel!.uid}) - _loadUserModel() 건너뛰기');
           }
         }
       } else if (_lastUserId != null) {
@@ -219,6 +219,16 @@ class AuthService extends ChangeNotifier {
   String? _tempPassword;
   
   Future<void> _loadUserModel(String uid, {String? password}) async {
+    if (kDebugMode) {
+      debugPrint('\n╔════════════════════════════════════════╗');
+      debugPrint('║  _loadUserModel() 시작                ║');
+      debugPrint('╚════════════════════════════════════════╝');
+      debugPrint('   uid: $uid');
+      debugPrint('   password: ${password != null ? "제공됨" : "null"}');
+      debugPrint('   _isLoggingOut: $_isLoggingOut');
+      debugPrint('   현재 _currentUserModel: ${_currentUserModel?.email ?? "null"}');
+    }
+    
     try {
       // 🔥 CRITICAL: 로그인 성공 시에만 플래그 해제 (로그아웃 중에는 유지)
       // authStateChanges 리스너가 user == null일 때 플래그를 해제함
@@ -226,7 +236,23 @@ class AuthService extends ChangeNotifier {
         // 이미 로그아웃 진행 중이 아닌 경우에만 해제
         _isLoggingOut = false;
       }
+      
+      if (kDebugMode) {
+        debugPrint('🔍 [_loadUserModel] Firestore 조회 시작...');
+      }
+      
       final doc = await _firestore.collection('users').doc(uid).get();
+      
+      if (kDebugMode) {
+        debugPrint('📦 [_loadUserModel] Firestore 응답 받음');
+        debugPrint('   exists: ${doc.exists}');
+        if (doc.exists) {
+          final data = doc.data()!;
+          debugPrint('   data keys: ${data.keys.toList()}');
+          debugPrint('   profileImageUrl: ${data["profileImageUrl"]}');
+          debugPrint('   email: ${data["email"]}');
+        }
+      }
       
       if (doc.exists) {
         final data = doc.data()!;
@@ -264,16 +290,45 @@ class AuthService extends ChangeNotifier {
           );
         }
         
+        if (kDebugMode) {
+          debugPrint('🔄 [_loadUserModel] UserModel 객체 생성 시작...');
+        }
+        
         _currentUserModel = UserModel.fromMap(data, uid);
+        
+        if (kDebugMode) {
+          debugPrint('✅ [_loadUserModel] UserModel 객체 생성 완료');
+          debugPrint('   email: ${_currentUserModel!.email}');
+          debugPrint('   profileImageUrl: ${_currentUserModel!.profileImageUrl}');
+          debugPrint('   organizationName: ${_currentUserModel!.organizationName}');
+          debugPrint('   companyName: ${_currentUserModel!.companyName}');
+        }
+        
+        if (kDebugMode) {
+          debugPrint('💾 [_loadUserModel] 계정 정보 저장 시작...');
+        }
         
         await _accountManager.saveAccount(_currentUserModel!, password: password ?? _tempPassword);
         _tempPassword = null;
         
+        if (kDebugMode) {
+          debugPrint('✅ [_loadUserModel] 계정 정보 저장 완료');
+        }
+        
+        if (kDebugMode) {
+          debugPrint('🔔 [_loadUserModel] notifyListeners() 호출...');
+        }
+        
         notifyListeners();
         
         if (kDebugMode) {
-          debugPrint('✅ [_loadUserModel] UserModel 로드 완료: ${_currentUserModel!.email}');
-          debugPrint('   - notifyListeners() 호출됨');
+          debugPrint('\n╔════════════════════════════════════════╗');
+          debugPrint('║  _loadUserModel() 완료                ║');
+          debugPrint('╚════════════════════════════════════════╝');
+          debugPrint('   ✅ email: ${_currentUserModel!.email}');
+          debugPrint('   ✅ profileImageUrl: ${_currentUserModel!.profileImageUrl}');
+          debugPrint('   ✅ notifyListeners() 호출 완료');
+          debugPrint('');
         }
       } else {
         final currentUser = _auth.currentUser;
@@ -349,6 +404,30 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Refresh user model error: $e');
+      }
+      rethrow;
+    }
+  }
+  
+  // 프로필 이미지 등 변경 사항을 즉시 반영하기 위한 메서드
+  Future<void> reloadUserModel() async {
+    if (currentUser == null) return;
+    
+    try {
+      if (kDebugMode) {
+        debugPrint('🔄 [reloadUserModel] Firestore에서 최신 데이터 로드 시작...');
+      }
+      
+      // Firestore에서 최신 데이터 로드
+      await _loadUserModel(currentUser!.uid);
+      
+      if (kDebugMode) {
+        debugPrint('✅ [reloadUserModel] 사용자 모델 리로드 완료');
+        debugPrint('   profileImageUrl: ${_currentUserModel?.profileImageUrl}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [reloadUserModel] 오류: $e');
       }
       rethrow;
     }
@@ -507,14 +586,30 @@ class AuthService extends ChangeNotifier {
         // 비밀번호를 _loadUserModel에 전달하여 자동 저장
         // 🛑 CRITICAL: _loadUserModel에서 ServiceSuspendedException이 발생하면 즉시 리턴
         try {
+          if (kDebugMode) {
+            debugPrint('\n🚀 [signIn] _loadUserModel() 호출 시작...');
+          }
+          
           await _loadUserModel(credential.user!.uid, password: password);
+          
+          if (kDebugMode) {
+            debugPrint('\n🔔 [signIn] _loadUserModel() 완료 - notifyListeners() 호출');
+            debugPrint('   currentUserModel: ${_currentUserModel?.email}');
+            debugPrint('   profileImageUrl: ${_currentUserModel?.profileImageUrl}');
+          }
           
           // 🔥 CRITICAL: _loadUserModel 완료 후 명시적으로 notifyListeners() 호출
           // authStateChanges 리스너와 별개로 즉시 UI 업데이트 보장
           notifyListeners();
           
           if (kDebugMode) {
-            debugPrint('✅ [AUTH] UserModel 로드 완료 - UI 업데이트 트리거');
+            debugPrint('✅ [signIn] notifyListeners() 호출 완료');
+            debugPrint('   📊 현재 상태:');
+            debugPrint('      - _currentUserModel != null: ${_currentUserModel != null}');
+            debugPrint('      - email: ${_currentUserModel?.email}');
+            debugPrint('      - profileImageUrl: ${_currentUserModel?.profileImageUrl}');
+            debugPrint('      - _isLoggingOut: $_isLoggingOut');
+            debugPrint('      - _isSigningOut: $_isSigningOut');
           }
         } on ServiceSuspendedException catch (e) {
           // 서비스 이용 중지 계정 - 로그아웃 처리 후 예외 재전파

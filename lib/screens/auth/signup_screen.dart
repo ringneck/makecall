@@ -1116,6 +1116,12 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       }
       
       // 4. Firestore users 문서에 profileImageUrl 저장 (UserModel과 일치)
+      if (kDebugMode) {
+        debugPrint('💾 [PROFILE] Firestore profileImageUrl 업데이트 시작...');
+        debugPrint('   userId: $userId');
+        debugPrint('   downloadUrl: $downloadUrl');
+      }
+      
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -1126,6 +1132,29 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       
       if (kDebugMode) {
         debugPrint('✅ [PROFILE] Firestore 업데이트 완료');
+      }
+      
+      // 🔥 CRITICAL: AuthService._currentUserModel도 즉시 업데이트
+      if (mounted) {
+        final authService = context.read<AuthService>();
+        if (authService.currentUserModel != null) {
+          if (kDebugMode) {
+            debugPrint('🔄 [PROFILE] AuthService._currentUserModel profileImageUrl 업데이트');
+            debugPrint('   이전 URL: ${authService.currentUserModel!.profileImageUrl}');
+            debugPrint('   새 URL: $downloadUrl');
+          }
+          
+          // _currentUserModel에 profileImageUrl 직접 반영
+          await authService.reloadUserModel();
+          
+          if (kDebugMode) {
+            debugPrint('✅ [PROFILE] AuthService._currentUserModel 업데이트 완료');
+            debugPrint('   현재 URL: ${authService.currentUserModel!.profileImageUrl}');
+          }
+        }
+      }
+      
+      if (kDebugMode) {
         debugPrint('🎉 [PROFILE] 기본 프로필 이미지 설정 완료!');
       }
       
