@@ -140,6 +140,15 @@ class SettingsChecker {
     if (!hasExtensions) {
       _hasCheckedSettings = true; // 1회만 표시
       
+      // 🚫 CRITICAL: MaxDeviceLimit 차단 중에는 다이얼로그 표시 안 함
+      if (authService.isBlockedByMaxDeviceLimit) {
+        if (kDebugMode) {
+          debugPrint('⏭️ MaxDeviceLimit 차단 중 - 단말번호 등록 안내 건너뛰기');
+        }
+        _isDialogShowing = false;
+        return;
+      }
+      
       if (context.mounted) {
         try {
           await _showExtensionRegistrationDialog(context);
