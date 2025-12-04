@@ -668,6 +668,13 @@ class FCMDeviceApprovalService {
       
       // Step 3: fcm_tokens 컬렉션의 isApproved 필드 업데이트
       try {
+        if (kDebugMode) {
+          debugPrint('🔍 [FCM-APPROVAL] fcm_tokens 업데이트 시작');
+          debugPrint('   - userId: $userId');
+          debugPrint('   - deviceId: $newDeviceId');
+          debugPrint('   - platform: $newPlatform');
+        }
+        
         final tokensQuery = await _firestore
             .collection('fcm_tokens')
             .where('userId', isEqualTo: userId)
@@ -675,6 +682,23 @@ class FCMDeviceApprovalService {
             .where('platform', isEqualTo: newPlatform)
             .get()
             .timeout(const Duration(seconds: 5));
+        
+        if (kDebugMode) {
+          debugPrint('🔍 [FCM-APPROVAL] fcm_tokens 쿼리 결과: ${tokensQuery.docs.length}개 문서 발견');
+          if (tokensQuery.docs.isEmpty) {
+            debugPrint('⚠️ [FCM-APPROVAL] 일치하는 fcm_tokens 문서를 찾지 못함!');
+            debugPrint('   쿼리 조건:');
+            debugPrint('   - userId: $userId');
+            debugPrint('   - deviceId: $newDeviceId');
+            debugPrint('   - platform: $newPlatform');
+          } else {
+            for (var doc in tokensQuery.docs) {
+              debugPrint('   - 문서 ID: ${doc.id}');
+              debugPrint('   - deviceId: ${doc.data()['deviceId']}');
+              debugPrint('   - platform: ${doc.data()['platform']}');
+            }
+          }
+        }
         
         if (tokensQuery.docs.isNotEmpty) {
           for (var doc in tokensQuery.docs) {
