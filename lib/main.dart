@@ -12,6 +12,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'firebase_options.dart';
 import 'config/kakao_config.dart';
@@ -173,7 +174,28 @@ void main() async {
   // 사용자 세션 관리자 초기화
   await UserSessionManager().loadLastUserId();
   
-  runApp(const MyApp());
+  // 🛡️ Flutter 에러 핸들링 설정 (iOS 빨간 화면 방지)
+  FlutterError.onError = (FlutterErrorDetails details) {
+    if (kDebugMode) {
+      // 개발 모드: 콘솔에 에러 출력
+      FlutterError.presentError(details);
+    } else {
+      // 릴리즈 모드: 에러 로깅 (Crashlytics 등에 전송 가능)
+      debugPrint('❌ Flutter Error: ${details.exceptionAsString()}');
+      debugPrint('Stack trace: ${details.stack}');
+    }
+  };
+  
+  // 🛡️ Zone 에러 핸들링 (비동기 에러 캐치)
+  runZonedGuarded(
+    () => runApp(const MyApp()),
+    (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('❌ Uncaught error: $error');
+        debugPrint('Stack trace: $stackTrace');
+      }
+    },
+  );
 }
 
 /// ✅ iOS FCM 메시지 핸들러 (Method Channel)
@@ -601,8 +623,62 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 ),
                 // 🎨 ThemeProvider로부터 테마 모드 가져오기
                 themeMode: themeProvider.themeMode,
-                // 🛡️ iOS 화면 검게 변하는 문제 방지 + Android 15 Edge-to-Edge 지원
+                // 🛡️ iOS 화면 검게 변하는 문제 방지 + Android 15 Edge-to-Edge 지원 + 에러 처리
                 builder: (context, child) {
+                  // 🛡️ CRITICAL: 에러 위젯 커스터마이징 (빨간 화면 방지)
+                  ErrorWidget.builder = (FlutterErrorDetails details) {
+                    if (kDebugMode) {
+                      // 개발 모드: 기본 에러 표시
+                      return ErrorWidget(details.exception);
+                    }
+                    // 릴리즈 모드: 사용자 친화적인 에러 화면
+                    return Material(
+                      color: themeProvider.themeMode == ThemeMode.dark 
+                          ? Colors.grey[900] 
+                          : Colors.white,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: themeProvider.themeMode == ThemeMode.dark
+                                    ? Colors.grey[600]
+                                    : Colors.grey[400],
+                              ),
+                              const SizedBox(height: 24),
+                              Text(
+                                '일시적인 오류가 발생했습니다',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: themeProvider.themeMode == ThemeMode.dark
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                '앱을 다시 시작해주세요',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: themeProvider.themeMode == ThemeMode.dark
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  };
+                  
                   // ========================================
                   // ✅ CRITICAL: Android 15 Edge-to-Edge 인셋 처리
                   // ========================================
