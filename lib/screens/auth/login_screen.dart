@@ -14,6 +14,7 @@ import '../../utils/common_utils.dart';
 import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
 import '../../main.dart' show navigatorKey;
+import '../../screens/home/main_screen.dart';
 import '../../exceptions/max_device_limit_exception.dart';
 import '../../widgets/max_device_limit_dialog.dart';
 import 'signup_screen.dart';
@@ -191,6 +192,23 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       // 로그인 성공 시 이메일 저장 설정 적용
       await _saveCredentials();
+      
+      // ⚡ 로그인 성공 후 MainScreen으로 명시적 전환
+      if (mounted) {
+        if (kDebugMode) {
+          debugPrint('🔄 [LOGIN] MainScreen으로 화면 전환 시작');
+        }
+        
+        // LoginScreen을 스택에서 완전히 제거하고 MainScreen으로 교체
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MainScreen()),
+          (route) => false, // 모든 이전 화면 제거
+        );
+        
+        if (kDebugMode) {
+          debugPrint('✅ [LOGIN] MainScreen으로 화면 전환 완료');
+        }
+      }
       
     } on MaxDeviceLimitException catch (e) {
       // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
