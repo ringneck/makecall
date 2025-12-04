@@ -159,6 +159,15 @@ class AuthService extends ChangeNotifier {
         // 로그아웃 상태 (최초 1회만)
         _lastUserId = null;
         _currentUserModel = null;
+        
+        // 🔥 CRITICAL: 로그아웃 플래그 해제 (authStateChanges에서 currentUser == null 확인됨)
+        _isLoggingOut = false;
+        _isSigningOut = false;
+        
+        if (kDebugMode) {
+          debugPrint('✅ [AUTH STATE] 로그아웃 감지 - 플래그 해제 및 UI 업데이트');
+        }
+        
         notifyListeners();
       }
     });
@@ -169,7 +178,12 @@ class AuthService extends ChangeNotifier {
   
   Future<void> _loadUserModel(String uid, {String? password}) async {
     try {
-      _isLoggingOut = false;
+      // 🔥 CRITICAL: 로그인 성공 시에만 플래그 해제 (로그아웃 중에는 유지)
+      // authStateChanges 리스너가 user == null일 때 플래그를 해제함
+      if (!_isLoggingOut) {
+        // 이미 로그아웃 진행 중이 아닌 경우에만 해제
+        _isLoggingOut = false;
+      }
       final doc = await _firestore.collection('users').doc(uid).get();
       
       if (doc.exists) {
@@ -736,15 +750,15 @@ class AuthService extends ChangeNotifier {
       debugPrint('ℹ️  [6/6] Navigator 정리는 Consumer<AuthService>가 자동 처리');
     }
     
-    // 🔥 CRITICAL FIX: 로그아웃 플래그 해제 및 최종 상태 업데이트
-    _isLoggingOut = false;
-    _isSigningOut = false;
+    // 🔥 CRITICAL FIX: 로그아웃 플래그는 authStateChanges가 처리할 때까지 유지
+    // _isLoggingOut을 false로 설정하면 currentUser가 아직 남아있어 MainScreen이 계속 표시됨
+    // authStateChanges 리스너가 currentUser == null을 감지하면 자동으로 플래그 해제
     
-    // 🔔 CRITICAL: notifyListeners() 호출하여 UI 업데이트 (LoginScreen으로 전환)
+    // 🔔 CRITICAL: notifyListeners() 호출하여 UI 업데이트 (isLoggingOut = true 상태 전파)
     notifyListeners();
     
     if (kDebugMode) {
-      debugPrint('✅ [LOGOUT] 로그아웃 완료 - LoginScreen으로 전환');
+      debugPrint('✅ [LOGOUT] 로그아웃 완료 - isLoggingOut 상태 유지 (LoginScreen 표시)');
       debugPrint('');
     }
   }

@@ -367,7 +367,8 @@ class _CallTabState extends State<CallTab> {
     if ((_authService?.isInEmailSignupFlow ?? false) && !_hasProcessedEmailSignupEvent) {
       _hasProcessedEmailSignupEvent = true;
       _authService?.setInEmailSignupFlow(false);
-      _hasCheckedSettings = true; // 🔒 CRITICAL: 소셜 로그인 로직 실행 방지
+      _hasCheckedSettings = true; // CallTab 로컬 플래그
+      _settingsChecker.hasCheckedSettings = true; // 🔒 CRITICAL: SettingsChecker 플래그도 설정 (소셜 로그인 로직 실행 방지)
       if (kDebugMode) {
         debugPrint('✅ [리스너] 이메일 회원가입 이벤트 감지 → 플래그 설정 (initState가 다이얼로그 처리)');
       }
