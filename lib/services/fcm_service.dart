@@ -293,6 +293,8 @@ class FCMService {
       }
       
       // 알림 권한 요청
+      // ignore: avoid_print
+      print('📱 [FCM-INIT] 알림 권한 요청 시작...');
       NotificationSettings settings = await _messaging.requestPermission(
         alert: true,
         announcement: false,
@@ -303,9 +305,13 @@ class FCMService {
         sound: true,
       );
       
+      // ignore: avoid_print
+      print('📱 [FCM-INIT] 알림 권한 응답: ${settings.authorizationStatus}');
       
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
+        // ignore: avoid_print
+        print('✅ [FCM-INIT] 알림 권한 승인됨 - FCM 토큰 취득 시작');
         
         // FCM 토큰 가져오기
         
@@ -400,6 +406,8 @@ class FCMService {
         print('⚠️ [FCM-INIT] 알림 권한이 거부되었습니다');
         // ignore: avoid_print
         print('   권한 상태: ${settings.authorizationStatus}');
+        // ignore: avoid_print
+        print('   iOS에서 설정 > 알림에서 권한을 활성화해주세요');
       }
     } on MaxDeviceLimitException catch (e, stackTrace) {
       // 🚫 CRITICAL: 최대 기기 수 초과 - 반드시 상위로 전파
