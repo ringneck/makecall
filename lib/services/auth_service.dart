@@ -793,42 +793,102 @@ class AuthService extends ChangeNotifier {
     
     // 🔥 ULTIMATE FIX: Navigator로 강제로 LoginScreen 전환
     // notifyListeners()와 ValueNotifier가 모두 실패하는 경우를 대비
+    if (kDebugMode) {
+      debugPrint('🔍 [LOGOUT] navigatorKey.currentContext: ${navigatorKey.currentContext != null ? "존재" : "null"}');
+    }
+    
     if (navigatorKey.currentContext != null) {
       if (kDebugMode) {
         debugPrint('🚀 [LOGOUT] Navigator로 강제 LoginScreen 전환 시도');
       }
       
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
-          try {
-            // 모든 화면을 닫고 LoginScreen으로 전환
-            Navigator.of(navigatorKey.currentContext!).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (context) => WebLoginWrapper(
-                  child: LoginScreen(
-                    key: ValueKey('login_forced_logout_${DateTime.now().millisecondsSinceEpoch}'),
-                  ),
+      // 🔥 CRITICAL: 즉시 실행 (addPostFrameCallback 제거)
+      try {
+        if (navigatorKey.currentContext!.mounted) {
+          if (kDebugMode) {
+            debugPrint('✅ [LOGOUT] Context mounted 확인 - Navigator 실행');
+          }
+          
+          // 모든 화면을 닫고 LoginScreen으로 전환
+          Navigator.of(navigatorKey.currentContext!).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => WebLoginWrapper(
+                child: LoginScreen(
+                  key: ValueKey('login_forced_logout_${DateTime.now().millisecondsSinceEpoch}'),
                 ),
               ),
-              (route) => false, // 모든 이전 route 제거
-            );
-            
-            if (kDebugMode) {
-              debugPrint('✅ [LOGOUT] LoginScreen 강제 전환 성공!');
-            }
-            
-            // 플래그 해제
-            _isLoggingOut = false;
-            _isSigningOut = false;
-            notifyListeners();
-            
-          } catch (e) {
-            if (kDebugMode) {
-              debugPrint('⚠️ [LOGOUT] Navigator 전환 실패: $e');
-            }
+            ),
+            (route) => false, // 모든 이전 route 제거
+          );
+          
+          if (kDebugMode) {
+            debugPrint('✅ [LOGOUT] LoginScreen 강제 전환 성공!');
           }
+          
+          // 플래그 해제
+          _isLoggingOut = false;
+          _isSigningOut = false;
+          notifyListeners();
+          
+        } else {
+          if (kDebugMode) {
+            debugPrint('⚠️ [LOGOUT] Context가 mounted되지 않음 - 다음 프레임에서 재시도');
+          }
+          
+          // Fallback: 다음 프레임에서 실행
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _forceNavigateToLogin();
+          });
         }
-      });
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [LOGOUT] Navigator 전환 실패: $e');
+        }
+      }
+    } else {
+      if (kDebugMode) {
+        debugPrint('❌ [LOGOUT] navigatorKey.currentContext가 null - Navigator 전환 불가');
+      }
+    }
+  }
+  
+  /// 🔥 강제 LoginScreen 전환 헬퍼 함수
+  void _forceNavigateToLogin() {
+    if (navigatorKey.currentContext != null && navigatorKey.currentContext!.mounted) {
+      try {
+        if (kDebugMode) {
+          debugPrint('🔄 [LOGOUT] _forceNavigateToLogin 실행');
+        }
+        
+        Navigator.of(navigatorKey.currentContext!).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => WebLoginWrapper(
+              child: LoginScreen(
+                key: ValueKey('login_forced_logout_${DateTime.now().millisecondsSinceEpoch}'),
+              ),
+            ),
+          ),
+          (route) => false,
+        );
+        
+        if (kDebugMode) {
+          debugPrint('✅ [LOGOUT] _forceNavigateToLogin 성공!');
+        }
+        
+        // 플래그 해제
+        _isLoggingOut = false;
+        _isSigningOut = false;
+        notifyListeners();
+        
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [LOGOUT] _forceNavigateToLogin 실패: $e');
+        }
+      }
+    } else {
+      if (kDebugMode) {
+        debugPrint('❌ [LOGOUT] _forceNavigateToLogin: context가 여전히 null/unmounted');
+      }
     }
   }
   
