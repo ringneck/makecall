@@ -165,14 +165,14 @@ class FCMCallForwardService {
       final currentDeviceKey = '${currentDeviceId}_$currentPlatform';
 
       if (kDebugMode) {
-        debugPrint('   🔍 현재 기기: $currentDeviceKey');
+        // 현재 기기 정보 $currentDeviceKey');
       }
 
       // 2. 모든 활성 FCM 토큰 조회
       final allTokens = await _databaseService.getAllActiveFcmTokens(userId);
 
       if (kDebugMode) {
-        debugPrint('   📱 전체 활성 기기: ${allTokens.length}개');
+        // 전체 활성 기기 조회 ${allTokens.length}개');
       }
 
       // 3. 현재 기기를 제외한 다른 기기 필터링
@@ -182,9 +182,8 @@ class FCMCallForwardService {
       }).toList();
 
       if (kDebugMode) {
-        debugPrint('   📤 알림 전송 대상: ${otherDeviceTokens.length}개 기기');
+        // 알림 전송 대상 확인 ${otherDeviceTokens.length}개 기기');
         for (var token in otherDeviceTokens) {
-          debugPrint('      - ${token.deviceName} (${token.platform})');
         }
       }
 

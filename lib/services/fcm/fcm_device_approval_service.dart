@@ -86,7 +86,7 @@ class FCMDeviceApprovalService {
   }) async {
     try {
       // ignore: avoid_print
-      print('📤 [FCM-APPROVAL] 기기 승인 요청 생성 시작');
+      // 기기 승인 요청 생성 시작
       
       // 🔑 CRITICAL: 이미 승인된 활성 기기들의 토큰 조회 (새 기기 제외)
       // isApproved: true 필터로 승인 완료된 기기에게만 승인 요청을 보냄
@@ -98,23 +98,19 @@ class FCMDeviceApprovalService {
           .get();
       
       // ignore: avoid_print
-      print('🔍 [FCM-APPROVAL] 전체 활성 토큰 조회 결과: ${existingTokens.docs.length}개');
+      // 전체 활성 토큰 조회
       
       // 🔧 디버깅: 모든 활성 토큰 출력
       for (var doc in existingTokens.docs) {
         final data = doc.data();
         // ignore: avoid_print
-        print('   📱 활성 토큰: ${data['deviceName']} (${data['deviceId']}_${data['platform']})');
         // ignore: avoid_print
-        print('      - 문서 ID: ${doc.id}');
         // ignore: avoid_print
-        print('      - isActive: ${data['isActive']}');
       }
       
       // 🔑 CRITICAL: Device ID + Platform 조합으로 기기 구분
       final newDeviceKey = '${newDeviceId}_$newPlatform';
       // ignore: avoid_print
-      print('🆕 [FCM-APPROVAL] 새 기기 키: $newDeviceKey');
       
       // 새 기기를 제외한 기존 기기들만 필터링
       final otherDeviceTokens = existingTokens.docs
@@ -124,7 +120,6 @@ class FCMDeviceApprovalService {
             final isSameDevice = existingDeviceKey == newDeviceKey;
             
             // ignore: avoid_print
-            print('   🔍 비교: $existingDeviceKey == $newDeviceKey ? $isSameDevice');
             
             return !isSameDevice;
           })
@@ -132,23 +127,20 @@ class FCMDeviceApprovalService {
       
       if (otherDeviceTokens.isEmpty) {
         // ignore: avoid_print
-        print('✅ [FCM-APPROVAL] 다른 활성 기기 없음 - 승인 요청 불필요 (첫 로그인)');
+        // 첫 로그인 - 승인 불필요
         throw Exception('No other devices found');
       }
       
       // ignore: avoid_print
-      print('📋 [FCM-APPROVAL] 다른 활성 기기 ${otherDeviceTokens.length}개 발견');
       for (var token in otherDeviceTokens) {
         final data = token.data();
         // ignore: avoid_print
-        print('   ⚠️ 승인 필요: ${data['deviceName']} (${data['deviceId']}_${data['platform']})');
       }
       
       // 🔑 CRITICAL: 문서 ID를 userId_deviceId_platform 형식으로 명시
       final approvalRequestId = '${userId}_${newDeviceId}_$newPlatform';
       
       // ignore: avoid_print
-      print('📝 [FCM-APPROVAL] 승인 요청 문서 ID: $approvalRequestId');
       
       // 🔧 FIX 1: 이전 승인 요청이 남아있을 수 있으므로 먼저 삭제
       try {
@@ -159,23 +151,19 @@ class FCMDeviceApprovalService {
         
         if (existingRequest.exists) {
           // ignore: avoid_print
-          print('🗑️ [FCM-APPROVAL] 기존 승인 요청 발견 - 삭제 중...');
           await _firestore
               .collection('device_approval_requests')
               .doc(approvalRequestId)
               .delete();
           // ignore: avoid_print
-          print('✅ [FCM-APPROVAL] 기존 승인 요청 삭제 완료');
         }
       } catch (e) {
         // ignore: avoid_print
-        print('⚠️ [FCM-APPROVAL] 기존 요청 삭제 중 오류 (무시): $e');
       }
       
       // 🔧 FIX 2: 해당 사용자의 모든 승인 알림 큐 정리 (강제 클린업)
       try {
         // ignore: avoid_print
-        print('🧹 [FCM-APPROVAL] 사용자의 모든 승인 알림 큐 정리 시작...');
         
         final allQueues = await _firestore
             .collection('fcm_approval_notification_queue')
@@ -184,7 +172,6 @@ class FCMDeviceApprovalService {
         
         if (allQueues.docs.isNotEmpty) {
           // ignore: avoid_print
-          print('🗑️ [FCM-APPROVAL] ${allQueues.docs.length}개의 큐 삭제 중...');
           
           // 배치 삭제 (최대 500개씩)
           final batch = _firestore.batch();
@@ -197,7 +184,6 @@ class FCMDeviceApprovalService {
             if (count >= 500) {
               await batch.commit();
               // ignore: avoid_print
-              print('   ✅ 500개 배치 삭제 완료');
               count = 0;
             }
           }
@@ -208,14 +194,11 @@ class FCMDeviceApprovalService {
           }
           
           // ignore: avoid_print
-          print('✅ [FCM-APPROVAL] 모든 큐 ${allQueues.docs.length}개 삭제 완료');
         } else {
           // ignore: avoid_print
-          print('✅ [FCM-APPROVAL] 정리할 큐 없음');
         }
       } catch (e) {
         // ignore: avoid_print
-        print('⚠️ [FCM-APPROVAL] 큐 정리 중 오류 (무시): $e');
       }
       
       // Firestore에 새 승인 요청 저장 (5분 TTL)
@@ -304,8 +287,7 @@ class FCMDeviceApprovalService {
   /// Returns: true (승인됨), false (거부됨 또는 시간 초과)
   Future<bool> waitForDeviceApproval(String approvalRequestId) async {
     try {
-      // ignore: avoid_print
-      print('⏳ [FCM-WAIT] 기기 승인 대기 시작: $approvalRequestId');
+      // 기기 승인 대기 시작
       
       final stream = _firestore
           .collection('device_approval_requests')
@@ -313,18 +295,17 @@ class FCMDeviceApprovalService {
           .snapshots();
       
       final timeout = DateTime.now().add(const Duration(minutes: 5));
-      // ignore: avoid_print
-      print('⏰ [FCM-WAIT] 타임아웃 시간: ${timeout.toString()}');
+      // 타임아웃: 5분
       
       int snapshotCount = 0;
       await for (var snapshot in stream) {
         snapshotCount++;
-        // ignore: avoid_print
-        print('📡 [FCM-WAIT] 스냅샷 수신 #$snapshotCount');
+        // 스냅샷 수신
         
         if (!snapshot.exists) {
-          // ignore: avoid_print
-          print('❌ [FCM-WAIT] 승인 요청 문서가 삭제됨');
+          if (kDebugMode) {
+            debugPrint('❌ [FCM] 승인 요청 문서 삭제됨');
+          }
           return false;
         }
         
@@ -332,40 +313,39 @@ class FCMDeviceApprovalService {
         if (data == null) continue;
         
         final status = data['status'] as String?;
-        // ignore: avoid_print
-        print('📊 [FCM-WAIT] 현재 상태: $status');
+        // 상태 확인
         
         if (status == 'approved') {
-          // ignore: avoid_print
-          print('✅ [FCM-WAIT] 기기 승인됨!');
+          // 승인 완료
           return true;
         } else if (status == 'rejected') {
-          // ignore: avoid_print
-          print('❌ [FCM-WAIT] 기기 거부됨');
+          if (kDebugMode) {
+            debugPrint('❌ [FCM] 기기 거부됨');
+          }
           return false;
         } else if (status == 'expired') {
-          // ignore: avoid_print
-          print('⏰ [FCM-WAIT] 승인 요청 만료됨');
+          if (kDebugMode) {
+            debugPrint('⏰ [FCM] 승인 요청 만료됨');
+          }
           return false;
         }
         
         final now = DateTime.now();
         if (now.isAfter(timeout)) {
-          // ignore: avoid_print
-          print('⏰ [FCM-WAIT] 승인 대기 시간 초과 (5분)');
+          if (kDebugMode) {
+            debugPrint('⏰ [FCM] 승인 대기 시간 초과');
+          }
           return false;
         }
         
-        // ignore: avoid_print
-        print('⏳ [FCM-WAIT] 계속 대기 중... (${timeout.difference(now).inSeconds}초 남음)');
+        // 대기 중
       }
       
       return false;
     } catch (e, stackTrace) {
-      // ignore: avoid_print
-      print('❌ [FCM-WAIT] 승인 대기 오류: $e');
-      // ignore: avoid_print
-      print('Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('❌ [FCM] 승인 대기 오류: $e');
+      }
       return false;
     }
   }
@@ -604,9 +584,9 @@ class FCMDeviceApprovalService {
   /// 기기 승인 처리
   Future<void> _approveDeviceApproval(String approvalRequestId) async {
     try {
-      // ignore: avoid_print
-      // ignore: avoid_print
-      print('✅ [FCM-APPROVAL] 승인 처리 시작: $approvalRequestId');
+      if (kDebugMode) {
+        debugPrint('✅ [FCM-APPROVAL] 승인 처리 시작: $approvalRequestId');
+      }
       
       // 🔍 Step 1: 승인 요청 문서에서 기기 정보 추출
       final approvalDoc = await _firestore
@@ -615,7 +595,9 @@ class FCMDeviceApprovalService {
           .get();
       
       if (!approvalDoc.exists) {
-        print('❌ [FCM] 승인 요청 문서가 존재하지 않음');
+        if (kDebugMode) {
+          debugPrint('❌ [FCM] 승인 요청 문서가 존재하지 않음');
+        }
         return;
       }
       
@@ -625,7 +607,9 @@ class FCMDeviceApprovalService {
       final newPlatformRaw = data['newPlatform'] as String?;
       
       if (userId == null || newDeviceId == null || newPlatformRaw == null) {
-        print('❌ [FCM] 승인 요청 데이터 불완전: userId=$userId, deviceId=$newDeviceId, platform=$newPlatformRaw');
+        if (kDebugMode) {
+          debugPrint('❌ [FCM] 승인 요청 데이터 불완전');
+        }
         return;
       }
       
@@ -643,9 +627,7 @@ class FCMDeviceApprovalService {
         newPlatform = newPlatformRaw; // unknown 등
       }
       
-      if (kDebugMode) {
-        print('✅ [FCM] 기기 승인 처리: $userId/$newDeviceId/$newPlatform');
-      }
+      // 승인 처리 시작 (로그 제거 - 필요시 복원 가능)
       
       // Step 2: device_approval_requests 상태 업데이트
       int retryCount = 0;
@@ -672,14 +654,7 @@ class FCMDeviceApprovalService {
       
       // Step 3: fcm_tokens 컬렉션의 isApproved 필드 업데이트
       try {
-        // ignore: avoid_print
-        print('🔍 [FCM-APPROVAL] fcm_tokens 업데이트 시작');
-        // ignore: avoid_print
-        print('   - userId: $userId');
-        // ignore: avoid_print
-        print('   - deviceId: $newDeviceId');
-        // ignore: avoid_print
-        print('   - platform: $newPlatform');
+        // fcm_tokens 업데이트 시작
         
         final tokensQuery = await _firestore
             .collection('fcm_tokens')
@@ -689,27 +664,9 @@ class FCMDeviceApprovalService {
             .get()
             .timeout(const Duration(seconds: 5));
         
-        // ignore: avoid_print
-        print('🔍 [FCM-APPROVAL] fcm_tokens 쿼리 결과: ${tokensQuery.docs.length}개 문서 발견');
         if (tokensQuery.docs.isEmpty) {
-          // ignore: avoid_print
-          print('⚠️ [FCM-APPROVAL] 일치하는 fcm_tokens 문서를 찾지 못함!');
-          // ignore: avoid_print
-          print('   쿼리 조건:');
-          // ignore: avoid_print
-          print('   - userId: $userId');
-          // ignore: avoid_print
-          print('   - deviceId: $newDeviceId');
-          // ignore: avoid_print
-          print('   - platform: $newPlatform');
-        } else {
-          for (var doc in tokensQuery.docs) {
-            // ignore: avoid_print
-            print('   - 문서 ID: ${doc.id}');
-            // ignore: avoid_print
-            print('   - deviceId: ${doc.data()['deviceId']}');
-            // ignore: avoid_print
-            print('   - platform: ${doc.data()['platform']}');
+          if (kDebugMode) {
+            debugPrint('⚠️ [FCM] fcm_tokens 문서를 찾지 못함: $userId/$newDeviceId/$newPlatform');
           }
         }
         
@@ -723,7 +680,9 @@ class FCMDeviceApprovalService {
           }
           
           if (kDebugMode) {
-            print('✅ [FCM] fcm_tokens 업데이트 완료 (${tokensQuery.docs.length}개 - isApproved + isActive)');
+            if (kDebugMode) {
+              debugPrint('✅ [FCM] fcm_tokens 업데이트 완료: ${tokensQuery.docs.length}개');
+            }
           }
         }
       } catch (e) {
