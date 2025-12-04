@@ -598,17 +598,21 @@ class AuthService extends ChangeNotifier {
             debugPrint('   profileImageUrl: ${_currentUserModel?.profileImageUrl}');
           }
           
+          // 🔥 CRITICAL: 로그인 성공 - 로그아웃 플래그 명시적 해제
+          _isLoggingOut = false;
+          _isSigningOut = false;
+          
           // 🔥 CRITICAL: _loadUserModel 완료 후 명시적으로 notifyListeners() 호출
           // authStateChanges 리스너와 별개로 즉시 UI 업데이트 보장
           notifyListeners();
           
           if (kDebugMode) {
-            debugPrint('✅ [signIn] notifyListeners() 호출 완료');
+            debugPrint('✅ [signIn] 로그인 성공 - 플래그 해제 및 notifyListeners() 호출 완료');
             debugPrint('   📊 현재 상태:');
             debugPrint('      - _currentUserModel != null: ${_currentUserModel != null}');
             debugPrint('      - email: ${_currentUserModel?.email}');
             debugPrint('      - profileImageUrl: ${_currentUserModel?.profileImageUrl}');
-            debugPrint('      - _isLoggingOut: $_isLoggingOut');
+            debugPrint('      - _isLoggingOut: $_isLoggingOut');  
             debugPrint('      - _isSigningOut: $_isSigningOut');
           }
         } on ServiceSuspendedException catch (e) {
