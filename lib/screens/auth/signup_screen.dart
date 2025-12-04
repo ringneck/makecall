@@ -37,6 +37,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   bool _obscureConfirmPassword = true;
   
   // 🆕 개인정보보호법 준수 - 동의 관리
+  bool _agreedToTerms = false;  // 필수 약관 동의 상태 (하위 호환성)
   bool _allAgreed = false;                 // 전체 동의
   bool _termsAgreed = false;               // 이용약관 동의 (필수)
   bool _privacyPolicyAgreed = false;       // 개인정보처리방침 동의 (필수)
