@@ -165,17 +165,15 @@ class AuthService extends ChangeNotifier {
           debugPrint('✅ [AUTH STATE] 로그아웃 감지 - UI 업데이트 시작');
         }
         
-        // 🔒 CRITICAL: 먼저 notifyListeners() 호출하여 LoginScreen 전환 트리거
-        // authStateChanges 콜백 내에서 즉시 호출하면 Consumer가 rebuild되지 않을 수 있음
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          if (kDebugMode) {
-            debugPrint('🔔 [AUTH STATE] notifyListeners() 호출 - Consumer rebuild 트리거 (isLoggingOut=true)');
-          }
-          notifyListeners();
-          
-          // 🔥 CRITICAL: 플래그 해제는 main.dart가 LoginScreen을 표시할 때 이벤트 기반으로 처리
-          // onLoginScreenDisplayed() 메서드가 호출될 때 플래그 해제됨
-        });
+        // 🔥 CRITICAL: 즉시 notifyListeners() 호출 (백그라운드 전환 대비)
+        // addPostFrameCallback은 앱이 백그라운드로 가면 실행되지 않음!
+        if (kDebugMode) {
+          debugPrint('🔔 [AUTH STATE] notifyListeners() 호출 - Consumer rebuild 트리거 (isLoggingOut=true)');
+        }
+        notifyListeners();
+        
+        // 🔥 CRITICAL: 플래그 해제는 main.dart가 LoginScreen을 표시할 때 이벤트 기반으로 처리
+        // onLoginScreenDisplayed() 메서드가 호출될 때 플래그 해제됨
       }
     });
   }
