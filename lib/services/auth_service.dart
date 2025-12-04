@@ -661,6 +661,12 @@ class AuthService extends ChangeNotifier {
           print('');
           // ignore: avoid_print
           print('🚫 [AUTH] 최대 기기 수 초과 감지 - 차단 플래그 설정');
+          // ignore: avoid_print
+          print('   Device: ${e.deviceName}');
+          // ignore: avoid_print
+          print('   Current: ${e.currentDevices} / Max: ${e.maxDevices}');
+          // ignore: avoid_print
+          print('   alreadyHandled: ${e.alreadyHandled}');
           
           // 차단 플래그 설정 (main.dart에서 LoginScreen 유지)
           setBlockedByMaxDeviceLimit(true, exception: e);
@@ -696,6 +702,12 @@ class AuthService extends ChangeNotifier {
               // ignore: avoid_print
               print('🏁 [AUTH] 차단 플래그 해제 - LoginScreen 유지');
               
+              // 🚨 CRITICAL: 다이얼로그 표시 완료 플래그 설정
+              e.alreadyHandled = true;
+              
+              // ignore: avoid_print
+              print('✅ [AUTH] alreadyHandled 플래그 설정 - LoginScreen 중복 표시 방지');
+              
               // 🚫 CRITICAL: 예외 다시 throw하여 login_screen이 로그인 실패로 처리하도록 함
               // ignore: avoid_print
               print('🚫 [AUTH] MaxDeviceLimitException 재전파 - LoginScreen 유지');
@@ -706,6 +718,11 @@ class AuthService extends ChangeNotifier {
               
               // 에러 발생 시에도 차단 플래그 해제
               setBlockedByMaxDeviceLimit(false);
+              
+              // 🚫 CRITICAL: 다이얼로그 오류 시에도 예외 재전파
+              // ignore: avoid_print
+              print('🚫 [AUTH] 다이얼로그 오류 후 MaxDeviceLimitException 재전파');
+              rethrow;
             }
           } else {
             // ignore: avoid_print

@@ -32,12 +32,17 @@ class MaxDeviceLimitException implements Exception {
   /// 활성 기기 목록 (로그아웃 전에 미리 조회해서 전달)
   final List<Map<String, dynamic>>? activeDevices;
   
+  /// 다이얼로그가 이미 표시되었는지 여부
+  /// AuthService에서 다이얼로그 표시 후 true로 설정
+  bool alreadyHandled;
+  
   MaxDeviceLimitException({
     required this.maxDevices,
     required this.currentDevices,
     required this.deviceName,
     this.userId,
     this.activeDevices,
+    this.alreadyHandled = false,
   });
   
   @override

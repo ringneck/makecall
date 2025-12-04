@@ -291,6 +291,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       }
       
     } on MaxDeviceLimitException catch (e) {
+      // 🔍 CRITICAL: AuthService에서 이미 다이얼로그를 표시했는지 확인
+      if (e.alreadyHandled) {
+        // ignore: avoid_print
+        print('⏭️ [LOGIN] AuthService가 이미 다이얼로그 표시 완료 - 중복 방지');
+        return; // 로그인 실패로 처리 (화면 전환 없음)
+      }
+      
       // ⚡ 최대 기기 수 초과 다이얼로그 즉시 표시 (Material Design 3)
       if (mounted) {
         await _showMaxDeviceLimitDialog(e);
