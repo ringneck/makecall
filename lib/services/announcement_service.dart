@@ -23,21 +23,18 @@ class AnnouncementService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
   /// 활성 공지사항 조회
+  /// 
+  /// 복합 인덱스 없이 작동하도록 단순 쿼리 + 메모리 필터링 방식 사용
   Future<AnnouncementData?> getActiveAnnouncement() async {
     try {
-      final now = Timestamp.now();
+      final now = DateTime.now();
       
-      // 활성 공지사항 조회 (is_active=true, 기간 내, priority 높은 순)
+      // ✅ 단순 쿼리: is_active만 필터링 (인덱스 불필요)
       final querySnapshot = await _firestore
           .collection('app_config')
           .doc('announcements')
           .collection('items')
           .where('is_active', isEqualTo: true)
-          .where('start_date', isLessThanOrEqualTo: now)
-          .where('end_date', isGreaterThanOrEqualTo: now)
-          .orderBy('start_date')
-          .orderBy('priority', descending: true)
-          .limit(1)
           .get();
       
       if (querySnapshot.docs.isEmpty) {
@@ -47,19 +44,51 @@ class AnnouncementService {
         return null;
       }
       
-      final doc = querySnapshot.docs.first;
-      final data = doc.data();
+      // 메모리에서 기간 필터링 및 정렬
+      final announcements = querySnapshot.docs
+          .map((doc) {
+            final data = doc.data();
+            return AnnouncementData(
+              id: doc.id,
+              title: data['title'] as String? ?? '공지사항',
+              message: data['message'] as String? ?? '',
+              priority: data['priority'] as String? ?? 'normal',
+              isActive: data['is_active'] as bool? ?? true,
+              startDate: (data['start_date'] as Timestamp?)?.toDate(),
+              endDate: (data['end_date'] as Timestamp?)?.toDate(),
+              createdAt: (data['created_at'] as Timestamp?)?.toDate(),
+            );
+          })
+          .where((announcement) {
+            // 기간 내 공지사항만 필터링
+            if (announcement.startDate != null && 
+                announcement.startDate!.isAfter(now)) {
+              return false;
+            }
+            if (announcement.endDate != null && 
+                announcement.endDate!.isBefore(now)) {
+              return false;
+            }
+            return true;
+          })
+          .toList();
       
-      final announcement = AnnouncementData(
-        id: doc.id,
-        title: data['title'] as String? ?? '공지사항',
-        message: data['message'] as String? ?? '',
-        priority: data['priority'] as String? ?? 'normal',
-        isActive: data['is_active'] as bool? ?? true,
-        startDate: (data['start_date'] as Timestamp?)?.toDate(),
-        endDate: (data['end_date'] as Timestamp?)?.toDate(),
-        createdAt: (data['created_at'] as Timestamp?)?.toDate(),
-      );
+      if (announcements.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('📢 [ANNOUNCEMENT] 기간 내 공지사항 없음');
+        }
+        return null;
+      }
+      
+      // 우선순위 순으로 정렬 (high > normal > low)
+      announcements.sort((a, b) {
+        final priorityOrder = {'high': 3, 'normal': 2, 'low': 1};
+        final aPriority = priorityOrder[a.priority] ?? 0;
+        final bPriority = priorityOrder[b.priority] ?? 0;
+        return bPriority.compareTo(aPriority);
+      });
+      
+      final announcement = announcements.first;
       
       if (kDebugMode) {
         debugPrint('📢 [ANNOUNCEMENT] 공지사항 조회 성공');
