@@ -411,22 +411,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       case AppLifecycleState.resumed:
         // 앱이 포그라운드로 복귀
         if (kDebugMode) {
-          debugPrint('🌞 [MyApp] App resumed - forcing UI rebuild');
+          debugPrint('🌞 [MyApp] App resumed');
         }
         
-        // 🚨 CRITICAL: 소셜 로그인 중이 아닐 때만 오버레이 제거
-        // 소셜 로그인 중이면 오버레이 유지 (MainScreen paint 완료 시 자동 제거)
-        final authService = Provider.of<AuthService>(context, listen: false);
-        if (!authService.isInSocialLoginFlow) {
-          if (kDebugMode) {
-            debugPrint('🧹 [MyApp] 앱 재개 - 소셜 로그인 오버레이 제거 (소셜 로그인 중 아님)');
-          }
-          SocialLoginProgressHelper.forceHide();
-        } else {
-          if (kDebugMode) {
-            debugPrint('⏭️ [MyApp] 앱 재개 - 소셜 로그인 중이므로 오버레이 유지');
-          }
-        }
+        // ✅ FIX: 오버레이 제거 로직 완전 삭제
+        // - MainScreen의 addPostFrameCallback에서만 오버레이 제거
+        // - didChangeAppLifecycleState에서는 오버레이 관여하지 않음
         
         // 🔔 iOS 배지 초기화 (포그라운드 복귀 시)
         _clearBadge();
@@ -437,12 +427,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           if (kDebugMode) {
             debugPrint('▶️ [MyApp] InactivityService 재개');
           }
-        }
-        
-        if (mounted) {
-          setState(() {
-            // UI 강제 재렌더링 트리거
-          });
         }
         break;
         
