@@ -239,6 +239,15 @@ class AuthService extends ChangeNotifier {
     String? password,
     bool shouldNotify = true,  // 🔥 CRITICAL: notifyListeners() 제어 플래그
   }) async {
+    // 🔒 CRITICAL: 중복 호출 방지 - 이미 로딩 중이면 대기
+    if (_isLoadingUserModel) {
+      if (kDebugMode) {
+        debugPrint('⏳ [_loadUserModel] 이미 로딩 중 - 중복 호출 무시');
+        debugPrint('   uid: $uid');
+      }
+      return;
+    }
+    
     // 🔒 UserModel 로드 시작 플래그 설정
     _isLoadingUserModel = true;
     
@@ -410,18 +419,18 @@ class AuthService extends ChangeNotifier {
         await _loadUserModel(uid, password: password);
         return;
       }
-      
-      // 🔒 UserModel 로드 완료 플래그 해제 (정상 종료)
-      _isLoadingUserModel = false;
     } catch (e) {
-      // 🔒 UserModel 로드 완료 플래그 해제 (오류 발생)
-      _isLoadingUserModel = false;
-      
       if (kDebugMode) {
         debugPrint('❌ Failed to load user model: $e');
       }
       // 🛑 CRITICAL: 예외를 rethrow하여 signIn()에서 처리할 수 있도록 함
       rethrow;
+    } finally {
+      // 🔒 CRITICAL: 반드시 finally에서 플래그 해제 (정상/오류 모두 처리)
+      _isLoadingUserModel = false;
+      if (kDebugMode) {
+        debugPrint('🔓 [_loadUserModel] 플래그 해제 완료');
+      }
     }
   }
   
