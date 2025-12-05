@@ -908,6 +908,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         if (kDebugMode) {
                           debugPrint('🚪 [MAIN] 로그아웃 중 감지 - LoginScreen 표시');
                         }
+                        
+                        // 🧹 CRITICAL: LoginScreen 표시 전 소셜 로그인 오버레이 명시적 제거
+                        SocialLoginProgressHelper.forceHide();
+                        
                         // 🔔 이벤트 기반: LoginScreen이 build될 때 AuthService에 알림
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           authService.onLoginScreenDisplayed();
@@ -974,6 +978,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                             debugPrint('      - Blocked by MaxDeviceLimit');
                           }
                         }
+                        
+                        // 🧹 CRITICAL: LoginScreen 표시 전 소셜 로그인 오버레이 명시적 제거
+                        SocialLoginProgressHelper.forceHide();
                         
                         // 🔔 이벤트 기반: LoginScreen이 build될 때 AuthService에 알림
                         if (authService.isLoggingOut) {
