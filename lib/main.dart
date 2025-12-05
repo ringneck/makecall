@@ -118,6 +118,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 // 🔑 GlobalKey for Navigator (수신 전화 풀스크린 표시용)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+// 🔐 AuthService 전역 싱글톤 인스턴스 (앱 생명주기와 독립적으로 유지)
+// Widget tree 재구성과 무관하게 동일한 AuthService 인스턴스 보장
+final AuthService globalAuthService = AuthService();
+
 // ✅ iOS FCM Method Channel
 MethodChannel? _fcmChannel;
 
@@ -295,10 +299,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   String? _lastCheckedUserId;
   bool _providersRegistered = false; // Provider 등록 플래그
   
-  // 🔐 AuthService 싱글톤 인스턴스 (앱 생명주기 동안 유지)
-  // late final을 사용하여 initState에서 한 번만 초기화
-  late final AuthService _authService;
-  
   // 🚀 WebSocket 연결 관리자
   final DCMIWSConnectionManager _connectionManager = DCMIWSConnectionManager();
   
@@ -328,11 +328,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     
-    // 🔥 CRITICAL: AuthService 싱글톤 인스턴스 가져오기 (앱 생명주기 동안 유지)
-    _authService = AuthService();
-    
     if (kDebugMode) {
-      debugPrint('🔧 [MyApp] AuthService singleton instance initialized');
+      debugPrint('🔧 [MyApp] Using global AuthService singleton instance');
     }
     
     // 🔄 앱 생명주기 옵저버 등록 (iOS 화면 검게 변하는 문제 해결)
@@ -350,8 +347,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // FCM 강제 로그아웃 콜백 설정
     FCMService.setForceLogoutCallback(() async {
       if (mounted) {
-        // 🔥 CRITICAL: _authService 인스턴스 직접 사용
-        await _authService.signOut();
+        // 🔥 CRITICAL: 전역 AuthService 싱글톤 인스턴스 사용
+        await globalAuthService.signOut();
         
         if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
@@ -552,7 +549,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: _authService), // 🔥 CRITICAL: .value 사용하여 인스턴스 유지
+        ChangeNotifierProvider.value(value: globalAuthService), // 🔥 CRITICAL: 전역 싱글톤 인스턴스 사용
         ChangeNotifierProvider(create: (_) => SelectedExtensionProvider()),
         ChangeNotifierProvider(create: (_) => DCMIWSEventProvider()),
         ChangeNotifierProvider.value(value: _themeProvider),
