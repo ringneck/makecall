@@ -355,6 +355,13 @@ class FCMDeviceApprovalService {
     // ignore: avoid_print
     print('🔔 [FCM-APPROVAL] 승인 요청 메시지 수신');
     
+    // 🌐 웹 플랫폼에서는 기기 승인 기능 비활성화
+    if (kIsWeb) {
+      // ignore: avoid_print
+      print('⚠️ [FCM-APPROVAL] 웹 플랫폼에서는 기기 승인 불가 - 무시');
+      return;
+    }
+    
     final approvalRequestId = message.data['approvalRequestId'] as String?;
     final newDeviceName = message.data['newDeviceName'] ?? '알 수 없는 기기';
     final newPlatform = message.data['newPlatform'] ?? 'unknown';
