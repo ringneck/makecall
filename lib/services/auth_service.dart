@@ -776,9 +776,9 @@ class AuthService extends ChangeNotifier {
             debugPrint('   profileImageUrl: ${_currentUserModel?.profileImageUrl}');
           }
           
-          // 🔥 CRITICAL: 로그인 성공 - 로그아웃 플래그 명시적 해제
-          _isLoggingOut = false;
-          _isSigningOut = false;
+          // 🔥 CRITICAL: signIn()은 로그인만 담당
+          // _isLoggingOut 플래그는 login_screen.dart의 onLoginScreenDisplayed()에서 해제
+          // 여기서 건드리면 재로그인 시 플래그가 조기에 해제되어 문제 발생
           
           // ⚠️ IMPORTANT: notifyListeners()는 FCM 초기화 이후에 호출
           // → MainScreen 전환 전에 MaxDeviceLimit 체크 완료 보장
@@ -1189,12 +1189,12 @@ class AuthService extends ChangeNotifier {
           
           if (kDebugMode) {
             debugPrint('✅ [LOGOUT] LoginScreen 강제 전환 성공!');
+            debugPrint('ℹ️ [LOGOUT] _isLoggingOut 플래그 유지 (재로그인 시 onLoginScreenDisplayed()에서 해제)');
           }
           
-          // 플래그 해제
-          _isLoggingOut = false;
-          _isSigningOut = false;
-          notifyListeners();
+          // 🔥 CRITICAL: _isLoggingOut 플래그를 여기서 해제하지 않음!
+          // 재로그인 시 login_screen.dart의 onLoginScreenDisplayed()에서 명시적으로 해제
+          // 조기 해제 시 재로그인 감지 불가능
           
         } else {
           if (kDebugMode) {
@@ -1239,12 +1239,11 @@ class AuthService extends ChangeNotifier {
         
         if (kDebugMode) {
           debugPrint('✅ [LOGOUT] _forceNavigateToLogin 성공!');
+          debugPrint('ℹ️ [LOGOUT] _isLoggingOut 플래그 유지 (재로그인 시 onLoginScreenDisplayed()에서 해제)');
         }
         
-        // 플래그 해제
-        _isLoggingOut = false;
-        _isSigningOut = false;
-        notifyListeners();
+        // 🔥 CRITICAL: _isLoggingOut 플래그를 여기서 해제하지 않음!
+        // 재로그인 시 login_screen.dart의 onLoginScreenDisplayed()에서 명시적으로 해제
         
       } catch (e) {
         if (kDebugMode) {
