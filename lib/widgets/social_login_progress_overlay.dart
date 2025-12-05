@@ -164,7 +164,12 @@ class SocialLoginProgressHelper {
       ),
     );
 
-    Overlay.of(context).insert(_currentOverlay!);
+    // 🔥 CRITICAL: rootOverlay 사용하여 화면 전환과 무관하게 오버레이 유지
+    Overlay.of(context, rootOverlay: true).insert(_currentOverlay!);
+    
+    if (kDebugMode) {
+      debugPrint('📌 [OVERLAY] show() 완료 - rootOverlay에 삽입: $message');
+    }
   }
 
   /// 오버레이 숨기기 (즉시 제거)
@@ -224,10 +229,10 @@ class SocialLoginProgressHelper {
     double? progress,
   }) {
     if (kDebugMode) {
-      debugPrint('🔄 [OVERLAY] Updating to: $message');
+      debugPrint('🔄 [OVERLAY] update() 호출: $message');
     }
     
-    // 즉시 교체
+    // 즉시 교체 (rootOverlay 사용)
     show(
       context,
       message: message,
