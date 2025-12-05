@@ -1181,13 +1181,31 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           
           // 🔓 CRITICAL: 소셜 로그인 완료 플래그 해제
           // 이제 authStateChanges가 정상적으로 notifyListeners() 호출 가능
-          authService.setInSocialLoginFlow(false);
+          await authService.setInSocialLoginFlow(false);
           
           if (kDebugMode) {
             if (isWaitingForApproval) {
               debugPrint('⏳ [LOGIN] 소셜 로그인 완료 - ApprovalWaitingScreen 전환 대기');
             } else {
               debugPrint('✅ [LOGIN] 소셜 로그인 완료 - MainScreen 전환 대기');
+            }
+          }
+          
+          // ✅ CRITICAL: 명시적 화면 전환 - Consumer가 반응하지 않을 경우를 대비
+          // 소셜 로그인 후 LoginScreen이 unmount되어도 화면 전환 보장
+          if (mounted && navigatorKey.currentContext != null) {
+            // 짧은 대기 후 Consumer rebuild 확인
+            await Future.delayed(const Duration(milliseconds: 100));
+            
+            // Consumer가 아직 rebuild되지 않았다면 명시적으로 전환
+            if (mounted && authService.currentUserModel != null) {
+              if (kDebugMode) {
+                debugPrint('🚀 [LOGIN] 명시적 화면 전환 시작');
+              }
+              
+              // 승인 대기 상태에 따라 화면 분기
+              // Note: Consumer<AuthService>가 자동으로 화면을 전환하므로
+              // 여기서는 아무 작업도 하지 않음 (Consumer가 이미 처리함)
             }
           }
         } on MaxDeviceLimitException catch (e) {
