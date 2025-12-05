@@ -127,6 +127,57 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     super.dispose();
   }
   
+  /// 🎯 CRITICAL: 확실한 이벤트 기반 Consumer rebuild 보장
+  /// Completer를 사용하여 main.dart Consumer가 rebuild될 때까지 대기
+  Future<void> _ensureConsumerRebuild(AuthService authService) async {
+    if (kDebugMode) {
+      debugPrint('🚀 [LOGIN] _ensureConsumerRebuild 시작');
+      debugPrint('   authService.currentUser: ${authService.currentUser?.email}');
+      debugPrint('   authService.currentUserModel: ${authService.currentUserModel?.email}');
+    }
+    
+    // 🚨 STEP 1: isLoggingOut 플래그 해제
+    authService.onLoginScreenDisplayed();
+    
+    if (kDebugMode) {
+      debugPrint('✅ [LOGIN] isLoggingOut 플래그 해제 완료');
+    }
+    
+    // 🚨 STEP 2: Consumer rebuild 대기 Completer 생성
+    final rebuildFuture = authService.waitForConsumerRebuild();
+    
+    if (kDebugMode) {
+      debugPrint('⏳ [LOGIN] Consumer rebuild 대기 Completer 생성');
+    }
+    
+    // 🚨 STEP 3: notifyListeners() 호출하여 main.dart Consumer rebuild 트리거
+    authService.notifyListeners();
+    
+    if (kDebugMode) {
+      debugPrint('✅ [LOGIN] authService.notifyListeners() 완료 - Consumer rebuild 트리거');
+    }
+    
+    // 🚨 STEP 4: Consumer rebuild 완료 대기 (main.dart에서 notifyConsumerRebuilt() 호출 대기)
+    try {
+      await rebuildFuture.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          if (kDebugMode) {
+            debugPrint('⚠️ [LOGIN] Consumer rebuild 대기 타임아웃 (5초)');
+          }
+        },
+      );
+      
+      if (kDebugMode) {
+        debugPrint('✅ [LOGIN] Consumer rebuild 완료 확인됨');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [LOGIN] Consumer rebuild 대기 오류: $e');
+      }
+    }
+  }
+  
   // 플랫폼 감지 (웹 플랫폼 안전 처리)
   bool get _isMobile {
     if (kIsWeb) return false;
@@ -1266,29 +1317,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               debugPrint('   - Consumer rebuild → MainScreen 자동 표시');
             }
             
-            // 🎯 CRITICAL: 이벤트 기반 Consumer rebuild 보장
-            // WidgetsBinding으로 현재 프레임 완료 후 실행 (즉시 실행보다 안전)
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (kDebugMode) {
-                debugPrint('🔄 [LOGIN] WidgetsBinding PostFrameCallback 실행');
-                debugPrint('   authService.currentUser: ${authService.currentUser?.email}');
-                debugPrint('   authService.currentUserModel: ${authService.currentUserModel?.email}');
-              }
-              
-              // 🚨 STEP 1: isLoggingOut 플래그 해제
-              authService.onLoginScreenDisplayed();
-              
-              if (kDebugMode) {
-                debugPrint('✅ [LOGIN] isLoggingOut 플래그 해제 완료');
-              }
-              
-              // 🚨 STEP 2: notifyListeners() 호출하여 main.dart Consumer rebuild
-              authService.notifyListeners();
-              
-              if (kDebugMode) {
-                debugPrint('✅ [LOGIN] authService.notifyListeners() 완료 - Consumer rebuild 보장');
-              }
-            });
+            // 🎯 CRITICAL: 확실한 이벤트 기반 Consumer rebuild 보장
+            // Completer를 사용하여 main.dart Consumer rebuild 완료 대기
+            _ensureConsumerRebuild(authService);
           }
         } on MaxDeviceLimitException catch (e) {
           // 최대 기기 수 초과 예외 처리

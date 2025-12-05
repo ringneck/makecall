@@ -726,6 +726,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         debugPrint('   currentUserModel: ${authService.currentUserModel?.email ?? "null"}');
                       }
                       
+                      // 🎯 CRITICAL: Consumer rebuild 완료 신호 (Completer 기반 이벤트)
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        authService.notifyConsumerRebuilt();
+                        if (kDebugMode) {
+                          debugPrint('✅ [MAIN] Consumer<AuthService> PostFrameCallback - notifyConsumerRebuilt() 호출');
+                        }
+                      });
+                      
                       // 🔥 CRITICAL: 소셜 로그인 완료 이벤트 감지 (이벤트 기반)
                       // ValueListenableBuilder로 LoginScreen unmount 시에도 rebuild 보장
                       return ValueListenableBuilder<int>(
