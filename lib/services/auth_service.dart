@@ -263,7 +263,14 @@ class AuthService extends ChangeNotifier {
       }
       
       // 추가로 notifyListeners()도 호출 (이중 보장)
+      if (kDebugMode) {
+        debugPrint('🔊 [AUTH] notifyListeners() 호출 시작 (from setInSocialLoginFlow)');
+        debugPrint('   현재 hasListeners: $hasListeners');
+      }
       notifyListeners();
+      if (kDebugMode) {
+        debugPrint('✅ [AUTH] notifyListeners() 호출 완료');
+      }
     }
   }
   
@@ -301,14 +308,17 @@ class AuthService extends ChangeNotifier {
       _isSigningOut = false;
       if (kDebugMode) {
         debugPrint('✅ [AUTH STATE] LoginScreen 표시 확인 - 로그아웃 플래그 해제');
-        debugPrint('🔄 [AUTH STATE] notifyListeners() 호출하여 Consumer 업데이트');
-      }
-      notifyListeners(); // 🔥 CRITICAL: Consumer에 상태 변경 알림
-    } else {
-      if (kDebugMode) {
-        debugPrint('ℹ️ [AUTH STATE] _isLoggingOut이 이미 false - notifyListeners() 건너뛰기');
       }
     }
+    
+    // 🔥 CRITICAL FIX: 재로그인 시에도 Consumer rebuild를 위해 항상 notifyListeners() 호출
+    // 재로그인 시 isLoggingOut은 이미 false이지만, Consumer는 MainScreen 전환을 위해 rebuild 필요
+    if (kDebugMode) {
+      debugPrint('🔄 [AUTH STATE] notifyListeners() 호출하여 Consumer 업데이트 (재로그인 대응)');
+      debugPrint('   currentUser: ${currentUser?.email ?? "null"}');
+      debugPrint('   currentUserModel: ${currentUserModel?.email ?? "null"}');
+    }
+    notifyListeners(); // 🔥 CRITICAL: 항상 호출하여 재로그인 시에도 MainScreen 전환 보장
   }
   
   // 비밀번호를 일시적으로 저장하기 위한 변수 (로그인 시에만 사용)
