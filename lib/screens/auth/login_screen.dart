@@ -1214,53 +1214,42 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('🔍 [LOGIN] 기기 승인 대기 상태: $isWaitingForApproval');
           }
           
-          // 🎨 UX 개선: 오버레이를 MainScreen 렌더링 완료까지 유지
-          // MainScreen의 addPostFrameCallback에서 오버레이 제거
-          // 빈 화면이 보이는 것을 방지
-          if (kDebugMode) {
-            debugPrint('🎨 [UX] 오버레이 유지 - MainScreen 렌더링 완료까지');
-          }
-          
-          if (kDebugMode) {
-            if (isWaitingForApproval) {
-              debugPrint('⏳ [LOGIN] 소셜 로그인 완료 - ApprovalWaitingScreen 전환 대기');
-            } else {
-              debugPrint('✅ [LOGIN] 소셜 로그인 완료 - MainScreen 전환 대기');
-            }
-          }
-          
-          // 🚀 CRITICAL: 명시적 화면 전환 (navigatorKey 사용)
-          // ValueListenableBuilder가 있어도 LoginScreen이 unmount되면 작동하지 않으므로
-          // 명시적으로 화면 전환을 수행함
-          if (navigatorKey.currentContext != null) {
+          // 🎨 UX 개선: 승인 대기 상태이면 오버레이 즉시 제거 후 main.dart Consumer가 ApprovalWaitingScreen 표시
+          // 승인 대기가 아니면 오버레이를 MainScreen 렌더링 완료까지 유지
+          if (isWaitingForApproval) {
             if (kDebugMode) {
-              debugPrint('🚀 [LOGIN] 명시적 화면 전환 시작 (isWaitingForApproval: $isWaitingForApproval)');
+              debugPrint('⏳ [LOGIN] 승인 대기 상태 - 오버레이 제거 후 ApprovalWaitingScreen 전환 대기');
             }
             
-            if (isWaitingForApproval) {
-              // 승인 대기 화면으로 전환
-              navigatorKey.currentState?.pushReplacementNamed('/approval_waiting');
-              if (kDebugMode) {
-                debugPrint('✅ [LOGIN] ApprovalWaitingScreen으로 전환 완료');
-              }
-            } else {
-              // MainScreen으로 전환
-              navigatorKey.currentState?.pushReplacementNamed('/');
-              if (kDebugMode) {
-                debugPrint('✅ [LOGIN] MainScreen으로 전환 완료');
-              }
-            }
-            
-            // 🔓 CRITICAL: 화면 전환 완료 후 소셜 로그인 플래그 해제
-            // ⚠️ 주의: 화면 전환 전에 플래그를 해제하면 authStateChanges가 다시 트리거되어
-            //          shouldNotify=true로 _loadUserModel()이 호출되어 Consumer rebuild 발생
-            //          → 오버레이가 조기 제거되는 문제 발생
-            if (kDebugMode) {
-              debugPrint('🔓 [LOGIN] 화면 전환 완료 - 소셜 로그인 플래그 해제');
-            }
+            // 🔓 소셜 로그인 플래그 해제 (Consumer rebuild 허용)
             await authService.setInSocialLoginFlow(false);
             
+            // 🧹 오버레이 제거 (ApprovalWaitingScreen이 표시되도록)
+            if (mounted) {
+              SocialLoginProgressHelper.hide();
+            }
+            
+            // 🚀 main.dart의 Consumer<AuthService>가 자동으로 ApprovalWaitingScreen 표시
+            if (kDebugMode) {
+              debugPrint('✅ [LOGIN] Consumer rebuild 트리거 - ApprovalWaitingScreen 자동 표시');
+            }
           } else {
+            if (kDebugMode) {
+              debugPrint('✅ [LOGIN] 소셜 로그인 완료 - MainScreen 전환 대기');
+              debugPrint('🎨 [UX] 오버레이 유지 - MainScreen 렌더링 완료까지');
+            }
+            
+            // 🔓 소셜 로그인 플래그 해제 (Consumer rebuild 허용)
+            await authService.setInSocialLoginFlow(false);
+            
+            // 🎨 오버레이 유지 - MainScreen의 addPostFrameCallback에서 제거
+            // 빈 화면이 보이는 것을 방지
+          }
+          
+          // ⏳ 짧은 대기 시간 (Consumer rebuild가 완료되도록)
+          await Future.delayed(const Duration(milliseconds: 100));
+          
+          if (mounted) {
             if (kDebugMode) {
               debugPrint('⚠️ [LOGIN] navigatorKey.currentContext가 null - Consumer가 자동 전환 시도');
             }
