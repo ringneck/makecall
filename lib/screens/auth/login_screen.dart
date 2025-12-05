@@ -1023,15 +1023,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // 소셜 로그인 성공 시 Firestore 사용자 정보를 먼저 업데이트하고
       // 업데이트가 완전히 완료된 후에야 AuthService가 userModel을 로드하도록 함
       if (result.success && result.userId != null) {
-        // ⚡ 최적화: 오버레이 지연 제거 - 즉시 표시
+        // 🎨 UX 개선: 오버레이를 계속 유지하고 메시지만 업데이트
+        // 기존 오버레이 제거하지 않고 새 메시지로 자동 업데이트됨
         if (kDebugMode) {
-          debugPrint('🔄 [OVERLAY] 기존 로그인 오버레이 제거 중...');
-        }
-        SocialLoginProgressHelper.hide();
-        
-        // 1️⃣ 사용자 정보 업데이트 중 (mounted 체크 후 표시)
-        if (kDebugMode) {
-          debugPrint('🔄 [OVERLAY] 새 오버레이 표시: 사용자 정보 업데이트 중...');
+          debugPrint('🔄 [OVERLAY] 메시지 업데이트: 사용자 정보 업데이트 중...');
         }
         if (mounted) {
           SocialLoginProgressHelper.show(
