@@ -1266,27 +1266,29 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               debugPrint('   - Consumer rebuild → MainScreen 자동 표시');
             }
             
-            // 🚨 CRITICAL FIX: isLoggingOut 플래그 즉시 해제
-            // notifyListeners() 전에 해제해야 main.dart Consumer가 MainScreen 표시
-            if (kDebugMode) {
-              debugPrint('🔄 [LOGIN] isLoggingOut 플래그 해제 시작');
-              debugPrint('   authService.currentUser: ${authService.currentUser?.email}');
-              debugPrint('   authService.currentUserModel: ${authService.currentUserModel?.email}');
-            }
-            
-            authService.onLoginScreenDisplayed();
-            
-            if (kDebugMode) {
-              debugPrint('✅ [LOGIN] isLoggingOut 플래그 해제 완료');
-            }
-            
-            // 🎯 CRITICAL: 즉시 notifyListeners() 호출하여 Consumer rebuild 보장
-            // SchedulerBinding은 사용하지 않음 (context 유효성 문제)
-            authService.notifyListeners();
-            
-            if (kDebugMode) {
-              debugPrint('✅ [LOGIN] authService.notifyListeners() 완료 - Consumer rebuild 트리거');
-            }
+            // 🎯 CRITICAL: 이벤트 기반 Consumer rebuild 보장
+            // WidgetsBinding으로 현재 프레임 완료 후 실행 (즉시 실행보다 안전)
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (kDebugMode) {
+                debugPrint('🔄 [LOGIN] WidgetsBinding PostFrameCallback 실행');
+                debugPrint('   authService.currentUser: ${authService.currentUser?.email}');
+                debugPrint('   authService.currentUserModel: ${authService.currentUserModel?.email}');
+              }
+              
+              // 🚨 STEP 1: isLoggingOut 플래그 해제
+              authService.onLoginScreenDisplayed();
+              
+              if (kDebugMode) {
+                debugPrint('✅ [LOGIN] isLoggingOut 플래그 해제 완료');
+              }
+              
+              // 🚨 STEP 2: notifyListeners() 호출하여 main.dart Consumer rebuild
+              authService.notifyListeners();
+              
+              if (kDebugMode) {
+                debugPrint('✅ [LOGIN] authService.notifyListeners() 완료 - Consumer rebuild 보장');
+              }
+            });
           }
         } on MaxDeviceLimitException catch (e) {
           // 최대 기기 수 초과 예외 처리
