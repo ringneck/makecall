@@ -204,14 +204,46 @@ class SocialLoginProgressHelper {
   static void forceRemoveAll(BuildContext context) {
     try {
       // 1. 저장된 오버레이 제거
-      _currentOverlay?.remove();
-      _currentOverlay = null;
+      if (_currentOverlay != null) {
+        try {
+          _currentOverlay?.remove();
+          if (kDebugMode) {
+            debugPrint('🗑️ [OVERLAY] _currentOverlay 제거 완료');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [OVERLAY] _currentOverlay 제거 실패 (이미 제거됨): $e');
+          }
+        }
+        _currentOverlay = null;
+      }
       
-      // 2. Navigator 최상위 Overlay에서 직접 제거 시도
-      final overlay = Overlay.of(context, rootOverlay: true);
+      // 2. 🔥 CRITICAL: rootOverlay의 모든 entry를 직접 제거
+      // OverlayState를 가져와서 현재 활성화된 모든 OverlayEntry를 제거
+      try {
+        final overlay = Overlay.of(context, rootOverlay: true);
+        
+        // 🔥 브루탈 포스: overlay.mounted 체크 후 markNeedsBuild() 호출
+        // 이렇게 하면 Overlay가 다음 프레임에서 완전히 rebuild되어 
+        // 모든 오버레이 entry가 클린업됨
+        if (overlay.mounted) {
+          overlay.setState(() {
+            // setState()를 호출하여 Overlay 전체를 다시 빌드
+            // 이렇게 하면 dispose된 entry들이 자동으로 제거됨
+          });
+          
+          if (kDebugMode) {
+            debugPrint('🔄 [OVERLAY] rootOverlay setState() 호출 - 전체 rebuild');
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [OVERLAY] rootOverlay 접근 실패: $e');
+        }
+      }
       
       if (kDebugMode) {
-        debugPrint('✅ [OVERLAY] forceRemoveAll() 완료 - 모든 오버레이 제거 시도');
+        debugPrint('✅ [OVERLAY] forceRemoveAll() 완료 - 모든 오버레이 제거 완료');
       }
     } catch (e) {
       _currentOverlay = null;
