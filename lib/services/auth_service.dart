@@ -37,6 +37,16 @@ class ServiceSuspendedException implements Exception {
 }
 
 class AuthService extends ChangeNotifier {
+  // 🔥 CRITICAL: Singleton pattern to prevent instance loss during app lifecycle changes
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  
+  AuthService._internal() {
+    if (kDebugMode) {
+      debugPrint('🔧 [AuthService] Singleton instance created');
+    }
+  }
+  
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AccountManagerService _accountManager = AccountManagerService();

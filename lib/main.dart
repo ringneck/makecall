@@ -295,8 +295,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   String? _lastCheckedUserId;
   bool _providersRegistered = false; // Provider 등록 플래그
   
-  // 🔐 AuthService 인스턴스 (앱 생명주기 동안 유지)
-  final AuthService _authService = AuthService();
+  // 🔐 AuthService 싱글톤 인스턴스 (앱 생명주기 동안 유지)
+  // late final을 사용하여 initState에서 한 번만 초기화
+  late final AuthService _authService;
   
   // 🚀 WebSocket 연결 관리자
   final DCMIWSConnectionManager _connectionManager = DCMIWSConnectionManager();
@@ -326,6 +327,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    
+    // 🔥 CRITICAL: AuthService 싱글톤 인스턴스 가져오기 (앱 생명주기 동안 유지)
+    _authService = AuthService();
+    
+    if (kDebugMode) {
+      debugPrint('🔧 [MyApp] AuthService singleton instance initialized');
+    }
     
     // 🔄 앱 생명주기 옵저버 등록 (iOS 화면 검게 변하는 문제 해결)
     WidgetsBinding.instance.addObserver(this);
