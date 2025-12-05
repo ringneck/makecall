@@ -173,15 +173,35 @@ class AuthService extends ChangeNotifier {
       SchedulerBinding.instance.addPostFrameCallback((_) {
         if (kDebugMode) {
           debugPrint('🔄 [AUTH] PostFrameCallback: 강제 notifyListeners() 호출');
+          debugPrint('   navigatorKey.currentContext: ${navigatorKey.currentContext != null ? "있음" : "null"}');
+          debugPrint('   currentUser: ${currentUser?.email}');
+          debugPrint('   currentUserModel: ${_currentUserModel?.email}');
         }
+        
         notifyListeners();
         
         if (kDebugMode) {
           debugPrint('✅ [AUTH] PostFrameCallback: notifyListeners() 완료');
-          debugPrint('   currentUser: ${currentUser?.email}');
-          debugPrint('   currentUserModel: ${_currentUserModel?.email}');
           debugPrint('   isWaitingForApproval: $_isWaitingForApproval');
         }
+        
+        // 🔍 CRITICAL: 10ms 후 Consumer rebuild 확인
+        Future.delayed(const Duration(milliseconds: 10), () {
+          if (kDebugMode) {
+            debugPrint('🔍 [AUTH] Consumer rebuild 확인 (10ms 후)');
+            debugPrint('   currentUser: ${currentUser?.email}');
+            debugPrint('   currentUserModel: ${_currentUserModel?.email}');
+            debugPrint('   navigatorKey.currentContext: ${navigatorKey.currentContext != null ? "있음" : "null"}');
+          }
+          
+          // ⚠️ Consumer가 rebuild되지 않았다면 추가 notifyListeners() 호출
+          if (navigatorKey.currentContext != null) {
+            if (kDebugMode) {
+              debugPrint('🔄 [AUTH] 추가 notifyListeners() 호출 (Consumer rebuild 보장)');
+            }
+            notifyListeners();
+          }
+        });
       });
     }
   }
