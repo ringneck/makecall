@@ -723,17 +723,29 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         debugPrint('   currentUserModel: ${authService.currentUserModel?.email ?? "null"}');
                       }
                       
-                      // 🔥 CRITICAL: 로그아웃 이벤트 감지 (이중 보장)
-                      // ValueListenableBuilder로 Consumer rebuild 실패 시 보조 트리거
+                      // 🔥 CRITICAL: 소셜 로그인 완료 이벤트 감지 (이벤트 기반)
+                      // ValueListenableBuilder로 LoginScreen unmount 시에도 rebuild 보장
                       return ValueListenableBuilder<int>(
-                        valueListenable: authService.logoutEventCounter,
-                        builder: (context, logoutEventCount, _) {
-                          if (kDebugMode && logoutEventCount > 0 && authService.isLoggingOut) {
-                            debugPrint('📢 [MAIN] 로그아웃 이벤트 #$logoutEventCount 감지 - ValueListenableBuilder 트리거');
-                            debugPrint('🔍 [MAIN] isLoggingOut: ${authService.isLoggingOut}');
-                            debugPrint('🔍 [MAIN] currentUser: ${authService.currentUser?.uid}');
-                            debugPrint('🔍 [MAIN] currentUserModel: ${authService.currentUserModel?.email}');
+                        valueListenable: authService.socialLoginCompleteCounter,
+                        builder: (context, socialLoginCompleteCount, _) {
+                          if (kDebugMode && socialLoginCompleteCount > 0) {
+                            debugPrint('🎉 [MAIN] 소셜 로그인 완료 이벤트 #$socialLoginCompleteCount 감지');
+                            debugPrint('   currentUser: ${authService.currentUser?.email}');
+                            debugPrint('   currentUserModel: ${authService.currentUserModel?.email}');
+                            debugPrint('   isWaitingForApproval: ${authService.isWaitingForApproval}');
                           }
+                          
+                          // 🔥 CRITICAL: 로그아웃 이벤트 감지 (이중 보장)
+                          // ValueListenableBuilder로 Consumer rebuild 실패 시 보조 트리거
+                          return ValueListenableBuilder<int>(
+                            valueListenable: authService.logoutEventCounter,
+                            builder: (context, logoutEventCount, _) {
+                              if (kDebugMode && logoutEventCount > 0 && authService.isLoggingOut) {
+                                debugPrint('📢 [MAIN] 로그아웃 이벤트 #$logoutEventCount 감지 - ValueListenableBuilder 트리거');
+                                debugPrint('🔍 [MAIN] isLoggingOut: ${authService.isLoggingOut}');
+                                debugPrint('🔍 [MAIN] currentUser: ${authService.currentUser?.uid}');
+                                debugPrint('🔍 [MAIN] currentUserModel: ${authService.currentUserModel?.email}');
+                              }
                           
                           // 🔔 FCM BuildContext 및 AuthService 설정
                           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -978,8 +990,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           ),
                         );
                       }
+                            },
+                          ); // 로그아웃 ValueListenableBuilder 닫기
                         },
-                      ); // ValueListenableBuilder 닫기
+                      ); // 소셜 로그인 ValueListenableBuilder 닫기
                     },
                   ),
               );

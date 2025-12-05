@@ -74,6 +74,11 @@ class AuthService extends ChangeNotifier {
   final ValueNotifier<int> _logoutEventCounter = ValueNotifier<int>(0);
   ValueNotifier<int> get logoutEventCounter => _logoutEventCounter;
   
+  // 🚀 CRITICAL: 소셜 로그인 완료 이벤트 카운터 (확실한 rebuild 트리거)
+  // LoginScreen unmount 시에도 main.dart Consumer가 rebuild되도록 보장
+  final ValueNotifier<int> _socialLoginCompleteCounter = ValueNotifier<int>(0);
+  ValueNotifier<int> get socialLoginCompleteCounter => _socialLoginCompleteCounter;
+  
   // 🔐 기기 승인 대기 상태
   bool _isWaitingForApproval = false;
   bool get isWaitingForApproval => _isWaitingForApproval;
@@ -168,41 +173,24 @@ class AuthService extends ChangeNotifier {
         debugPrint('✅ [AUTH] UserModel 재로드 완료 - Consumer rebuild 보장됨');
       }
       
-      // 🚀 CRITICAL: 다음 프레임에서 강제 rebuild
-      // LoginScreen이 unmount되어도 main.dart Consumer가 rebuild되도록 보장
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        if (kDebugMode) {
-          debugPrint('🔄 [AUTH] PostFrameCallback: 강제 notifyListeners() 호출');
-          debugPrint('   navigatorKey.currentContext: ${navigatorKey.currentContext != null ? "있음" : "null"}');
-          debugPrint('   currentUser: ${currentUser?.email}');
-          debugPrint('   currentUserModel: ${_currentUserModel?.email}');
-        }
-        
-        notifyListeners();
-        
-        if (kDebugMode) {
-          debugPrint('✅ [AUTH] PostFrameCallback: notifyListeners() 완료');
-          debugPrint('   isWaitingForApproval: $_isWaitingForApproval');
-        }
-        
-        // 🔍 CRITICAL: 10ms 후 Consumer rebuild 확인
-        Future.delayed(const Duration(milliseconds: 10), () {
-          if (kDebugMode) {
-            debugPrint('🔍 [AUTH] Consumer rebuild 확인 (10ms 후)');
-            debugPrint('   currentUser: ${currentUser?.email}');
-            debugPrint('   currentUserModel: ${_currentUserModel?.email}');
-            debugPrint('   navigatorKey.currentContext: ${navigatorKey.currentContext != null ? "있음" : "null"}');
-          }
-          
-          // ⚠️ Consumer가 rebuild되지 않았다면 추가 notifyListeners() 호출
-          if (navigatorKey.currentContext != null) {
-            if (kDebugMode) {
-              debugPrint('🔄 [AUTH] 추가 notifyListeners() 호출 (Consumer rebuild 보장)');
-            }
-            notifyListeners();
-          }
-        });
-      });
+      // 🚀 CRITICAL: 이벤트 기반 rebuild 트리거
+      // ValueNotifier로 LoginScreen unmount 여부와 관계없이 확실하게 rebuild
+      if (kDebugMode) {
+        debugPrint('🔄 [AUTH] 소셜 로그인 완료 이벤트 발행');
+        debugPrint('   currentUser: ${currentUser?.email}');
+        debugPrint('   currentUserModel: ${_currentUserModel?.email}');
+        debugPrint('   isWaitingForApproval: $_isWaitingForApproval');
+      }
+      
+      // 🎯 이벤트 기반: ValueNotifier 증가 (main.dart ValueListenableBuilder가 감지)
+      _socialLoginCompleteCounter.value++;
+      
+      if (kDebugMode) {
+        debugPrint('✅ [AUTH] 소셜 로그인 완료 이벤트 #${_socialLoginCompleteCounter.value} 발행 완료');
+      }
+      
+      // 추가로 notifyListeners()도 호출 (이중 보장)
+      notifyListeners();
     }
   }
   
