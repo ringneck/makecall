@@ -12,6 +12,7 @@ import '../exceptions/max_device_limit_exception.dart';
 import '../widgets/max_device_limit_dialog.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/web_login_wrapper.dart';
+import '../screens/home/main_screen.dart';
 import 'account_manager_service.dart';
 import 'fcm_service.dart';
 import 'dcmiws_connection_manager.dart';
@@ -270,12 +271,40 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       
       // 🔥 CRITICAL FIX: 재로그인 시 Consumer가 rebuild되지 않는 문제 해결
-      // SchedulerBinding을 사용해서 다음 프레임에서 강제 rebuild
-      SchedulerBinding.instance.addPostFrameCallback((_) {
+      // SchedulerBinding + Navigator를 사용해서 강제 MainScreen 전환
+      SchedulerBinding.instance.addPostFrameCallback((_) async {
         if (kDebugMode) {
           debugPrint('🔄 [AUTH] SchedulerBinding PostFrameCallback: 강제 Consumer rebuild');
         }
         notifyListeners();
+        
+        // 🔥 ULTIMATE FIX: Navigator를 사용해 강제 전환
+        if (navigatorKey.currentContext != null && _currentUserModel != null) {
+          if (kDebugMode) {
+            debugPrint('🚀 [AUTH] Navigator를 사용해 강제 MainScreen 전환');
+          }
+          
+          // 짧은 딜레이 후 전환 (Consumer rebuild 완료 대기)
+          await Future.delayed(const Duration(milliseconds: 100));
+          
+          if (navigatorKey.currentContext != null && 
+              navigatorKey.currentContext!.mounted) {
+            if (kDebugMode) {
+              debugPrint('✅ [AUTH] Context mounted 확인 - MainScreen 전환 실행');
+            }
+            
+            // MainScreen으로 강제 전환
+            Navigator.of(navigatorKey.currentContext!)
+                .pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const MainScreen()),
+              (route) => false,
+            );
+            
+            if (kDebugMode) {
+              debugPrint('✅ [AUTH] MainScreen 강제 전환 완료');
+            }
+          }
+        }
       });
       
       if (kDebugMode) {
