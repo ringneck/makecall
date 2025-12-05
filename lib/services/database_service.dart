@@ -1166,7 +1166,30 @@ class DatabaseService {
           .collection('fcm_tokens')
           .doc('${tokenModel.userId}_${tokenModel.deviceId}_${tokenModel.platform}');
 
-      await docRef.set(tokenModel.toMap());
+      // 🔍 CRITICAL: 저장할 데이터 확인
+      final dataToSave = tokenModel.toMap();
+      // ignore: avoid_print
+      print('🔍 [DatabaseService] 저장할 데이터:');
+      // ignore: avoid_print
+      print('   - isApproved: ${dataToSave['isApproved']}');
+      // ignore: avoid_print
+      print('   - isActive: ${dataToSave['isActive']}');
+      // ignore: avoid_print
+      print('   - fcmToken: ${dataToSave['fcmToken']?.substring(0, 20)}...');
+      
+      await docRef.set(dataToSave);
+
+      // 🔍 CRITICAL: 저장 후 문서 재확인
+      final savedDoc = await docRef.get();
+      if (savedDoc.exists) {
+        final savedData = savedDoc.data();
+        // ignore: avoid_print
+        print('✅ [DatabaseService] Firestore 저장 후 확인:');
+        // ignore: avoid_print
+        print('   - isApproved: ${savedData?['isApproved']}');
+        // ignore: avoid_print
+        print('   - isActive: ${savedData?['isActive']}');
+      }
 
       // ignore: avoid_print
       print('✅ [DatabaseService] FCM 토큰 저장 완료 (문서 ID: ${docRef.id})');
