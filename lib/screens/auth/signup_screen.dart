@@ -465,7 +465,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       // 🎯 즉시 소셜 로그인 플래그 설정 (main.dart의 자동 화면 전환 차단)
       if (mounted) {
         final authService = context.read<AuthService>();
-        authService.setInSocialLoginFlow(true);
+        authService.setIsInSocialLoginFlow(true);
       }
       
       // 1️⃣ 사용자 정보 확인 중
@@ -628,7 +628,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       if (mounted) {
         // 소셜 로그인 진행 중 플래그 해제
         final authService = context.read<AuthService>();
-        authService.setInSocialLoginFlow(false);
+        authService.setIsInSocialLoginFlow(false);
         
         // SignupScreen 닫기
         Navigator.of(context).pop();
@@ -902,7 +902,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                 await FirebaseAuth.instance.signOut();
                 
                 // 2️⃣ 플래그 해제 (LoginScreen으로 복귀 허용)
-                authService.setInSocialLoginFlow(false);
+                authService.setIsInSocialLoginFlow(false);
                 
                 // 3️⃣ 다이얼로그 닫기
                 Navigator.of(context).pop();
@@ -950,7 +950,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                   }
                   
                   // 5️⃣ 플래그 해제 (MainScreen으로 전환 허용)
-                  authService.setInSocialLoginFlow(false);
+                  authService.setIsInSocialLoginFlow(false);
                   
                   // 6️⃣ 로딩 오버레이 제거
                   if (mounted) {
@@ -997,7 +997,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                   
                   // 플래그 해제
                   authService.setIsSigningOut(false);
-                  authService.setInSocialLoginFlow(false);
+                  authService.setIsInSocialLoginFlow(false);
                   
                   // LoginScreen으로 돌아가기
                   if (context.mounted && Navigator.of(context).canPop()) {
@@ -1027,7 +1027,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                   await FirebaseAuth.instance.signOut();
                   
                   // 플래그 해제
-                  authService.setInSocialLoginFlow(false);
+                  authService.setIsInSocialLoginFlow(false);
                   
                   // LoginScreen으로 돌아가기
                   if (context.mounted && Navigator.of(context).canPop()) {

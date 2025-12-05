@@ -153,9 +153,9 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
   
-  /// 소셜 로그인 진행 중 상태 설정
+  /// 소셜 로그인 다이얼로그 표시 상태 설정
   /// SignupScreen에서 "기존 계정 확인" 다이얼로그 표시 전/후 호출
-  void setInSocialLoginFlow(bool inFlow) {
+  void setIsInSocialLoginFlow(bool inFlow) {
     _isInSocialLoginFlow = inFlow;
     notifyListeners();
   }
