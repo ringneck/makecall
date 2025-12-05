@@ -932,29 +932,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       }
                       
                       // ✅ 로그인 상태 체크: currentUser와 currentUserModel 존재 여부
-                      // isAuthenticated 대신 직접 체크 (승인 대기 상태와 독립적)
-                      // 🚫 MaxDeviceLimit 차단 시 LoginScreen 유지
-                      if (kDebugMode) {
-                        debugPrint('\n╭────────────────────────────────────────╮');
-                        debugPrint('│ 🔍 [MAIN] Consumer<AuthService> rebuild     │');
-                        debugPrint('╰────────────────────────────────────────╯');
-                        debugPrint('   currentUser: ${authService.currentUser?.uid ?? "null"}');
-                        debugPrint('   currentUserModel: ${authService.currentUserModel?.email ?? "null"}');
-                        debugPrint('   profileImageUrl: ${authService.currentUserModel?.profileImageUrl ?? "null"}');
-                        debugPrint('   isLoggingOut: ${authService.isLoggingOut}');
-                        debugPrint('   isBlockedByMaxDeviceLimit: ${authService.isBlockedByMaxDeviceLimit}');
-                        debugPrint('');
-                      }
-                      
                       if (authService.currentUser != null && 
                           authService.currentUserModel != null &&
                           !authService.isBlockedByMaxDeviceLimit) {
-                        
-                        if (kDebugMode) {
-                          debugPrint('✅ [MAIN] 로그인 상태 확인 - MainScreen 표시');
-                          debugPrint('   User: ${authService.currentUserModel!.email}');
-                          debugPrint('   Profile Image: ${authService.currentUserModel!.profileImageUrl}');
-                        }
                         
                         // 🔄 개인정보보호법 준수: 동의 만료 체크 (2년 주기) - 현재 비활성화
                         // final userModel = authService.currentUserModel!;
@@ -973,31 +953,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           ), // 로그인 후 MAKECALL 메인 화면으로 이동
                         );
                       } else {
-                        if (kDebugMode) {
-                          debugPrint('❌ [MAIN] 로그인 상태 아님 - LoginScreen 표시');
-                          debugPrint('   Reason:');
-                          if (authService.currentUser == null) {
-                            debugPrint('      - currentUser is null');
-                          }
-                          if (authService.currentUserModel == null) {
-                            debugPrint('      - currentUserModel is null');
-                          }
-                          if (authService.isBlockedByMaxDeviceLimit) {
-                            debugPrint('      - Blocked by MaxDeviceLimit');
-                          }
-                        }
-                        
-                        // 🧹 CRITICAL: LoginScreen 표시 전 소셜 로그인 오버레이 명시적 제거
                         SocialLoginProgressHelper.forceHide();
-                        
-                        // 🔔 이벤트 기반: LoginScreen이 build될 때 AuthService에 알림
-                        if (authService.isLoggingOut) {
-                          if (kDebugMode) {
-                            debugPrint('🚪 [MAIN-ELSE] 로그아웃 플래그 감지 - LoginScreen 표시 (currentUser/currentUserModel 없음)');
-                          }
-                          // 🔥 CRITICAL FIX: addPostFrameCallback 제거
-                          // 재로그인 시에는 login_screen.dart에서 명시적으로 호출함
-                        }
                         return WebLoginWrapper(
                           child: LoginScreen(
                             key: ValueKey('login_${DateTime.now().millisecondsSinceEpoch}'),

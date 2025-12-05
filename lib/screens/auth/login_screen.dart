@@ -94,27 +94,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       final versionService = VersionCheckService();
       final result = await versionService.checkVersion();
       
-      if (kDebugMode) {
-        debugPrint('🔄 [VERSION CHECK - LOGIN] Current: ${result.currentVersion}');
-        debugPrint('🔄 [VERSION CHECK - LOGIN] Latest: ${result.latestVersion}');
-        debugPrint('🔄 [VERSION CHECK - LOGIN] Update Available: ${result.isUpdateAvailable}');
-        debugPrint('🔄 [VERSION CHECK - LOGIN] Force Update: ${result.isForceUpdate}');
-      }
-      
-      // 업데이트가 필요한 경우 BottomSheet 표시
       if (result.isUpdateAvailable && mounted) {
         await VersionUpdateBottomSheet.show(
           context,
           result,
-          // Android Play Store URL
           downloadUrl: 'https://play.google.com/store/apps/details?id=com.olssoo.makecall_app',
-          // iOS App Store URL (필요시 주석 해제)
-          // downloadUrl: 'https://apps.apple.com/app/idYOUR_APP_ID',
         );
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ [VERSION CHECK - LOGIN] Error: $e');
+        debugPrint('❌ 버전 체크 오류: $e');
       }
     }
   }
@@ -160,9 +149,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       final switchTargetEmail = await AccountManagerService().getSwitchTargetEmail();
       
       if (kDebugMode) {
-        debugPrint('🔍 Auto-login check:');
-        debugPrint('   - Switch target: $switchTargetEmail');
-        debugPrint('   - Auto login enabled: $autoLogin');
+
       }
       
       // 자동 로그인 실패 또는 시도하지 않음 - LoginScreen 표시
@@ -1186,60 +1173,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         try {
           await FCMService().initialize(result.userId!);
           
-          if (kDebugMode) {
-            debugPrint('✅ [LOGIN] FCM 초기화 완료');
-          }
-          
-          // 🎯 CRITICAL: isLoggingOut 플래그를 가장 먼저 해제
-          // ensureUserModelLoaded()가 _loadUserModel()을 호출하기 전에 플래그 해제 필요
-          if (kDebugMode) {
-            debugPrint('🚀 [LOGIN] MainScreen 전환 준비');
-            debugPrint('   현재 isLoggingOut: ${authService.isLoggingOut}');
-          }
-          
           authService.onLoginScreenDisplayed();
-          
-          if (kDebugMode) {
-            debugPrint('✅ [LOGIN] isLoggingOut 플래그 해제 완료');
-            debugPrint('   호출 후 isLoggingOut: ${authService.isLoggingOut}');
-          }
-          
-          // 🔍 CRITICAL: 소셜 로그인 후 항상 UserModel 상태 확인 및 UI 업데이트
-          // 1. authStateChanges가 트리거되지 않은 경우 → UserModel 로드
-          // 2. authStateChanges가 shouldNotify=false로 로드한 경우 → notifyListeners() 호출
-          if (kDebugMode) {
-            debugPrint('🔄 [LOGIN] 소셜 로그인 후 UI 업데이트 확인');
-            debugPrint('   currentUserModel: ${authService.currentUserModel?.email ?? "null"}');
-          }
-          
-          // 🔧 AuthService.ensureUserModelLoaded() 항상 호출
-          // - currentUserModel이 null이면 → _loadUserModel() 호출
-          // - currentUserModel이 이미 있으면 → notifyListeners()만 호출
           await authService.ensureUserModelLoaded();
           
-          if (kDebugMode) {
-            debugPrint('✅ [LOGIN] UserModel 상태 확인 완료');
-          }
-          
-          // 🔍 CRITICAL: 기기 승인 대기 상태 체크
-          // FCM 초기화가 정상 완료되었어도, 새 기기로 인해 승인 대기 상태일 수 있음
           final isWaitingForApproval = authService.isWaitingForApproval;
           
-          if (kDebugMode) {
-            debugPrint('🔍 [LOGIN] 기기 승인 대기 상태: $isWaitingForApproval');
-          }
-          
-          // 🎨 UX 개선: 승인 대기 상태이면 오버레이 즉시 제거 후 main.dart Consumer가 ApprovalWaitingScreen 표시
-          // 승인 대기가 아니면 오버레이를 MainScreen 렌더링 완료까지 유지
           if (isWaitingForApproval) {
-            if (kDebugMode) {
-              debugPrint('⏳ [LOGIN] 승인 대기 상태 - 오버레이 제거 후 ApprovalWaitingScreen 전환 대기');
-            }
-            
-            // 🧹 오버레이 제거 (ApprovalWaitingScreen이 표시되도록)
             SocialLoginProgressHelper.hide();
-            
-            // 🔓 소셜 로그인 플래그 해제 (Consumer rebuild 허용)
             await authService.setInSocialLoginFlow(false);
             
             // 🚀 CRITICAL: 이벤트 기반 화면 전환

@@ -58,65 +58,24 @@ class AuthService extends ChangeNotifier {
         // 로그인 상태
         _lastUserId = user.uid;
         
-        // 🔥 CRITICAL: authStateChanges 트리거 시점 판단
-        // 1. 소셜 로그인 중: shouldNotify=false (login_screen.dart에서 FCM 완료 후 UI 업데이트)
-        // 2. 앱 재시작 자동 로그인: shouldNotify=true (즉시 MainScreen 표시)
         if (_currentUserModel == null) {
-          // 🔍 소셜 로그인 진행 중인지 확인
           final isInSocialLoginFlow = _inSocialLoginFlow;
           
           try {
-            if (kDebugMode) {
-              debugPrint('🔄 [AUTH STATE] UserModel 로드 필요 - _loadUserModel() 호출');
-              if (isInSocialLoginFlow) {
-                debugPrint('   ⚠️ shouldNotify=false → 소셜 로그인 진행 중 (MainScreen 조기 표시 방지)');
-              } else {
-                debugPrint('   ✅ shouldNotify=true → 앱 재시작 자동 로그인 (즉시 MainScreen 표시)');
-              }
-            }
-            
-            // 소셜 로그인 중이면 shouldNotify=false, 아니면 shouldNotify=true
             await _loadUserModel(user.uid, shouldNotify: !isInSocialLoginFlow);
-          } on ServiceSuspendedException catch (e) {
-            // 🛑 서비스 이용 중지 계정 - authStateChanges에서는 무시
-            // UI의 signIn()에서 이미 처리했으므로 여기서는 조용히 무시
-            if (kDebugMode) {
-              debugPrint('🛑 [AUTH STATE] 서비스 이용 중지 계정 - 무시');
-            }
+          } on ServiceSuspendedException {
+            // 서비스 이용 중지 계정 무시
           } catch (e) {
             if (kDebugMode) {
-              debugPrint('⚠️ [AUTH STATE] _loadUserModel 오류: $e');
+              debugPrint('❌ UserModel 로드 오류: $e');
             }
-          }
-        } else {
-          if (kDebugMode) {
-            debugPrint('✅ [AUTH STATE] UserModel 이미 존재 (uid: ${_currentUserModel!.uid}) - _loadUserModel() 건너뛰기');
           }
         }
       } else if (_lastUserId != null) {
-        // 로그아웃 상태 (최초 1회만)
         _lastUserId = null;
         _currentUserModel = null;
-        
-        if (kDebugMode) {
-          debugPrint('✅ [AUTH STATE] 로그아웃 감지 - UI 업데이트 시작');
-        }
-        
-        // 🔥 CRITICAL: 이벤트 기반 rebuild 트리거 (이중 보장)
-        // 1. notifyListeners() 호출
-        if (kDebugMode) {
-          debugPrint('🔔 [AUTH STATE] notifyListeners() 호출 #1 - Consumer rebuild 트리거 (isLoggingOut=true)');
-        }
         notifyListeners();
-        
-        // 2. ValueNotifier 카운터 증가 (보조 트리거)
         _logoutEventCounter.value++;
-        if (kDebugMode) {
-          debugPrint('📢 [AUTH STATE] 로그아웃 이벤트 발행 #${_logoutEventCounter.value} - ValueNotifier 트리거');
-        }
-        
-        // 🔥 CRITICAL: 플래그 해제는 main.dart가 LoginScreen을 표시할 때 이벤트 기반으로 처리
-        // onLoginScreenDisplayed() 메서드가 호출될 때 플래그 해제됨
       }
     });
   }
@@ -235,81 +194,29 @@ class AuthService extends ChangeNotifier {
   /// 소셜 로그인 진행 중 플래그 설정
   Future<void> setInSocialLoginFlow(bool inFlow) async {
     _inSocialLoginFlow = inFlow;
-    if (kDebugMode) {
-      debugPrint('🔄 [AUTH] 소셜 로그인 플래그: $_inSocialLoginFlow');
-    }
     
-    // ✅ CRITICAL: 소셜 로그인 완료 시 (false로 설정) 이벤트만 발행
-    // UserModel은 이미 authStateChanges에서 로드되었으므로 중복 호출 방지
+    // 소셜 로그인 완료 시 MainScreen 전환
     if (!inFlow && currentUser != null && _currentUserModel != null) {
-      if (kDebugMode) {
-        debugPrint('🔄 [AUTH] 소셜 로그인 완료 → 화면 전환 이벤트 발행');
-        debugPrint('   ℹ️ UserModel은 이미 로드됨 - 중복 로드 방지');
-      }
-      
-      // 🚀 CRITICAL: 이벤트 기반 rebuild 트리거
-      // ValueNotifier로 LoginScreen unmount 여부와 관계없이 확실하게 rebuild
-      if (kDebugMode) {
-        debugPrint('🔄 [AUTH] 소셜 로그인 완료 이벤트 발행');
-        debugPrint('   currentUser: ${currentUser?.email}');
-        debugPrint('   currentUserModel: ${_currentUserModel?.email}');
-        debugPrint('   isWaitingForApproval: $_isWaitingForApproval');
-      }
-      
-      // 🎯 이벤트 기반: ValueNotifier 증가 (main.dart ValueListenableBuilder가 감지)
       _socialLoginCompleteCounter.value++;
-      
-      if (kDebugMode) {
-        debugPrint('✅ [AUTH] 소셜 로그인 완료 이벤트 #${_socialLoginCompleteCounter.value} 발행 완료');
-      }
-      
-      // 추가로 notifyListeners()도 호출 (이중 보장)
-      if (kDebugMode) {
-        debugPrint('🔊 [AUTH] notifyListeners() 호출 시작 (from setInSocialLoginFlow)');
-        debugPrint('   현재 hasListeners: $hasListeners');
-      }
       notifyListeners();
       
-      // 🔥 CRITICAL FIX: 재로그인 시 Consumer가 rebuild되지 않는 문제 해결
-      // SchedulerBinding + Navigator를 사용해서 강제 MainScreen 전환
+      // 재로그인 시 Consumer rebuild 실패 대응: Navigator로 강제 전환
       SchedulerBinding.instance.addPostFrameCallback((_) async {
-        if (kDebugMode) {
-          debugPrint('🔄 [AUTH] SchedulerBinding PostFrameCallback: 강제 Consumer rebuild');
-        }
         notifyListeners();
         
-        // 🔥 ULTIMATE FIX: Navigator를 사용해 강제 전환
         if (navigatorKey.currentContext != null && _currentUserModel != null) {
-          if (kDebugMode) {
-            debugPrint('🚀 [AUTH] Navigator를 사용해 강제 MainScreen 전환');
-          }
-          
-          // 짧은 딜레이 후 전환 (Consumer rebuild 완료 대기)
           await Future.delayed(const Duration(milliseconds: 100));
           
           if (navigatorKey.currentContext != null && 
               navigatorKey.currentContext!.mounted) {
-            if (kDebugMode) {
-              debugPrint('✅ [AUTH] Context mounted 확인 - MainScreen 전환 실행');
-            }
-            
-            // MainScreen으로 강제 전환
             Navigator.of(navigatorKey.currentContext!)
                 .pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const MainScreen()),
               (route) => false,
             );
-            
-            if (kDebugMode) {
-              debugPrint('✅ [AUTH] MainScreen 강제 전환 완료');
-            }
           }
         }
       });
-      
-      if (kDebugMode) {
-        debugPrint('✅ [AUTH] notifyListeners() 호출 완료');
-      }
     }
   }
   
@@ -335,29 +242,12 @@ class AuthService extends ChangeNotifier {
   
 
   
-  // 🔔 이벤트 기반 플래그 해제: LoginScreen이 표시되었을 때 main.dart가 호출
   void onLoginScreenDisplayed() {
-    if (kDebugMode) {
-      debugPrint('🔍 [AUTH STATE] onLoginScreenDisplayed() 호출됨');
-      debugPrint('   _isLoggingOut: $_isLoggingOut');
-    }
-    
     if (_isLoggingOut) {
       _isLoggingOut = false;
       _isSigningOut = false;
-      if (kDebugMode) {
-        debugPrint('✅ [AUTH STATE] LoginScreen 표시 확인 - 로그아웃 플래그 해제');
-      }
     }
-    
-    // 🔥 CRITICAL FIX: 재로그인 시에도 Consumer rebuild를 위해 항상 notifyListeners() 호출
-    // 재로그인 시 isLoggingOut은 이미 false이지만, Consumer는 MainScreen 전환을 위해 rebuild 필요
-    if (kDebugMode) {
-      debugPrint('🔄 [AUTH STATE] notifyListeners() 호출하여 Consumer 업데이트 (재로그인 대응)');
-      debugPrint('   currentUser: ${currentUser?.email ?? "null"}');
-      debugPrint('   currentUserModel: ${currentUserModel?.email ?? "null"}');
-    }
-    notifyListeners(); // 🔥 CRITICAL: 항상 호출하여 재로그인 시에도 MainScreen 전환 보장
+    notifyListeners();
   }
   
   // 비밀번호를 일시적으로 저장하기 위한 변수 (로그인 시에만 사용)
@@ -368,139 +258,34 @@ class AuthService extends ChangeNotifier {
     String? password,
     bool shouldNotify = true,  // 🔥 CRITICAL: notifyListeners() 제어 플래그
   }) async {
-    // 🔒 CRITICAL: 중복 호출 방지 - 이미 로딩 중이면 대기
-    if (_isLoadingUserModel) {
-      if (kDebugMode) {
-        debugPrint('⏳ [_loadUserModel] 이미 로딩 중 - 중복 호출 무시');
-        debugPrint('   uid: $uid');
-      }
-      return;
-    }
+    // 중복 호출 방지
+    if (_isLoadingUserModel) return;
     
-    // 🔒 UserModel 로드 시작 플래그 설정
     _isLoadingUserModel = true;
     
-    if (kDebugMode) {
-      debugPrint('\n╔════════════════════════════════════════╗');
-      debugPrint('║  _loadUserModel() 시작                ║');
-      debugPrint('╚════════════════════════════════════════╝');
-      debugPrint('   uid: $uid');
-      debugPrint('   password: ${password != null ? "제공됨" : "null"}');
-      debugPrint('   shouldNotify: $shouldNotify');
-      debugPrint('   _isLoggingOut: $_isLoggingOut');
-      debugPrint('   현재 _currentUserModel: ${_currentUserModel?.email ?? "null"}');
-    }
-    
     try {
-      // 🔥 CRITICAL: _loadUserModel()은 UserModel 로드만 담당
-      // _isLoggingOut 플래그는 건드리지 않음!
-      // login_screen.dart에서 onLoginScreenDisplayed()로 명시적으로 해제
-      
-      if (kDebugMode) {
-        debugPrint('🔍 [_loadUserModel] Firestore 조회 시작...');
-      }
-      
       final doc = await _firestore.collection('users').doc(uid).get();
-      
-      if (kDebugMode) {
-        debugPrint('📦 [_loadUserModel] Firestore 응답 받음');
-        debugPrint('   exists: ${doc.exists}');
-        if (doc.exists) {
-          final data = doc.data()!;
-          debugPrint('   data keys: ${data.keys.toList()}');
-          debugPrint('   profileImageUrl: ${data["profileImageUrl"]}');
-          debugPrint('   email: ${data["email"]}');
-        }
-      }
       
       if (doc.exists) {
         final data = doc.data()!;
         
-        // 🛑 CRITICAL: 최우선 이용 중지 여부 확인
+        // 이용 중지 계정 확인
         final isActive = data['isActive'] as bool? ?? true;
         
         if (!isActive) {
-          // 이용 중지된 계정 - 로그아웃 처리하고 예외 발생
-          final suspendedAt = data['suspendedAt'] as String?;
-          final suspendedDeviceId = data['suspendedDeviceId'] as String?;
-          final suspendedDeviceName = data['suspendedDeviceName'] as String?;
-          
-          if (kDebugMode) {
-            debugPrint('');
-            debugPrint('🛑 ========== 서비스 이용 중지 계정 ==========');
-            debugPrint('   📧 이메일: ${data['email']}');
-            debugPrint('   🆔 UID: $uid');
-            debugPrint('   📅 중지 일시: $suspendedAt');
-            debugPrint('   📱 디바이스 ID: ${suspendedDeviceId ?? "없음"}');
-            debugPrint('   📱 디바이스 이름: ${suspendedDeviceName ?? "없음"}');
-            debugPrint('   ⚠️  로그인 차단 - 예외 발생');
-            debugPrint('================================================');
-            debugPrint('');
-          }
-          
-          // 🛑 CRITICAL: 로그아웃은 signIn()에서 처리
-          // 여기서 signOut()을 호출하면 authStateChanges가 발생하여 복잡해짐
-          
-          // 예외 발생 (UI에서 다이얼로그 표시용)
           throw ServiceSuspendedException(
-            suspendedAt: suspendedAt,
-            deviceId: suspendedDeviceId,
-            deviceName: suspendedDeviceName,
+            suspendedAt: data['suspendedAt'] as String?,
+            deviceId: data['suspendedDeviceId'] as String?,
+            deviceName: data['suspendedDeviceName'] as String?,
           );
         }
         
-        if (kDebugMode) {
-          debugPrint('🔄 [_loadUserModel] UserModel 객체 생성 시작...');
-        }
-        
         _currentUserModel = UserModel.fromMap(data, uid);
-        
-        if (kDebugMode) {
-          debugPrint('✅ [_loadUserModel] UserModel 객체 생성 완료');
-          debugPrint('   email: ${_currentUserModel!.email}');
-          debugPrint('   profileImageUrl: ${_currentUserModel!.profileImageUrl}');
-          debugPrint('   organizationName: ${_currentUserModel!.organizationName}');
-          debugPrint('   companyName: ${_currentUserModel!.companyName}');
-        }
-        
-        if (kDebugMode) {
-          debugPrint('💾 [_loadUserModel] 계정 정보 저장 시작...');
-        }
-        
         await _accountManager.saveAccount(_currentUserModel!, password: password ?? _tempPassword);
         _tempPassword = null;
         
-        if (kDebugMode) {
-          debugPrint('✅ [_loadUserModel] 계정 정보 저장 완료');
-        }
-        
-        // 🔥 CRITICAL: shouldNotify 플래그에 따라 notifyListeners() 호출
         if (shouldNotify) {
-          if (kDebugMode) {
-            debugPrint('🔔 [_loadUserModel] notifyListeners() 호출...');
-          }
-          
           notifyListeners();
-          
-          if (kDebugMode) {
-            debugPrint('\n╔════════════════════════════════════════╗');
-            debugPrint('║  _loadUserModel() 완료                ║');
-            debugPrint('╚════════════════════════════════════════╝');
-            debugPrint('   ✅ email: ${_currentUserModel!.email}');
-            debugPrint('   ✅ profileImageUrl: ${_currentUserModel!.profileImageUrl}');
-            debugPrint('   ✅ notifyListeners() 호출 완료');
-            debugPrint('');
-          }
-        } else {
-          if (kDebugMode) {
-            debugPrint('\n╔════════════════════════════════════════╗');
-            debugPrint('║  _loadUserModel() 완료                ║');
-            debugPrint('╚════════════════════════════════════════╝');
-            debugPrint('   ✅ email: ${_currentUserModel!.email}');
-            debugPrint('   ✅ profileImageUrl: ${_currentUserModel!.profileImageUrl}');
-            debugPrint('   ⏭️ notifyListeners() 건너뛰기 (shouldNotify=false)');
-            debugPrint('');
-          }
         }
       } else {
         final currentUser = _auth.currentUser;
@@ -1021,99 +806,31 @@ class AuthService extends ChangeNotifier {
   ///   - fcm_tokens/{userId}_{deviceId}: FCM 토큰만 삭제
   ///   - _currentUserModel: 로컬 변수만 초기화 (Firestore 손대 안 함)
   Future<void> signOut({bool silentLogout = false}) async {
-    // 🔥 CRITICAL FIX: 로그아웃 플래그 설정 (FCM route 남아도 LoginScreen 강제 표시)
     _isLoggingOut = true;
-    _isSigningOut = true; // authStateChanges 리스너 무시
-    notifyListeners(); // 즉시 MaterialApp.home Consumer에 알림
-    
-    // 🔍 로그아웃 전 Firestore 데이터 확인 (디버그용)
-    if (kDebugMode && _auth.currentUser != null) {
-      debugPrint('');
-      debugPrint('🔓 ========== 로그아웃 시작 ==========');
-      debugPrint('   📧 현재 사용자: ${_currentUserModel?.email ?? "없음"}');
-      debugPrint('   🆔 UID: ${_auth.currentUser!.uid}');
-      debugPrint('');
-      
-      // Firestore에서 실제 데이터 확인
-      try {
-        final doc = await _firestore.collection('users').doc(_auth.currentUser!.uid).get();
-        if (doc.exists) {
-          final data = doc.data()!;
-          debugPrint('   📊 Firestore users 컬렉션 현재 상태:');
-          debugPrint('      - apiBaseUrl: ${data['apiBaseUrl'] ?? "(없음)"}');
-          debugPrint('      - apiHttpPort: ${data['apiHttpPort'] ?? "(없음)"}');
-          debugPrint('      - companyId: ${data['companyId'] ?? "(없음)"}');
-          debugPrint('      - appKey: ${data['appKey'] != null && (data['appKey'] as String).isNotEmpty ? "[${(data['appKey'] as String).length}자]" : "(없음)"}');
-          debugPrint('      - websocketServerUrl: ${data['websocketServerUrl'] ?? "(없음)"}');
-          debugPrint('      - websocketServerPort: ${data['websocketServerPort'] ?? "(없음)"}');
-          debugPrint('      - websocketUseSSL: ${data['websocketUseSSL'] ?? "(없음)"}');
-          debugPrint('      - maxExtensions: ${data['maxExtensions'] ?? 1}');
-          debugPrint('      - myExtensions: ${data['myExtensions'] ?? []}');
-          debugPrint('');
-          debugPrint('   ✅ Firestore 데이터 확인 완료 - 이 데이터는 로그아웃 후에도 유지됩니다');
-        } else {
-          debugPrint('   ⚠️ Firestore에 users 문서가 없습니다!');
-        }
-      } catch (e) {
-        debugPrint('   ❌ Firestore 조회 오류: $e');
-      }
-      
-      debugPrint('');
-      debugPrint('   🔐 로그아웃 진행:');
-      debugPrint('      - FCM 토큰 비활성화');
-      debugPrint('      - WebSocket 연결 해제');
-      debugPrint('      - 로컬 캐시 정리');
-      debugPrint('      - _currentUserModel 초기화');
-      debugPrint('      - Firestore users 컬렉션은 보존!');
-      debugPrint('================================================');
-      debugPrint('');
-    }
+    _isSigningOut = true;
+    notifyListeners();
     
     final userId = _auth.currentUser?.uid;
     
-    // 1️⃣ FCM 토큰 비활성화 (조용한 로그아웃 시 건너뛰기)
-    if (!silentLogout) {
+    // FCM 토큰 비활성화
+    if (!silentLogout && userId != null) {
       try {
+        final fcmService = FCMService();
+        await fcmService.deactivateToken(userId);
+      } catch (e) {
         if (kDebugMode) {
-          debugPrint('🔓 [LOGOUT] FCM 토큰 비활성화 시작...');
-          debugPrint('   userId: $userId');
-          debugPrint('   Platform: ${kIsWeb ? "Web" : "Mobile"}');
+          debugPrint('❌ FCM 토큰 비활성화 오류: $e');
         }
-        
-        if (userId != null) {
-          final fcmService = FCMService();
-          await fcmService.deactivateToken(userId);
-          if (kDebugMode) {
-            debugPrint('✅ [1/4] FCM 토큰 비활성화 완료');
-          }
-        } else {
-          if (kDebugMode) {
-            debugPrint('⚠️  [1/4] userId가 null - FCM 토큰 비활성화 건너뛰기');
-          }
-        }
-      } catch (e, stackTrace) {
-        if (kDebugMode) {
-          debugPrint('❌ [1/4] FCM 토큰 비활성화 오류: $e');
-          debugPrint('   Stack trace:');
-          debugPrint('   $stackTrace');
-        }
-      }
-    } else {
-      if (kDebugMode) {
-        debugPrint('⏭️  [1/4] 조용한 로그아웃 (MaxDeviceLimit) - FCM 토큰 비활성화 건너뛰기 (토큰 유지)');
       }
     }
     
-    // 2️⃣ WebSocket 연결 해제
+    // WebSocket 연결 해제
     try {
       final dcmiwsConnectionManager = DCMIWSConnectionManager();
       await dcmiwsConnectionManager.stop();
-      if (kDebugMode) {
-        debugPrint('✅ [2/4] WebSocket 연결 해제 완료');
-      }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('⚠️  [2/4] WebSocket 연결 해제 오류: $e');
+        debugPrint('❌ WebSocket 연결 해제 오류: $e');
       }
     }
     
