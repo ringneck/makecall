@@ -1266,33 +1266,27 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               debugPrint('   - Consumer rebuild → MainScreen 자동 표시');
             }
             
-            // 🔥 긴급 패치: ValueListenableBuilder가 이벤트를 감지하지 못하는 경우 대비
-            // SchedulerBinding으로 다음 프레임에서 강제 Consumer rebuild 트리거
-            SchedulerBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                if (kDebugMode) {
-                  debugPrint('🔄 [LOGIN] 강제 Consumer rebuild 트리거 (SchedulerBinding)');
-                  debugPrint('   authService.currentUser: ${authService.currentUser?.email}');
-                  debugPrint('   authService.currentUserModel: ${authService.currentUserModel?.email}');
-                }
-                
-                // 🚨 CRITICAL FIX: isLoggingOut 플래그 강제 해제
-                // notifyListeners() 전에 해제해야 main.dart Consumer가 MainScreen 표시
-                authService.onLoginScreenDisplayed();
-                
-                if (kDebugMode) {
-                  debugPrint('✅ [LOGIN] isLoggingOut 플래그 해제 완료');
-                }
-                
-                // 🎯 CRITICAL: authService.notifyListeners()로 Consumer<AuthService> 강제 rebuild
-                // setState()는 LoginScreen만 rebuild하므로 불충분
-                authService.notifyListeners();
-                
-                if (kDebugMode) {
-                  debugPrint('✅ [LOGIN] authService.notifyListeners() 완료 - Consumer rebuild 보장');
-                }
-              }
-            });
+            // 🚨 CRITICAL FIX: isLoggingOut 플래그 즉시 해제
+            // notifyListeners() 전에 해제해야 main.dart Consumer가 MainScreen 표시
+            if (kDebugMode) {
+              debugPrint('🔄 [LOGIN] isLoggingOut 플래그 해제 시작');
+              debugPrint('   authService.currentUser: ${authService.currentUser?.email}');
+              debugPrint('   authService.currentUserModel: ${authService.currentUserModel?.email}');
+            }
+            
+            authService.onLoginScreenDisplayed();
+            
+            if (kDebugMode) {
+              debugPrint('✅ [LOGIN] isLoggingOut 플래그 해제 완료');
+            }
+            
+            // 🎯 CRITICAL: 즉시 notifyListeners() 호출하여 Consumer rebuild 보장
+            // SchedulerBinding은 사용하지 않음 (context 유효성 문제)
+            authService.notifyListeners();
+            
+            if (kDebugMode) {
+              debugPrint('✅ [LOGIN] authService.notifyListeners() 완료 - Consumer rebuild 트리거');
+            }
           }
         } on MaxDeviceLimitException catch (e) {
           // 최대 기기 수 초과 예외 처리
