@@ -1146,6 +1146,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           if (kDebugMode) {
             debugPrint('✅ [LOGIN] FCM 초기화 완료');
           }
+          
+          // 🚀 CRITICAL: 소셜 로그인 성공 후 UI 업데이트
+          // FCM 초기화 완료 후 AuthService의 notifyListeners()를 명시적으로 호출하여
+          // MainScreen으로 전환되도록 함
+          if (kDebugMode) {
+            debugPrint('🔄 [LOGIN] AuthService.notifyListeners() 호출 - UI 업데이트');
+          }
+          authService.notifyListeners();
+          
+          // 오버레이 제거
+          SocialLoginProgressHelper.hide();
+          
+          if (kDebugMode) {
+            debugPrint('✅ [LOGIN] 소셜 로그인 완료 - MainScreen 전환 대기');
+          }
         } on MaxDeviceLimitException catch (e) {
           // 최대 기기 수 초과 예외 처리
           if (kDebugMode) {
