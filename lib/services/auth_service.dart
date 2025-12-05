@@ -53,6 +53,9 @@ class AuthService extends ChangeNotifier {
   // 🔒 로그아웃 진행 중 플래그 (authStateChanges 리스너 무시)
   bool _isSigningOut = false;
   
+  // 🔒 UserModel 로드 중 플래그 (notifyListeners 무시)
+  bool _isLoadingUserModel = false;
+  
   /// 로그아웃 플래그 설정 (authStateChanges 리스너 무시용)
   /// MaxDeviceLimitException 발생 시 조용한 로그아웃에 사용
   void setIsSigningOut(bool value) {
@@ -102,6 +105,17 @@ class AuthService extends ChangeNotifier {
   /// FCM 초기화 완료 상태 설정
   void setFcmInitialized(bool initialized) {
     _isFcmInitialized = initialized;
+    
+    // 🔒 CRITICAL: _loadUserModel 실행 중에는 notifyListeners() 호출 안 함
+    // authStateChanges에서 shouldNotify=false로 호출한 경우
+    // FCM 토큰 수신이 MainScreen 조기 전환을 유발하지 않도록 방지
+    if (_isLoadingUserModel) {
+      if (kDebugMode) {
+        debugPrint('⏭️ [FCM-INIT] UserModel 로드 중 - notifyListeners() 건너뛰기');
+      }
+      return;
+    }
+    
     notifyListeners();
   }
   
@@ -225,6 +239,9 @@ class AuthService extends ChangeNotifier {
     String? password,
     bool shouldNotify = true,  // 🔥 CRITICAL: notifyListeners() 제어 플래그
   }) async {
+    // 🔒 UserModel 로드 시작 플래그 설정
+    _isLoadingUserModel = true;
+    
     if (kDebugMode) {
       debugPrint('\n╔════════════════════════════════════════╗');
       debugPrint('║  _loadUserModel() 시작                ║');
@@ -393,7 +410,13 @@ class AuthService extends ChangeNotifier {
         await _loadUserModel(uid, password: password);
         return;
       }
+      
+      // 🔒 UserModel 로드 완료 플래그 해제 (정상 종료)
+      _isLoadingUserModel = false;
     } catch (e) {
+      // 🔒 UserModel 로드 완료 플래그 해제 (오류 발생)
+      _isLoadingUserModel = false;
+      
       if (kDebugMode) {
         debugPrint('❌ Failed to load user model: $e');
       }
