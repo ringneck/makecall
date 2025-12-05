@@ -1147,6 +1147,24 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('✅ [LOGIN] FCM 초기화 완료');
           }
           
+          // 🔍 CRITICAL: authStateChanges가 트리거되지 않은 경우 대비
+          // Google 재로그인 시 Firebase Auth가 동일 사용자로 인식하여 authStateChanges 미발생
+          // → 명시적으로 UserModel 로드 및 UI 업데이트 수행
+          if (authService.currentUserModel == null) {
+            if (kDebugMode) {
+              debugPrint('⚠️ [LOGIN] currentUserModel이 null - 명시적으로 UserModel 로드');
+              debugPrint('   userId: ${result.userId}');
+            }
+            
+            // 🔧 AuthService.ensureUserModelLoaded() 호출
+            // shouldNotify=true로 _loadUserModel()을 호출하여 Consumer rebuild 트리거
+            await authService.ensureUserModelLoaded();
+            
+            if (kDebugMode) {
+              debugPrint('✅ [LOGIN] UserModel 로드 완료');
+            }
+          }
+          
           // 🔍 CRITICAL: 기기 승인 대기 상태 체크
           // FCM 초기화가 정상 완료되었어도, 새 기기로 인해 승인 대기 상태일 수 있음
           final isWaitingForApproval = authService.isWaitingForApproval;
@@ -1154,14 +1172,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           if (kDebugMode) {
             debugPrint('🔍 [LOGIN] 기기 승인 대기 상태: $isWaitingForApproval');
           }
-          
-          // 🚀 CRITICAL: 소셜 로그인 성공 후 UI 업데이트
-          // FCM 초기화 완료 후 AuthService의 notifyListeners()를 명시적으로 호출하여
-          // MainScreen 또는 ApprovalWaitingScreen으로 전환되도록 함
-          if (kDebugMode) {
-            debugPrint('🔄 [LOGIN] AuthService.notifyListeners() 호출 - UI 업데이트');
-          }
-          authService.notifyListeners();
           
           // 오버레이 제거
           SocialLoginProgressHelper.hide();

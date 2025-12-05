@@ -434,6 +434,36 @@ class AuthService extends ChangeNotifier {
     }
   }
   
+  // 🔧 PUBLIC: 외부에서 UserModel을 명시적으로 로드 (shouldNotify=true)
+  // authStateChanges가 트리거되지 않은 경우 사용
+  Future<void> ensureUserModelLoaded() async {
+    if (currentUser == null) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [ensureUserModelLoaded] currentUser가 null - 로드 불가');
+      }
+      return;
+    }
+    
+    if (_currentUserModel != null) {
+      if (kDebugMode) {
+        debugPrint('ℹ️ [ensureUserModelLoaded] UserModel 이미 로드됨 - 스킵');
+      }
+      return;
+    }
+    
+    if (kDebugMode) {
+      debugPrint('🔄 [ensureUserModelLoaded] UserModel 명시적 로드 시작');
+      debugPrint('   userId: ${currentUser!.uid}');
+    }
+    
+    // shouldNotify=true로 호출하여 Consumer rebuild 트리거
+    await _loadUserModel(currentUser!.uid, shouldNotify: true);
+    
+    if (kDebugMode) {
+      debugPrint('✅ [ensureUserModelLoaded] UserModel 로드 완료');
+    }
+  }
+  
   // 사용자 데이터 강제 새로고침 (외부에서 호출 가능)
   Future<void> refreshUserModel() async {
     if (currentUser == null) return;
