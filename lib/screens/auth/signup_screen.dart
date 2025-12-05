@@ -16,8 +16,7 @@ import '../../utils/dialog_utils.dart';
 import '../../utils/common_utils.dart';
 import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
-
-
+import '../../main.dart' show navigatorKey;
 import 'login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -950,7 +949,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                   }
                   
                   // 5️⃣ 플래그 해제 (MainScreen으로 전환 허용)
-                  await authService.setIsInSocialLoginFlow(false);
+                  authService.setIsInSocialLoginFlow(false);
                   
                   // 6️⃣ UX 개선: 오버레이를 MainScreen 렌더링 완료까지 유지
                   // MainScreen의 addPostFrameCallback에서 오버레이 제거
