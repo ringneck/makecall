@@ -63,7 +63,8 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
             debugPrint('✅ [UX] ApprovalWaitingScreen paint 완료 - 소셜 로그인 오버레이 제거');
           }
           
-          SocialLoginProgressHelper.hide();
+          // context 기반 강제 제거로 모든 오버레이 제거
+          SocialLoginProgressHelper.forceRemoveAll(context);
         }
       });
     });

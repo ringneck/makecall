@@ -115,11 +115,11 @@ class _MainScreenState extends State<MainScreen> {
               debugPrint('✅ [UX] MainScreen paint 완료 - 소셜 로그인 오버레이 강제 제거');
             }
             
-            // 🔥 CRITICAL: forceHide()로 안전하게 오버레이 제거
-            SocialLoginProgressHelper.forceHide();
+            // 🔥 CRITICAL: context 기반 강제 제거로 모든 오버레이 제거
+            SocialLoginProgressHelper.forceRemoveAll(context);
             
             if (kDebugMode) {
-              debugPrint('✅ [UX] SocialLoginProgressHelper.forceHide() 호출 완료');
+              debugPrint('✅ [UX] SocialLoginProgressHelper.forceRemoveAll() 호출 완료');
             }
           }
         });

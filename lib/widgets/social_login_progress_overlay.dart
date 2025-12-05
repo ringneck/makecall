@@ -184,8 +184,35 @@ class SocialLoginProgressHelper {
     try {
       _currentOverlay?.remove();
       _currentOverlay = null;
+      if (kDebugMode) {
+        debugPrint('✅ [OVERLAY] forceHide() 완료 - _currentOverlay 제거됨');
+      }
     } catch (e) {
       _currentOverlay = null;
+      if (kDebugMode) {
+        debugPrint('⚠️ [OVERLAY] forceHide() 예외 발생: $e');
+      }
+    }
+  }
+  
+  /// 모든 오버레이 제거 (context 기반 강제 제거)
+  static void forceRemoveAll(BuildContext context) {
+    try {
+      // 1. 저장된 오버레이 제거
+      _currentOverlay?.remove();
+      _currentOverlay = null;
+      
+      // 2. Navigator 최상위 Overlay에서 직접 제거 시도
+      final overlay = Overlay.of(context, rootOverlay: true);
+      
+      if (kDebugMode) {
+        debugPrint('✅ [OVERLAY] forceRemoveAll() 완료 - 모든 오버레이 제거 시도');
+      }
+    } catch (e) {
+      _currentOverlay = null;
+      if (kDebugMode) {
+        debugPrint('⚠️ [OVERLAY] forceRemoveAll() 예외 발생: $e');
+      }
     }
   }
 
