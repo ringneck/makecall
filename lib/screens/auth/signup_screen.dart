@@ -997,14 +997,15 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     debugPrint('   deviceName: ${e.deviceName}');
                   }
                   
-                  // 로딩 오버레이 제거
-                  if (mounted) {
-                    SocialLoginProgressHelper.hide();
-                  }
+                  // ✅ 오버레이 제거 (에러 발생 시)
+                  SocialLoginProgressHelper.hide();
                   
-                  // MaxDeviceLimit 다이얼로그 표시
-                  if (mounted) {
-                    await _showMaxDeviceLimitDialog(e);
+                  // ✅ MaxDeviceLimit 다이얼로그 표시 (navigatorKey 사용)
+                  if (navigatorKey.currentContext != null) {
+                    await _showMaxDeviceLimitDialogWithContext(
+                      navigatorKey.currentContext!,
+                      e,
+                    );
                   }
                   
                   // 🚨 CRITICAL: 조용한 로그아웃 (FCM 토큰 비활성화 없이)
@@ -1036,15 +1037,13 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     debugPrint('   Stack trace: $stackTrace');
                   }
                   
-                  // 로딩 오버레이 제거
-                  if (mounted) {
-                    SocialLoginProgressHelper.hide();
-                  }
+                  // ✅ 오버레이 제거 (에러 발생 시)
+                  SocialLoginProgressHelper.hide();
                   
-                  // 오류 다이얼로그 표시
-                  if (mounted) {
-                    await DialogUtils.showError(
-                      context,
+                  // ✅ 오류 다이얼로그 표시 (navigatorKey 사용)
+                  if (navigatorKey.currentContext != null) {
+                    await _showErrorDialogWithContext(
+                      navigatorKey.currentContext!,
                       'FCM 초기화에 실패했습니다.\n다시 시도해주세요.',
                     );
                   }
@@ -2333,6 +2332,48 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           ),
         ),
       ],
+    );
+  }
+
+  // ✅ navigatorKey.currentContext를 사용하는 MaxDeviceLimit 다이얼로그 헬퍼
+  Future<void> _showMaxDeviceLimitDialogWithContext(
+    BuildContext dialogContext,
+    MaxDeviceLimitException e,
+  ) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    await showDialog(
+      context: dialogContext,
+      barrierDismissible: false,
+      builder: (context) => MaxDeviceLimitDialog(
+        exception: e,
+        userId: userId,
+        onConfirm: () {
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  // ✅ navigatorKey.currentContext를 사용하는 에러 다이얼로그 헬퍼
+  Future<void> _showErrorDialogWithContext(
+    BuildContext dialogContext,
+    String message,
+  ) async {
+    await showDialog(
+      context: dialogContext,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('오류'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
     );
   }
 }

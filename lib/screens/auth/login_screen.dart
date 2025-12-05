@@ -1300,62 +1300,54 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           authService.setInSocialLoginFlow(false);
           
           if (kDebugMode) {
-            debugPrint('🏁 [LOGIN] MaxDeviceLimitException 처리 완료 - rethrow로 외부 전파');
+            debugPrint('🏁 [LOGIN] MaxDeviceLimitException 처리 완료');
           }
           
-          // ⚠️ rethrow로 외부 try-catch로 전파 (return 사용 시 외부 catch 실행 안됨)
-          rethrow;
-        }
-        
-        // ⚡ FCM 초기화 완료 후 오버레이 제거
-        if (mounted) {
+          // ⚠️ return으로 메서드 종료 (화면 전환 없음)
+          return;
+        } catch (e) {
+          // 🚨 기타 에러 발생 시 오버레이 제거 및 에러 처리
           if (kDebugMode) {
-            debugPrint('✅ [OVERLAY] 로그인 완료 - 오버레이 제거');
+            debugPrint('❌ [LOGIN] FCM 초기화 또는 UserModel 로딩 실패: $e');
           }
           
-          // 기존 오버레이 제거
+          // 오버레이 제거
           SocialLoginProgressHelper.hide();
           
-          // 플래그 해제 (FCM 초기화 완료)
+          // 플래그 해제
           authService.setInSocialLoginFlow(false);
           
-          // AuthService의 user stream이 자동으로 홈 화면으로 이동시킴
-          if (kDebugMode) {
-            debugPrint('🚀 [LOGIN] 홈 화면 전환 준비 완료');
+          // 에러 다이얼로그 표시
+          if (navigatorKey.currentContext != null) {
+            await _showErrorDialogWithContext(
+              navigatorKey.currentContext!,
+              '로그인 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.',
+            );
           }
+          
+          // Firebase 로그아웃
+          await FirebaseAuth.instance.signOut();
+          
+          return;
         }
       }
       
       // 🎯 모든 비동기 처리 완료 후 홈 화면으로 이동
       // AuthService의 user stream이 자동으로 업데이트되어 홈 화면으로 이동
       
-    } on MaxDeviceLimitException catch (e) {
-      // MaxDeviceLimitException은 이미 내부에서 완전히 처리됨 (다이얼로그 표시 + 조용한 로그아웃)
-      // ⚠️ rethrow 제거: 내부 처리 완료 후 return으로 메서드 종료
-      if (kDebugMode) {
-        debugPrint('✅ [SOCIAL LOGIN] MaxDeviceLimitException 내부 처리 완료 - 메서드 종료');
-      }
-      return;  // ← rethrow 대신 return (Unhandled Exception 방지)
     } catch (e) {
+      // ⚠️ 예상치 못한 에러 대비 폴백 (내부 try-catch에서 처리되지 않은 에러)
       if (kDebugMode) {
-        debugPrint('❌ [SOCIAL LOGIN] 후처리 오류: $e');
+        debugPrint('❌ [SOCIAL LOGIN] 예상치 못한 오류: $e');
       }
       
-      // 에러 시 오버레이 제거 (mounted 체크)
+      // 오버레이 제거
+      SocialLoginProgressHelper.hide();
+      
+      // 플래그 해제
       if (mounted) {
-        SocialLoginProgressHelper.hide();
-        
-        // 플래그 해제 (에러 발생)
         final authService = context.read<AuthService>();
         authService.setInSocialLoginFlow(false);
-        
-        // 에러 다이얼로그 표시 (mounted 재확인)
-        if (mounted) {
-          await DialogUtils.showError(
-            context,
-            '소셜 로그인 후 처리 중 오류가 발생했습니다: ${e.toString()}',
-          );
-        }
       }
     }
   }
@@ -2285,6 +2277,27 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ✅ navigatorKey.currentContext를 사용하는 에러 다이얼로그 헬퍼
+  Future<void> _showErrorDialogWithContext(
+    BuildContext dialogContext,
+    String message,
+  ) async {
+    await showDialog(
+      context: dialogContext,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('오류'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('확인'),
+          ),
+        ],
       ),
     );
   }
