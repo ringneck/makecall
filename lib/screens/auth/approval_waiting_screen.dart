@@ -39,23 +39,33 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
     super.initState();
     _startTimer();
     _waitForApproval();
+  }
+  
+  void _removeOverlayAfterPaint() {
+    if (_hasRemovedOverlay) return;
+    _hasRemovedOverlay = true;
     
-    // 🎨 UX 개선: 소셜 로그인 오버레이 제거 (ApprovalWaitingScreen 렌더링 완료 후)
-    // 🔒 중복 실행 방지: 플래그로 첫 실행만 허용
+    if (kDebugMode) {
+      debugPrint('🎬 [UX] ApprovalWaitingScreen build() 시작 - paint 완료 대기');
+    }
+    
+    // 🔥 CRITICAL: SchedulerBinding을 사용하여 paint 완료 이벤트 감지
+    // 첫 번째 프레임: build 완료
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_hasRemovedOverlay) {
-        _hasRemovedOverlay = true;
-        
-        // ⚠️ 약간의 지연을 추가하여 UI가 완전히 렌더링되도록 보장
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) {
-            SocialLoginProgressHelper.hide();
-            if (kDebugMode) {
-              debugPrint('✅ [UX] ApprovalWaitingScreen 렌더링 완료 - 소셜 로그인 오버레이 제거');
-            }
-          }
-        });
+      if (kDebugMode) {
+        debugPrint('🎨 [UX] ApprovalWaitingScreen 첫 프레임 build 완료 - paint 대기');
       }
+      
+      // 두 번째 프레임: paint 완료 보장
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          if (kDebugMode) {
+            debugPrint('✅ [UX] ApprovalWaitingScreen paint 완료 - 소셜 로그인 오버레이 제거');
+          }
+          
+          SocialLoginProgressHelper.hide();
+        }
+      });
     });
   }
 
@@ -211,6 +221,9 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
       debugPrint('   - userId: ${widget.userId}');
       debugPrint('   - remainingSeconds: $_remainingSeconds');
     }
+    
+    // 🎨 UX 개선: 이벤트 기반 오버레이 제거
+    _removeOverlayAfterPaint();
     
     final isDark = Theme.of(context).brightness == Brightness.dark;
     

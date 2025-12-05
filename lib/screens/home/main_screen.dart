@@ -26,35 +26,51 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     
-    // 🎨 UX 개선: 소셜 로그인 오버레이 제거 (MainScreen 렌더링 완료 후)
-    // 빈 화면이 보이는 것을 방지하기 위해 여기서 제거
-    // 🔒 중복 실행 방지: 플래그로 첫 실행만 허용
+    // 🔔 FCM BuildContext 설정 (기기 승인 다이얼로그용)
+    // 이것은 즉시 실행 (context 필요)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_hasRemovedOverlay) {
-        _hasRemovedOverlay = true;
-        
-        // 🔔 FCM BuildContext 설정 (기기 승인 다이얼로그용)
+      if (mounted) {
         FCMService.setContext(context);
         if (kDebugMode) {
           debugPrint('📺 [MainScreen] FCMService.setContext() 호출 완료');
         }
-        
-        // 🎨 소셜 로그인 오버레이 제거 (MainScreen 렌더링 완료)
-        // ⚠️ 약간의 지연을 추가하여 UI가 완전히 렌더링되도록 보장
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) {
-            SocialLoginProgressHelper.hide();
-            if (kDebugMode) {
-              debugPrint('✅ [UX] MainScreen 렌더링 완료 - 소셜 로그인 오버레이 제거');
-            }
-          }
-        });
       }
     });
   }
   
   @override
   Widget build(BuildContext context) {
+    // 🎨 UX 개선: 이벤트 기반 오버레이 제거
+    // build() 시작 시점에 다음 프레임 paint 완료 후 실행 예약
+    if (!_hasRemovedOverlay) {
+      _hasRemovedOverlay = true;
+      
+      if (kDebugMode) {
+        debugPrint('🎬 [UX] MainScreen build() 시작 - paint 완료 대기');
+      }
+      
+      // 🔥 CRITICAL: SchedulerBinding을 사용하여 paint 완료 이벤트 감지
+      // addPostFrameCallback: 현재 프레임의 build 완료 후 실행
+      // 그 후 한 프레임 더 대기하여 paint까지 완전히 완료되도록 보장
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // 첫 번째 프레임: build 완료
+        if (kDebugMode) {
+          debugPrint('🎨 [UX] MainScreen 첫 프레임 build 완료 - paint 대기');
+        }
+        
+        // 두 번째 프레임: paint 완료 보장
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            if (kDebugMode) {
+              debugPrint('✅ [UX] MainScreen paint 완료 - 소셜 로그인 오버레이 제거');
+            }
+            
+            SocialLoginProgressHelper.hide();
+          }
+        });
+      });
+    }
+    
     // CallTab이 신규 사용자 감지 및 ProfileDrawer 자동 열기를 처리
     return CallTab(
       autoOpenProfileForNewUser: true,
