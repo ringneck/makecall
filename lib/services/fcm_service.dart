@@ -166,8 +166,41 @@ class FCMService {
         return;
       }
       
+      // 🔍 CRITICAL: 동일 userId라도 FCM 토큰이 Firestore에 저장되어 있는지 확인 필요
+      // 로그아웃 후 재로그인 시 토큰 저장이 필요할 수 있음
       if (_initializedUserId == userId && _fcmToken != null) {
-        return;
+        if (kDebugMode) {
+          debugPrint('ℹ️ [FCM-INIT] 이미 초기화됨 (userId: $userId)');
+          debugPrint('   - _fcmToken: ${_fcmToken!.substring(0, 20)}...');
+          debugPrint('   - 토큰 저장 상태 재확인 중...');
+        }
+        
+        // 🔍 Firestore에 토큰이 실제로 저장되어 있는지 확인
+        try {
+          final deviceId = await _platformUtils.getDeviceId();
+          final platform = _platformUtils.getPlatformName();
+          final tokenDoc = await FirebaseFirestore.instance
+              .collection('fcm_tokens')
+              .doc('${userId}_${deviceId}_$platform')
+              .get();
+          
+          if (tokenDoc.exists && tokenDoc.data()?['isActive'] == true) {
+            if (kDebugMode) {
+              debugPrint('✅ [FCM-INIT] Firestore 토큰 확인 완료 - 스킵');
+            }
+            return;
+          } else {
+            if (kDebugMode) {
+              debugPrint('⚠️ [FCM-INIT] Firestore 토큰 없음 또는 비활성 - 재저장 필요');
+            }
+            // 토큰이 없거나 비활성이면 초기화 계속 진행
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [FCM-INIT] 토큰 확인 실패: $e - 초기화 계속 진행');
+          }
+          // 오류 시 안전하게 초기화 계속 진행
+        }
       }
       _isInitializing = true;
       _initializationCompleter = Completer<void>();
