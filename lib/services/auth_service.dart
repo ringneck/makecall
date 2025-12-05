@@ -296,7 +296,9 @@ class AuthService extends ChangeNotifier {
       _isSigningOut = false;
       if (kDebugMode) {
         debugPrint('✅ [AUTH STATE] LoginScreen 표시 확인 - 로그아웃 플래그 해제');
+        debugPrint('🔄 [AUTH STATE] notifyListeners() 호출하여 Consumer 업데이트');
       }
+      notifyListeners(); // 🔥 CRITICAL: Consumer에 상태 변경 알림
     }
   }
   
