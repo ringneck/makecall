@@ -2,12 +2,19 @@
 
 ## ✅ 통합된 기능
 
-### 1. **MainScreen 자동 버전 체크**
+### 1. **LoginScreen 자동 버전 체크** ⭐ NEW
+- **로그인 전에도 업데이트 안내 표시**
+- LoginScreen 진입 시 자동으로 버전 체크 수행
+- Firestore에서 최신 버전 정보 조회
+- 업데이트 필요 시 BottomSheet 자동 표시
+- 강제 업데이트 시 로그인 차단 가능
+
+### 2. **MainScreen 자동 버전 체크**
 - MainScreen 진입 시 자동으로 버전 체크 수행
 - Firestore에서 최신 버전 정보 조회
 - 업데이트 필요 시 BottomSheet 자동 표시
 
-### 2. **Firestore 버전 정보 설정**
+### 3. **Firestore 버전 정보 설정**
 - Collection: `app_config`
 - Document: `version_info`
 - 현재 설정된 버전 정보:
@@ -20,38 +27,65 @@
   }
   ```
 
-### 3. **앱 버전**
+### 4. **앱 버전**
 - 현재 앱 버전: `1.0.1` (테스트용)
 - Firestore 최신 버전: `1.0.2`
 - → **업데이트 안내가 표시됩니다**
 
 ## 🚀 동작 흐름
 
+### **흐름 1: 로그인 전 버전 체크** ⭐ NEW
 ```
 1. 앱 실행
    ↓
-2. 사용자 로그인
+2. LoginScreen 표시
    ↓
-3. MainScreen 진입
+3. initState 실행
    ↓
-4. initState 실행
+4. 화면 렌더링 완료 (addPostFrameCallback)
    ↓
-5. 화면 렌더링 완료 (addPostFrameCallback)
+5. _checkAppVersion() 호출
    ↓
-6. _checkAppVersion() 호출
+6. VersionCheckService.checkVersion()
    ↓
-7. VersionCheckService.checkVersion()
+7. Firestore에서 version_info 조회
    ↓
-8. Firestore에서 version_info 조회
-   ↓
-9. 버전 비교
+8. 버전 비교
    ├─ 최신 버전: 아무 동작 없음
    └─ 업데이트 필요: VersionUpdateBottomSheet 표시
       ↓
       사용자 선택:
       ├─ [업데이트]: Play Store 이동
-      ├─ [오늘 하루 보지 않기]: SharedPreferences 저장 → 오늘은 더 이상 표시 안 함
-      └─ [닫기 X]: BottomSheet 닫기 (다음 실행 시 다시 표시)
+      ├─ [오늘 하루 보지 않기]: SharedPreferences 저장
+      └─ [닫기 X]: BottomSheet 닫기
+         ↓
+         로그인 진행 가능
+```
+
+### **흐름 2: 로그인 후 버전 체크**
+```
+1. 사용자 로그인
+   ↓
+2. MainScreen 진입
+   ↓
+3. initState 실행
+   ↓
+4. 화면 렌더링 완료 (addPostFrameCallback)
+   ↓
+5. _checkAppVersion() 호출
+   ↓
+6. VersionCheckService.checkVersion()
+   ↓
+7. Firestore에서 version_info 조회
+   ↓
+8. 버전 비교
+   ├─ 최신 버전: 아무 동작 없음
+   └─ 업데이트 필요: VersionUpdateBottomSheet 표시
+      ↓
+      사용자 선택:
+      ├─ [업데이트]: Play Store 이동
+      ├─ [오늘 하루 보지 않기]: SharedPreferences 저장
+      └─ [닫기 X]: BottomSheet 닫기
 ```
 
 ## 📊 UI 예시
@@ -289,19 +323,42 @@ version_update_dismissed_date: "2025-12-05"
 
 ## 📚 추가 참고 자료
 
+### **핵심 파일**
 - **BottomSheet 위젯**: `lib/widgets/version_update_bottom_sheet.dart`
 - **사용 가이드**: `lib/widgets/version_update_bottom_sheet_example.md`
 - **버전 체크 서비스**: `lib/services/version_check_service.dart`
 - **Firestore 설정 스크립트**: `scripts/setup_version_info.py`
 
+### **통합된 화면**
+- **LoginScreen**: `lib/screens/auth/login_screen.dart` ⭐ NEW
+  - 로그인 전 버전 체크
+  - 로그 태그: `[VERSION CHECK - LOGIN]`
+- **MainScreen**: `lib/screens/home/main_screen.dart`
+  - 로그인 후 버전 체크
+  - 로그 태그: `[VERSION CHECK]`
+
 ## 🎉 완료!
 
-버전 업데이트 기능이 완전히 통합되었습니다!
+버전 업데이트 기능이 **LoginScreen과 MainScreen 모두**에 완전히 통합되었습니다!
+
+### **주요 특징**
+✅ **로그인 전에도 업데이트 가능** (LoginScreen)
+✅ **로그인 후에도 업데이트 가능** (MainScreen)
+✅ **강제 업데이트 시 로그인 차단 가능**
+✅ **다크모드 최적화 UI/UX**
+✅ **오늘 하루 보지 않기 기능**
 
 현재 **앱 버전 1.0.1**로 테스트할 수 있으며,  
 프로덕션 배포 전 **1.0.2로 복원**하시면 됩니다.
 
 ---
 
-**Git Commit**: `22a2e57`  
+## 🔗 Git Commits
+
+### **버전 체크 기능**
+- **`2010f2f`**: LoginScreen에 버전 체크 추가 ⭐ NEW
+- **`22a2e57`**: MainScreen에 버전 체크 통합
+- **`d933969`**: BottomSheet 위젯 구현
+- **`594ab2a`**: 통합 가이드 문서
+
 **Repository**: https://github.com/ringneck/makecall
