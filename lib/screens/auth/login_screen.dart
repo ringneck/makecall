@@ -1221,13 +1221,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               debugPrint('⏳ [LOGIN] 승인 대기 상태 - 오버레이 제거 후 ApprovalWaitingScreen 전환 대기');
             }
             
+            // 🧹 오버레이 제거 (ApprovalWaitingScreen이 표시되도록)
+            SocialLoginProgressHelper.hide();
+            
             // 🔓 소셜 로그인 플래그 해제 (Consumer rebuild 허용)
             await authService.setInSocialLoginFlow(false);
-            
-            // 🧹 오버레이 제거 (ApprovalWaitingScreen이 표시되도록)
-            if (mounted) {
-              SocialLoginProgressHelper.hide();
-            }
             
             // 🚀 main.dart의 Consumer<AuthService>가 자동으로 ApprovalWaitingScreen 표시
             if (kDebugMode) {
@@ -1239,19 +1237,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               debugPrint('🎨 [UX] 오버레이 유지 - MainScreen 렌더링 완료까지');
             }
             
-            // 🔓 소셜 로그인 플래그 해제 (Consumer rebuild 허용)
+            // 🔓 CRITICAL: 소셜 로그인 플래그 해제 (Consumer rebuild 허용)
+            // 이 호출이 notifyListeners()를 트리거하여 main.dart의 Consumer가 MainScreen으로 전환
             await authService.setInSocialLoginFlow(false);
             
             // 🎨 오버레이 유지 - MainScreen의 addPostFrameCallback에서 제거
             // 빈 화면이 보이는 것을 방지
-          }
-          
-          // ⏳ 짧은 대기 시간 (Consumer rebuild가 완료되도록)
-          await Future.delayed(const Duration(milliseconds: 100));
-          
-          if (mounted) {
+            
             if (kDebugMode) {
-              debugPrint('⚠️ [LOGIN] navigatorKey.currentContext가 null - Consumer가 자동 전환 시도');
+              debugPrint('✅ [LOGIN] setInSocialLoginFlow(false) 완료 - MainScreen 자동 전환 대기');
             }
           }
         } on MaxDeviceLimitException catch (e) {
