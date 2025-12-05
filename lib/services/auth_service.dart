@@ -1089,8 +1089,13 @@ class AuthService extends ChangeNotifier {
     
     // 4️⃣ 로컬 상태 초기화
     _currentUserModel = null;  // 로컬 변수만 초기화 (Firestore 데이터 삭제 안 함!)
+    
+    // 🔥 CRITICAL FIX: 소셜 로그인 완료 카운터 리셋 (재로그인 시 이벤트 감지 가능하도록)
+    _socialLoginCompleteCounter.value = 0;
+    
     if (kDebugMode) {
       debugPrint('✅ [4/4] currentUserModel 초기화 완료 (로컬 변수만)');
+      debugPrint('🔄 [LOGOUT] socialLoginCompleteCounter 리셋 (0으로)');
       debugPrint('');
       debugPrint('✅ 로그아웃 완료!');
       debugPrint('✅ Firestore users 컬렉션 보존됨');
