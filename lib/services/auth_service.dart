@@ -195,20 +195,33 @@ class AuthService extends ChangeNotifier {
   Future<void> setInSocialLoginFlow(bool inFlow) async {
     _inSocialLoginFlow = inFlow;
     
-    // 소셜 로그인 완료 시 MainScreen 전환
+    // 소셜 로그인 완료 시 화면 전환
     if (!inFlow && currentUser != null && _currentUserModel != null) {
       _socialLoginCompleteCounter.value++;
       notifyListeners();
       
-      // 재로그인 시 Consumer rebuild 실패 대응: Navigator로 강제 전환
+      // 🔒 CRITICAL: 승인 대기 상태면 Navigator 강제 전환 하지 않음
+      // Consumer가 ApprovalWaitingScreen을 표시하도록 함
+      if (_isWaitingForApproval) {
+        if (kDebugMode) {
+          debugPrint('⏳ [AUTH] 승인 대기 상태 - Navigator 강제 전환 건너뛰기');
+        }
+        return;
+      }
+      
+      // 재로그인 시 Consumer rebuild 실패 대응: Navigator로 강제 MainScreen 전환
       SchedulerBinding.instance.addPostFrameCallback((_) async {
         notifyListeners();
+        
+        // 다시 한번 승인 대기 상태 확인
+        if (_isWaitingForApproval) return;
         
         if (navigatorKey.currentContext != null && _currentUserModel != null) {
           await Future.delayed(const Duration(milliseconds: 100));
           
           if (navigatorKey.currentContext != null && 
-              navigatorKey.currentContext!.mounted) {
+              navigatorKey.currentContext!.mounted &&
+              !_isWaitingForApproval) {  // 마지막 체크
             Navigator.of(navigatorKey.currentContext!)
                 .pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const MainScreen()),
