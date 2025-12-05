@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 import '../../services/fcm/fcm_device_approval_service.dart';
 import '../../utils/dialog_utils.dart';
+import '../../widgets/social_login_progress_overlay.dart';
 import 'login_screen.dart';
 
 /// 기기 승인 대기 전용 화면
@@ -36,6 +37,16 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
     super.initState();
     _startTimer();
     _waitForApproval();
+    
+    // 🎨 UX 개선: 소셜 로그인 오버레이 제거 (ApprovalWaitingScreen 렌더링 완료 후)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        SocialLoginProgressHelper.hide();
+        if (kDebugMode) {
+          debugPrint('✅ [UX] ApprovalWaitingScreen 렌더링 완료 - 소셜 로그인 오버레이 제거');
+        }
+      }
+    });
   }
 
   @override

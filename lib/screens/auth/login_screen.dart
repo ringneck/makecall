@@ -1176,8 +1176,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('🔍 [LOGIN] 기기 승인 대기 상태: $isWaitingForApproval');
           }
           
-          // 오버레이 제거
-          SocialLoginProgressHelper.hide();
+          // 🎨 UX 개선: 오버레이를 MainScreen 렌더링 완료까지 유지
+          // MainScreen의 addPostFrameCallback에서 오버레이 제거
+          // 빈 화면이 보이는 것을 방지
+          if (kDebugMode) {
+            debugPrint('🎨 [UX] 오버레이 유지 - MainScreen 렌더링 완료까지');
+          }
           
           // 🔓 CRITICAL: 소셜 로그인 완료 플래그 해제 + 이벤트 기반 대기
           // setInSocialLoginFlow(false)가 _loadUserModel() 완료까지 대기하므로

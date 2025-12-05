@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../call/call_tab.dart';
 import '../../services/fcm_service.dart';
+import '../../widgets/social_login_progress_overlay.dart';
 
 class MainScreen extends StatefulWidget {
   final int? initialTabIndex; // 초기 탭 인덱스 (null이면 기본값 사용)
@@ -22,12 +23,20 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     
-    // 🔔 FCM BuildContext 설정 (기기 승인 다이얼로그용)
+    // 🎨 UX 개선: 소셜 로그인 오버레이 제거 (MainScreen 렌더링 완료 후)
+    // 빈 화면이 보이는 것을 방지하기 위해 여기서 제거
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        // 🔔 FCM BuildContext 설정 (기기 승인 다이얼로그용)
         FCMService.setContext(context);
         if (kDebugMode) {
           debugPrint('📺 [MainScreen] FCMService.setContext() 호출 완료');
+        }
+        
+        // 🎨 소셜 로그인 오버레이 제거 (MainScreen 렌더링 완료)
+        SocialLoginProgressHelper.hide();
+        if (kDebugMode) {
+          debugPrint('✅ [UX] MainScreen 렌더링 완료 - 소셜 로그인 오버레이 제거');
         }
       }
     });
