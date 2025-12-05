@@ -1276,6 +1276,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   debugPrint('   authService.currentUserModel: ${authService.currentUserModel?.email}');
                 }
                 
+                // 🚨 CRITICAL FIX: isLoggingOut 플래그 강제 해제
+                // notifyListeners() 전에 해제해야 main.dart Consumer가 MainScreen 표시
+                authService.onLoginScreenDisplayed();
+                
+                if (kDebugMode) {
+                  debugPrint('✅ [LOGIN] isLoggingOut 플래그 해제 완료');
+                }
+                
                 // 🎯 CRITICAL: authService.notifyListeners()로 Consumer<AuthService> 강제 rebuild
                 // setState()는 LoginScreen만 rebuild하므로 불충분
                 authService.notifyListeners();
