@@ -112,10 +112,15 @@ class _MainScreenState extends State<MainScreen> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             if (kDebugMode) {
-              debugPrint('✅ [UX] MainScreen paint 완료 - 소셜 로그인 오버레이 제거');
+              debugPrint('✅ [UX] MainScreen paint 완료 - 소셜 로그인 오버레이 강제 제거');
             }
             
-            SocialLoginProgressHelper.hide();
+            // 🔥 CRITICAL: forceHide()로 안전하게 오버레이 제거
+            SocialLoginProgressHelper.forceHide();
+            
+            if (kDebugMode) {
+              debugPrint('✅ [UX] SocialLoginProgressHelper.forceHide() 호출 완료');
+            }
           }
         });
       });
