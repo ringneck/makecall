@@ -267,6 +267,16 @@ class AuthService extends ChangeNotifier {
         debugPrint('🔊 [AUTH] notifyListeners() 호출 시작 (from setInSocialLoginFlow)');
         debugPrint('   현재 hasListeners: $hasListeners');
       }
+      
+      // 🔥 CRITICAL FIX: 재로그인 시 Consumer rebuild를 위해
+      // 다음 프레임에서 notifyListeners() 호출 (현재 프레임에서는 작동 안 함)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (kDebugMode) {
+          debugPrint('🔄 [AUTH] PostFrameCallback: notifyListeners() 재호출 (재로그인 대응)');
+        }
+        notifyListeners();
+      });
+      
       notifyListeners();
       if (kDebugMode) {
         debugPrint('✅ [AUTH] notifyListeners() 호출 완료');
