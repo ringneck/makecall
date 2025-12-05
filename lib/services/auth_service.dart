@@ -45,6 +45,79 @@ class AuthService extends ChangeNotifier {
     if (kDebugMode) {
       debugPrint('🔧 [AuthService] Singleton instance created');
     }
+    
+    // 🔥 CRITICAL: authStateChanges 리스너 등록 (최초 1회만)
+    _auth.authStateChanges().listen((User? user) async {
+      // 🔒 CRITICAL FIX: 로그아웃 진행 중에는 authStateChanges 무시
+      if (_isSigningOut) {
+        return; // 로그아웃 진행 중에는 무시
+      }
+      
+      if (user != null) {
+        // 로그인 상태
+        _lastUserId = user.uid;
+        
+        // 🔥 CRITICAL: authStateChanges 트리거 시점 판단
+        // 1. 소셜 로그인 중: shouldNotify=false (login_screen.dart에서 FCM 완료 후 UI 업데이트)
+        // 2. 앱 재시작 자동 로그인: shouldNotify=true (즉시 MainScreen 표시)
+        if (_currentUserModel == null) {
+          // 🔍 소셜 로그인 진행 중인지 확인
+          final isInSocialLoginFlow = _inSocialLoginFlow;
+          
+          try {
+            if (kDebugMode) {
+              debugPrint('🔄 [AUTH STATE] UserModel 로드 필요 - _loadUserModel() 호출');
+              if (isInSocialLoginFlow) {
+                debugPrint('   ⚠️ shouldNotify=false → 소셜 로그인 진행 중 (MainScreen 조기 표시 방지)');
+              } else {
+                debugPrint('   ✅ shouldNotify=true → 앱 재시작 자동 로그인 (즉시 MainScreen 표시)');
+              }
+            }
+            
+            // 소셜 로그인 중이면 shouldNotify=false, 아니면 shouldNotify=true
+            await _loadUserModel(user.uid, shouldNotify: !isInSocialLoginFlow);
+          } on ServiceSuspendedException catch (e) {
+            // 🛑 서비스 이용 중지 계정 - authStateChanges에서는 무시
+            // UI의 signIn()에서 이미 처리했으므로 여기서는 조용히 무시
+            if (kDebugMode) {
+              debugPrint('🛑 [AUTH STATE] 서비스 이용 중지 계정 - 무시');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('⚠️ [AUTH STATE] _loadUserModel 오류: $e');
+            }
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('✅ [AUTH STATE] UserModel 이미 존재 (uid: ${_currentUserModel!.uid}) - _loadUserModel() 건너뛰기');
+          }
+        }
+      } else if (_lastUserId != null) {
+        // 로그아웃 상태 (최초 1회만)
+        _lastUserId = null;
+        _currentUserModel = null;
+        
+        if (kDebugMode) {
+          debugPrint('✅ [AUTH STATE] 로그아웃 감지 - UI 업데이트 시작');
+        }
+        
+        // 🔥 CRITICAL: 이벤트 기반 rebuild 트리거 (이중 보장)
+        // 1. notifyListeners() 호출
+        if (kDebugMode) {
+          debugPrint('🔔 [AUTH STATE] notifyListeners() 호출 #1 - Consumer rebuild 트리거 (isLoggingOut=true)');
+        }
+        notifyListeners();
+        
+        // 2. ValueNotifier 카운터 증가 (보조 트리거)
+        _logoutEventCounter.value++;
+        if (kDebugMode) {
+          debugPrint('📢 [AUTH STATE] 로그아웃 이벤트 발행 #${_logoutEventCounter.value} - ValueNotifier 트리거');
+        }
+        
+        // 🔥 CRITICAL: 플래그 해제는 main.dart가 LoginScreen을 표시할 때 이벤트 기반으로 처리
+        // onLoginScreenDisplayed() 메서드가 호출될 때 플래그 해제됨
+      }
+    });
   }
   
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -214,79 +287,7 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
   
-  AuthService() {
-    _auth.authStateChanges().listen((User? user) async {
-      // 🔒 CRITICAL FIX: 로그아웃 진행 중에는 authStateChanges 무시
-      if (_isSigningOut) {
-        return; // 로그아웃 진행 중에는 무시
-      }
-      
-      if (user != null) {
-        // 로그인 상태
-        _lastUserId = user.uid;
-        
-        // 🔥 CRITICAL: authStateChanges 트리거 시점 판단
-        // 1. 소셜 로그인 중: shouldNotify=false (login_screen.dart에서 FCM 완료 후 UI 업데이트)
-        // 2. 앱 재시작 자동 로그인: shouldNotify=true (즉시 MainScreen 표시)
-        if (_currentUserModel == null) {
-          // 🔍 소셜 로그인 진행 중인지 확인
-          final isInSocialLoginFlow = _inSocialLoginFlow;
-          
-          try {
-            if (kDebugMode) {
-              debugPrint('🔄 [AUTH STATE] UserModel 로드 필요 - _loadUserModel() 호출');
-              if (isInSocialLoginFlow) {
-                debugPrint('   ⚠️ shouldNotify=false → 소셜 로그인 진행 중 (MainScreen 조기 표시 방지)');
-              } else {
-                debugPrint('   ✅ shouldNotify=true → 앱 재시작 자동 로그인 (즉시 MainScreen 표시)');
-              }
-            }
-            
-            // 소셜 로그인 중이면 shouldNotify=false, 아니면 shouldNotify=true
-            await _loadUserModel(user.uid, shouldNotify: !isInSocialLoginFlow);
-          } on ServiceSuspendedException catch (e) {
-            // 🛑 서비스 이용 중지 계정 - authStateChanges에서는 무시
-            // UI의 signIn()에서 이미 처리했으므로 여기서는 조용히 무시
-            if (kDebugMode) {
-              debugPrint('🛑 [AUTH STATE] 서비스 이용 중지 계정 - 무시');
-            }
-          } catch (e) {
-            if (kDebugMode) {
-              debugPrint('⚠️ [AUTH STATE] _loadUserModel 오류: $e');
-            }
-          }
-        } else {
-          if (kDebugMode) {
-            debugPrint('✅ [AUTH STATE] UserModel 이미 존재 (uid: ${_currentUserModel!.uid}) - _loadUserModel() 건너뛰기');
-          }
-        }
-      } else if (_lastUserId != null) {
-        // 로그아웃 상태 (최초 1회만)
-        _lastUserId = null;
-        _currentUserModel = null;
-        
-        if (kDebugMode) {
-          debugPrint('✅ [AUTH STATE] 로그아웃 감지 - UI 업데이트 시작');
-        }
-        
-        // 🔥 CRITICAL: 이벤트 기반 rebuild 트리거 (이중 보장)
-        // 1. notifyListeners() 호출
-        if (kDebugMode) {
-          debugPrint('🔔 [AUTH STATE] notifyListeners() 호출 #1 - Consumer rebuild 트리거 (isLoggingOut=true)');
-        }
-        notifyListeners();
-        
-        // 2. ValueNotifier 카운터 증가 (보조 트리거)
-        _logoutEventCounter.value++;
-        if (kDebugMode) {
-          debugPrint('📢 [AUTH STATE] 로그아웃 이벤트 발행 #${_logoutEventCounter.value} - ValueNotifier 트리거');
-        }
-        
-        // 🔥 CRITICAL: 플래그 해제는 main.dart가 LoginScreen을 표시할 때 이벤트 기반으로 처리
-        // onLoginScreenDisplayed() 메서드가 호출될 때 플래그 해제됨
-      }
-    });
-  }
+
   
   // 🔔 이벤트 기반 플래그 해제: LoginScreen이 표시되었을 때 main.dart가 호출
   void onLoginScreenDisplayed() {
