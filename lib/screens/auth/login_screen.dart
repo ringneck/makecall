@@ -1147,9 +1147,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('✅ [LOGIN] FCM 초기화 완료');
           }
           
+          // 🔍 CRITICAL: 기기 승인 대기 상태 체크
+          // FCM 초기화가 정상 완료되었어도, 새 기기로 인해 승인 대기 상태일 수 있음
+          final isWaitingForApproval = authService.isWaitingForApproval;
+          
+          if (kDebugMode) {
+            debugPrint('🔍 [LOGIN] 기기 승인 대기 상태: $isWaitingForApproval');
+          }
+          
           // 🚀 CRITICAL: 소셜 로그인 성공 후 UI 업데이트
           // FCM 초기화 완료 후 AuthService의 notifyListeners()를 명시적으로 호출하여
-          // MainScreen으로 전환되도록 함
+          // MainScreen 또는 ApprovalWaitingScreen으로 전환되도록 함
           if (kDebugMode) {
             debugPrint('🔄 [LOGIN] AuthService.notifyListeners() 호출 - UI 업데이트');
           }
@@ -1159,7 +1167,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           SocialLoginProgressHelper.hide();
           
           if (kDebugMode) {
-            debugPrint('✅ [LOGIN] 소셜 로그인 완료 - MainScreen 전환 대기');
+            if (isWaitingForApproval) {
+              debugPrint('⏳ [LOGIN] 소셜 로그인 완료 - ApprovalWaitingScreen 전환 대기');
+            } else {
+              debugPrint('✅ [LOGIN] 소셜 로그인 완료 - MainScreen 전환 대기');
+            }
           }
         } on MaxDeviceLimitException catch (e) {
           // 최대 기기 수 초과 예외 처리
