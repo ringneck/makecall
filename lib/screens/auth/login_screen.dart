@@ -73,12 +73,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
     
-    // 즉시 자동 로그인 체크 및 시도
-    _checkAndAutoLogin();
-    
-    // 🔄 버전 체크 및 업데이트 안내 (로그인 전에도 표시)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAppVersion();
+    // 즉시 자동 로그인 체크 및 시도 → 완료 후 버전 체크
+    _checkAndAutoLogin().then((_) {
+      // 자동 로그인이 진행 중이 아닐 때만 버전 체크
+      if (!_isAutoLoginAttempting && mounted) {
+        // 화면 렌더링 완료 후 버전 체크
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_isAutoLoginAttempting) {
+            _checkAppVersion();
+          }
+        });
+      }
     });
   }
   
