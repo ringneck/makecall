@@ -31,6 +31,8 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
   int _remainingSeconds = _maxSeconds;
   Timer? _timer;
   bool _isResending = false;
+  // 🎯 오버레이 제거 플래그: 이 인스턴스에서만 한 번만 제거
+  bool _hasRemovedOverlay = false;
 
   @override
   void initState() {
@@ -39,12 +41,20 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
     _waitForApproval();
     
     // 🎨 UX 개선: 소셜 로그인 오버레이 제거 (ApprovalWaitingScreen 렌더링 완료 후)
+    // 🔒 중복 실행 방지: 플래그로 첫 실행만 허용
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        SocialLoginProgressHelper.hide();
-        if (kDebugMode) {
-          debugPrint('✅ [UX] ApprovalWaitingScreen 렌더링 완료 - 소셜 로그인 오버레이 제거');
-        }
+      if (mounted && !_hasRemovedOverlay) {
+        _hasRemovedOverlay = true;
+        
+        // ⚠️ 약간의 지연을 추가하여 UI가 완전히 렌더링되도록 보장
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            SocialLoginProgressHelper.hide();
+            if (kDebugMode) {
+              debugPrint('✅ [UX] ApprovalWaitingScreen 렌더링 완료 - 소셜 로그인 오버레이 제거');
+            }
+          }
+        });
       }
     });
   }
