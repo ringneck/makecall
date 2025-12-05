@@ -1147,22 +1147,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('✅ [LOGIN] FCM 초기화 완료');
           }
           
-          // 🔍 CRITICAL: authStateChanges가 트리거되지 않은 경우 대비
-          // Google 재로그인 시 Firebase Auth가 동일 사용자로 인식하여 authStateChanges 미발생
-          // → 명시적으로 UserModel 로드 및 UI 업데이트 수행
-          if (authService.currentUserModel == null) {
-            if (kDebugMode) {
-              debugPrint('⚠️ [LOGIN] currentUserModel이 null - 명시적으로 UserModel 로드');
-              debugPrint('   userId: ${result.userId}');
-            }
-            
-            // 🔧 AuthService.ensureUserModelLoaded() 호출
-            // shouldNotify=true로 _loadUserModel()을 호출하여 Consumer rebuild 트리거
-            await authService.ensureUserModelLoaded();
-            
-            if (kDebugMode) {
-              debugPrint('✅ [LOGIN] UserModel 로드 완료');
-            }
+          // 🔍 CRITICAL: 소셜 로그인 후 항상 UserModel 상태 확인 및 UI 업데이트
+          // 1. authStateChanges가 트리거되지 않은 경우 → UserModel 로드
+          // 2. authStateChanges가 shouldNotify=false로 로드한 경우 → notifyListeners() 호출
+          if (kDebugMode) {
+            debugPrint('🔄 [LOGIN] 소셜 로그인 후 UI 업데이트 확인');
+            debugPrint('   currentUserModel: ${authService.currentUserModel?.email ?? "null"}');
+          }
+          
+          // 🔧 AuthService.ensureUserModelLoaded() 항상 호출
+          // - currentUserModel이 null이면 → _loadUserModel() 호출
+          // - currentUserModel이 이미 있으면 → notifyListeners()만 호출하도록 수정 필요
+          await authService.ensureUserModelLoaded();
+          
+          if (kDebugMode) {
+            debugPrint('✅ [LOGIN] UserModel 상태 확인 완료');
           }
           
           // 🔍 CRITICAL: 기기 승인 대기 상태 체크

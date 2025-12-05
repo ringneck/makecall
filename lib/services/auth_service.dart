@@ -445,9 +445,14 @@ class AuthService extends ChangeNotifier {
     }
     
     if (_currentUserModel != null) {
+      // 🔧 CRITICAL: UserModel은 이미 로드되었지만 shouldNotify=false로 로드된 경우
+      // notifyListeners()를 호출하여 Consumer rebuild 트리거
       if (kDebugMode) {
-        debugPrint('ℹ️ [ensureUserModelLoaded] UserModel 이미 로드됨 - 스킵');
+        debugPrint('ℹ️ [ensureUserModelLoaded] UserModel 이미 로드됨');
+        debugPrint('   email: ${_currentUserModel!.email}');
+        debugPrint('   → notifyListeners() 호출하여 UI 업데이트');
       }
+      notifyListeners();
       return;
     }
     
