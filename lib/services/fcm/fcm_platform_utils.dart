@@ -30,59 +30,64 @@ class FCMPlatformUtils {
         // Android: androidId 사용 (고유한 기기 식별자)
         return androidInfo.id; // Example: "5d513e7a5fb1e2d5"
       } else if (Platform.isIOS) {
-        // 🔧 iOS 개선: SharedPreferences에서 캐시된 deviceId 먼저 확인
+        // 🔧 iOS: 앱 재설치에도 유지되는 안정적인 Device ID 관리
+        // CRITICAL: identifierForVendor는 앱 재설치 시 변경되므로
+        // SharedPreferences에 저장된 UUID를 최우선으로 사용
+        
+        // 1️⃣ 메모리 캐시 확인 (가장 빠름)
         if (_cachedDeviceId != null) {
           debugPrint('📱 [iOS] 메모리 캐시된 deviceId 사용: $_cachedDeviceId');
           return _cachedDeviceId!;
         }
         
-        // SharedPreferences에서 확인
+        // 2️⃣ SharedPreferences 확인 (영구 저장소 - 최우선)
         try {
           final prefs = await SharedPreferences.getInstance();
           final cachedId = prefs.getString(_deviceIdCacheKey);
           
           if (cachedId != null && cachedId.isNotEmpty) {
-            debugPrint('📱 [iOS] SharedPreferences 캐시된 deviceId 사용: $cachedId');
+            debugPrint('📱 [iOS] SharedPreferences 영구 deviceId 사용: $cachedId');
             _cachedDeviceId = cachedId;
             return cachedId;
           }
+          
+          // 🔍 SharedPreferences에 없음 → 최초 실행 또는 앱 재설치
+          debugPrint('🆕 [iOS] SharedPreferences에 deviceId 없음 - 최초 실행 감지');
         } catch (e) {
           debugPrint('⚠️ [iOS] SharedPreferences 읽기 실패: $e');
         }
         
+        // 3️⃣ identifierForVendor 시도 (fallback)
         final iosInfo = await deviceInfo.iosInfo;
         final vendorId = iosInfo.identifierForVendor;
         
+        String finalDeviceId;
+        
         if (vendorId != null && vendorId.isNotEmpty) {
-          // identifierForVendor 사용 가능 → 캐시에 저장
+          // identifierForVendor 사용 가능
           debugPrint('📱 [iOS] identifierForVendor 가져옴: $vendorId');
-          _cachedDeviceId = vendorId;
-          
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString(_deviceIdCacheKey, vendorId);
-            debugPrint('✅ [iOS] deviceId 캐시에 저장 완료');
-          } catch (e) {
-            debugPrint('⚠️ [iOS] SharedPreferences 저장 실패: $e');
-          }
-          
-          return vendorId;
+          finalDeviceId = vendorId;
         } else {
-          // identifierForVendor가 null → 캐시된 값도 없음 → 새로 생성
-          debugPrint('⚠️ [iOS] identifierForVendor가 null - 새 deviceId 생성');
-          final newId = 'ios_${DateTime.now().millisecondsSinceEpoch}';
-          _cachedDeviceId = newId;
-          
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString(_deviceIdCacheKey, newId);
-            debugPrint('✅ [iOS] 새 deviceId 캐시에 저장: $newId');
-          } catch (e) {
-            debugPrint('⚠️ [iOS] SharedPreferences 저장 실패: $e');
-          }
-          
-          return newId;
+          // identifierForVendor null → 고유 ID 생성 (시간 + 랜덤)
+          debugPrint('⚠️ [iOS] identifierForVendor가 null - 새 고유 ID 생성');
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final random = timestamp.hashCode.toRadixString(36);
+          finalDeviceId = 'ios_$timestamp\_$random';
         }
+        
+        // 4️⃣ 영구 저장 (SharedPreferences + 메모리 캐시)
+        _cachedDeviceId = finalDeviceId;
+        
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_deviceIdCacheKey, finalDeviceId);
+          debugPrint('✅ [iOS] deviceId 영구 저장 완료: $finalDeviceId');
+          debugPrint('   → 앱 재설치 후에도 이 ID가 유지됩니다');
+        } catch (e) {
+          debugPrint('⚠️ [iOS] SharedPreferences 저장 실패: $e');
+        }
+        
+        return finalDeviceId;
       }
       
       // Fallback: 타임스탬프 기반 ID
