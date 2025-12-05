@@ -1192,9 +1192,32 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             }
           }
           
-          // ✅ 이벤트 기반 완료: setInSocialLoginFlow()가 Completer를 통해
-          // _loadUserModel() 완료를 보장하므로 추가 대기 불필요
-          // Consumer<AuthService>가 자동으로 화면을 전환함
+          // 🚀 CRITICAL: 명시적 화면 전환 (navigatorKey 사용)
+          // ValueListenableBuilder가 있어도 LoginScreen이 unmount되면 작동하지 않으므로
+          // 명시적으로 화면 전환을 수행함
+          if (navigatorKey.currentContext != null) {
+            if (kDebugMode) {
+              debugPrint('🚀 [LOGIN] 명시적 화면 전환 시작 (isWaitingForApproval: $isWaitingForApproval)');
+            }
+            
+            if (isWaitingForApproval) {
+              // 승인 대기 화면으로 전환
+              navigatorKey.currentState?.pushReplacementNamed('/approval_waiting');
+              if (kDebugMode) {
+                debugPrint('✅ [LOGIN] ApprovalWaitingScreen으로 전환 완료');
+              }
+            } else {
+              // MainScreen으로 전환
+              navigatorKey.currentState?.pushReplacementNamed('/');
+              if (kDebugMode) {
+                debugPrint('✅ [LOGIN] MainScreen으로 전환 완료');
+              }
+            }
+          } else {
+            if (kDebugMode) {
+              debugPrint('⚠️ [LOGIN] navigatorKey.currentContext가 null - Consumer가 자동 전환 시도');
+            }
+          }
         } on MaxDeviceLimitException catch (e) {
           // 최대 기기 수 초과 예외 처리
           if (kDebugMode) {
