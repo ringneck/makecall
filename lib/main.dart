@@ -192,7 +192,18 @@ void main() async {
   
   // 🛡️ Zone 에러 핸들링 (비동기 에러 캐치)
   runZonedGuarded(
-    () => runApp(const MyApp()),
+    () => runApp(
+      // 🔥 CRITICAL: MultiProvider를 최상위로 이동하여 모든 Widget이 Provider 접근 가능
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: globalAuthService),
+          ChangeNotifierProvider(create: (_) => SelectedExtensionProvider()),
+          ChangeNotifierProvider(create: (_) => DCMIWSEventProvider()),
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ],
+        child: const MyApp(),
+      ),
+    ),
     (error, stackTrace) {
       if (kDebugMode) {
         debugPrint('❌ Uncaught error: $error');
@@ -547,33 +558,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: globalAuthService), // 🔥 CRITICAL: 전역 싱글톤 인스턴스 사용
-        ChangeNotifierProvider(create: (_) => SelectedExtensionProvider()),
-        ChangeNotifierProvider(create: (_) => DCMIWSEventProvider()),
-        ChangeNotifierProvider.value(value: _themeProvider),
-      ],
-      child: Builder(
-        builder: (context) {
-          // 🔒 Provider 참조를 UserSessionManager에 등록 (최초 1회만)
-          if (!_providersRegistered) {
-            _providersRegistered = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                final selectedExtProvider = context.read<SelectedExtensionProvider>();
-                final dcmiwsProvider = context.read<DCMIWSEventProvider>();
-                
-                UserSessionManager().registerProviders(
-                  selectedExtensionProvider: selectedExtProvider,
-                  dcmiwsEventProvider: dcmiwsProvider,
-                );
-              }
-            });
-          }
+    // 🔒 Provider 참조를 UserSessionManager에 등록 (최초 1회만)
+    if (!_providersRegistered) {
+      _providersRegistered = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final selectedExtProvider = context.read<SelectedExtensionProvider>();
+          final dcmiwsProvider = context.read<DCMIWSEventProvider>();
           
-          // 🎨 테마 변경 감지를 위한 Consumer
-          return Consumer<ThemeProvider>(
+          UserSessionManager().registerProviders(
+            selectedExtensionProvider: selectedExtProvider,
+            dcmiwsEventProvider: dcmiwsProvider,
+          );
+        }
+      });
+    }
+    
+    // 🎨 테마 변경 감지를 위한 Consumer
+    return Consumer<ThemeProvider>(
             builder: (context, themeProvider, _) {
               return MaterialApp(
                 title: 'MAKECALL',
@@ -1027,8 +1029,5 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               );
             },
           );
-        },
-      ),
-    );
   }
 }
