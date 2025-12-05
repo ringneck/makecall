@@ -950,17 +950,44 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                   }
                   
                   // 5️⃣ 플래그 해제 (MainScreen으로 전환 허용)
-                  authService.setIsInSocialLoginFlow(false);
+                  await authService.setIsInSocialLoginFlow(false);
                   
-                  // 6️⃣ 로딩 오버레이 제거
-                  if (mounted) {
-                    SocialLoginProgressHelper.hide();
+                  // 6️⃣ UX 개선: 오버레이를 MainScreen 렌더링 완료까지 유지
+                  // MainScreen의 addPostFrameCallback에서 오버레이 제거
+                  if (kDebugMode) {
+                    debugPrint('🎨 [UX] 오버레이 유지 - MainScreen 렌더링 완료까지');
                   }
                   
-                  // 7️⃣ Navigator stack 정리 (root로 돌아가기)
-                  // main.dart의 Consumer<AuthService>가 자동으로 MainScreen 표시
-                  if (context.mounted && Navigator.of(context).canPop()) {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  // 7️⃣ 기기 승인 대기 상태 체크
+                  final isWaitingForApproval = authService.isWaitingForApproval;
+                  
+                  if (kDebugMode) {
+                    debugPrint('🔍 [SIGNUP] 기기 승인 대기 상태: $isWaitingForApproval');
+                  }
+                  
+                  // 8️⃣ CRITICAL: 명시적 화면 전환 (navigatorKey 사용)
+                  if (navigatorKey.currentContext != null) {
+                    if (kDebugMode) {
+                      debugPrint('🚀 [SIGNUP] 명시적 화면 전환 시작 (isWaitingForApproval: $isWaitingForApproval)');
+                    }
+                    
+                    if (isWaitingForApproval) {
+                      // 승인 대기 화면으로 전환
+                      navigatorKey.currentState?.pushReplacementNamed('/approval_waiting');
+                      if (kDebugMode) {
+                        debugPrint('✅ [SIGNUP] ApprovalWaitingScreen으로 전환 완료');
+                      }
+                    } else {
+                      // MainScreen으로 전환
+                      navigatorKey.currentState?.pushReplacementNamed('/');
+                      if (kDebugMode) {
+                        debugPrint('✅ [SIGNUP] MainScreen으로 전환 완료');
+                      }
+                    }
+                  } else {
+                    if (kDebugMode) {
+                      debugPrint('⚠️ [SIGNUP] navigatorKey.currentContext가 null - Consumer가 자동 전환 시도');
+                    }
                   }
                 } on MaxDeviceLimitException catch (e) {
                   // 최대 기기 수 초과 예외 처리
