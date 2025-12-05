@@ -321,11 +321,14 @@ class AuthService extends ChangeNotifier {
     }
     
     try {
-      // 🔥 CRITICAL: 로그인 성공 시에만 플래그 해제 (로그아웃 중에는 유지)
-      // authStateChanges 리스너가 user == null일 때 플래그를 해제함
-      if (!_isLoggingOut) {
-        // 이미 로그아웃 진행 중이 아닌 경우에만 해제
-        _isLoggingOut = false;
+      // 🔥 CRITICAL FIX: 로그인 성공 시 무조건 플래그 해제 (재로그인 허용)
+      // 이전 로직 문제: if (!_isLoggingOut) { _isLoggingOut = false; } 
+      //  → 이미 true이면 절대 false로 변경되지 않음!
+      // 수정: 재로그인 성공 시 무조건 false로 설정하여 MainScreen 표시 허용
+      _isLoggingOut = false;
+      
+      if (kDebugMode) {
+        debugPrint('✅ [_loadUserModel] _isLoggingOut 플래그 해제 (재로그인 허용)');
       }
       
       if (kDebugMode) {
