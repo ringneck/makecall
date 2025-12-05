@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../call/call_tab.dart';
 import '../../services/fcm_service.dart';
+import '../../services/version_check_service.dart';
 import '../../widgets/social_login_progress_overlay.dart';
+import '../../widgets/version_update_bottom_sheet.dart';
 
 class MainScreen extends StatefulWidget {
   final int? initialTabIndex; // 초기 탭 인덱스 (null이면 기본값 사용)
@@ -36,6 +38,42 @@ class _MainScreenState extends State<MainScreen> {
         }
       }
     });
+    
+    // 🔄 버전 체크 및 업데이트 안내 (화면 렌더링 완료 후 실행)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAppVersion();
+    });
+  }
+  
+  /// 앱 버전 체크 및 업데이트 안내
+  Future<void> _checkAppVersion() async {
+    try {
+      final versionService = VersionCheckService();
+      final result = await versionService.checkVersion();
+      
+      if (kDebugMode) {
+        debugPrint('🔄 [VERSION CHECK] Current: ${result.currentVersion}');
+        debugPrint('🔄 [VERSION CHECK] Latest: ${result.latestVersion}');
+        debugPrint('🔄 [VERSION CHECK] Update Available: ${result.isUpdateAvailable}');
+        debugPrint('🔄 [VERSION CHECK] Force Update: ${result.isForceUpdate}');
+      }
+      
+      // 업데이트가 필요한 경우 BottomSheet 표시
+      if (result.isUpdateAvailable && mounted) {
+        await VersionUpdateBottomSheet.show(
+          context,
+          result,
+          // Android Play Store URL
+          downloadUrl: 'https://play.google.com/store/apps/details?id=com.olssoo.makecall_app',
+          // iOS App Store URL (필요시 주석 해제)
+          // downloadUrl: 'https://apps.apple.com/app/idYOUR_APP_ID',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [VERSION CHECK] Error: $e');
+      }
+    }
   }
   
   @override
