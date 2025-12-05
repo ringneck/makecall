@@ -1007,6 +1007,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // AuthService는 mounted 체크 없이 가져올 수 있음 (ProviderContainer에서)
       final authService = Provider.of<AuthService>(navigatorKey.currentContext!, listen: false);
       
+      // 🔒 CRITICAL: 소셜 로그인 시작 플래그 설정
+      // authStateChanges가 트리거되어도 shouldNotify=false로 처리되도록
+      authService.setInSocialLoginFlow(true);
+      
       if (kDebugMode) {
         debugPrint('✅ [SOCIAL LOGIN] ${result.provider.name} 로그인 성공');
         debugPrint('   - User ID: ${result.userId}');
@@ -1174,6 +1178,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           
           // 오버레이 제거
           SocialLoginProgressHelper.hide();
+          
+          // 🔓 CRITICAL: 소셜 로그인 완료 플래그 해제
+          // 이제 authStateChanges가 정상적으로 notifyListeners() 호출 가능
+          authService.setInSocialLoginFlow(false);
           
           if (kDebugMode) {
             if (isWaitingForApproval) {

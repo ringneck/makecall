@@ -87,6 +87,11 @@ class AuthService extends ChangeNotifier {
   bool _isInSocialLoginFlow = false;
   bool get isInSocialLoginFlow => _isInSocialLoginFlow;
   
+  // 🎯 소셜 로그인 진행 중 플래그 (이벤트 기반)
+  // LoginScreen에서 소셜 로그인이 시작되면 true, 완료되면 false
+  bool _inSocialLoginFlow = false;
+  bool get inSocialLoginFlow => _inSocialLoginFlow;
+  
   // 🎯 이메일 회원가입 진행 중 플래그 (이벤트 기반)
   // SignupScreen에서 이메일 회원가입이 완료된 직후 true
   bool _isInEmailSignupFlow = false;
@@ -131,6 +136,15 @@ class AuthService extends ChangeNotifier {
     _isWaitingForApproval = waiting;
     _approvalRequestId = approvalRequestId;
     notifyListeners();
+  }
+  
+  /// 소셜 로그인 진행 중 플래그 설정
+  void setInSocialLoginFlow(bool inFlow) {
+    _inSocialLoginFlow = inFlow;
+    if (kDebugMode) {
+      debugPrint('🔄 [AUTH] 소셜 로그인 플래그: $_inSocialLoginFlow');
+    }
+    // notifyListeners() 호출 안 함 - 플래그 설정만
   }
   
   /// 소셜 로그인 성공 메시지 표시 완료 설정
