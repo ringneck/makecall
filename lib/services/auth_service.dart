@@ -139,12 +139,19 @@ class AuthService extends ChangeNotifier {
   }
   
   /// 소셜 로그인 진행 중 플래그 설정
-  void setInSocialLoginFlow(bool inFlow) {
+  void setInSocialLoginFlow(bool inFlow) async {
     _inSocialLoginFlow = inFlow;
     if (kDebugMode) {
       debugPrint('🔄 [AUTH] 소셜 로그인 플래그: $_inSocialLoginFlow');
     }
-    // notifyListeners() 호출 안 함 - 플래그 설정만
+    
+    // ✅ CRITICAL: 소셜 로그인 완료 시 (false로 설정) 명시적으로 UserModel 재로드
+    if (!inFlow && currentUser != null && _currentUserModel != null) {
+      if (kDebugMode) {
+        debugPrint('🔄 [AUTH] 소셜 로그인 완료 → UserModel 재로드 (shouldNotify=true)');
+      }
+      await _loadUserModel(currentUser!.uid, shouldNotify: true);
+    }
   }
   
   /// 소셜 로그인 성공 메시지 표시 완료 설정
