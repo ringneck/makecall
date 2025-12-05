@@ -155,22 +155,12 @@ class AuthService extends ChangeNotifier {
       debugPrint('🔄 [AUTH] 소셜 로그인 플래그: $_inSocialLoginFlow');
     }
     
-    // ✅ CRITICAL: 소셜 로그인 완료 시 (false로 설정) 명시적으로 UserModel 재로드
+    // ✅ CRITICAL: 소셜 로그인 완료 시 (false로 설정) 이벤트만 발행
+    // UserModel은 이미 authStateChanges에서 로드되었으므로 중복 호출 방지
     if (!inFlow && currentUser != null && _currentUserModel != null) {
       if (kDebugMode) {
-        debugPrint('🔄 [AUTH] 소셜 로그인 완료 → UserModel 재로드 (shouldNotify=true)');
-      }
-      
-      // 🎯 이벤트 기반: Completer 생성
-      _loadUserModelCompleter = Completer<void>();
-      
-      await _loadUserModel(currentUser!.uid, shouldNotify: true);
-      
-      // 🎯 이벤트 기반: Completer가 완료될 때까지 대기
-      await _loadUserModelCompleter!.future;
-      
-      if (kDebugMode) {
-        debugPrint('✅ [AUTH] UserModel 재로드 완료 - Consumer rebuild 보장됨');
+        debugPrint('🔄 [AUTH] 소셜 로그인 완료 → 화면 전환 이벤트 발행');
+        debugPrint('   ℹ️ UserModel은 이미 로드됨 - 중복 로드 방지');
       }
       
       // 🚀 CRITICAL: 이벤트 기반 rebuild 트리거
