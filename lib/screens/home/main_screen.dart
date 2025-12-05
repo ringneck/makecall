@@ -2,9 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../call/call_tab.dart';
 import '../../services/fcm_service.dart';
-import '../../services/version_check_service.dart';
+import '../../services/announcement_service.dart';
 import '../../widgets/social_login_progress_overlay.dart';
-import '../../widgets/version_update_bottom_sheet.dart';
+import '../../widgets/announcement_bottom_sheet.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MainScreen extends StatefulWidget {
   final int? initialTabIndex; // 초기 탭 인덱스 (null이면 기본값 사용)
@@ -39,39 +40,50 @@ class _MainScreenState extends State<MainScreen> {
       }
     });
     
-    // 🔄 버전 체크 및 업데이트 안내 (화면 렌더링 완료 후 실행)
+    // 📢 공지사항 확인 (화면 렌더링 완료 후 실행)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAppVersion();
+      _checkAnnouncement();
     });
   }
   
-  /// 앱 버전 체크 및 업데이트 안내
-  Future<void> _checkAppVersion() async {
+  /// 공지사항 확인 및 표시
+  Future<void> _checkAnnouncement() async {
     try {
-      final versionService = VersionCheckService();
-      final result = await versionService.checkVersion();
+      final announcementService = AnnouncementService();
+      final announcement = await announcementService.getActiveAnnouncement();
       
-      if (kDebugMode) {
-        debugPrint('🔄 [VERSION CHECK] Current: ${result.currentVersion}');
-        debugPrint('🔄 [VERSION CHECK] Latest: ${result.latestVersion}');
-        debugPrint('🔄 [VERSION CHECK] Update Available: ${result.isUpdateAvailable}');
-        debugPrint('🔄 [VERSION CHECK] Force Update: ${result.isForceUpdate}');
+      if (announcement == null) {
+        if (kDebugMode) {
+          debugPrint('📢 [ANNOUNCEMENT] 활성 공지사항 없음');
+        }
+        return;
       }
       
-      // 업데이트가 필요한 경우 BottomSheet 표시
-      if (result.isUpdateAvailable && mounted) {
-        await VersionUpdateBottomSheet.show(
-          context,
-          result,
-          // Android Play Store URL
-          downloadUrl: 'https://play.google.com/store/apps/details?id=com.olssoo.makecall_app',
-          // iOS App Store URL (필요시 주석 해제)
-          // downloadUrl: 'https://apps.apple.com/app/idYOUR_APP_ID',
-        );
+      // "다시 보지 않기" 체크 확인
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'announcement_hidden_${announcement.id}';
+      final isHidden = prefs.getBool(key) ?? false;
+      
+      if (isHidden) {
+        if (kDebugMode) {
+          debugPrint('📢 [ANNOUNCEMENT] 사용자가 "다시 보지 않기"를 선택한 공지: ${announcement.id}');
+        }
+        return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('📢 [ANNOUNCEMENT] 공지사항 표시');
+        debugPrint('   ID: ${announcement.id}');
+        debugPrint('   Title: ${announcement.title}');
+      }
+      
+      // 공지사항 BottomSheet 표시
+      if (mounted) {
+        await AnnouncementBottomSheet.show(context, announcement);
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ [VERSION CHECK] Error: $e');
+        debugPrint('❌ [ANNOUNCEMENT] Error: $e');
       }
     }
   }
