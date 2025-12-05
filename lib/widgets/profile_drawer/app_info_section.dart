@@ -79,73 +79,24 @@ class AppInfoSection extends StatelessWidget {
                           color: isDark ? Colors.grey[200] : Colors.black87,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // 업데이트 상태 배지
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
+                      // 업데이트 알림 아이콘 (업데이트 있을 때만)
+                      if (result.isUpdateAvailable) ...[
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.error,
+                          size: 18,
                           color: result.statusColor,
-                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              result.statusIcon,
-                              size: 12,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              result.statusText,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ],
                     ],
                   ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        '$version ($buildNumber)',
-                        style: TextStyle(
-                          fontSize: 12, 
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? Colors.grey[400] : Colors.black54,
-                        ),
-                      ),
-                      if (result.isUpdateAvailable) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '최신 버전: ${result.latestVersion}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: result.statusColor,
-                          ),
-                        ),
-                      ],
-                      if (result.updateMessage != null && result.isUpdateAvailable) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          result.updateMessage!,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark ? Colors.grey[500] : Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ],
+                  subtitle: Text(
+                    '$version ($buildNumber)',
+                    style: TextStyle(
+                      fontSize: 12, 
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.grey[400] : Colors.black54,
+                    ),
                   ),
                 );
               },
