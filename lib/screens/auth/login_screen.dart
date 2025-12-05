@@ -1227,9 +1227,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             // 🔓 소셜 로그인 플래그 해제 (Consumer rebuild 허용)
             await authService.setInSocialLoginFlow(false);
             
-            // 🚀 main.dart의 Consumer<AuthService>가 자동으로 ApprovalWaitingScreen 표시
+            // 🚀 CRITICAL: 이벤트 기반 화면 전환
+            // setInSocialLoginFlow(false)가 socialLoginCompleteCounter를 증가시킴
+            // → main.dart의 ValueListenableBuilder가 이를 감지
+            // → Consumer<AuthService>가 isWaitingForApproval 체크
+            // → ApprovalWaitingScreen 자동 표시
             if (kDebugMode) {
-              debugPrint('✅ [LOGIN] Consumer rebuild 트리거 - ApprovalWaitingScreen 자동 표시');
+              debugPrint('✅ [LOGIN] setInSocialLoginFlow(false) 완료');
+              debugPrint('🎯 [LOGIN] 이벤트 기반 화면 전환:');
+              debugPrint('   - socialLoginCompleteCounter 이벤트 발행됨');
+              debugPrint('   - main.dart ValueListenableBuilder가 감지 대기');
+              debugPrint('   - Consumer rebuild → ApprovalWaitingScreen 자동 표시');
             }
           } else {
             if (kDebugMode) {
@@ -1244,8 +1252,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             // 🎨 오버레이 유지 - MainScreen의 addPostFrameCallback에서 제거
             // 빈 화면이 보이는 것을 방지
             
+            // 🚀 CRITICAL: 이벤트 기반 화면 전환 대기
+            // setInSocialLoginFlow(false)가 socialLoginCompleteCounter를 증가시킴
+            // → main.dart의 ValueListenableBuilder가 이를 감지
+            // → Consumer<AuthService> rebuild 트리거
+            // → MainScreen 자동 표시
             if (kDebugMode) {
-              debugPrint('✅ [LOGIN] setInSocialLoginFlow(false) 완료 - MainScreen 자동 전환 대기');
+              debugPrint('✅ [LOGIN] setInSocialLoginFlow(false) 완료');
+              debugPrint('🎯 [LOGIN] 이벤트 기반 화면 전환:');
+              debugPrint('   - socialLoginCompleteCounter 이벤트 발행됨');
+              debugPrint('   - main.dart ValueListenableBuilder가 감지 대기');
+              debugPrint('   - Consumer rebuild → MainScreen 자동 표시');
             }
           }
         } on MaxDeviceLimitException catch (e) {

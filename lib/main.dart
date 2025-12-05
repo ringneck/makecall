@@ -739,11 +739,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       return ValueListenableBuilder<int>(
                         valueListenable: authService.socialLoginCompleteCounter,
                         builder: (context, socialLoginCompleteCount, _) {
-                          if (kDebugMode && socialLoginCompleteCount > 0) {
-                            debugPrint('🎉 [MAIN] 소셜 로그인 완료 이벤트 #$socialLoginCompleteCount 감지');
-                            debugPrint('   currentUser: ${authService.currentUser?.email}');
-                            debugPrint('   currentUserModel: ${authService.currentUserModel?.email}');
-                            debugPrint('   isWaitingForApproval: ${authService.isWaitingForApproval}');
+                          if (kDebugMode) {
+                            debugPrint('🔄 [MAIN] ValueListenableBuilder<socialLoginCompleteCounter> rebuild');
+                            debugPrint('   socialLoginCompleteCount: $socialLoginCompleteCount');
+                            if (socialLoginCompleteCount > 0) {
+                              debugPrint('🎉 [MAIN] 소셜 로그인 완료 이벤트 #$socialLoginCompleteCount 감지');
+                              debugPrint('   currentUser: ${authService.currentUser?.email}');
+                              debugPrint('   currentUserModel: ${authService.currentUserModel?.email}');
+                              debugPrint('   isWaitingForApproval: ${authService.isWaitingForApproval}');
+                            }
                           }
                           
                           // 🔥 CRITICAL: 로그아웃 이벤트 감지 (이중 보장)
