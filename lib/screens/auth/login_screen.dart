@@ -1264,6 +1264,27 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               debugPrint('   - main.dart ValueListenableBuilder가 감지 대기');
               debugPrint('   - Consumer rebuild → MainScreen 자동 표시');
             }
+            
+            // 🔥 iOS 긴급 패치: ValueListenableBuilder가 이벤트를 감지하지 못하는 경우 대비
+            // SchedulerBinding으로 다음 프레임에서 강제 rebuild 트리거
+            SchedulerBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                if (kDebugMode) {
+                  debugPrint('🔄 [LOGIN-iOS] 강제 rebuild 트리거 (SchedulerBinding)');
+                  debugPrint('   authService.currentUser: ${authService.currentUser?.email}');
+                  debugPrint('   authService.currentUserModel: ${authService.currentUserModel?.email}');
+                }
+                
+                // setState()로 강제 rebuild (iOS에서 ValueListenableBuilder 실패 시 대비)
+                if (mounted) {
+                  setState(() {
+                    if (kDebugMode) {
+                      debugPrint('✅ [LOGIN-iOS] setState() 완료 - 화면 rebuild 보장');
+                    }
+                  });
+                }
+              }
+            });
           }
         } on MaxDeviceLimitException catch (e) {
           // 최대 기기 수 초과 예외 처리
