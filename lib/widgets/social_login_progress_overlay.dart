@@ -143,6 +143,9 @@ class SocialLoginProgressOverlay extends StatelessWidget {
 /// 소셜 로그인 진행 상황 표시 헬퍼
 class SocialLoginProgressHelper {
   static OverlayEntry? _currentOverlay;
+  
+  // 🔥 CRITICAL: 모든 오버레이를 추적하기 위한 List
+  static final List<OverlayEntry> _allOverlays = [];
 
   /// 진행 상황 오버레이 표시
   static void show(
@@ -167,8 +170,12 @@ class SocialLoginProgressHelper {
     // 🔥 CRITICAL: rootOverlay 사용하여 화면 전환과 무관하게 오버레이 유지
     Overlay.of(context, rootOverlay: true).insert(_currentOverlay!);
     
+    // 🔥 NEW: List에도 추가하여 모든 오버레이 추적
+    _allOverlays.add(_currentOverlay!);
+    
     if (kDebugMode) {
       debugPrint('📌 [OVERLAY] show() 완료 - rootOverlay에 삽입: $message');
+      debugPrint('   현재 총 오버레이 개수: ${_allOverlays.length}');
     }
   }
 
@@ -203,7 +210,27 @@ class SocialLoginProgressHelper {
   /// 모든 오버레이 제거 (context 기반 강제 제거)
   static void forceRemoveAll(BuildContext context) {
     try {
-      // 1. 저장된 오버레이 제거
+      if (kDebugMode) {
+        debugPrint('🧹 [OVERLAY] forceRemoveAll() 시작');
+        debugPrint('   제거할 오버레이 개수: ${_allOverlays.length}');
+      }
+      
+      // 1. List에 있는 모든 오버레이를 명시적으로 제거
+      for (final entry in _allOverlays) {
+        try {
+          entry.remove();
+          if (kDebugMode) {
+            debugPrint('🗑️ [OVERLAY] List에서 오버레이 제거 완료');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ [OVERLAY] List 오버레이 제거 실패: $e');
+          }
+        }
+      }
+      _allOverlays.clear();
+      
+      // 2. _currentOverlay도 제거 (중복 제거 시도하지만 안전장치)
       if (_currentOverlay != null) {
         try {
           _currentOverlay?.remove();
@@ -218,18 +245,13 @@ class SocialLoginProgressHelper {
         _currentOverlay = null;
       }
       
-      // 2. 🔥 CRITICAL: rootOverlay의 모든 entry를 직접 제거
-      // OverlayState를 가져와서 현재 활성화된 모든 OverlayEntry를 제거
+      // 3. rootOverlay 전체 rebuild
       try {
         final overlay = Overlay.of(context, rootOverlay: true);
         
-        // 🔥 브루탈 포스: overlay.mounted 체크 후 markNeedsBuild() 호출
-        // 이렇게 하면 Overlay가 다음 프레임에서 완전히 rebuild되어 
-        // 모든 오버레이 entry가 클린업됨
         if (overlay.mounted) {
           overlay.setState(() {
-            // setState()를 호출하여 Overlay 전체를 다시 빌드
-            // 이렇게 하면 dispose된 entry들이 자동으로 제거됨
+            // 빈 setState - 제거된 entry들이 화면에서 사라지도록
           });
           
           if (kDebugMode) {
@@ -247,6 +269,7 @@ class SocialLoginProgressHelper {
       }
     } catch (e) {
       _currentOverlay = null;
+      _allOverlays.clear();
       if (kDebugMode) {
         debugPrint('⚠️ [OVERLAY] forceRemoveAll() 예외 발생: $e');
       }
