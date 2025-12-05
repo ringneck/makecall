@@ -166,6 +166,22 @@ class AuthService extends ChangeNotifier {
       if (kDebugMode) {
         debugPrint('✅ [AUTH] UserModel 재로드 완료 - Consumer rebuild 보장됨');
       }
+      
+      // 🚀 CRITICAL: 다음 프레임에서 강제 rebuild
+      // LoginScreen이 unmount되어도 main.dart Consumer가 rebuild되도록 보장
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (kDebugMode) {
+          debugPrint('🔄 [AUTH] PostFrameCallback: 강제 notifyListeners() 호출');
+        }
+        notifyListeners();
+        
+        if (kDebugMode) {
+          debugPrint('✅ [AUTH] PostFrameCallback: notifyListeners() 완료');
+          debugPrint('   currentUser: ${currentUser?.email}');
+          debugPrint('   currentUserModel: ${_currentUserModel?.email}');
+          debugPrint('   isWaitingForApproval: $_isWaitingForApproval');
+        }
+      });
     }
   }
   

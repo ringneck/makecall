@@ -716,6 +716,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 ? SplashScreen(key: _splashKey) // 💡 스플래시 스크린 표시 (Fade Out 제어용 key 추가)
                 : Consumer<AuthService>(
                     builder: (context, authService, _) {
+                      // 🔍 CRITICAL: Consumer 빌드 시작 로그 (rebuild 감지용)
+                      if (kDebugMode) {
+                        debugPrint('🔄 [MAIN] Consumer<AuthService> builder 호출됨 (${DateTime.now().millisecondsSinceEpoch})');
+                        debugPrint('   currentUser: ${authService.currentUser?.email ?? "null"}');
+                        debugPrint('   currentUserModel: ${authService.currentUserModel?.email ?? "null"}');
+                      }
+                      
                       // 🔥 CRITICAL: 로그아웃 이벤트 감지 (이중 보장)
                       // ValueListenableBuilder로 Consumer rebuild 실패 시 보조 트리거
                       return ValueListenableBuilder<int>(
