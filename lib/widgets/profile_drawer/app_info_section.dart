@@ -90,13 +90,30 @@ class AppInfoSection extends StatelessWidget {
                       ],
                     ],
                   ),
-                  subtitle: Text(
-                    '$version ($buildNumber)',
-                    style: TextStyle(
-                      fontSize: 12, 
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.grey[400] : Colors.black54,
-                    ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text(
+                        '$version ($buildNumber)',
+                        style: TextStyle(
+                          fontSize: 12, 
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? Colors.grey[400] : Colors.black54,
+                        ),
+                      ),
+                      if (result.isUpdateAvailable) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '최신 버전: ${result.latestVersion}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: result.statusColor,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 );
               },
