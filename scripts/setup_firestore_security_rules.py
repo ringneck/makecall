@@ -41,24 +41,65 @@ def get_project_id():
         return None
 
 def display_security_rules_guide():
-    """Firestore Security Rules 설정 가이드 출력"""
+    """Firestore Security Rules 설정 가이드 출력 (v6.2)"""
     
     rules = """rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // app_config 컬렉션: 모든 사용자가 읽기 가능 (버전 체크, 공지사항)
+    // ========================================
+    // 버전: 6.2
+    // 업데이트: FCM 알림 권한 추가
+    // ========================================
+    
+    // 1. app_config: 모든 사용자 읽기 가능 (버전 체크, 공지사항)
     match /app_config/{document=**} {
-      allow read: if true;  // 모든 사용자 읽기 가능
-      allow write: if false; // 쓰기는 Firebase Console/Admin SDK만
+      allow read: if true;
+      allow write: if false;
     }
     
-    // users 컬렉션: 자신의 문서만 읽기/쓰기 가능
+    // 2. users: 자신의 문서만 접근
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // 기타 컬렉션: 인증된 사용자만 접근
+    // 3. fcm_tokens: 자신의 토큰만 접근
+    match /fcm_tokens/{tokenId} {
+      allow read, write: if request.auth != null && 
+                          tokenId.matches('^' + request.auth.uid + '_.*');
+    }
+    
+    // 4. fcm_notifications: 인증된 사용자가 자신의 알림 생성 가능
+    match /fcm_notifications/{notificationId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if false; // Cloud Functions만 처리
+    }
+    
+    // 5. device_approval_requests: 자신의 승인 요청만 접근
+    match /device_approval_requests/{requestId} {
+      allow read, write: if request.auth != null && 
+                          requestId.matches('^' + request.auth.uid + '_.*');
+    }
+    
+    // 6. call_history: 자신의 통화 기록만 접근
+    match /call_history/{historyId} {
+      allow read, write: if request.auth != null && 
+                          resource.data.userId == request.auth.uid;
+    }
+    
+    // 7. call_forward_info: 자신의 착신전환 설정만 접근
+    match /call_forward_info/{docId} {
+      allow read, write: if request.auth != null && 
+                          resource.data.userId == request.auth.uid;
+    }
+    
+    // 8. my_extensions: 자신의 단말번호만 접근
+    match /my_extensions/{extensionId} {
+      allow read, write: if request.auth != null && 
+                          resource.data.userId == request.auth.uid;
+    }
+    
+    // 9. 기본 규칙: 인증된 사용자만
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
@@ -66,7 +107,7 @@ service cloud.firestore {
 }"""
 
     print("\n" + "="*80)
-    print("📋 Firestore Security Rules 설정이 필요합니다")
+    print("📋 Firestore Security Rules v6.2 업데이트 필요")
     print("="*80)
     print("\n🔧 Firebase Console에서 다음 단계를 수행하세요:\n")
     print("1. Firebase Console 접속: https://console.firebase.google.com/")
@@ -77,10 +118,24 @@ service cloud.firestore {
     print("6. '게시(Publish)' 버튼 클릭\n")
     
     print("="*80)
-    print("📝 복사할 Security Rules:")
+    print("📝 복사할 Security Rules v6.2:")
     print("="*80)
     print(rules)
     print("="*80)
+    
+    print("\n✅ Security Rules v6.2 주요 내용:")
+    print("   1. app_config: 모든 사용자 읽기 가능")
+    print("   2. users: 자신의 문서만 접근")
+    print("   3. fcm_tokens: 자신의 토큰만 접근")
+    print("   4. fcm_notifications: 인증된 사용자 생성 가능 (착신전환 알림)")
+    print("   5. device_approval_requests: 자신의 승인 요청만 접근")
+    print("   6. call_history: 자신의 통화 기록만 접근")
+    print("   7. call_forward_info: 자신의 착신전환 설정만 접근")
+    print("   8. my_extensions: 자신의 단말번호만 접근\n")
+    
+    print("🔧 이번 업데이트 (v6.2):")
+    print("   ✅ fcm_notifications 컬렉션 create 권한 추가")
+    print("   ✅ 착신전환 알림 전송 오류 해결 (PERMISSION_DENIED)\n")
     
     print("\n✅ 주요 변경사항:")
     print("   - app_config 컬렉션: 모든 사용자 읽기 가능 (로그인 전에도 접근 가능)")
