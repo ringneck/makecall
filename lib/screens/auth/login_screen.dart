@@ -9,10 +9,12 @@ import '../../services/auth_service.dart';
 import '../../services/account_manager_service.dart';
 import '../../services/social_login_service.dart';
 import '../../services/fcm_service.dart';
+import '../../services/version_check_service.dart';
 import '../../utils/dialog_utils.dart';
 import '../../utils/common_utils.dart';
 import '../../widgets/social_login_buttons.dart';
 import '../../widgets/social_login_progress_overlay.dart';
+import '../../widgets/version_update_bottom_sheet.dart';
 import '../../main.dart' show navigatorKey;
 import '../../screens/home/main_screen.dart';
 import '../../exceptions/max_device_limit_exception.dart';
@@ -73,6 +75,42 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     
     // 즉시 자동 로그인 체크 및 시도
     _checkAndAutoLogin();
+    
+    // 🔄 버전 체크 및 업데이트 안내 (로그인 전에도 표시)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAppVersion();
+    });
+  }
+  
+  /// 앱 버전 체크 및 업데이트 안내 (로그인 화면)
+  Future<void> _checkAppVersion() async {
+    try {
+      final versionService = VersionCheckService();
+      final result = await versionService.checkVersion();
+      
+      if (kDebugMode) {
+        debugPrint('🔄 [VERSION CHECK - LOGIN] Current: ${result.currentVersion}');
+        debugPrint('🔄 [VERSION CHECK - LOGIN] Latest: ${result.latestVersion}');
+        debugPrint('🔄 [VERSION CHECK - LOGIN] Update Available: ${result.isUpdateAvailable}');
+        debugPrint('🔄 [VERSION CHECK - LOGIN] Force Update: ${result.isForceUpdate}');
+      }
+      
+      // 업데이트가 필요한 경우 BottomSheet 표시
+      if (result.isUpdateAvailable && mounted) {
+        await VersionUpdateBottomSheet.show(
+          context,
+          result,
+          // Android Play Store URL
+          downloadUrl: 'https://play.google.com/store/apps/details?id=com.olssoo.makecall_app',
+          // iOS App Store URL (필요시 주석 해제)
+          // downloadUrl: 'https://apps.apple.com/app/idYOUR_APP_ID',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [VERSION CHECK - LOGIN] Error: $e');
+      }
+    }
   }
 
   @override
