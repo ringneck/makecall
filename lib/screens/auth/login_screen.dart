@@ -1246,58 +1246,33 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               debugPrint('🎨 [UX] 오버레이 유지 - MainScreen 렌더링 완료까지');
             }
             
-            // 🎯 CRITICAL: Consumer rebuild 대기 Completer를 setInSocialLoginFlow(false) 호출 전에 생성
-            // setInSocialLoginFlow(false)가 notifyListeners()를 호출하므로, 그 전에 대기 준비
+            // 🎯 CRITICAL: isLoggingOut 플래그를 먼저 해제해야 MainScreen이 표시됨
             if (kDebugMode) {
-              debugPrint('🚀 [LOGIN] Consumer rebuild 대기 준비');
+              debugPrint('🚀 [LOGIN] MainScreen 전환 준비');
             }
             
-            // STEP 1: isLoggingOut 플래그 해제
+            // STEP 1: isLoggingOut 플래그 해제 (이것이 가장 중요!)
             authService.onLoginScreenDisplayed();
             
             if (kDebugMode) {
               debugPrint('✅ [LOGIN] isLoggingOut 플래그 해제 완료');
             }
             
-            // STEP 2: Consumer rebuild 대기 Completer 생성
-            final rebuildFuture = authService.waitForConsumerRebuild();
-            
-            if (kDebugMode) {
-              debugPrint('⏳ [LOGIN] Consumer rebuild 대기 Completer 생성 완료');
-            }
-            
-            // STEP 3: 소셜 로그인 플래그 해제 (이 호출이 notifyListeners()를 트리거)
+            // STEP 2: 소셜 로그인 플래그 해제 및 화면 전환 이벤트 발행
             await authService.setInSocialLoginFlow(false);
             
             if (kDebugMode) {
               debugPrint('✅ [LOGIN] setInSocialLoginFlow(false) 완료');
               debugPrint('🎯 [LOGIN] 이벤트 기반 화면 전환:');
               debugPrint('   - socialLoginCompleteCounter 이벤트 발행됨');
-              debugPrint('   - main.dart ValueListenableBuilder가 감지 대기');
+              debugPrint('   - main.dart ValueListenableBuilder가 감지');
               debugPrint('   - Consumer rebuild → MainScreen 자동 표시');
-            }
-            
-            // STEP 4: Consumer rebuild 완료 대기 (main.dart에서 notifyConsumerRebuilt() 호출 대기)
-            try {
-              await rebuildFuture.timeout(
-                const Duration(seconds: 5),
-                onTimeout: () {
-                  if (kDebugMode) {
-                    debugPrint('⚠️ [LOGIN] Consumer rebuild 대기 타임아웃 (5초)');
-                  }
-                },
-              );
-              
-              if (kDebugMode) {
-                debugPrint('✅ [LOGIN] Consumer rebuild 완료 확인됨');
-              }
-            } catch (e) {
-              if (kDebugMode) {
-                debugPrint('❌ [LOGIN] Consumer rebuild 대기 오류: $e');
-              }
+              debugPrint('   - MainScreen의 addPostFrameCallback에서 오버레이 제거');
             }
             
             // 🎨 오버레이 유지 - MainScreen의 addPostFrameCallback에서 제거
+            // LoginScreen이 unmount되어도 main.dart의 ValueListenableBuilder가 
+            // socialLoginCompleteCounter 이벤트를 감지하여 MainScreen 표시
           }
         } on MaxDeviceLimitException catch (e) {
           // 최대 기기 수 초과 예외 처리

@@ -185,36 +185,6 @@ class AuthService extends ChangeNotifier {
   // 🎯 _loadUserModel() 완료 이벤트 (이벤트 기반)
   Completer<void>? _loadUserModelCompleter;
   
-  // 🎯 CRITICAL: Consumer rebuild 완료 이벤트 (이벤트 기반)
-  // login_screen.dart에서 setInSocialLoginFlow(false) 후 대기
-  Completer<void>? _consumerRebuildCompleter;
-  
-  /// Consumer rebuild 대기 Completer 생성
-  Future<void> waitForConsumerRebuild() {
-    if (_consumerRebuildCompleter != null && !_consumerRebuildCompleter!.isCompleted) {
-      if (kDebugMode) {
-        debugPrint('⚠️ [AuthService] 이전 Consumer rebuild 대기 중 - 기존 Completer 재사용');
-      }
-      return _consumerRebuildCompleter!.future;
-    }
-    
-    _consumerRebuildCompleter = Completer<void>();
-    if (kDebugMode) {
-      debugPrint('🎯 [AuthService] Consumer rebuild 대기 Completer 생성');
-    }
-    return _consumerRebuildCompleter!.future;
-  }
-  
-  /// Consumer rebuild 완료 신호 (main.dart에서 호출)
-  void notifyConsumerRebuilt() {
-    if (_consumerRebuildCompleter != null && !_consumerRebuildCompleter!.isCompleted) {
-      _consumerRebuildCompleter!.complete();
-      if (kDebugMode) {
-        debugPrint('✅ [AuthService] Consumer rebuild 완료 신호 - Completer.complete()');
-      }
-    }
-  }
-  
   // 🎯 이메일 회원가입 진행 중 플래그 (이벤트 기반)
   // SignupScreen에서 이메일 회원가입이 완료된 직후 true
   bool _isInEmailSignupFlow = false;
