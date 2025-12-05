@@ -268,6 +268,16 @@ class AuthService extends ChangeNotifier {
         debugPrint('   현재 hasListeners: $hasListeners');
       }
       notifyListeners();
+      
+      // 🔥 CRITICAL FIX: 재로그인 시 Consumer가 rebuild되지 않는 문제 해결
+      // SchedulerBinding을 사용해서 다음 프레임에서 강제 rebuild
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (kDebugMode) {
+          debugPrint('🔄 [AUTH] SchedulerBinding PostFrameCallback: 강제 Consumer rebuild');
+        }
+        notifyListeners();
+      });
+      
       if (kDebugMode) {
         debugPrint('✅ [AUTH] notifyListeners() 호출 완료');
       }
