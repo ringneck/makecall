@@ -343,15 +343,9 @@ class AuthService extends ChangeNotifier {
     }
     
     try {
-      // 🔥 CRITICAL FIX: 로그인 성공 시 무조건 플래그 해제 (재로그인 허용)
-      // 이전 로직 문제: if (!_isLoggingOut) { _isLoggingOut = false; } 
-      //  → 이미 true이면 절대 false로 변경되지 않음!
-      // 수정: 재로그인 성공 시 무조건 false로 설정하여 MainScreen 표시 허용
-      _isLoggingOut = false;
-      
-      if (kDebugMode) {
-        debugPrint('✅ [_loadUserModel] _isLoggingOut 플래그 해제 (재로그인 허용)');
-      }
+      // 🔥 CRITICAL: _loadUserModel()은 UserModel 로드만 담당
+      // _isLoggingOut 플래그는 건드리지 않음!
+      // login_screen.dart에서 onLoginScreenDisplayed()로 명시적으로 해제
       
       if (kDebugMode) {
         debugPrint('🔍 [_loadUserModel] Firestore 조회 시작...');

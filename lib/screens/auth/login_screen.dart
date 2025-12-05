@@ -1190,6 +1190,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('✅ [LOGIN] FCM 초기화 완료');
           }
           
+          // 🎯 CRITICAL: isLoggingOut 플래그를 가장 먼저 해제
+          // ensureUserModelLoaded()가 _loadUserModel()을 호출하기 전에 플래그 해제 필요
+          if (kDebugMode) {
+            debugPrint('🚀 [LOGIN] MainScreen 전환 준비');
+            debugPrint('   현재 isLoggingOut: ${authService.isLoggingOut}');
+          }
+          
+          authService.onLoginScreenDisplayed();
+          
+          if (kDebugMode) {
+            debugPrint('✅ [LOGIN] isLoggingOut 플래그 해제 완료');
+            debugPrint('   호출 후 isLoggingOut: ${authService.isLoggingOut}');
+          }
+          
           // 🔍 CRITICAL: 소셜 로그인 후 항상 UserModel 상태 확인 및 UI 업데이트
           // 1. authStateChanges가 트리거되지 않은 경우 → UserModel 로드
           // 2. authStateChanges가 shouldNotify=false로 로드한 경우 → notifyListeners() 호출
@@ -1200,7 +1214,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           
           // 🔧 AuthService.ensureUserModelLoaded() 항상 호출
           // - currentUserModel이 null이면 → _loadUserModel() 호출
-          // - currentUserModel이 이미 있으면 → notifyListeners()만 호출하도록 수정 필요
+          // - currentUserModel이 이미 있으면 → notifyListeners()만 호출
           await authService.ensureUserModelLoaded();
           
           if (kDebugMode) {
@@ -1246,21 +1260,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               debugPrint('🎨 [UX] 오버레이 유지 - MainScreen 렌더링 완료까지');
             }
             
-            // 🎯 CRITICAL: isLoggingOut 플래그를 먼저 해제해야 MainScreen이 표시됨
-            if (kDebugMode) {
-              debugPrint('🚀 [LOGIN] MainScreen 전환 준비');
-              debugPrint('   현재 isLoggingOut: ${authService.isLoggingOut}');
-            }
-            
-            // STEP 1: isLoggingOut 플래그 해제 (이것이 가장 중요!)
-            authService.onLoginScreenDisplayed();
-            
-            if (kDebugMode) {
-              debugPrint('✅ [LOGIN] onLoginScreenDisplayed() 호출 완료');
-              debugPrint('   호출 후 isLoggingOut: ${authService.isLoggingOut}');
-            }
-            
-            // STEP 2: 소셜 로그인 플래그 해제 및 화면 전환 이벤트 발행
+            // 🎯 소셜 로그인 플래그 해제 및 화면 전환 이벤트 발행
             await authService.setInSocialLoginFlow(false);
             
             if (kDebugMode) {
