@@ -1266,23 +1266,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               debugPrint('   - Consumer rebuild → MainScreen 자동 표시');
             }
             
-            // 🔥 iOS 긴급 패치: ValueListenableBuilder가 이벤트를 감지하지 못하는 경우 대비
-            // SchedulerBinding으로 다음 프레임에서 강제 rebuild 트리거
+            // 🔥 긴급 패치: ValueListenableBuilder가 이벤트를 감지하지 못하는 경우 대비
+            // SchedulerBinding으로 다음 프레임에서 강제 Consumer rebuild 트리거
             SchedulerBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 if (kDebugMode) {
-                  debugPrint('🔄 [LOGIN-iOS] 강제 rebuild 트리거 (SchedulerBinding)');
+                  debugPrint('🔄 [LOGIN] 강제 Consumer rebuild 트리거 (SchedulerBinding)');
                   debugPrint('   authService.currentUser: ${authService.currentUser?.email}');
                   debugPrint('   authService.currentUserModel: ${authService.currentUserModel?.email}');
                 }
                 
-                // setState()로 강제 rebuild (iOS에서 ValueListenableBuilder 실패 시 대비)
-                if (mounted) {
-                  setState(() {
-                    if (kDebugMode) {
-                      debugPrint('✅ [LOGIN-iOS] setState() 완료 - 화면 rebuild 보장');
-                    }
-                  });
+                // 🎯 CRITICAL: authService.notifyListeners()로 Consumer<AuthService> 강제 rebuild
+                // setState()는 LoginScreen만 rebuild하므로 불충분
+                authService.notifyListeners();
+                
+                if (kDebugMode) {
+                  debugPrint('✅ [LOGIN] authService.notifyListeners() 완료 - Consumer rebuild 보장');
                 }
               }
             });
