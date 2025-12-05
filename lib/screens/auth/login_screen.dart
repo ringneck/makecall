@@ -1178,11 +1178,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             debugPrint('🎨 [UX] 오버레이 유지 - MainScreen 렌더링 완료까지');
           }
           
-          // 🔓 CRITICAL: 소셜 로그인 완료 플래그 해제 + 이벤트 기반 대기
-          // setInSocialLoginFlow(false)가 _loadUserModel() 완료까지 대기하므로
-          // Consumer<AuthService> rebuild가 보장됨
-          await authService.setInSocialLoginFlow(false);
-          
           if (kDebugMode) {
             if (isWaitingForApproval) {
               debugPrint('⏳ [LOGIN] 소셜 로그인 완료 - ApprovalWaitingScreen 전환 대기');
@@ -1212,6 +1207,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 debugPrint('✅ [LOGIN] MainScreen으로 전환 완료');
               }
             }
+            
+            // 🔓 CRITICAL: 화면 전환 완료 후 소셜 로그인 플래그 해제
+            // ⚠️ 주의: 화면 전환 전에 플래그를 해제하면 authStateChanges가 다시 트리거되어
+            //          shouldNotify=true로 _loadUserModel()이 호출되어 Consumer rebuild 발생
+            //          → 오버레이가 조기 제거되는 문제 발생
+            if (kDebugMode) {
+              debugPrint('🔓 [LOGIN] 화면 전환 완료 - 소셜 로그인 플래그 해제');
+            }
+            await authService.setInSocialLoginFlow(false);
+            
           } else {
             if (kDebugMode) {
               debugPrint('⚠️ [LOGIN] navigatorKey.currentContext가 null - Consumer가 자동 전환 시도');

@@ -948,23 +948,20 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     debugPrint('✅ [SIGNUP] 기존 계정 FCM 초기화 완료');
                   }
                   
-                  // 5️⃣ 플래그 해제 (MainScreen으로 전환 허용)
-                  authService.setIsInSocialLoginFlow(false);
-                  
-                  // 6️⃣ UX 개선: 오버레이를 MainScreen 렌더링 완료까지 유지
+                  // 5️⃣ UX 개선: 오버레이를 MainScreen 렌더링 완료까지 유지
                   // MainScreen의 addPostFrameCallback에서 오버레이 제거
                   if (kDebugMode) {
                     debugPrint('🎨 [UX] 오버레이 유지 - MainScreen 렌더링 완료까지');
                   }
                   
-                  // 7️⃣ 기기 승인 대기 상태 체크
+                  // 6️⃣ 기기 승인 대기 상태 체크
                   final isWaitingForApproval = authService.isWaitingForApproval;
                   
                   if (kDebugMode) {
                     debugPrint('🔍 [SIGNUP] 기기 승인 대기 상태: $isWaitingForApproval');
                   }
                   
-                  // 8️⃣ CRITICAL: 명시적 화면 전환 (navigatorKey 사용)
+                  // 7️⃣ CRITICAL: 명시적 화면 전환 (navigatorKey 사용)
                   if (navigatorKey.currentContext != null) {
                     if (kDebugMode) {
                       debugPrint('🚀 [SIGNUP] 명시적 화면 전환 시작 (isWaitingForApproval: $isWaitingForApproval)');
@@ -983,6 +980,16 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         debugPrint('✅ [SIGNUP] MainScreen으로 전환 완료');
                       }
                     }
+                    
+                    // 8️⃣ CRITICAL: 화면 전환 완료 후 소셜 로그인 플래그 해제
+                    // ⚠️ 주의: 화면 전환 전에 플래그를 해제하면 authStateChanges가 다시 트리거되어
+                    //          shouldNotify=true로 _loadUserModel()이 호출되어 Consumer rebuild 발생
+                    //          → 오버레이가 조기 제거되는 문제 발생
+                    if (kDebugMode) {
+                      debugPrint('🔓 [SIGNUP] 화면 전환 완료 - 소셜 로그인 플래그 해제');
+                    }
+                    authService.setIsInSocialLoginFlow(false);
+                    
                   } else {
                     if (kDebugMode) {
                       debugPrint('⚠️ [SIGNUP] navigatorKey.currentContext가 null - Consumer가 자동 전환 시도');
