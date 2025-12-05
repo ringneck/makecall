@@ -295,7 +295,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   String? _lastCheckedUserId;
   bool _providersRegistered = false; // Provider 등록 플래그
   
-
+  // 🔐 AuthService 인스턴스 (앱 생명주기 동안 유지)
+  final AuthService _authService = AuthService();
   
   // 🚀 WebSocket 연결 관리자
   final DCMIWSConnectionManager _connectionManager = DCMIWSConnectionManager();
@@ -341,8 +342,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // FCM 강제 로그아웃 콜백 설정
     FCMService.setForceLogoutCallback(() async {
       if (mounted) {
-        final authService = context.read<AuthService>();
-        await authService.signOut();
+        // 🔥 CRITICAL: _authService 인스턴스 직접 사용
+        await _authService.signOut();
         
         if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
@@ -543,7 +544,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider.value(value: _authService), // 🔥 CRITICAL: .value 사용하여 인스턴스 유지
         ChangeNotifierProvider(create: (_) => SelectedExtensionProvider()),
         ChangeNotifierProvider(create: (_) => DCMIWSEventProvider()),
         ChangeNotifierProvider.value(value: _themeProvider),
