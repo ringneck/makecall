@@ -37,7 +37,7 @@ class AppInfoSection extends StatelessWidget {
               // 로딩 중
               return ListTile(
                 leading: Icon(
-                  Icons.info, 
+                  Icons.phone_android, 
                   color: isDark ? Colors.green[300] : Colors.green,
                 ),
                 title: Text(
@@ -67,7 +67,7 @@ class AppInfoSection extends StatelessWidget {
                 
                 return ListTile(
                   leading: Icon(
-                    Icons.info, 
+                    Icons.phone_android, 
                     color: isDark ? Colors.green[300] : Colors.green,
                   ),
                   title: Row(
