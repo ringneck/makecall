@@ -397,8 +397,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           debugPrint('🌞 [MyApp] App resumed - forcing UI rebuild');
         }
         
-        // 소셜 로그인 오버레이 강제 제거 (앱 재개 시)
-        SocialLoginProgressHelper.forceHide();
+        // 🚨 CRITICAL: 소셜 로그인 중이 아닐 때만 오버레이 제거
+        // 소셜 로그인 중이면 오버레이 유지 (MainScreen paint 완료 시 자동 제거)
+        final authService = Provider.of<AuthService>(context, listen: false);
+        if (!authService.isInSocialLoginFlow) {
+          if (kDebugMode) {
+            debugPrint('🧹 [MyApp] 앱 재개 - 소셜 로그인 오버레이 제거 (소셜 로그인 중 아님)');
+          }
+          SocialLoginProgressHelper.forceHide();
+        } else {
+          if (kDebugMode) {
+            debugPrint('⏭️ [MyApp] 앱 재개 - 소셜 로그인 중이므로 오버레이 유지');
+          }
+        }
         
         // 🔔 iOS 배지 초기화 (포그라운드 복귀 시)
         _clearBadge();
