@@ -1249,13 +1249,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             // 🎯 CRITICAL: isLoggingOut 플래그를 먼저 해제해야 MainScreen이 표시됨
             if (kDebugMode) {
               debugPrint('🚀 [LOGIN] MainScreen 전환 준비');
+              debugPrint('   현재 isLoggingOut: ${authService.isLoggingOut}');
             }
             
             // STEP 1: isLoggingOut 플래그 해제 (이것이 가장 중요!)
             authService.onLoginScreenDisplayed();
             
             if (kDebugMode) {
-              debugPrint('✅ [LOGIN] isLoggingOut 플래그 해제 완료');
+              debugPrint('✅ [LOGIN] onLoginScreenDisplayed() 호출 완료');
+              debugPrint('   호출 후 isLoggingOut: ${authService.isLoggingOut}');
             }
             
             // STEP 2: 소셜 로그인 플래그 해제 및 화면 전환 이벤트 발행

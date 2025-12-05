@@ -291,6 +291,11 @@ class AuthService extends ChangeNotifier {
   
   // 🔔 이벤트 기반 플래그 해제: LoginScreen이 표시되었을 때 main.dart가 호출
   void onLoginScreenDisplayed() {
+    if (kDebugMode) {
+      debugPrint('🔍 [AUTH STATE] onLoginScreenDisplayed() 호출됨');
+      debugPrint('   _isLoggingOut: $_isLoggingOut');
+    }
+    
     if (_isLoggingOut) {
       _isLoggingOut = false;
       _isSigningOut = false;
@@ -299,6 +304,10 @@ class AuthService extends ChangeNotifier {
         debugPrint('🔄 [AUTH STATE] notifyListeners() 호출하여 Consumer 업데이트');
       }
       notifyListeners(); // 🔥 CRITICAL: Consumer에 상태 변경 알림
+    } else {
+      if (kDebugMode) {
+        debugPrint('ℹ️ [AUTH STATE] _isLoggingOut이 이미 false - notifyListeners() 건너뛰기');
+      }
     }
   }
   
