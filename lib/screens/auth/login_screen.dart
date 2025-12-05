@@ -1179,8 +1179,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           // 오버레이 제거
           SocialLoginProgressHelper.hide();
           
-          // 🔓 CRITICAL: 소셜 로그인 완료 플래그 해제
-          // 이제 authStateChanges가 정상적으로 notifyListeners() 호출 가능
+          // 🔓 CRITICAL: 소셜 로그인 완료 플래그 해제 + 이벤트 기반 대기
+          // setInSocialLoginFlow(false)가 _loadUserModel() 완료까지 대기하므로
+          // Consumer<AuthService> rebuild가 보장됨
           await authService.setInSocialLoginFlow(false);
           
           if (kDebugMode) {
@@ -1191,23 +1192,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             }
           }
           
-          // ✅ CRITICAL: 명시적 화면 전환 - Consumer가 반응하지 않을 경우를 대비
-          // 소셜 로그인 후 LoginScreen이 unmount되어도 화면 전환 보장
-          if (mounted && navigatorKey.currentContext != null) {
-            // 짧은 대기 후 Consumer rebuild 확인
-            await Future.delayed(const Duration(milliseconds: 100));
-            
-            // Consumer가 아직 rebuild되지 않았다면 명시적으로 전환
-            if (mounted && authService.currentUserModel != null) {
-              if (kDebugMode) {
-                debugPrint('🚀 [LOGIN] 명시적 화면 전환 시작');
-              }
-              
-              // 승인 대기 상태에 따라 화면 분기
-              // Note: Consumer<AuthService>가 자동으로 화면을 전환하므로
-              // 여기서는 아무 작업도 하지 않음 (Consumer가 이미 처리함)
-            }
-          }
+          // ✅ 이벤트 기반 완료: setInSocialLoginFlow()가 Completer를 통해
+          // _loadUserModel() 완료를 보장하므로 추가 대기 불필요
+          // Consumer<AuthService>가 자동으로 화면을 전환함
         } on MaxDeviceLimitException catch (e) {
           // 최대 기기 수 초과 예외 처리
           if (kDebugMode) {

@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:async';
 import '../models/user_model.dart';
 import '../main.dart' show navigatorKey;
 import '../exceptions/max_device_limit_exception.dart';
@@ -92,6 +93,9 @@ class AuthService extends ChangeNotifier {
   bool _inSocialLoginFlow = false;
   bool get inSocialLoginFlow => _inSocialLoginFlow;
   
+  // 🎯 _loadUserModel() 완료 이벤트 (이벤트 기반)
+  Completer<void>? _loadUserModelCompleter;
+  
   // 🎯 이메일 회원가입 진행 중 플래그 (이벤트 기반)
   // SignupScreen에서 이메일 회원가입이 완료된 직후 true
   bool _isInEmailSignupFlow = false;
@@ -139,7 +143,7 @@ class AuthService extends ChangeNotifier {
   }
   
   /// 소셜 로그인 진행 중 플래그 설정
-  void setInSocialLoginFlow(bool inFlow) async {
+  Future<void> setInSocialLoginFlow(bool inFlow) async {
     _inSocialLoginFlow = inFlow;
     if (kDebugMode) {
       debugPrint('🔄 [AUTH] 소셜 로그인 플래그: $_inSocialLoginFlow');
@@ -150,7 +154,18 @@ class AuthService extends ChangeNotifier {
       if (kDebugMode) {
         debugPrint('🔄 [AUTH] 소셜 로그인 완료 → UserModel 재로드 (shouldNotify=true)');
       }
+      
+      // 🎯 이벤트 기반: Completer 생성
+      _loadUserModelCompleter = Completer<void>();
+      
       await _loadUserModel(currentUser!.uid, shouldNotify: true);
+      
+      // 🎯 이벤트 기반: Completer가 완료될 때까지 대기
+      await _loadUserModelCompleter!.future;
+      
+      if (kDebugMode) {
+        debugPrint('✅ [AUTH] UserModel 재로드 완료 - Consumer rebuild 보장됨');
+      }
     }
   }
   
@@ -458,6 +473,14 @@ class AuthService extends ChangeNotifier {
       _isLoadingUserModel = false;
       if (kDebugMode) {
         debugPrint('🔓 [_loadUserModel] 플래그 해제 완료');
+      }
+      
+      // 🎯 이벤트 기반: Completer 완료 (소셜 로그인 완료 대기용)
+      if (_loadUserModelCompleter != null && !_loadUserModelCompleter!.isCompleted) {
+        _loadUserModelCompleter!.complete();
+        if (kDebugMode) {
+          debugPrint('✅ [_loadUserModel] Completer 완료 - 이벤트 기반 대기 해제');
+        }
       }
     }
   }
