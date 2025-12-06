@@ -1071,49 +1071,49 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           debugPrint('⏳ [MAIN-DECISION] FCM 초기화 중 → "서비스 로딩중..." 오버레이 표시');
                         }
                         
-                        return Material(
-                          child: Scaffold(
-                            body: Container(
-                              color: Colors.black.withOpacity(0.7),
-                              child: Center(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF2C2C2C),
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.3),
-                                        blurRadius: 20,
-                                        offset: const Offset(0, 10),
+                        return Scaffold(
+                          body: Container(
+                            color: Colors.black.withOpacity(0.7),
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2C2C2C),
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    DefaultTextStyle(
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                        decoration: TextDecoration.none,
                                       ),
-                                    ],
-                                  ),
-                                  child: const Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      CircularProgressIndicator(
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      child: const Text('서비스 로딩중...'),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    DefaultTextStyle(
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white70,
+                                        decoration: TextDecoration.none,
                                       ),
-                                      SizedBox(height: 20),
-                                      Text(
-                                        '서비스 로딩중...',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        '잠시만 기다려주세요',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white70,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                      child: const Text('잠시만 기다려주세요'),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
