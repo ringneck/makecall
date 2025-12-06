@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/database_service.dart';
+import '../../../models/my_extension_model.dart';
 import '../../profile/api_settings_dialog.dart';
 
 /// 설정 확인 및 안내 서비스
@@ -415,11 +416,17 @@ class SettingsChecker {
                 try {
                   final userId = authService.currentUser?.uid;
                   if (userId != null) {
-                    await databaseService.saveMyExtension(
+                    final myExtension = MyExtensionModel(
+                      id: '',
                       userId: userId,
-                      extensionNumber: extension,
-                      nickname: '기본 단말번호',
+                      extensionId: '',  // 단말번호 등록 시점에는 extension_id가 없음
+                      extension: extension,
+                      name: '기본 단말번호',
+                      classOfServicesId: '',  // 나중에 API 동기화 시 업데이트
+                      createdAt: DateTime.now(),
                     );
+                    
+                    await databaseService.addMyExtension(myExtension);
                     
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
