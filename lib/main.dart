@@ -970,7 +970,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           SocialLoginProgressHelper.forceHide();
                         });
                         
-                        // LoginScreen 위에 다크모드 오버레이 표시
+                        // LoginScreen 위에 통일된 스타일의 오버레이 표시
                         return Stack(
                           children: [
                             // 배경: LoginScreen
@@ -979,50 +979,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                 key: ValueKey('login_fcm_init_${DateTime.now().millisecondsSinceEpoch}'),
                               ),
                             ),
-                            // 오버레이: FCM 초기화 로딩 (다크모드 다이얼로그 스타일)
-                            Container(
-                              color: Colors.black.withOpacity(0.7), // 다크 배경
-                              child: Center(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF2C2C2C), // 다크모드 배경색
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.3),
-                                        blurRadius: 20,
-                                        offset: const Offset(0, 10),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const CircularProgressIndicator(
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                      const SizedBox(height: 20),
-                                      const Text(
-                                        '서비스 로딩중...',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.white, // 다크모드 텍스트
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      const Text(
-                                        '잠시만 기다려 주세요',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Color(0xFFB0B0B0), // 다크모드 보조 텍스트
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                            // 오버레이: FCM 초기화 로딩 (통일된 SocialLoginProgressOverlay 스타일)
+                            const SocialLoginProgressOverlay(
+                              message: '서비스 로딩중...',
+                              subMessage: '잠시만 기다려주세요',
                             ),
                           ],
                         );
@@ -1075,59 +1035,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                       }
                       
-                      // 🔥 CRITICAL: FCM 초기화 중이면 "서비스 로딩중..." 오버레이 표시
+                      // 🔥 CRITICAL: FCM 초기화 중이면 통일된 스타일의 오버레이 표시
                       // currentUser 상태와 무관하게 오버레이 우선 표시!
                       if (authService.isFcmInitializing) {
                         if (kDebugMode) {
-                          debugPrint('⏳ [MAIN-DECISION] FCM 초기화 중 → "서비스 로딩중..." 오버레이 표시');
+                          debugPrint('⏳ [MAIN-DECISION] FCM 초기화 중 → 통일된 스타일의 오버레이 표시');
                         }
                         
-                        return Scaffold(
-                          body: Container(
-                            color: Colors.black.withOpacity(0.7),
-                            child: Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2C2C2C),
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 10),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    DefaultTextStyle(
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                        decoration: TextDecoration.none,
-                                      ),
-                                      child: const Text('서비스 로딩중...'),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    DefaultTextStyle(
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.white70,
-                                        decoration: TextDecoration.none,
-                                      ),
-                                      child: const Text('잠시만 기다려주세요'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                        return const Scaffold(
+                          body: SocialLoginProgressOverlay(
+                            message: '서비스 로딩중...',
+                            subMessage: '잠시만 기다려주세요',
                           ),
                         );
                       }

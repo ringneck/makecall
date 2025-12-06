@@ -130,55 +130,13 @@ class _MainScreenState extends State<MainScreen> {
         // main.dart Consumer가 rebuild되지 않는 경우를 위한 fallback
         if (authService.isFcmInitializing) {
           if (kDebugMode) {
-            debugPrint('⏳ [MainScreen] FCM 초기화 중 → "서비스 로딩중..." 오버레이 표시');
+            debugPrint('⏳ [MainScreen] FCM 초기화 중 → 통일된 스타일의 오버레이 표시');
           }
           
-          return Scaffold(
-            body: Container(
-              color: Colors.black.withOpacity(0.7),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2C2C2C),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                      const SizedBox(height: 20),
-                      DefaultTextStyle(
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          decoration: TextDecoration.none,
-                        ),
-                        child: const Text('서비스 로딩중...'),
-                      ),
-                      const SizedBox(height: 8),
-                      DefaultTextStyle(
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.white70,
-                          decoration: TextDecoration.none,
-                        ),
-                        child: const Text('잠시만 기다려주세요'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          return const Scaffold(
+            body: SocialLoginProgressOverlay(
+              message: '서비스 로딩중...',
+              subMessage: '잠시만 기다려주세요',
             ),
           );
         }
