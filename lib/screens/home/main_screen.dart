@@ -37,6 +37,12 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     
+    // 🔑 CRITICAL: _currentUserId 초기화 (GlobalKey 중복 사용 방지)
+    // build()에서 userId를 가져올 수 없으므로, 초기값을 설정하여
+    // 첫 번째 build에서 GlobalKey 생성을 유도
+    // 이후 build에서는 사용자가 실제로 변경되었을 때만 새 GlobalKey 생성
+    _currentUserId = '__initializing__'; // 초기화 플래그
+    
     // 🔔 FCM BuildContext 설정 (기기 승인 다이얼로그용)
     // 이것은 즉시 실행 (context 필요)
     WidgetsBinding.instance.addPostFrameCallback((_) {
