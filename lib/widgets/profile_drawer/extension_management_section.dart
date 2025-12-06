@@ -167,8 +167,19 @@ class ExtensionManagementSection extends StatefulWidget {
                                 
                                 try {
                                   // API 호출하여 단말번호 조회
+                                  // API URL 생성 (프로토콜 + 포트 + 경로 포함)
+                                  final useHttps = (userModel!.apiHttpPort ?? 3500) == 3501;
+                                  final apiUrl = userModel.getApiUrl(useHttps: useHttps);
+                                  
+                                  if (kDebugMode) {
+                                    debugPrint('🔍 [EXTENSION_DIALOG] API URL 생성');
+                                    debugPrint('   - apiBaseUrl: ${userModel.apiBaseUrl}');
+                                    debugPrint('   - useHttps: $useHttps');
+                                    debugPrint('   → 최종 URL: $apiUrl');
+                                  }
+                                  
                                   final apiService = ApiService(
-                                    baseUrl: userModel!.apiBaseUrl!,
+                                    baseUrl: apiUrl,
                                     companyId: userModel.companyId!,
                                     appKey: userModel.appKey!,
                                   );
