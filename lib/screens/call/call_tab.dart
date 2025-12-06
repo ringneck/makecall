@@ -468,6 +468,21 @@ class _CallTabState extends State<CallTab> {
       
       // 공지사항 BottomSheet 표시
       if (mounted) {
+        // 🔒 CRITICAL: 공지사항 표시 직전 최종 검증
+        // MainScreen의 Consumer가 ApprovalWaitingScreen을 표시하는지 확인
+        final authService = Provider.of<AuthService>(context, listen: false);
+        
+        // 현재 프레임 렌더링 완료 대기 (MainScreen UI 업데이트 완료 보장)
+        await Future.delayed(const Duration(milliseconds: 50));
+        
+        // 최종 체크: 승인 대기 상태가 되었으면 공지사항 표시 중단
+        if (authService.isWaitingForApproval) {
+          if (kDebugMode) {
+            debugPrint('🚫 [ANNOUNCEMENT] 최종 검증: 기기 승인 대기 상태 감지 - 공지사항 표시 중단');
+          }
+          return;
+        }
+        
         if (kDebugMode) {
           debugPrint('🔥 [ANNOUNCEMENT] showModalBottomSheet() 호출 시작');
         }
