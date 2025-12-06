@@ -65,60 +65,11 @@ class AuthService extends ChangeNotifier {
           try {
             await _loadUserModel(user.uid, shouldNotify: !isInSocialLoginFlow);
             
-            // 🔥 CRITICAL FIX: authStateChanges 경로에서만 FCM 초기화
-            // signIn() 메서드를 거치지 않는 재로그인 경로 대응
-            // 🚨 IMPORTANT: signIn()이 이미 FCM 초기화 중이면 건너뛰기 (중복 방지)
-            if (_currentUserModel != null && !_isWaitingForApproval && !isInSocialLoginFlow && !_isFcmInitializing) {
-              if (kDebugMode) {
-                debugPrint('🔔 [authStateChanges] FCM 초기화 시작 (재로그인 경로)');
-                debugPrint('   userId: ${user.uid}');
-              }
-              
-              try {
-                final fcmService = FCMService();
-                await fcmService.initialize(user.uid);
-                
-                if (kDebugMode) {
-                  debugPrint('✅ [authStateChanges] FCM 초기화 완료');
-                }
-              } on MaxDeviceLimitException catch (e) {
-                if (kDebugMode) {
-                  debugPrint('🚫 [authStateChanges] 최대 기기 수 초과 - MaxDeviceLimit 차단 상태 설정');
-                }
-                
-                // 🚫 CRITICAL: MaxDeviceLimit 차단 상태 설정
-                setBlockedByMaxDeviceLimit(true, exception: e);
-                
-                // FCM 초기화 실패했지만 로그인은 진행 (차단 화면 표시)
-                if (kDebugMode) {
-                  debugPrint('⚠️ [authStateChanges] MaxDeviceLimit 차단 상태로 로그인 진행');
-                }
-              } catch (e) {
-                if (kDebugMode) {
-                  debugPrint('❌ [authStateChanges] FCM 초기화 실패: $e');
-                }
-                
-                // 기기 승인 관련 오류는 로그아웃 처리
-                if (e.toString().contains('Device approval') || 
-                    e.toString().contains('denied') || 
-                    e.toString().contains('timeout')) {
-                  if (kDebugMode) {
-                    debugPrint('🚫 [authStateChanges] 기기 승인 실패 - 로그아웃 처리');
-                  }
-                  await _auth.signOut();
-                  return;
-                }
-                
-                // 기타 FCM 오류는 경고만 출력하고 로그인 진행
-                if (kDebugMode) {
-                  debugPrint('⚠️ [authStateChanges] FCM 초기화 실패했지만 로그인 진행');
-                }
-              }
-            } else if (_isFcmInitializing) {
-              if (kDebugMode) {
-                debugPrint('⏭️ [authStateChanges] FCM 초기화 이미 진행 중 - 건너뛰기');
-                debugPrint('   signIn() 메서드가 FCM 초기화 처리 중');
-              }
+            // 🚨 CRITICAL: authStateChanges에서는 FCM 초기화하지 않음!
+            // → signIn() 메서드에서만 FCM 초기화를 담당 (중복 실행 방지)
+            if (kDebugMode) {
+              debugPrint('✅ [authStateChanges] UserModel 로드 완료');
+              debugPrint('   → signIn()에서 FCM 초기화 담당');
             }
           } on ServiceSuspendedException {
             // 서비스 이용 중지 계정 무시
