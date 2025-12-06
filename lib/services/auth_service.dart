@@ -889,7 +889,8 @@ class AuthService extends ChangeNotifier {
   Future<void> signOut({bool silentLogout = false}) async {
     _isLoggingOut = true;
     _isSigningOut = true;
-    notifyListeners();
+    // 🔥 CRITICAL: notifyListeners() 제거 - authStateChanges에서 자동으로 호출됨
+    // 중복 호출 방지로 화면 깜박임 해결
     
     final userId = _auth.currentUser?.uid;
     
