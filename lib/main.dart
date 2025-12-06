@@ -350,6 +350,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugPrint('🔧 [MyApp] Using global AuthService singleton instance');
     }
     
+    // 🔑 CRITICAL FIX: MainScreen 사용자 ID 초기화
+    // - build()에서 첫 번째 비교 시 이미 초기화되어 있어야 함
+    // - null로 남겨두면 첫 build에서 무조건 "사용자 변경"으로 인식되어 GlobalKey 중복 생성
+    _currentMainScreenUserId = '__app_initializing__';
+    
     // 🔄 앱 생명주기 옵저버 등록 (iOS 화면 검게 변하는 문제 해결)
     WidgetsBinding.instance.addObserver(this);
     
