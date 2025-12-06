@@ -360,13 +360,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       // 🔥 CRITICAL: MainScreen 전환 완료 후 FCM 초기화 완료 이벤트 발행
       // 승인 대기 중이면 MainScreen이 "서비스 로딩중" 오버레이를 표시할 수 있도록
-      // 이벤트 기반으로 setFcmInitialized(true) 호출
+      // 🔥 CRITICAL: 승인 대기 중이면 FCM 초기화 상태를 더 오래 유지
+      // "서비스 로딩중..." 오버레이가 표시될 수 있도록 충분한 시간 확보
       if (authService.isWaitingForApproval) {
-        // MainScreen 렌더링 완료 대기 (한 프레임)
-        await Future.delayed(const Duration(milliseconds: 100));
+        // MainScreen Consumer가 isFcmInitializing=true를 감지할 수 있도록
+        // 최소 500ms 동안 로딩 상태 유지
+        await Future.delayed(const Duration(milliseconds: 500));
         
         if (kDebugMode) {
-          debugPrint('🚀 [LOGIN] FCM 초기화 완료 이벤트 발행 (MainScreen 전환 후)');
+          debugPrint('🚀 [LOGIN] FCM 초기화 완료 이벤트 발행 (MainScreen 전환 후 500ms)');
+          debugPrint('   - 이제 MainScreen의 "서비스 로딩중" 오버레이가 표시되었을 것');
         }
         
         authService.setFcmInitialized(true);
