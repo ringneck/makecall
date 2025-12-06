@@ -632,23 +632,13 @@ class FCMService {
           }
         }
         
-        // 승인 대기 (최대 5분) - 🔧 Phase 2: FCMDeviceApprovalService 사용
-        final approved = await _approvalService.waitForDeviceApproval(approvalRequestId);
+        // 🚀 CRITICAL: 승인 대기를 백그라운드로 이동 - signIn() 메서드 즉시 완료
+        // ✅ 이제 MainScreen Consumer가 rebuild되어 ApprovalWaitingScreen 즉시 표시
+        // ✅ LoginScreen의 "로딩 중..." 상태 해제
+        _waitForApprovalInBackground(approvalRequestId);
         
-        // 🔐 AuthService 승인 대기 상태 해제
-        if (_authService != null) {
-          _authService!.setWaitingForApproval(false);
-        }
-        
-        // 🎨 승인 요청 정보 초기화
-        _currentApprovalRequestId = null;
-        _currentUserId = null;
-        _approvalService.setApprovalRequestInfo(null, null);
-        
-        
-        if (!approved) {
-          throw Exception('Device approval denied or timeout');
-        }
+        // 🎯 IMPORTANT: 여기서 함수 리턴 - 승인 대기는 백그라운드에서 처리
+        return;
         
       }
       
@@ -675,6 +665,59 @@ class FCMService {
       
       // 일반적인 토큰 저장 오류는 무시 (로그인은 계속 진행)
     }
+  }
+  
+  /// 🚀 CRITICAL: 승인 대기를 백그라운드에서 처리
+  /// 
+  /// signIn() 메서드가 즉시 완료되어 MainScreen으로 전환되도록 함
+  /// 승인 완료/실패 시 AuthService 상태 업데이트
+  void _waitForApprovalInBackground(String approvalRequestId) {
+    // 비동기 함수를 백그라운드에서 실행 (await 하지 않음)
+    () async {
+      try {
+        if (kDebugMode) {
+          debugPrint('⏳ [FCM-BACKGROUND] 승인 대기 시작 (백그라운드)');
+          debugPrint('   - approvalRequestId: $approvalRequestId');
+        }
+        
+        // 승인 대기 (최대 5분) - 🔧 Phase 2: FCMDeviceApprovalService 사용
+        final approved = await _approvalService.waitForDeviceApproval(approvalRequestId);
+        
+        // 🔐 AuthService 승인 대기 상태 해제
+        if (_authService != null) {
+          _authService!.setWaitingForApproval(false);
+        }
+        
+        // 🎨 승인 요청 정보 초기화
+        _currentApprovalRequestId = null;
+        _currentUserId = null;
+        _approvalService.setApprovalRequestInfo(null, null);
+        
+        if (approved) {
+          if (kDebugMode) {
+            debugPrint('✅ [FCM-BACKGROUND] 기기 승인 완료!');
+          }
+        } else {
+          if (kDebugMode) {
+            debugPrint('❌ [FCM-BACKGROUND] 기기 승인 거부 또는 타임아웃');
+          }
+          
+          // 승인 거부 시 로그아웃 처리
+          if (_authService != null) {
+            await _authService!.signOut();
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [FCM-BACKGROUND] 승인 대기 오류: $e');
+        }
+        
+        // 오류 발생 시 승인 대기 상태 해제
+        if (_authService != null) {
+          _authService!.setWaitingForApproval(false);
+        }
+      }
+    }();
   }
   
   /// ⚠️ DEPRECATED: 레거시 메서드 - FCMTokenManager.saveFCMToken() 사용
