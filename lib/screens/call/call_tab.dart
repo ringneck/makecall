@@ -351,19 +351,49 @@ class _CallTabState extends State<CallTab> {
     if (!mounted) return;
     
     // 🎯 STEP 3: 공지사항 확인 및 표시 (기기 승인 이후)
-    // 🔒 CRITICAL: 기기 승인 대기 중이면 공지사항 표시 건너뛰기
+    // 🔒 CRITICAL: FCM 초기화 완료 및 기기 승인 필요 여부 확인 대기
     final authService = Provider.of<AuthService>(context, listen: false);
-    if (authService.isWaitingForApproval) {
+    
+    if (kDebugMode) {
+      debugPrint('⏳ [CALL_TAB] FCM 초기화 및 기기 승인 상태 확인 대기...');
+    }
+    
+    // 🔥 CRITICAL: FCM 초기화 완료 대기 (최대 2초)
+    // AuthService의 authStateChanges 리스너에서 FCM 초기화가 진행되므로
+    // FCM 초기화가 완료되어 승인 필요 여부가 확정될 때까지 대기
+    int attempts = 0;
+    const maxAttempts = 20; // 최대 2초 (100ms * 20)
+    
+    while (attempts < maxAttempts) {
+      // 승인 대기 상태가 설정되었으면 즉시 종료
+      if (authService.isWaitingForApproval) {
+        if (kDebugMode) {
+          debugPrint('🚫 [CALL_TAB] 기기 승인 대기 상태 감지 - 공지사항 건너뛰기');
+        }
+        return;
+      }
+      
+      // 100ms 대기
+      await Future.delayed(const Duration(milliseconds: 100));
+      attempts++;
+      
+      // 500ms 이상 대기했는데도 승인 대기 상태가 아니면 이미 승인된 기기로 판단
+      if (attempts >= 5) {
+        if (kDebugMode) {
+          debugPrint('✅ [CALL_TAB] 기기 승인 필요 없음 - 공지사항 표시 진행');
+        }
+        break;
+      }
+    }
+    
+    // 최종 체크: 승인 대기 상태가 아닌 경우에만 공지사항 표시
+    if (!authService.isWaitingForApproval) {
+      await _checkAndShowAnnouncement();
+    } else {
       if (kDebugMode) {
         debugPrint('⏭️ [CALL_TAB] 기기 승인 대기 중 - 공지사항 표시 건너뛰기');
       }
-      return; // 기기 승인 대기 중이므로 공지사항 표시하지 않음
     }
-    
-    if (kDebugMode) {
-      debugPrint('🔍 [CALL_TAB] 설정 체크 완료 - 공지사항 표시');
-    }
-    await _checkAndShowAnnouncement();
     
     // 🔒 이메일 회원가입 이벤트 처리 완료 플래그 설정
     if (widget.showWelcomeDialog) {
