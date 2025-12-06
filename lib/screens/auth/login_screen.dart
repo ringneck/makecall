@@ -52,6 +52,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   static const String _keyRememberEmail = 'remember_email';
   static const String _keySavedEmail = 'saved_email';
   static const String _keyAutoLogin = 'auto_login';
+  
+  // 🔒 CRITICAL: 앱 실행 중 버전 체크를 한 번만 수행하도록 전역 플래그
+  static bool _hasCheckedVersion = false;
 
   @override
   void initState() {
@@ -90,20 +93,41 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   
   /// 앱 버전 체크 및 업데이트 안내 (로그인 화면)
   Future<void> _checkAppVersion() async {
+    // 🔒 CRITICAL: 앱 실행 중 한 번만 체크
+    if (_hasCheckedVersion) {
+      if (kDebugMode) {
+        debugPrint('⏭️ [VERSION] 버전 체크 이미 완료 - 건너뛰기');
+      }
+      return;
+    }
+    
     try {
+      _hasCheckedVersion = true; // 체크 시작 시 플래그 설정 (중복 방지)
+      
+      if (kDebugMode) {
+        debugPrint('🔍 [VERSION] 버전 체크 시작');
+      }
+      
       final versionService = VersionCheckService();
       final result = await versionService.checkVersion();
       
       if (result.isUpdateAvailable && mounted) {
+        if (kDebugMode) {
+          debugPrint('📢 [VERSION] 새 버전 발견 - 알림 표시');
+        }
         await VersionUpdateBottomSheet.show(
           context,
           result,
           downloadUrl: 'https://play.google.com/store/apps/details?id=com.olssoo.makecall_app',
         );
+      } else {
+        if (kDebugMode) {
+          debugPrint('✅ [VERSION] 최신 버전 사용 중');
+        }
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('❌ 버전 체크 오류: $e');
+        debugPrint('❌ [VERSION] 버전 체크 오류: $e');
       }
     }
   }
