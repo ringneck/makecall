@@ -304,7 +304,8 @@ class AuthService extends ChangeNotifier {
         if (_isWaitingForApproval) return;
         
         if (navigatorKey.currentContext != null && _currentUserModel != null) {
-          await Future.delayed(const Duration(milliseconds: 100));
+          // 🔥 EVENT-BASED: 다음 프레임 렌더링 완료 대기 (시간 기반 제거)
+          await SchedulerBinding.instance.endOfFrame;
           
           if (navigatorKey.currentContext != null && 
               navigatorKey.currentContext!.mounted &&
