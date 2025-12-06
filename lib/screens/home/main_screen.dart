@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import '../call/call_tab.dart';
 import '../auth/approval_waiting_screen.dart';
+import '../auth/login_screen.dart';
 import '../../services/fcm_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/social_login_progress_overlay.dart';
@@ -93,16 +94,23 @@ class _MainScreenState extends State<MainScreen> {
           debugPrint('   - approvalRequestId: ${authService.approvalRequestId}');
         }
         
-        // 🚨 CRITICAL: 로그아웃 중이면 즉시 빈 화면 반환
-        // main.dart Consumer 재빌드 실패 시 보조 수단
+        // 🚨 CRITICAL: 로그아웃 중이면 즉시 LoginScreen 반환
+        // main.dart Consumer 재빌드 실패 시 보조 수단 - 직접 LoginScreen으로 전환
         if (authService.isLoggingOut) {
           if (kDebugMode) {
-            debugPrint('🚪 [MainScreen] 로그아웃 중 감지 - 빈 화면 반환 (main.dart가 LoginScreen 전환 처리)');
+            debugPrint('🚪 [MainScreen] 로그아웃 중 감지 - LoginScreen 직접 반환');
+            debugPrint('   → main.dart Consumer 재빌드 대기 중 fallback');
           }
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+          
+          // 🔥 CRITICAL: 소셜 로그인 오버레이 강제 제거
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              SocialLoginProgressHelper.forceRemoveAll(context);
+            }
+          });
+          
+          return LoginScreen(
+            key: ValueKey('login_logout_${DateTime.now().millisecondsSinceEpoch}'),
           );
         }
         
