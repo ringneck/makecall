@@ -330,74 +330,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       // 로그인 성공 시 이메일 저장 설정 적용
       await _saveCredentials();
       
-      // ⚡ CRITICAL: 로그인 성공 후 MainScreen으로 명시적 전환
-      if (!mounted) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [LOGIN] Widget이 disposed됨 - 화면 전환 불가');
-        }
-        return;
-      }
-      
+      // ✅ 로그인 완료 - main.dart Consumer가 자동으로 화면 전환 처리
       if (kDebugMode) {
-        debugPrint('🔄 [LOGIN] MainScreen으로 화면 전환 시작');
-        debugPrint('   - mounted: $mounted');
-        debugPrint('   - context available: ${context.mounted}');
-      }
-      
-      // ✅ 시간 기반 대기 제거 → 이벤트 기반으로 변경
-      // signIn() 메서드가 FCM 초기화 완료 후 반환하므로
-      // 여기 도달 시점에 이미 MaxDeviceLimit 체크 완료됨
-      
-      if (!mounted) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [LOGIN] Widget disposed - 화면 전환 불가');
-        }
-        return;
-      }
-      
-      // ⚡ CRITICAL: 이메일 회원가입 후 첫 로그인 체크
-      final isFirstLogin = await _checkFirstLogin();
-      
-      // 🚀 CRITICAL: 승인 대기 중이어도 MainScreen으로 전환
-      // MainScreen Consumer가 isWaitingForApproval을 체크하여 ApprovalWaitingScreen 표시
-      if (kDebugMode) {
+        debugPrint('✅ [LOGIN] 로그인 완료 - main.dart Consumer가 자동으로 화면 전환');
+        debugPrint('   - isWaitingForApproval: ${authService.isWaitingForApproval}');
         if (authService.isWaitingForApproval) {
-          debugPrint('⏳ [LOGIN] 기기 승인 대기 중 - MainScreen으로 전환');
-          debugPrint('   - MainScreen Consumer가 ApprovalWaitingScreen을 표시합니다');
+          debugPrint('   → main.dart가 ApprovalWaitingScreen 표시');
         } else {
-          debugPrint('✅ [LOGIN] 로그인 완료 - MainScreen으로 전환');
+          debugPrint('   → main.dart가 MainScreen 표시');
         }
       }
       
-      // LoginScreen을 스택에서 완전히 제거하고 MainScreen으로 교체
-      await Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => MainScreen(
-            showWelcomeDialog: isFirstLogin, // 첫 로그인 시 환영 다이얼로그 표시
-          ),
-        ),
-        (route) => false, // 모든 이전 화면 제거
-      );
-      
-      if (kDebugMode) {
-        debugPrint('✅ [LOGIN] MainScreen으로 화면 전환 완료');
-        debugPrint('   - 첫 로그인 여부: $isFirstLogin');
-        debugPrint('   - 승인 대기 중: ${authService.isWaitingForApproval}');
-      }
-      
-      // 🔥 CRITICAL: MainScreen 전환 완료 후 FCM 초기화 완료 이벤트 발행
-      // 승인 대기 중이면 MainScreen이 "서비스 로딩중" 오버레이를 표시할 수 있도록
-      // 🔥 EVENT-BASED: 승인 대기 중이면 setFcmInitialized 호출을 MainScreen에 위임
-      // MainScreen이 "서비스 로딩중..." 오버레이를 렌더링한 후 
-      // notifyFcmLoadingOverlayRendered()를 통해 자동으로 FCM 초기화 완료 처리됨
-      if (authService.isWaitingForApproval) {
-        if (kDebugMode) {
-          debugPrint('🎯 [LOGIN] 승인 대기 중 - MainScreen 오버레이 렌더링 대기');
-          debugPrint('   - MainScreen이 오버레이 표시 후 자동으로 setFcmInitialized(true) 호출');
-          debugPrint('   - ⏱️ 시간 기반 아님: 실제 렌더링 완료 이벤트 기반!');
-        }
-        // ✅ 아무 작업도 하지 않음 - MainScreen의 이벤트 기반 처리에 완전히 위임
-      }
+      // ✅ 화면 전환은 main.dart Consumer가 자동으로 처리
+      // signIn() 완료 시 notifyListeners() 호출되어 main.dart Consumer 재빌드
       
     } on MaxDeviceLimitException catch (e) {
       // 🔍 CRITICAL: AuthService에서 이미 다이얼로그를 표시했는지 확인
