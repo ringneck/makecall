@@ -198,8 +198,22 @@ class _CallTabState extends State<CallTab> {
       );
       
       // 로그아웃 상태 체크
+      if (kDebugMode) {
+        debugPrint('🔍 [CALL_TAB] 로그아웃 상태 체크');
+        debugPrint('   - currentUser: ${_authService?.currentUser?.uid ?? "null"}');
+        debugPrint('   - isAuthenticated: ${_authService?.isAuthenticated ?? false}');
+      }
+      
       if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [CALL_TAB] 로그아웃 상태 감지 - 초기화 중단');
+          debugPrint('   → _initializeSequentially() 호출 안 됨!');
+        }
         return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ [CALL_TAB] 로그인 상태 확인 완료 - 초기화 계속 진행');
       }
       
       // 🔒 CRITICAL: 이메일 회원가입 시 리스너 등록 지연 (MainScreen 렌더링 완료 후)
