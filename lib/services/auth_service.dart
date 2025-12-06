@@ -187,11 +187,25 @@ class AuthService extends ChangeNotifier {
   
   /// FCM 초기화 진행 중 상태 설정
   void setFcmInitializing(bool initializing) {
+    if (kDebugMode) {
+      debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      debugPrint('🔄 [AUTH-FCM-1] setFcmInitializing($initializing) 호출됨');
+      debugPrint('   - 변경 전: $_isFcmInitializing');
+      debugPrint('   - 변경 후: $initializing');
+    }
+    
     _isFcmInitializing = initializing;
+    
+    if (kDebugMode) {
+      debugPrint('🔔 [AUTH-FCM-2] notifyListeners() 호출 시작');
+      debugPrint('   → main.dart Consumer가 재빌드됩니다');
+    }
+    
     notifyListeners();
     
     if (kDebugMode) {
-      debugPrint('🔄 [FCM-STATUS] FCM 초기화 진행 중: $initializing');
+      debugPrint('✅ [AUTH-FCM-3] notifyListeners() 호출 완료');
+      debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     }
   }
   

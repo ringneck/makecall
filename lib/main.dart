@@ -1049,8 +1049,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       }
                       
                       // ✅ 로그인 상태 체크: currentUser와 currentUserModel 존재 여부
+                      if (kDebugMode) {
+                        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        debugPrint('🔄 [MAIN-DECISION] 화면 선택 로직 시작');
+                        debugPrint('   - currentUser: ${authService.currentUser?.email ?? "null"}');
+                        debugPrint('   - currentUserModel: ${authService.currentUserModel?.email ?? "null"}');
+                        debugPrint('   - isFcmInitializing: ${authService.isFcmInitializing}');
+                        debugPrint('   - isWaitingForApproval: ${authService.isWaitingForApproval}');
+                        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                      }
+                      
                       if (authService.currentUser != null && 
                           authService.currentUserModel != null) {
+                        
+                        if (kDebugMode) {
+                          debugPrint('✅ [MAIN-DECISION] 로그인 완료 상태 → MainScreen/ApprovalWaitingScreen 선택');
+                        }
                         
                         // 🔄 개인정보보호법 준수: 동의 만료 체크 (2년 주기) - 현재 비활성화
                         // final userModel = authService.currentUserModel!;
@@ -1077,6 +1091,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                             }
                           } else {
                             // ✅ ApprovalWaitingScreen 반환 (MainScreen 진입 차단)
+                            if (kDebugMode) {
+                              debugPrint('📺 [MAIN-DECISION] ✅ ApprovalWaitingScreen 반환');
+                            }
                             return ApprovalWaitingScreen(
                               approvalRequestId: requestId,
                               userId: userId,
@@ -1085,6 +1102,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         }
                         
                         // ⏱️ 사용자 활동 감지 (GestureDetector로 전체 앱 감싸기)
+                        if (kDebugMode) {
+                          debugPrint('🏠 [MAIN-DECISION] ✅ MainScreen 반환');
+                        }
                         return GestureDetector(
                           key: ValueKey('gesture_${authService.currentUser?.uid}'),
                           onTap: () => _inactivityService.updateActivity(),
@@ -1095,11 +1115,28 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           ), // 로그인 후 MAKECALL 메인 화면으로 이동
                         );
                       } else {
+                        if (kDebugMode) {
+                          debugPrint('🔓 [MAIN-DECISION] 로그인 전 상태 → LoginScreen 선택');
+                        }
+                        
                         // ⚡ CRITICAL: FCM 초기화 중일 때는 오버레이 유지
                         // LoginScreen 렌더링 시 forceHide()가 오버레이를 제거하는 문제 방지
                         if (!authService.isFcmInitializing) {
+                          if (kDebugMode) {
+                            debugPrint('🧹 [MAIN-DECISION] FCM 초기화 중 아님 → forceHide() 호출');
+                          }
                           SocialLoginProgressHelper.forceHide();
+                        } else {
+                          if (kDebugMode) {
+                            debugPrint('⏳ [MAIN-DECISION] FCM 초기화 중 → 오버레이 유지 (forceHide() 건너뛰기)');
+                          }
                         }
+                        
+                        if (kDebugMode) {
+                          debugPrint('📱 [MAIN-DECISION] ✅ LoginScreen 반환');
+                          debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        }
+                        
                         return WebLoginWrapper(
                           child: LoginScreen(
                             key: ValueKey('login_${DateTime.now().millisecondsSinceEpoch}'),

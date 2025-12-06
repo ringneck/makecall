@@ -194,10 +194,21 @@ class SocialLoginProgressHelper {
   /// 강제 오버레이 제거 (화면 전환 시 안전장치)
   static void forceHide() {
     try {
+      if (kDebugMode) {
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        debugPrint('🧹 [OVERLAY-HIDE-1] forceHide() 호출됨');
+        debugPrint('   - 현재 오버레이 존재: ${_currentOverlay != null}');
+        // 호출 스택 정보 (어디서 호출되었는지)
+        final stack = StackTrace.current.toString().split('\n').take(3).join('\n');
+        debugPrint('   📍 호출 위치:\n$stack');
+      }
+      
       _currentOverlay?.remove();
       _currentOverlay = null;
+      
       if (kDebugMode) {
-        debugPrint('✅ [OVERLAY] forceHide() 완료 - _currentOverlay 제거됨');
+        debugPrint('✅ [OVERLAY-HIDE-2] forceHide() 완료 - _currentOverlay 제거됨');
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       }
     } catch (e) {
       _currentOverlay = null;

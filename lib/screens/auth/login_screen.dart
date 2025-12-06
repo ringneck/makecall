@@ -281,19 +281,36 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final loginStartTime = DateTime.now();
     setState(() => _isLoading = true);
 
     try {
       final authService = context.read<AuthService>();
       
       if (kDebugMode) {
-        debugPrint('🔐 [LOGIN] 로그인 시도 시작 (승인 대기 포함)');
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        debugPrint('🔐 [LOGIN-1] 로그인 버튼 클릭 (${loginStartTime.millisecondsSinceEpoch})');
+        debugPrint('   - Email: ${_emailController.text.trim()}');
+        debugPrint('   - 현재 상태: isFcmInitializing=${authService.isFcmInitializing}');
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       }
       
       // ⚡ CRITICAL: 로그인 버튼 클릭 시 즉시 "서비스 로딩중..." 오버레이 표시
+      final beforeSetFcm = DateTime.now();
       authService.setFcmInitializing(true);
+      final afterSetFcm = DateTime.now();
+      
       if (kDebugMode) {
-        debugPrint('🎬 [LOGIN] FCM 초기화 시작 - "서비스 로딩중..." 오버레이 표시');
+        debugPrint('🎬 [LOGIN-2] setFcmInitializing(true) 호출 완료');
+        debugPrint('   - 호출 시간: ${beforeSetFcm.difference(loginStartTime).inMilliseconds}ms');
+        debugPrint('   - 완료 시간: ${afterSetFcm.difference(loginStartTime).inMilliseconds}ms');
+        debugPrint('   - 소요 시간: ${afterSetFcm.difference(beforeSetFcm).inMilliseconds}ms');
+        debugPrint('   → main.dart Consumer가 재빌드되어야 오버레이 표시됨');
+      }
+      
+      final beforeSignIn = DateTime.now();
+      if (kDebugMode) {
+        debugPrint('🔐 [LOGIN-3] authService.signIn() 시작 (${beforeSignIn.difference(loginStartTime).inMilliseconds}ms)');
       }
       
       await authService.signIn(
@@ -301,9 +318,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         password: _passwordController.text,
       );
       
+      final afterSignIn = DateTime.now();
       if (kDebugMode) {
-        debugPrint('✅ [LOGIN] 로그인 및 승인 완료');
-        debugPrint('   ℹ️ 로그인 성공 - 화면 전환 준비');
+        debugPrint('✅ [LOGIN-4] authService.signIn() 완료 (${afterSignIn.difference(loginStartTime).inMilliseconds}ms)');
+        debugPrint('   - signIn 소요 시간: ${afterSignIn.difference(beforeSignIn).inMilliseconds}ms');
+        debugPrint('   - 로그인 성공 - 화면 전환 준비');
+        debugPrint('   - isFcmInitializing: ${authService.isFcmInitializing}');
+        debugPrint('   - isWaitingForApproval: ${authService.isWaitingForApproval}');
       }
       
       // 로그인 성공 시 이메일 저장 설정 적용
