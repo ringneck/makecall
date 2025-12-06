@@ -1300,7 +1300,8 @@ class DatabaseService {
           .collection('fcm_tokens')
           .where('userId', isEqualTo: userId)
           .where('isActive', isEqualTo: true)
-          .where('isApproved', isEqualTo: true) // 🔑 승인된 기기만 조회
+          // 🔧 FIX: isApproved 조건 제거 - 승인 여부와 관계없이 활성 기기 모두 조회
+          // ✅ 최대 기기 수 체크 시 승인 대기 중인 기기도 포함해야 함
           .get();
 
       if (querySnapshot.docs.isEmpty) {
