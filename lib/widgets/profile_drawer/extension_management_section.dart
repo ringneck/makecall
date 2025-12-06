@@ -22,7 +22,7 @@ class ExtensionManagementSection extends StatefulWidget {
   /// 📋 외부에서 단말번호 관리 다이얼로그 직접 호출 (Static Helper)
   /// 
   /// SettingsChecker 등에서 사용 - extensions를 불러와서 다이얼로그 표시
-  static Future<void> showExtensionManagementDialog(BuildContext context) async {
+  static Future<void> showExtensionManagementDialog(BuildContext context, {bool autoSearch = false}) async {
     final authService = context.read<AuthService>();
     final userId = authService.currentUser?.uid ?? '';
     
@@ -184,14 +184,63 @@ class ExtensionManagementSection extends StatefulWidget {
                                     appKey: userModel.appKey!,
                                   );
                                   final extensionsData = await apiService.getExtensions();
+                                  final userEmail = userModel.email ?? '';
                                   
-                                  // Map<String, dynamic> -> MyExtensionModel 변환
-                                  final myExtensions = extensionsData.map((data) {
+                                  if (kDebugMode) {
+                                    debugPrint('📊 [EXTENSION_FILTER] API 응답 데이터 분석');
+                                    debugPrint('   - 전체 단말번호 개수: ${extensionsData.length}개');
+                                    debugPrint('   - 필터링 기준 이메일: $userEmail');
+                                    debugPrint('');
+                                    debugPrint('📋 전체 단말번호 목록:');
+                                    for (var i = 0; i < extensionsData.length; i++) {
+                                      final item = extensionsData[i];
+                                      debugPrint('   [$i] extension: ${item['extension']}, email: ${item['email']}, name: ${item['name']}');
+                                    }
+                                  }
+                                  
+                                  // ✅ 이메일 필터링 추가 - 내 이메일과 일치하는 단말번호만
+                                  final filteredData = extensionsData.where((data) {
+                                    final email = data['email']?.toString() ?? '';
+                                    final matches = email.toLowerCase() == userEmail.toLowerCase();
+                                    
+                                    if (kDebugMode) {
+                                      debugPrint('   🔍 필터링: ${data['extension']} - email: "$email" == "$userEmail"? $matches');
+                                    }
+                                    
+                                    return matches;
+                                  }).toList();
+                                  
+                                  if (kDebugMode) {
+                                    debugPrint('');
+                                    debugPrint('✅ [EXTENSION_FILTER] 필터링 결과: ${filteredData.length}개');
+                                    for (var data in filteredData) {
+                                      debugPrint('   - ${data['extension']} (${data['name']}, 이메일 일치)');
+                                    }
+                                  }
+                                  
+                                  // 필터링된 데이터를 MyExtensionModel로 변환
+                                  final myExtensions = filteredData.map((data) {
                                     return MyExtensionModel.fromApi(
                                       userId: userId,
                                       apiData: data,
                                     );
                                   }).toList();
+                                  
+                                  // 필터링 결과가 없는 경우
+                                  if (myExtensions.isEmpty) {
+                                    setState(() {
+                                      isSearching = false;
+                                    });
+                                    
+                                    if (!context.mounted) return;
+                                    
+                                    Navigator.pop(dialogContext);
+                                    await DialogUtils.showError(
+                                      context,
+                                      '내 이메일과 일치하는 단말번호를 찾을 수 없습니다.\\n\\n관리자에게 단말번호 등록을 요청하세요.',
+                                    );
+                                    return;
+                                  }
                                   
                                   setState(() {
                                     isSearching = false;
