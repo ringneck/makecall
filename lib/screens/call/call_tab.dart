@@ -317,6 +317,12 @@ class _CallTabState extends State<CallTab> {
       // 공지사항 BottomSheet 표시
       if (mounted) {
         await AnnouncementBottomSheet.show(context, announcement);
+        // 🔥 CRITICAL: BottomSheet가 완전히 닫힌 후 추가 대기
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        if (kDebugMode) {
+          debugPrint('✅ [ANNOUNCEMENT] 공지사항 닫힘 - 다음 단계 진행');
+        }
       }
     } catch (e) {
       if (kDebugMode) {
