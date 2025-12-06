@@ -316,12 +316,17 @@ class _CallTabState extends State<CallTab> {
       
       // 공지사항 BottomSheet 표시
       if (mounted) {
+        // 🔥 EVENT-BASED: showModalBottomSheet()는 BottomSheet가 닫힐 때 Future 완료
+        // Navigator.pop() 호출 시 자동으로 await가 완료되어 다음 단계 진행
         await AnnouncementBottomSheet.show(context, announcement);
-        // 🔥 CRITICAL: BottomSheet가 완전히 닫힌 후 추가 대기
-        await Future.delayed(const Duration(milliseconds: 300));
         
-        if (kDebugMode) {
-          debugPrint('✅ [ANNOUNCEMENT] 공지사항 닫힘 - 다음 단계 진행');
+        // 🎯 FRAME-BASED: 다음 프레임까지 대기 (애니메이션 완료 보장)
+        if (mounted) {
+          await WidgetsBinding.instance.endOfFrame;
+          
+          if (kDebugMode) {
+            debugPrint('✅ [ANNOUNCEMENT] 공지사항 닫힘 + 애니메이션 완료 - 다음 단계 진행');
+          }
         }
       }
     } catch (e) {
