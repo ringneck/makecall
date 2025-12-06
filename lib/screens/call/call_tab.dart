@@ -351,21 +351,31 @@ class _CallTabState extends State<CallTab> {
     if (!mounted) return;
     
     // 🎯 STEP 3: 공지사항 확인 및 표시 (기기 승인 이후)
-    // 🔒 CRITICAL: FCM 초기화 완료 및 기기 승인 필요 여부 확인 대기
+    // 🔒 CRITICAL: FCM 초기화 완료를 이벤트 기반으로 대기
     final authService = Provider.of<AuthService>(context, listen: false);
     
     if (kDebugMode) {
-      debugPrint('⏳ [CALL_TAB] FCM 초기화 및 기기 승인 상태 확인 대기...');
+      debugPrint('⏳ [CALL_TAB] FCM 초기화 완료 이벤트 대기...');
     }
     
-    // 🔥 CRITICAL: FCM 초기화 완료 대기 (최대 2초)
-    // AuthService의 authStateChanges 리스너에서 FCM 초기화가 진행되므로
-    // FCM 초기화가 완료되어 승인 필요 여부가 확정될 때까지 대기
-    int attempts = 0;
-    const maxAttempts = 20; // 최대 2초 (100ms * 20)
+    // 🔥 EVENT-BASED: FCM 초기화 완료를 이벤트 기반으로 대기 (시간 기반 X)
+    // AuthService.isFcmInitialized 플래그가 true가 될 때까지 대기
+    // 
+    // 🎯 이벤트 흐름:
+    // 1. AuthService.authStateChanges 리스너에서 FCM 초기화 시작
+    // 2. FCMService.initialize() 실행
+    //    - saveFCMToken() → needsApproval 체크
+    //    - needsApproval = true → setWaitingForApproval(true)
+    //    - needsApproval = false → 계속 진행
+    // 3. FCM 초기화 완료 시 setFcmInitialized(true) 호출
+    // 4. CallTab이 이 이벤트를 감지하고 다음 단계 진행
     
-    while (attempts < maxAttempts) {
-      // 승인 대기 상태가 설정되었으면 즉시 종료
+    // ⏱️ 타임아웃 보호: 최대 10초 대기 (FCM 초기화 실패 대응)
+    int attempts = 0;
+    const maxAttempts = 100; // 최대 10초 (100ms * 100)
+    
+    while (!authService.isFcmInitialized && attempts < maxAttempts) {
+      // 🚨 CRITICAL: 승인 대기 상태가 먼저 설정되면 즉시 종료
       if (authService.isWaitingForApproval) {
         if (kDebugMode) {
           debugPrint('🚫 [CALL_TAB] 기기 승인 대기 상태 감지 - 공지사항 건너뛰기');
@@ -373,25 +383,31 @@ class _CallTabState extends State<CallTab> {
         return;
       }
       
-      // 100ms 대기
+      // 100ms 대기 후 재확인
       await Future.delayed(const Duration(milliseconds: 100));
       attempts++;
-      
-      // 500ms 이상 대기했는데도 승인 대기 상태가 아니면 이미 승인된 기기로 판단
-      if (attempts >= 5) {
-        if (kDebugMode) {
-          debugPrint('✅ [CALL_TAB] 기기 승인 필요 없음 - 공지사항 표시 진행');
-        }
-        break;
+    }
+    
+    // FCM 초기화 완료 확인
+    if (authService.isFcmInitialized) {
+      if (kDebugMode) {
+        debugPrint('✅ [CALL_TAB] FCM 초기화 완료 이벤트 수신 (${attempts * 100}ms)');
+      }
+    } else {
+      if (kDebugMode) {
+        debugPrint('⚠️ [CALL_TAB] FCM 초기화 타임아웃 (${attempts * 100}ms) - 공지사항 표시 진행');
       }
     }
     
     // 최종 체크: 승인 대기 상태가 아닌 경우에만 공지사항 표시
     if (!authService.isWaitingForApproval) {
+      if (kDebugMode) {
+        debugPrint('📢 [CALL_TAB] 공지사항 표시 진행');
+      }
       await _checkAndShowAnnouncement();
     } else {
       if (kDebugMode) {
-        debugPrint('⏭️ [CALL_TAB] 기기 승인 대기 중 - 공지사항 표시 건너뛰기');
+        debugPrint('⏭️ [CALL_TAB] 최종 체크: 기기 승인 대기 중 - 공지사항 표시 건너뛰기');
       }
     }
     

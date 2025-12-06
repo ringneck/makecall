@@ -428,6 +428,16 @@ class FCMService {
           // ignore: avoid_print
           print('✅ [FCM-INIT] FCM 토큰 저장 완료');
           
+          // 🚀 EVENT-BASED: FCM 초기화 완료 이벤트 발행 (AuthService에 알림)
+          // 🔥 CRITICAL: 토큰 저장 및 승인 처리 완료 직후 호출
+          // (승인 대기 상태가 아닌 경우에만 여기 도달)
+          if (_authService != null) {
+            _authService!.setFcmInitialized(true);
+            if (kDebugMode) {
+              debugPrint('🚀 [FCM] 초기화 완료 이벤트 발행 → AuthService 알림');
+            }
+          }
+          
           // 🔒 토큰 갱신 리스너 중복 등록 방지
           if (_tokenRefreshSubscription == null) {
             _tokenRefreshSubscription = _messaging.onTokenRefresh.listen((newToken) {
@@ -508,13 +518,8 @@ class FCMService {
       if (_fcmToken != null) {
         _initializedUserId = userId;
         
-        // 🚀 고급 패턴: FCM 초기화 완료 이벤트 발행 (AuthService에 알림)
-        if (_authService != null) {
-          _authService!.setFcmInitialized(true);
-          if (kDebugMode) {
-            debugPrint('🚀 [FCM] 초기화 완료 이벤트 발행 → AuthService 알림');
-          }
-        }
+        // 🚀 EVENT-BASED: setFcmInitialized(true)는 _saveFCMTokenWithApproval() 완료 직후 호출됨
+        // (finally 블록에서는 중복 호출 방지를 위해 제거)
       }
     }
   }
