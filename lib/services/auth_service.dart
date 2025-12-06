@@ -801,6 +801,19 @@ class AuthService extends ChangeNotifier {
           
           // ignore: avoid_print
           print('✅ [AUTH] FCM 초기화 완료');
+          
+          // 🔥 CRITICAL: 승인 대기 중이면 _isFcmInitializing을 true로 유지
+          // → MainScreen이 "서비스 로딩중..." 오버레이를 표시할 수 있도록
+          if (_isWaitingForApproval) {
+            if (kDebugMode) {
+              debugPrint('');
+              debugPrint('🔄 [signIn] 승인 대기 중 - _isFcmInitializing 유지');
+              debugPrint('   → MainScreen이 "서비스 로딩중..." 오버레이 표시');
+              debugPrint('   → 오버레이 렌더링 완료 후 자동으로 setFcmInitialized(true)');
+            }
+            // _isFcmInitializing은 이미 true - 그대로 유지
+            // MainScreen의 addPostFrameCallback에서 자동으로 setFcmInitialized(true) 호출
+          }
         } on MaxDeviceLimitException catch (e) {
           // 🚫 CRITICAL: 최대 기기 수 초과 - 플래그 설정 후 예외 전파
           // ignore: avoid_print
