@@ -137,10 +137,26 @@ class _CallTabState extends State<CallTab> {
     // 🚀 고급 개발자 패턴: 순차적 초기화 체인
     // 1️⃣ 설정 확인 먼저 → 2️⃣ 설정 완료 시에만 단말번호 조회
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
+      if (kDebugMode) {
+        debugPrint('🔄 [CALL_TAB] addPostFrameCallback 시작');
+      }
       
-      // 🔒 AuthService 참조를 안전하게 저장 (dispose에서 사용)
-      _authService = context.read<AuthService>();
+      if (!mounted) {
+        if (kDebugMode) {
+          debugPrint('⚠️ [CALL_TAB] Widget not mounted - 초기화 중단');
+        }
+        return;
+      }
+      
+      try {
+        // 🔒 AuthService 참조를 안전하게 저장 (dispose에서 사용)
+        if (kDebugMode) {
+          debugPrint('🔄 [CALL_TAB] AuthService 가져오기 시도...');
+        }
+        _authService = context.read<AuthService>();
+        if (kDebugMode) {
+          debugPrint('✅ [CALL_TAB] AuthService 가져오기 성공');
+        }
       
       // SettingsChecker 초기화
       _settingsChecker = SettingsChecker(
@@ -228,7 +244,23 @@ class _CallTabState extends State<CallTab> {
       });
       
       // 순차적 초기화 실행 (ExtensionInitializer 포함)
+      if (kDebugMode) {
+        debugPrint('🚀 [CALL_TAB] _initializeSequentially() 호출 직전');
+      }
       await _initializeSequentially();
+      if (kDebugMode) {
+        debugPrint('✅ [CALL_TAB] _initializeSequentially() 완료');
+      }
+      
+      } catch (e, stackTrace) {
+        if (kDebugMode) {
+          debugPrint('');
+          debugPrint('❌ [CALL_TAB] addPostFrameCallback 에러 발생!');
+          debugPrint('   Error: $e');
+          debugPrint('   StackTrace: $stackTrace');
+          debugPrint('');
+        }
+      }
     });
   }
   
