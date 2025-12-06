@@ -343,7 +343,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       }
       
       // LoginScreen을 스택에서 완전히 제거하고 MainScreen으로 교체
-      Navigator.of(context).pushAndRemoveUntil(
+      await Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (context) => MainScreen(
             showWelcomeDialog: isFirstLogin, // 첫 로그인 시 환영 다이얼로그 표시
@@ -356,6 +356,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         debugPrint('✅ [LOGIN] MainScreen으로 화면 전환 완료');
         debugPrint('   - 첫 로그인 여부: $isFirstLogin');
         debugPrint('   - 승인 대기 중: ${authService.isWaitingForApproval}');
+      }
+      
+      // 🔥 CRITICAL: MainScreen 전환 완료 후 FCM 초기화 완료 이벤트 발행
+      // 승인 대기 중이면 MainScreen이 "서비스 로딩중" 오버레이를 표시할 수 있도록
+      // 이벤트 기반으로 setFcmInitialized(true) 호출
+      if (authService.isWaitingForApproval) {
+        // MainScreen 렌더링 완료 대기 (한 프레임)
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (kDebugMode) {
+          debugPrint('🚀 [LOGIN] FCM 초기화 완료 이벤트 발행 (MainScreen 전환 후)');
+        }
+        
+        authService.setFcmInitialized(true);
       }
       
     } on MaxDeviceLimitException catch (e) {

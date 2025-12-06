@@ -614,22 +614,17 @@ class FCMService {
             debugPrint('   - isWaitingForApproval: ${_authService!.isWaitingForApproval}');
           }
           
-          // 🎯 CRITICAL: 승인 대기 시 FCM 초기화 완료를 지연 호출
-          // MainScreen 전환 → "서비스 로딩중" 오버레이 표시 → setFcmInitialized(true)
-          // 이렇게 해야 MainScreen Consumer가 isFcmInitializing=true 상태를 감지할 수 있음
+          // 🎯 CRITICAL: 승인 대기 시 FCM 초기화 완료 이벤트를 LoginScreen에서 발행
+          // MainScreen 전환 완료 후 LoginScreen이 setFcmInitialized(true) 호출
+          // 이렇게 해야 MainScreen Consumer가 isFcmInitializing=true 상태를 감지 가능
           
           if (kDebugMode) {
             debugPrint('⏳ [FCM] FCM 초기화 완료 이벤트 지연 (승인 대기 중)');
-            debugPrint('   → MainScreen 전환 및 오버레이 표시 대기');
+            debugPrint('   → LoginScreen이 MainScreen 전환 후 이벤트 발행 예정');
           }
           
-          // 🔥 CRITICAL: 백그라운드에서 지연 호출
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (kDebugMode) {
-              debugPrint('🚀 [FCM] FCM 초기화 완료 이벤트 발행 (지연 500ms)');
-            }
-            _authService!.setFcmInitialized(true);
-          });
+          // 🔒 IMPORTANT: 여기서는 setFcmInitialized(true)를 호출하지 않음
+          // LoginScreen이 MainScreen 전환 완료 후 호출함 (이벤트 기반)
         }
         
         // 🚀 CRITICAL: 승인 대기를 백그라운드로 이동 - signIn() 메서드 즉시 완료
