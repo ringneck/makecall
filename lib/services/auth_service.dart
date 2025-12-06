@@ -862,6 +862,24 @@ class AuthService extends ChangeNotifier {
     // 🔥 CRITICAL FIX: 소셜 로그인 완료 카운터 리셋 (재로그인 시 이벤트 감지 가능하도록)
     _socialLoginCompleteCounter.value = 0;
     
+    // 🔄 공지사항 "다시 보지 않기" 설정 초기화 (재로그인 시 공지사항 재표시)
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        if (key.startsWith('announcement_hidden_')) {
+          await prefs.remove(key);
+        }
+      }
+      if (kDebugMode) {
+        debugPrint('🔄 [LOGOUT] 공지사항 "다시 보지 않기" 설정 초기화 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [LOGOUT] 공지사항 설정 초기화 실패: $e');
+      }
+    }
+    
     if (kDebugMode) {
       debugPrint('✅ [4/4] currentUserModel 초기화 완료 (로컬 변수만)');
       debugPrint('🔄 [LOGOUT] socialLoginCompleteCounter 리셋 (0으로)');

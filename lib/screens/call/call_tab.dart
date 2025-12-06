@@ -327,9 +327,17 @@ class _CallTabState extends State<CallTab> {
       
       // 공지사항 BottomSheet 표시
       if (mounted) {
+        if (kDebugMode) {
+          debugPrint('🔥 [ANNOUNCEMENT] showModalBottomSheet() 호출 시작');
+        }
+        
         // 🔥 EVENT-BASED: showModalBottomSheet()는 BottomSheet가 닫힐 때 Future 완료
         // Navigator.pop() 호출 시 자동으로 await가 완료되어 다음 단계 진행
         await AnnouncementBottomSheet.show(context, announcement);
+        
+        if (kDebugMode) {
+          debugPrint('✅ [ANNOUNCEMENT] showModalBottomSheet() 완료 (사용자가 닫음)');
+        }
         
         // 🎯 FRAME-BASED: 다음 프레임까지 대기 (애니메이션 완료 보장)
         if (mounted) {
@@ -338,6 +346,10 @@ class _CallTabState extends State<CallTab> {
           if (kDebugMode) {
             debugPrint('✅ [ANNOUNCEMENT] 공지사항 닫힘 + 애니메이션 완료 - 다음 단계 진행');
           }
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('⚠️ [ANNOUNCEMENT] Widget이 mounted 상태가 아님 - 공지사항 표시 건너뛰기');
         }
       }
     } catch (e) {
