@@ -80,6 +80,18 @@ class AuthService extends ChangeNotifier {
                 if (kDebugMode) {
                   debugPrint('✅ [authStateChanges] FCM 초기화 완료');
                 }
+              } on MaxDeviceLimitException catch (e) {
+                if (kDebugMode) {
+                  debugPrint('🚫 [authStateChanges] 최대 기기 수 초과 - MaxDeviceLimit 차단 상태 설정');
+                }
+                
+                // 🚫 CRITICAL: MaxDeviceLimit 차단 상태 설정
+                setBlockedByMaxDeviceLimit(true, exception: e);
+                
+                // FCM 초기화 실패했지만 로그인은 진행 (차단 화면 표시)
+                if (kDebugMode) {
+                  debugPrint('⚠️ [authStateChanges] MaxDeviceLimit 차단 상태로 로그인 진행');
+                }
               } catch (e) {
                 if (kDebugMode) {
                   debugPrint('❌ [authStateChanges] FCM 초기화 실패: $e');

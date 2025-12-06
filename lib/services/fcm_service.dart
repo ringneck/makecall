@@ -488,6 +488,14 @@ class FCMService {
       _isInitializing = false;
       _initializationCompleter = null;
       
+      // 🔄 CRITICAL: FCM 초기화 진행 중 상태 해제 (로딩 화면 제거)
+      if (_authService != null) {
+        _authService!.setFcmInitializing(false);
+        if (kDebugMode) {
+          debugPrint('🔄 [FCM-INIT] FCM 초기화 실패 - 로딩 상태 해제');
+        }
+      }
+      
       // ignore: avoid_print
       print('🧹 [FCM-INIT] FCM 상태 리셋 완료 - 다음 로그인 시 재시도 가능');
       
@@ -509,13 +517,29 @@ class FCMService {
           _initializationCompleter!.completeError(e, stackTrace);
         }
         
+        // 🔄 CRITICAL: FCM 초기화 진행 중 상태 해제 (로딩 화면 제거)
+        if (_authService != null) {
+          _authService!.setFcmInitializing(false);
+          if (kDebugMode) {
+            debugPrint('🔄 [FCM-INIT] FCM 초기화 실패 (승인 오류) - 로딩 상태 해제');
+          }
+        }
+        
         rethrow;
       }
       
       // 일반적인 FCM 초기화 오류는 무시 (앱은 계속 실행)
+      if (kDebugMode) {
+        debugPrint('⚠️ [FCM-INIT] FCM 초기화 오류 (계속 진행): $e');
+      }
     } finally {
       // 🔓 초기화 완료 - 잠금 해제
       _isInitializing = false;
+      
+      // 🔄 CRITICAL: FCM 초기화 진행 중 상태 해제 (finally에서 확실히 해제)
+      if (_authService != null) {
+        _authService!.setFcmInitializing(false);
+      }
       
       // 🔓 초기화 완료 알림 (대기 중인 호출들에게)
       // 승인 실패의 경우 위에서 이미 completeError 호출됨
