@@ -1189,11 +1189,37 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
       final dataList = await apiService.getExtensions();
       final userEmail = userModel.email ?? '';
       
+      if (kDebugMode) {
+        debugPrint('📊 [EXTENSION_FILTER] API 응답 데이터 분석');
+        debugPrint('   - 전체 단말번호 개수: ${dataList.length}개');
+        debugPrint('   - 필터링 기준 이메일: $userEmail');
+        debugPrint('');
+        debugPrint('📋 전체 단말번호 목록:');
+        for (var i = 0; i < dataList.length; i++) {
+          final item = dataList[i];
+          debugPrint('   [$i] extension: ${item['extension']}, email: ${item['email']}, name: ${item['name']}');
+        }
+      }
+      
       // 내 이메일과 일치하는 단말번호 필터링
       final myExtensions = dataList.where((item) {
         final email = item['email']?.toString() ?? '';
-        return email.toLowerCase() == userEmail.toLowerCase();
+        final matches = email.toLowerCase() == userEmail.toLowerCase();
+        
+        if (kDebugMode) {
+          debugPrint('   🔍 필터링: ${item['extension']} - email: "$email" == "$userEmail"? $matches');
+        }
+        
+        return matches;
       }).toList();
+      
+      if (kDebugMode) {
+        debugPrint('');
+        debugPrint('✅ [EXTENSION_FILTER] 필터링 결과: ${myExtensions.length}개');
+        for (var ext in myExtensions) {
+          debugPrint('   - ${ext['extension']} (${ext['name']}, ${ext['email']})');
+        }
+      }
 
       if (myExtensions.isEmpty) {
         setState(() {
