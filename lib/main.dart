@@ -33,6 +33,7 @@ import 'screens/auth/approval_waiting_screen.dart';
 import 'screens/home/main_screen.dart';
 import 'screens/splash/splash_screen.dart';
 import 'widgets/social_login_progress_overlay.dart';
+import 'widgets/max_device_limit_dialog.dart';
 
 /// 백그라운드 FCM 메시지 핸들러 (Top-level function)
 @pragma('vm:entry-point')
