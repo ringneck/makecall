@@ -117,7 +117,20 @@ class FCMTokenManager {
       // 🔧 FIX: 모든 기기의 승인 대기 상태도 체크 (같은 기기만이 아니라)
       bool hasUnapprovedToken = false;
       
-      // 1) 같은 기기의 승인되지 않은 토큰 체크
+      // 🔧 FIX: otherDevices 계산을 비활성화 전에 수행 (실제 활성 기기 수 체크)
+      // ✅ 현재 기기를 제외한 다른 활성 기기들 필터링
+      final otherDevices = existingTokens
+          .where((token) => '${token.deviceId}_${token.platform}' != currentDeviceKey)
+          .toList();
+      
+      // ignore: avoid_print
+      print('📊 [FCM-SAVE] 다른 활성 기기 수: ${otherDevices.length}개');
+      for (var device in otherDevices) {
+        // ignore: avoid_print
+        print('   - ${device.deviceName} (${device.platform}) isApproved=${device.isApproved}');
+      }
+      
+      // 1) 같은 기기의 승인되지 않은 토큰 체크 및 비활성화
       if (sameDeviceTokens.isNotEmpty) {
         // ignore: avoid_print
         print('🧹 [FCM-SAVE] 같은 기기의 기존 토큰 ${sameDeviceTokens.length}개 발견 - 비활성화 중...');
@@ -148,10 +161,8 @@ class FCMTokenManager {
       }
       
       // 2) 🔧 FIX: 다른 기기 중에서도 승인 대기 중인 기기가 있는지 체크
-      final otherUnapprovedTokens = existingTokens
-          .where((token) => 
-              '${token.deviceId}_${token.platform}' != currentDeviceKey && 
-              !token.isApproved)
+      final otherUnapprovedTokens = otherDevices
+          .where((token) => !token.isApproved)
           .toList();
       
       if (otherUnapprovedTokens.isNotEmpty) {
@@ -187,11 +198,6 @@ class FCMTokenManager {
         print('');
         throw Exception('Device approval pending - Please approve from another device');
       }
-      
-      // 현재 기기를 제외한 다른 기기들 필터링
-      final otherDevices = existingTokens
-          .where((token) => '${token.deviceId}_${token.platform}' != currentDeviceKey)
-          .toList();
       
       // 🔍 플랫폼 변경 감지: 같은 Device ID지만 다른 플랫폼
       final sameDeviceIdDifferentPlatform = existingTokens
