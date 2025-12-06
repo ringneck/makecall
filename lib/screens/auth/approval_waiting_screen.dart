@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'dart:async';
 import '../../services/fcm/fcm_device_approval_service.dart';
 import '../../utils/dialog_utils.dart';
