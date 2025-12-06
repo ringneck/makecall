@@ -990,6 +990,15 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     }
                     authService.setIsInSocialLoginFlow(false);
                     
+                    // 🔧 FIX: isLoggingOut 플래그 명시적 해제 (회원가입/로그인 완료 시)
+                    // 기존 계정으로 로그인할 때 이전 로그아웃 플래그가 남아있을 수 있음
+                    if (authService.isLoggingOut) {
+                      if (kDebugMode) {
+                        debugPrint('🔓 [SIGNUP] isLoggingOut 플래그 명시적 해제');
+                      }
+                      authService.onLoginScreenDisplayed(); // 로그아웃 플래그 해제
+                    }
+                    
                   } else {
                     if (kDebugMode) {
                       debugPrint('⚠️ [SIGNUP] navigatorKey.currentContext가 null - Consumer가 자동 전환 시도');
