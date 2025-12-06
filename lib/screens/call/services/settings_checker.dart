@@ -310,6 +310,19 @@ class SettingsChecker {
             ],
           ),
           actions: [
+            // 닫기 버튼
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: isDark ? Colors.grey[400] : Colors.grey[600],
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: const Text('닫기'),
+            ),
+            const SizedBox(width: 8),
+            // 설정하기 버튼
             ElevatedButton.icon(
               onPressed: () async {
                 // 🔥 CRITICAL FIX: Navigator.pop()을 1번만 호출!
