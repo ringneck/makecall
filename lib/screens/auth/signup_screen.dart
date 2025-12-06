@@ -961,42 +961,34 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     debugPrint('🔍 [SIGNUP] 기기 승인 대기 상태: $isWaitingForApproval');
                   }
                   
-                  // 7️⃣ CRITICAL: 명시적 화면 전환 (navigatorKey 사용)
+                  // 7️⃣ CRITICAL: SignupScreen 닫고 LoginScreen으로 돌아가기
+                  // - SignupScreen을 닫으면 LoginScreen으로 자동 복귀
+                  // - LoginScreen은 authService 상태를 감지하여 자동으로 MainScreen으로 전환
                   if (navigatorKey.currentContext != null) {
                     if (kDebugMode) {
-                      debugPrint('🚀 [SIGNUP] 명시적 화면 전환 시작 (isWaitingForApproval: $isWaitingForApproval)');
+                      debugPrint('🚀 [SIGNUP] SignupScreen 닫기 시작 (LoginScreen으로 복귀)');
                     }
-                    
-                    if (isWaitingForApproval) {
-                      // 승인 대기 화면으로 전환
-                      navigatorKey.currentState?.pushReplacementNamed('/approval_waiting');
-                      if (kDebugMode) {
-                        debugPrint('✅ [SIGNUP] ApprovalWaitingScreen으로 전환 완료');
-                      }
-                    } else {
-                      // MainScreen으로 전환
-                      navigatorKey.currentState?.pushReplacementNamed('/');
-                      if (kDebugMode) {
-                        debugPrint('✅ [SIGNUP] MainScreen으로 전환 완료');
-                      }
-                    }
-                    
-                    // 8️⃣ CRITICAL: 화면 전환 완료 후 소셜 로그인 플래그 해제
-                    // ⚠️ 주의: 화면 전환 전에 플래그를 해제하면 authStateChanges가 다시 트리거되어
-                    //          shouldNotify=true로 _loadUserModel()이 호출되어 Consumer rebuild 발생
-                    //          → 오버레이가 조기 제거되는 문제 발생
-                    if (kDebugMode) {
-                      debugPrint('🔓 [SIGNUP] 화면 전환 완료 - 소셜 로그인 플래그 해제');
-                    }
-                    authService.setIsInSocialLoginFlow(false);
                     
                     // 🔧 FIX: isLoggingOut 플래그 명시적 해제 (회원가입/로그인 완료 시)
-                    // 기존 계정으로 로그인할 때 이전 로그아웃 플래그가 남아있을 수 있음
+                    // Navigator.pop() 전에 플래그 해제 필요
                     if (authService.isLoggingOut) {
                       if (kDebugMode) {
                         debugPrint('🔓 [SIGNUP] isLoggingOut 플래그 명시적 해제');
                       }
                       authService.onLoginScreenDisplayed(); // 로그아웃 플래그 해제
+                    }
+                    
+                    // 소셜 로그인 플래그 해제 (LoginScreen이 MainScreen으로 전환될 수 있도록)
+                    if (kDebugMode) {
+                      debugPrint('🔓 [SIGNUP] 소셜 로그인 플래그 해제');
+                    }
+                    authService.setIsInSocialLoginFlow(false);
+                    
+                    // SignupScreen 닫기 (LoginScreen으로 복귀)
+                    navigatorKey.currentState?.pop();
+                    
+                    if (kDebugMode) {
+                      debugPrint('✅ [SIGNUP] SignupScreen 닫힘 - LoginScreen이 자동으로 MainScreen으로 전환');
                     }
                     
                   } else {
