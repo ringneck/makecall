@@ -37,12 +37,11 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     
-    // 🔑 CRITICAL FIX: _currentUserId를 현재 사용자 ID로 즉시 초기화
-    // - '__initializing__' 사용 시 첫 build에서 무조건 "사용자 변경"으로 인식
-    // - 빠른 rebuild로 인해 이전 CallTab이 dispose되기 전에 새 CallTab 생성 → GlobalKey 중복!
-    // - 해결: initState()에서 현재 userId로 초기화하여 첫 build부터 올바른 비교
-    final authService = Provider.of<AuthService>(context, listen: false);
-    _currentUserId = authService.currentUser?.uid ?? 'guest'; // 현재 사용자 ID로 초기화
+    // 🔑 CRITICAL FIX: _currentUserId 초기화 제거
+    // - initState()에서 authService.currentUser를 가져올 때 null일 수 있음
+    // - 첫 build()에서 실제 userId와 비교 시 불일치 → GlobalKey 중복 생성
+    // - 해결: _currentUserId를 null로 유지하고, 첫 build()에서만 GlobalKey 생성
+    // - 이후 build()에서는 userId가 변경될 때만 새 GlobalKey 생성
     
     // 🔔 FCM BuildContext 설정 (기기 승인 다이얼로그용)
     // 이것은 즉시 실행 (context 필요)
