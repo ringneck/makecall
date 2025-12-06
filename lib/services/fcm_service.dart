@@ -205,6 +205,14 @@ class FCMService {
       _isInitializing = true;
       _initializationCompleter = Completer<void>();
       
+      // 🔄 FCM 초기화 진행 중 상태 설정 (로딩 화면 표시용)
+      if (_authService != null) {
+        _authService!.setFcmInitializing(true);
+        if (kDebugMode) {
+          debugPrint('🔄 [FCM] 초기화 시작 이벤트 발행 → AuthService 알림');
+        }
+      }
+      
       // ✅ STEP 1: 메시지 리스너를 가장 먼저 등록! (메시지 누락 방지)
       
       // 🔧 Phase 2: 메시지 핸들러 콜백 설정
@@ -571,8 +579,9 @@ class FCMService {
         _currentUserId = userId;
         _approvalService.setApprovalRequestInfo(approvalRequestId, userId);
         
-        // 🔐 AuthService에 승인 대기 상태 설정
+        // 🔐 CRITICAL: 승인 대기 상태를 먼저 설정 (CallTab의 공지사항 표시 방지)
         if (_authService != null) {
+          // ⚠️ STEP 1: 승인 대기 상태 설정 (먼저!)
           _authService!.setWaitingForApproval(true, approvalRequestId: approvalRequestId);
           if (kDebugMode) {
             debugPrint('🎬 [FCM-WAIT] AuthService.setWaitingForApproval(true) 호출 완료');
@@ -580,11 +589,15 @@ class FCMService {
             debugPrint('   - isWaitingForApproval: ${_authService!.isWaitingForApproval}');
           }
           
-          // 🚀 EVENT-BASED: FCM 초기화 완료 이벤트 발행 (승인 대기 상태도 초기화 완료)
-          // CallTab이 무한 대기하지 않도록 승인 대기 중에도 초기화 완료 알림
+          // ⏱️ CRITICAL: 50ms 대기 - MainScreen Consumer가 rebuild되어 ApprovalWaitingScreen 표시할 시간 확보
+          await Future.delayed(const Duration(milliseconds: 50));
+          
+          // 🚀 STEP 2: FCM 초기화 완료 이벤트 발행 (나중에!)
+          // ✅ 이제 CallTab이 이벤트를 받아도 isWaitingForApproval=true이므로 공지사항 건너뜀
           _authService!.setFcmInitialized(true);
           if (kDebugMode) {
             debugPrint('🚀 [FCM] 초기화 완료 이벤트 발행 (승인 대기 중) → AuthService 알림');
+            debugPrint('   ✅ CallTab은 isWaitingForApproval=true를 감지하여 공지사항 건너뜀');
           }
         }
         

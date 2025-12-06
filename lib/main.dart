@@ -918,6 +918,49 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         );
                       }
                       
+                      // 🔄 CRITICAL: FCM 초기화 로딩 중인 경우 (소셜 로그인 오버레이와 충돌 방지)
+                      // ⚠️ 승인 대기보다 먼저 체크하여 로딩 화면이 우선 표시되도록 함
+                      if (authService.currentUser != null && authService.isFcmInitializing) {
+                        if (kDebugMode) {
+                          debugPrint('🔄 [MAIN] FCM 초기화 로딩 화면 표시');
+                          debugPrint('   - userId: ${authService.currentUser?.uid}');
+                        }
+                        
+                        // 🧹 CRITICAL: 소셜 로그인 오버레이 제거 (충돌 방지)
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          SocialLoginProgressHelper.forceHide();
+                        });
+                        
+                        return Scaffold(
+                          backgroundColor: Colors.white,
+                          body: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const CircularProgressIndicator(),
+                                const SizedBox(height: 24),
+                                Text(
+                                  'FCM 초기화 중...',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  '잠시만 기다려 주세요',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      
                       // 🔐 CRITICAL: 승인 대기 중인 경우 (currentUser만 체크, currentUserModel은 로딩 중일 수 있음)
                       // 📝 이 조건은 로그인 완료 체크보다 먼저 확인되어야 함
                       //    왜냐하면 currentUserModel 로딩 중에도 ApprovalWaitingScreen을 표시해야 하기 때문
@@ -928,6 +971,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           debugPrint('   - userId: ${authService.currentUser?.uid}');
                           debugPrint('   - currentUserModel: ${authService.currentUserModel?.email ?? "loading..."}');
                         }
+                        
+                        // 🧹 CRITICAL: 소셜 로그인 오버레이 제거 (충돌 방지)
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          SocialLoginProgressHelper.forceHide();
+                        });
+                        
                         return ApprovalWaitingScreen(
                           approvalRequestId: authService.approvalRequestId!,
                           userId: authService.currentUser!.uid,

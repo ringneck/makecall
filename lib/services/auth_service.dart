@@ -193,15 +193,30 @@ class AuthService extends ChangeNotifier {
   bool _isFcmInitialized = false;
   bool get isFcmInitialized => _isFcmInitialized;
   
+  // 🔄 FCM 초기화 진행 중 상태 (로딩 화면 표시용)
+  bool _isFcmInitializing = false;
+  bool get isFcmInitializing => _isFcmInitializing;
+  
   // 🚫 MaxDeviceLimit 차단 상태 (로그인 차단 + 다이얼로그 표시용)
   bool _isBlockedByMaxDeviceLimit = false;
   bool get isBlockedByMaxDeviceLimit => _isBlockedByMaxDeviceLimit;
   MaxDeviceLimitException? _maxDeviceLimitException;
   MaxDeviceLimitException? get maxDeviceLimitException => _maxDeviceLimitException;
   
+  /// FCM 초기화 진행 중 상태 설정
+  void setFcmInitializing(bool initializing) {
+    _isFcmInitializing = initializing;
+    notifyListeners();
+    
+    if (kDebugMode) {
+      debugPrint('🔄 [FCM-STATUS] FCM 초기화 진행 중: $initializing');
+    }
+  }
+  
   /// FCM 초기화 완료 상태 설정
   void setFcmInitialized(bool initialized) {
     _isFcmInitialized = initialized;
+    _isFcmInitializing = false; // 초기화 완료 시 진행 중 플래그 해제
     
     // 🔒 CRITICAL: _loadUserModel 실행 중에는 notifyListeners() 호출 안 함
     // authStateChanges에서 shouldNotify=false로 호출한 경우
