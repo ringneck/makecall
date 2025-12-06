@@ -351,6 +351,15 @@ class _CallTabState extends State<CallTab> {
     if (!mounted) return;
     
     // 🎯 STEP 3: 공지사항 확인 및 표시 (기기 승인 이후)
+    // 🔒 CRITICAL: 기기 승인 대기 중이면 공지사항 표시 건너뛰기
+    final authService = Provider.of<AuthService>(context, listen: false);
+    if (authService.isWaitingForApproval) {
+      if (kDebugMode) {
+        debugPrint('⏭️ [CALL_TAB] 기기 승인 대기 중 - 공지사항 표시 건너뛰기');
+      }
+      return; // 기기 승인 대기 중이므로 공지사항 표시하지 않음
+    }
+    
     if (kDebugMode) {
       debugPrint('🔍 [CALL_TAB] 설정 체크 완료 - 공지사항 표시');
     }
