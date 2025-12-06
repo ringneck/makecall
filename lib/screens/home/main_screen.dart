@@ -2,10 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../call/call_tab.dart';
 import '../../services/fcm_service.dart';
-import '../../services/announcement_service.dart';
 import '../../widgets/social_login_progress_overlay.dart';
-import '../../widgets/announcement_bottom_sheet.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class MainScreen extends StatefulWidget {
   final int? initialTabIndex; // 초기 탭 인덱스 (null이면 기본값 사용)
@@ -37,78 +34,6 @@ class _MainScreenState extends State<MainScreen> {
         if (kDebugMode) {
           debugPrint('📺 [MainScreen] FCMService.setContext() 호출 완료');
         }
-      }
-    });
-    
-    // 📢 공지사항 확인 (화면 렌더링 완료 후 실행)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAnnouncement();
-    });
-  }
-  
-  /// 공지사항 확인 및 표시 (완료 후 단말번호 등록 체크)
-  Future<void> _checkAnnouncement() async {
-    try {
-      final announcementService = AnnouncementService();
-      final announcement = await announcementService.getActiveAnnouncement();
-      
-      if (announcement == null) {
-        if (kDebugMode) {
-          debugPrint('📢 [ANNOUNCEMENT] 활성 공지사항 없음');
-        }
-        // 공지사항 없으면 바로 단말번호 체크로 이동
-        _checkExtensionAfterAnnouncement();
-        return;
-      }
-      
-      // "다시 보지 않기" 체크 확인
-      final prefs = await SharedPreferences.getInstance();
-      final key = 'announcement_hidden_${announcement.id}';
-      final isHidden = prefs.getBool(key) ?? false;
-      
-      if (isHidden) {
-        if (kDebugMode) {
-          debugPrint('📢 [ANNOUNCEMENT] 사용자가 "다시 보지 않기"를 선택한 공지: ${announcement.id}');
-        }
-        // 숨긴 공지면 바로 단말번호 체크로 이동
-        _checkExtensionAfterAnnouncement();
-        return;
-      }
-      
-      if (kDebugMode) {
-        debugPrint('📢 [ANNOUNCEMENT] 공지사항 표시');
-        debugPrint('   ID: ${announcement.id}');
-        debugPrint('   Title: ${announcement.title}');
-      }
-      
-      // 공지사항 BottomSheet 표시
-      if (mounted) {
-        await AnnouncementBottomSheet.show(context, announcement);
-      }
-      
-      // 공지사항 표시 완료 후 단말번호 체크
-      _checkExtensionAfterAnnouncement();
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ [ANNOUNCEMENT] Error: $e');
-      }
-      // 에러 발생해도 단말번호 체크는 진행
-      _checkExtensionAfterAnnouncement();
-    }
-  }
-  
-  /// 공지사항 표시 후 단말번호 등록 체크
-  void _checkExtensionAfterAnnouncement() {
-    // 다음 프레임에서 실행 (공지사항 BottomSheet가 완전히 닫힌 후)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        // Call 탭의 설정 체크 트리거
-        // (Call 탭이 아직 build되지 않았을 수 있으므로 다음 프레임에서 실행)
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (kDebugMode) {
-            debugPrint('🔍 [SETTINGS] 공지사항 처리 완료 - 단말번호 등록 체크 시작');
-          }
-        });
       }
     });
   }
@@ -152,6 +77,7 @@ class _MainScreenState extends State<MainScreen> {
     }
     
     // CallTab이 신규 사용자 감지 및 ProfileDrawer 자동 열기를 처리
+    // 공지사항 및 설정 체크도 CallTab에서 처리
     return CallTab(
       autoOpenProfileForNewUser: true,
       initialTabIndex: widget.initialTabIndex, // FCM에서 지정한 탭으로 이동

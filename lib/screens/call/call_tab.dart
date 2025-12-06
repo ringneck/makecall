@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/mobile_contacts_service.dart';
 import '../../services/api_service.dart';
 import '../../services/dcmiws_service.dart';
+import '../../services/announcement_service.dart';
 import '../../models/contact_model.dart';
 import '../../models/call_history_model.dart';
 import '../../models/phonebook_model.dart';
@@ -23,6 +25,7 @@ import '../../widgets/profile_drawer.dart';
 import '../../widgets/extension_drawer.dart';
 import '../../widgets/safe_circle_avatar.dart';
 import '../../widgets/social_login_progress_overlay.dart';
+import '../../widgets/announcement_bottom_sheet.dart';
 import '../../theme/call_theme_extension.dart';
 import 'call_tab/widgets/extension_info_widget.dart';
 import 'services/settings_checker.dart';
@@ -243,23 +246,27 @@ class _CallTabState extends State<CallTab> {
     
     if (!mounted) return;
     
-    // 🎯 STEP 2: '초기 등록 필요' 다이얼로그 표시 (이메일 회원가입 시에만)
+    // 🎯 STEP 2: 공지사항 확인 및 표시 (모든 로그인 타입)
+    await _checkAndShowAnnouncement();
+    
+    if (!mounted) return;
+    
+    // 🎯 STEP 3: 설정 체크 및 단말번호 등록 안내 (공지사항 이후)
+    if (kDebugMode) {
+      debugPrint('🔍 [CALL_TAB] 공지사항 처리 완료 - 설정 체크 시작');
+    }
+    
+    // 🔥 CRITICAL: 설정 체크 및 '초기 등록 필요' 다이얼로그 표시
+    await _checkSettingsAndShowGuide();
+    
+    // 🔒 이메일 회원가입 이벤트 처리 완료 플래그 설정
     if (widget.showWelcomeDialog) {
-      if (kDebugMode) {
-        debugPrint('🔍 [CALL_TAB] 초기 설정 체크 시작 (이메일 회원가입)');
-      }
-      
-      // 🔥 CRITICAL: 설정 체크 및 '초기 등록 필요' 다이얼로그 표시
-      await _checkSettingsAndShowGuide();
-      
-      // 🔒 CRITICAL: 이메일 회원가입 이벤트 처리 완료 플래그 설정
-      // AuthService 리스너에서 중복 실행 방지
       _hasProcessedEmailSignupEvent = true;
     }
     
     if (!mounted) return;
     
-    // 🎯 STEP 3: 신규 사용자 체크 및 ProfileDrawer 자동 열기 (ExtensionInitializer 사용)
+    // 🎯 STEP 4: 신규 사용자 체크 및 ProfileDrawer 자동 열기 (ExtensionInitializer 사용)
     // 일반 로그인/소셜 로그인 시에만 실행
     if (widget.autoOpenProfileForNewUser && !widget.showWelcomeDialog) {
       await _extensionInitializer.checkAndOpenProfileDrawerForNewUser(
@@ -271,9 +278,52 @@ class _CallTabState extends State<CallTab> {
     
     if (!mounted) return;
     
-    // 🎯 STEP 4: 단말번호 자동 초기화 (ExtensionInitializer 사용)
+    // 🎯 STEP 5: 단말번호 자동 초기화 (ExtensionInitializer 사용)
     // 클릭투콜 기능을 위해 로그인 즉시 단말번호 설정
     await _extensionInitializer.initializeExtensions(context);
+  }
+  
+  /// 📢 공지사항 확인 및 표시
+  Future<void> _checkAndShowAnnouncement() async {
+    try {
+      final announcementService = AnnouncementService();
+      final announcement = await announcementService.getActiveAnnouncement();
+      
+      if (announcement == null) {
+        if (kDebugMode) {
+          debugPrint('📢 [ANNOUNCEMENT] 활성 공지사항 없음');
+        }
+        return;
+      }
+      
+      // "다시 보지 않기" 체크 확인
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'announcement_hidden_${announcement.id}';
+      final isHidden = prefs.getBool(key) ?? false;
+      
+      if (isHidden) {
+        if (kDebugMode) {
+          debugPrint('📢 [ANNOUNCEMENT] 사용자가 "다시 보지 않기"를 선택한 공지: ${announcement.id}');
+        }
+        return;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('📢 [ANNOUNCEMENT] 공지사항 표시');
+        debugPrint('   ID: ${announcement.id}');
+        debugPrint('   Title: ${announcement.title}');
+      }
+      
+      // 공지사항 BottomSheet 표시
+      if (mounted) {
+        await AnnouncementBottomSheet.show(context, announcement);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [ANNOUNCEMENT] Error: $e');
+      }
+      // 에러 발생해도 다음 단계 진행
+    }
   }
   
   @override
