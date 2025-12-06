@@ -1,19 +1,20 @@
 // ============================================
-// 🔥 FIRESTORE SECURITY RULES V6.2 (FINAL)
+// 🔥 FIRESTORE SECURITY RULES V6.3 (FINAL)
 // ============================================
 // 
-// 📅 Last Updated: 2025-12-04
-// 🎯 Version: V6.2 (최종 버전)
+// 📅 Last Updated: 2025-12-06
+// 🎯 Version: V6.3 (최종 버전)
 // 
-// 🔧 V6.2 주요 수정 사항:
+// 🔧 V6.3 주요 수정 사항:
+// - announcements 컬렉션 규칙 추가 (공지사항 조회 권한 부여)
 // - device_approval_requests 컬렉션 쿼리 지원 추가
 // - .doc().snapshots() 리스너의 resource == null 상황 처리
-// - 전체 18개 컬렉션 완전 검증 완료
+// - 전체 19개 컬렉션 완전 검증 완료
 // 
 // 📊 검증된 컬렉션:
 // - Type A (User-Scoped): 10개 ✅
 // - Type B (Composite-ID): 2개 ✅
-// - Type C (Shared): 4개 ✅
+// - Type C (Shared): 5개 ✅ (announcements 추가)
 // - Type D (Admin-Only): 2개 ✅
 // 
 // ============================================
@@ -188,6 +189,14 @@ service cloud.firestore {
     
     // 16. shared_api_settings - 공유 API 설정 (읽기 전용)
     match /shared_api_settings/{settingId} {
+      allow read: if request.auth != null;
+      allow write: if false; // 백엔드/관리자만 수정 가능
+    }
+    
+    // 17. announcements - 공지사항 (읽기 전용)
+    // 모든 인증된 사용자가 공지사항 조회 가능
+    // 쓰기는 백엔드/관리자만 가능
+    match /announcements/{announcementId} {
       allow read: if request.auth != null;
       allow write: if false; // 백엔드/관리자만 수정 가능
     }

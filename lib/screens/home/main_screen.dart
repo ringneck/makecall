@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../call/call_tab.dart';
 import '../../services/fcm_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/social_login_progress_overlay.dart';
 
 class MainScreen extends StatefulWidget {
@@ -78,7 +79,15 @@ class _MainScreenState extends State<MainScreen> {
     
     // CallTab이 신규 사용자 감지 및 ProfileDrawer 자동 열기를 처리
     // 공지사항 및 설정 체크도 CallTab에서 처리
+    // 
+    // 🔑 CRITICAL: ValueKey 사용으로 재로그인 시 CallTab 위젯 완전 재생성 보장
+    // - 로그인된 사용자의 UID를 key로 사용
+    // - 로그아웃 후 재로그인 시 다른 UID → CallTab 재생성 → initState() 호출
+    // - 이를 통해 공지사항 및 설정 체크 플래그가 매 로그인마다 초기화됨
+    final userId = AuthService().currentUser?.uid ?? 'guest';
+    
     return CallTab(
+      key: ValueKey('call_tab_$userId'), // 🔑 사용자별 고유 키
       autoOpenProfileForNewUser: true,
       initialTabIndex: widget.initialTabIndex, // FCM에서 지정한 탭으로 이동
       showWelcomeDialog: widget.showWelcomeDialog, // 회원가입 완료 다이얼로그 플래그 전달
