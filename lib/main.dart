@@ -956,7 +956,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           SocialLoginProgressHelper.forceHide();
                         });
                         
-                        // LoginScreen 위에 오버레이 표시
+                        // LoginScreen 위에 다크모드 오버레이 표시
                         return Stack(
                           children: [
                             // 배경: LoginScreen
@@ -965,18 +965,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                 key: ValueKey('login_fcm_init_${DateTime.now().millisecondsSinceEpoch}'),
                               ),
                             ),
-                            // 오버레이: FCM 초기화 로딩
+                            // 오버레이: FCM 초기화 로딩 (다크모드 다이얼로그 스타일)
                             Container(
-                              color: Colors.black.withOpacity(0.5),
+                              color: Colors.black.withOpacity(0.7), // 다크 배경
                               child: Center(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: const Color(0xFF2C2C2C), // 다크모드 배경색
                                     borderRadius: BorderRadius.circular(16),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
+                                        color: Colors.black.withOpacity(0.3),
                                         blurRadius: 20,
                                         offset: const Offset(0, 10),
                                       ),
@@ -985,22 +985,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const CircularProgressIndicator(),
+                                      const CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
                                       const SizedBox(height: 20),
-                                      Text(
+                                      const Text(
                                         '서비스 로딩중...',
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color: Colors.grey[800],
+                                          color: Colors.white, // 다크모드 텍스트
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-                                      Text(
+                                      const Text(
                                         '잠시만 기다려 주세요',
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.grey[600],
+                                          color: Color(0xFFB0B0B0), // 다크모드 보조 텍스트
                                         ),
                                       ),
                                     ],
