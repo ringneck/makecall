@@ -15,6 +15,28 @@ class MaxDeviceLimitDialog extends StatefulWidget {
     required this.userId,
     this.onConfirm,
   });
+  
+  /// Static show method to display the dialog
+  static Future<void> show(
+    BuildContext context,
+    MaxDeviceLimitException exception, {
+    VoidCallback? onConfirm,
+  }) async {
+    // Get userId from FirebaseAuth
+    final userId = exception.userId ?? '';
+    
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return MaxDeviceLimitDialog(
+          exception: exception,
+          userId: userId,
+          onConfirm: onConfirm,
+        );
+      },
+    );
+  }
 
   @override
   State<MaxDeviceLimitDialog> createState() => _MaxDeviceLimitDialogState();
