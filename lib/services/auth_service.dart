@@ -64,6 +64,44 @@ class AuthService extends ChangeNotifier {
           
           try {
             await _loadUserModel(user.uid, shouldNotify: !isInSocialLoginFlow);
+            
+            // 🔥 CRITICAL FIX: authStateChanges 경로에서만 FCM 초기화
+            // signIn() 메서드를 거치지 않는 재로그인 경로 대응
+            if (_currentUserModel != null && !_isWaitingForApproval && !isInSocialLoginFlow) {
+              if (kDebugMode) {
+                debugPrint('🔔 [authStateChanges] FCM 초기화 시작 (재로그인 경로)');
+                debugPrint('   userId: ${user.uid}');
+              }
+              
+              try {
+                final fcmService = FCMService();
+                await fcmService.initialize(user.uid);
+                
+                if (kDebugMode) {
+                  debugPrint('✅ [authStateChanges] FCM 초기화 완료');
+                }
+              } catch (e) {
+                if (kDebugMode) {
+                  debugPrint('❌ [authStateChanges] FCM 초기화 실패: $e');
+                }
+                
+                // 기기 승인 관련 오류는 로그아웃 처리
+                if (e.toString().contains('Device approval') || 
+                    e.toString().contains('denied') || 
+                    e.toString().contains('timeout')) {
+                  if (kDebugMode) {
+                    debugPrint('🚫 [authStateChanges] 기기 승인 실패 - 로그아웃 처리');
+                  }
+                  await _auth.signOut();
+                  return;
+                }
+                
+                // 기타 FCM 오류는 경고만 출력하고 로그인 진행
+                if (kDebugMode) {
+                  debugPrint('⚠️ [authStateChanges] FCM 초기화 실패했지만 로그인 진행');
+                }
+              }
+            }
           } on ServiceSuspendedException {
             // 서비스 이용 중지 계정 무시
           } catch (e) {
@@ -373,44 +411,6 @@ class AuthService extends ChangeNotifier {
         _loadUserModelCompleter!.complete();
         if (kDebugMode) {
           debugPrint('✅ [_loadUserModel] Completer 완료 - 이벤트 기반 대기 해제');
-        }
-      }
-    }
-    
-    // 🔥 CRITICAL FIX: 재로그인 시 FCM 초기화 (authStateChanges 경로)
-    // _loadUserModel()이 signIn()을 거치지 않고 직접 호출될 때 FCM 초기화 필요
-    if (_currentUserModel != null && !_isWaitingForApproval) {
-      if (kDebugMode) {
-        debugPrint('🔔 [_loadUserModel] FCM 초기화 시작 (재로그인 경로)');
-        debugPrint('   userId: $uid');
-      }
-      
-      try {
-        final fcmService = FCMService();
-        await fcmService.initialize(uid);
-        
-        if (kDebugMode) {
-          debugPrint('✅ [_loadUserModel] FCM 초기화 완료');
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('❌ [_loadUserModel] FCM 초기화 실패: $e');
-        }
-        
-        // 기기 승인 관련 오류는 재throw
-        if (e.toString().contains('Device approval') || 
-            e.toString().contains('denied') || 
-            e.toString().contains('timeout')) {
-          if (kDebugMode) {
-            debugPrint('🚫 [_loadUserModel] 기기 승인 실패 - 로그아웃 처리');
-          }
-          await _auth.signOut();
-          rethrow;
-        }
-        
-        // 기타 FCM 오류는 경고만 출력하고 로그인 진행
-        if (kDebugMode) {
-          debugPrint('⚠️ [_loadUserModel] FCM 초기화 실패했지만 로그인 진행');
         }
       }
     }
