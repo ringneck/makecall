@@ -87,14 +87,40 @@ class _MainScreenState extends State<MainScreen> {
         if (kDebugMode) {
           debugPrint('🔄 [MainScreen] Consumer<AuthService> rebuild');
           debugPrint('   - isWaitingForApproval: ${authService.isWaitingForApproval}');
+          debugPrint('   - approvalRequestId: ${authService.approvalRequestId}');
         }
         
         // 🔒 기기 승인 대기 중이면 ApprovalWaitingScreen 표시
         if (authService.isWaitingForApproval) {
+          final requestId = authService.approvalRequestId;
+          final userId = authService.currentUser?.uid;
+          
+          // 필수 데이터 검증
+          if (requestId == null || userId == null) {
+            if (kDebugMode) {
+              debugPrint('⚠️ [MainScreen] ApprovalWaitingScreen 표시 실패: 필수 데이터 누락');
+              debugPrint('   - requestId: $requestId');
+              debugPrint('   - userId: $userId');
+            }
+            // 데이터 누락 시 CallTab으로 fallback (에러 방지)
+            return CallTab(
+              key: ValueKey('call_tab_fallback'),
+              autoOpenProfileForNewUser: true,
+              initialTabIndex: widget.initialTabIndex,
+              showWelcomeDialog: widget.showWelcomeDialog,
+            );
+          }
+          
           if (kDebugMode) {
             debugPrint('📺 [MainScreen] ApprovalWaitingScreen 표시');
+            debugPrint('   - requestId: $requestId');
+            debugPrint('   - userId: $userId');
           }
-          return const ApprovalWaitingScreen();
+          
+          return ApprovalWaitingScreen(
+            approvalRequestId: requestId,
+            userId: userId,
+          );
         }
         
         // 정상 로그인: CallTab 표시
