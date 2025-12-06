@@ -115,6 +115,16 @@ class _MainScreenState extends State<MainScreen> {
             });
           });
           
+          // 🚨 SAFETY: 타임아웃 추가 (5초 후 자동 전환)
+          Future.delayed(const Duration(seconds: 5), () {
+            if (authService.isFcmInitializing) {
+              if (kDebugMode) {
+                debugPrint('⏰ [MainScreen] 타임아웃 - 강제로 FCM 초기화 완료 처리');
+              }
+              authService.setFcmInitialized(true);
+            }
+          });
+          
           // Scaffold 위에 오버레이 표시 (빈 화면 + 로딩)
           return Scaffold(
             body: Container(

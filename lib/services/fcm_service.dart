@@ -686,6 +686,9 @@ class FCMService {
         // 🔐 AuthService 승인 대기 상태 해제
         if (_authService != null) {
           _authService!.setWaitingForApproval(false);
+          
+          // 🔥 CRITICAL: FCM 초기화 완료 처리 (오버레이 제거)
+          _authService!.setFcmInitialized(true);
         }
         
         // 🎨 승인 요청 정보 초기화
@@ -696,6 +699,7 @@ class FCMService {
         if (approved) {
           if (kDebugMode) {
             debugPrint('✅ [FCM-BACKGROUND] 기기 승인 완료!');
+            debugPrint('   → setFcmInitialized(true) 호출로 오버레이 제거');
           }
         } else {
           if (kDebugMode) {
@@ -715,6 +719,9 @@ class FCMService {
         // 오류 발생 시 승인 대기 상태 해제
         if (_authService != null) {
           _authService!.setWaitingForApproval(false);
+          
+          // 🔥 CRITICAL: FCM 초기화 완료 처리 (오버레이 제거)
+          _authService!.setFcmInitialized(true);
         }
       }
     }();
