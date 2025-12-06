@@ -614,22 +614,22 @@ class FCMService {
             debugPrint('   - isWaitingForApproval: ${_authService!.isWaitingForApproval}');
           }
           
-          // 🎯 EVENT-BASED: 현재 프레임 렌더링 완료 대기
-          // MainScreen Consumer가 rebuild되어 ApprovalWaitingScreen 표시할 시간 확보
-          // notifyListeners() 호출 후 다음 프레임까지 대기
-          if (SchedulerBinding.instance.schedulerPhase != SchedulerPhase.idle) {
-            await SchedulerBinding.instance.endOfFrame;
-          }
-          // 추가로 한 프레임 더 대기 (Consumer rebuild 보장)
-          await SchedulerBinding.instance.endOfFrame;
+          // 🎯 CRITICAL: 승인 대기 시 FCM 초기화 완료를 지연 호출
+          // MainScreen 전환 → "서비스 로딩중" 오버레이 표시 → setFcmInitialized(true)
+          // 이렇게 해야 MainScreen Consumer가 isFcmInitializing=true 상태를 감지할 수 있음
           
-          // 🚀 STEP 2: FCM 초기화 완료 이벤트 발행 (나중에!)
-          // ✅ 이제 CallTab이 이벤트를 받아도 isWaitingForApproval=true이므로 공지사항 건너뜀
-          _authService!.setFcmInitialized(true);
           if (kDebugMode) {
-            debugPrint('🚀 [FCM] 초기화 완료 이벤트 발행 (승인 대기 중) → AuthService 알림');
-            debugPrint('   ✅ CallTab은 isWaitingForApproval=true를 감지하여 공지사항 건너뜀');
+            debugPrint('⏳ [FCM] FCM 초기화 완료 이벤트 지연 (승인 대기 중)');
+            debugPrint('   → MainScreen 전환 및 오버레이 표시 대기');
           }
+          
+          // 🔥 CRITICAL: 백그라운드에서 지연 호출
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (kDebugMode) {
+              debugPrint('🚀 [FCM] FCM 초기화 완료 이벤트 발행 (지연 500ms)');
+            }
+            _authService!.setFcmInitialized(true);
+          });
         }
         
         // 🚀 CRITICAL: 승인 대기를 백그라운드로 이동 - signIn() 메서드 즉시 완료
