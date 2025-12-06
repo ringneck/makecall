@@ -328,20 +328,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         return;
       }
       
-      // 🔒 CRITICAL: 승인 대기 상태 체크
-      // 승인 대기 중이면 Navigator 사용하지 않고 Consumer가 자동으로 ApprovalWaitingScreen 표시
-      if (authService.isWaitingForApproval) {
-        if (kDebugMode) {
-          debugPrint('⏳ [LOGIN] 기기 승인 대기 중 - Navigator 전환 건너뛰기');
-          debugPrint('   - MainScreen Consumer가 ApprovalWaitingScreen을 자동으로 표시합니다');
-        }
-        // Consumer<AuthService>가 자동으로 ApprovalWaitingScreen을 표시하도록 함
-        // Navigator를 사용하지 않음
-        return;
-      }
-      
       // ⚡ CRITICAL: 이메일 회원가입 후 첫 로그인 체크
       final isFirstLogin = await _checkFirstLogin();
+      
+      // 🚀 CRITICAL: 승인 대기 중이어도 MainScreen으로 전환
+      // MainScreen Consumer가 isWaitingForApproval을 체크하여 ApprovalWaitingScreen 표시
+      if (kDebugMode) {
+        if (authService.isWaitingForApproval) {
+          debugPrint('⏳ [LOGIN] 기기 승인 대기 중 - MainScreen으로 전환');
+          debugPrint('   - MainScreen Consumer가 ApprovalWaitingScreen을 표시합니다');
+        } else {
+          debugPrint('✅ [LOGIN] 로그인 완료 - MainScreen으로 전환');
+        }
+      }
       
       // LoginScreen을 스택에서 완전히 제거하고 MainScreen으로 교체
       Navigator.of(context).pushAndRemoveUntil(
@@ -356,6 +355,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (kDebugMode) {
         debugPrint('✅ [LOGIN] MainScreen으로 화면 전환 완료');
         debugPrint('   - 첫 로그인 여부: $isFirstLogin');
+        debugPrint('   - 승인 대기 중: ${authService.isWaitingForApproval}');
       }
       
     } on MaxDeviceLimitException catch (e) {
