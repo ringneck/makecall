@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 Firestore 보안 규칙 자동 적용 스크립트
-Firebase REST API를 사용하여 프로그래밍 방식으로 보안 규칙 업데이트
+Firebase Admin SDK를 사용하여 프로그래밍 방식으로 보안 규칙 업데이트
 """
 
 import json
 import sys
-import requests
+import subprocess
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 
@@ -34,12 +34,30 @@ service cloud.firestore {
       allow write: if false; // 쓰기는 불가 (관리자만 콘솔에서 수정)
     }
     
-    // 📞 call_history 컬렉션: 읽기 및 status 업데이트 허용 (로그아웃 상태 포함)
+    // 📞 call_history 컬렉션: 읽기 및 status 업데이트 허용 (재로그인 대응)
     match /call_history/{callId} {
       allow read: if true;  // 누구나 읽기 가능 (통화 기록 확인용)
       allow create: if request.auth != null;  // 생성은 인증된 사용자만
       allow update: if true;  // 업데이트는 누구나 가능 (통화 확인용)
       allow delete: if request.auth != null;  // 삭제는 인증된 사용자만
+    }
+    
+    // 📱 my_extensions 컬렉션: 읽기 허용 (재로그인 대응)
+    match /my_extensions/{extId} {
+      allow read: if true;  // 누구나 읽기 가능 (재로그인 시 StreamBuilder 접근 허용)
+      allow write: if request.auth != null;  // 쓰기는 인증된 사용자만
+    }
+    
+    // 👤 contacts 컬렉션: 읽기 허용 (재로그인 대응)
+    match /contacts/{contactId} {
+      allow read: if true;  // 누구나 읽기 가능 (재로그인 시 StreamBuilder 접근 허용)
+      allow write: if request.auth != null;  // 쓰기는 인증된 사용자만
+    }
+    
+    // 📇 phonebook_contacts 컬렉션: 읽기 허용 (재로그인 대응)
+    match /phonebook_contacts/{pbId} {
+      allow read: if true;  // 누구나 읽기 가능 (재로그인 시 StreamBuilder 접근 허용)
+      allow write: if request.auth != null;  // 쓰기는 인증된 사용자만
     }
     
     // 🔐 기본 규칙: 인증된 사용자만 접근 가능
@@ -94,23 +112,28 @@ service cloud.firestore {
             print(f"✅ Ruleset 생성 완료: {ruleset_name}")
             
             # Ruleset을 Firestore에 적용 (릴리즈)
-            release_url = f"https://firebaserules.googleapis.com/v1/projects/{project_id}/releases"
-            release_data = {
-                'name': f'projects/{project_id}/releases/cloud.firestore',
-                'rulesetName': ruleset_name
+            # Firebase Rules API v1: PATCH는 rulesetName만 포함
+            release_url = f"https://firebaserules.googleapis.com/v1/projects/{project_id}/releases/cloud.firestore"
+            
+            # Release 업데이트: rulesetName만 전송
+            release_payload = {
+                'rulesetName': ruleset_name  # camelCase 사용, name 필드 제거
             }
             
             release_response = requests.patch(
-                f"{release_url}/cloud.firestore",
+                release_url,
                 headers=headers,
-                json={'rulesetName': ruleset_name}
+                json=release_payload
             )
             
             if release_response.status_code == 200:
                 print("✅ Firestore 보안 규칙 적용 완료!")
                 print("\n📊 적용된 규칙:")
                 print(f"   - app_config: 모든 사용자 읽기 가능")
-                print(f"   - call_history: 읽기 및 업데이트 가능 (로그아웃 상태 포함)")
+                print(f"   - call_history: 읽기 및 업데이트 가능 (재로그인 대응)")
+                print(f"   - my_extensions: 읽기 가능 (재로그인 대응)")
+                print(f"   - contacts: 읽기 가능 (재로그인 대응)")
+                print(f"   - phonebook_contacts: 읽기 가능 (재로그인 대응)")
                 print(f"   - 기타 컬렉션: 인증된 사용자만 접근")
                 return True
             else:

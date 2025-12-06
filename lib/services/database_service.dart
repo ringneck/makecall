@@ -38,6 +38,41 @@ class DatabaseService {
     });
   }
   
+  /// 🔐 Auth-safe Stream Wrapper: Firebase Auth 상태가 준비될 때까지 대기
+  /// 
+  /// 재로그인 시나리오에서 authStateChanges와 Firestore Stream을 동기화하여
+  /// Permission Denied 오류를 근본적으로 방지합니다.
+  /// 
+  /// **작동 원리:**
+  /// 1. Firebase Auth의 authStateChanges를 감지
+  /// 2. 사용자가 인증된 상태인지 확인
+  /// 3. 인증이 완료된 후에만 Firestore 쿼리 시작
+  /// 4. 로그아웃 시 빈 스트림 반환
+  Stream<T> _authSafeStream<T>(
+    String userId,
+    Stream<T> Function() createStream, {
+    T? emptyValue,
+  }) {
+    // 🔒 CRITICAL: Firebase Auth 상태 변화를 감지하여 동기화
+    return _auth.authStateChanges().asyncExpand((user) {
+      // 로그아웃 상태이거나 userId 불일치 시 빈 스트림 반환
+      if (user == null || user.uid != userId) {
+        if (kDebugMode) {
+          debugPrint('🔒 [AUTH-SAFE-STREAM] Not authenticated or userId mismatch - returning empty');
+        }
+        return emptyValue != null 
+            ? Stream.value(emptyValue)
+            : Stream.empty();
+      }
+      
+      // 인증 완료 - Firestore 스트림 시작
+      if (kDebugMode) {
+        debugPrint('✅ [AUTH-SAFE-STREAM] Authenticated - starting Firestore stream');
+      }
+      return _handleStreamErrors(createStream());
+    });
+  }
+  
   // ===== 대표번호 관리 =====
   
   // 대표번호 추가
@@ -174,8 +209,10 @@ class DatabaseService {
       return Stream.value([]);
     }
     
-    return _handleStreamErrors(
-      _firestore
+    // 🔐 Auth-safe Stream: authStateChanges와 동기화
+    return _authSafeStream<List<CallHistoryModel>>(
+      userId,
+      () => _firestore
           .collection('call_history')
           .where('userId', isEqualTo: userId)
           .snapshots(includeMetadataChanges: true)
@@ -195,6 +232,7 @@ class DatabaseService {
             // limit 적용
             return history.take(limit).toList();
           }),
+      emptyValue: <CallHistoryModel>[], // 인증 실패 시 빈 리스트 반환
     );
   }
   
@@ -291,8 +329,10 @@ class DatabaseService {
       return Stream.value([]);
     }
     
-    return _handleStreamErrors(
-      _firestore
+    // 🔐 Auth-safe Stream: authStateChanges와 동기화
+    return _authSafeStream<List<ContactModel>>(
+      userId,
+      () => _firestore
           .collection('contacts')
           .where('userId', isEqualTo: userId)
           .where('isFavorite', isEqualTo: true)
@@ -305,6 +345,7 @@ class DatabaseService {
             contacts.sort((a, b) => a.name.compareTo(b.name));
             return contacts;
           }),
+      emptyValue: <ContactModel>[], // 인증 실패 시 빈 리스트
     );
   }
   
@@ -472,8 +513,10 @@ class DatabaseService {
       return Stream.value([]);
     }
     
-    return _handleStreamErrors(
-      _firestore
+    // 🔐 Auth-safe Stream: authStateChanges와 동기화
+    return _authSafeStream<List<MyExtensionModel>>(
+      userId,
+      () => _firestore
           .collection('my_extensions')
           .where('userId', isEqualTo: userId)
           .snapshots()
@@ -485,6 +528,7 @@ class DatabaseService {
             extensions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
             return extensions;
           }),
+      emptyValue: <MyExtensionModel>[], // 인증 실패 시 빈 리스트
     );
   }
   
@@ -842,8 +886,10 @@ class DatabaseService {
       return Stream.value([]);
     }
     
-    return _handleStreamErrors(
-      _firestore
+    // 🔐 Auth-safe Stream: authStateChanges와 동기화
+    return _authSafeStream<List<PhonebookContactModel>>(
+      userId,
+      () => _firestore
           .collection('phonebook_contacts')
           .where('userId', isEqualTo: userId)
           .where('isFavorite', isEqualTo: true)
@@ -856,6 +902,7 @@ class DatabaseService {
             contacts.sort((a, b) => a.name.compareTo(b.name));
             return contacts;
           }),
+      emptyValue: <PhonebookContactModel>[], // 인증 실패 시 빈 리스트
     );
   }
 
