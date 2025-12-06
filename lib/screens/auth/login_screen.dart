@@ -306,7 +306,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       
       // 🔒 CRITICAL: 승인 대기 상태 체크
       // 승인 대기 중이면 Navigator 사용하지 않고 Consumer가 자동으로 ApprovalWaitingScreen 표시
-      final authService = context.read<AuthService>();
       if (authService.isWaitingForApproval) {
         if (kDebugMode) {
           debugPrint('⏳ [LOGIN] 기기 승인 대기 중 - Navigator 전환 건너뛰기');
