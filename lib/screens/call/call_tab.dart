@@ -221,11 +221,21 @@ class _CallTabState extends State<CallTab> {
           }
           await _performInitialization();
         } else {
-          // 인증 대기 중: 리스너로 이벤트 감지
+          // 인증 대기 중: 리스너 등록
           if (kDebugMode) {
             debugPrint('⏳ [CALL_TAB] 인증 대기 중 - 리스너 등록');
           }
           _authService?.addListener(_onAuthStateChange);
+          
+          // 🔧 FIX: 리스너 등록 직후 상태 재확인 (notifyListeners가 먼저 호출된 경우 대비)
+          // 리스너 등록과 notifyListeners 호출 사이 타이밍 문제 해결
+          if (_authService?.isAuthenticated == true && _authService?.currentUser != null) {
+            if (kDebugMode) {
+              debugPrint('🔄 [CALL_TAB] 리스너 등록 후 인증 완료 감지 - 즉시 초기화');
+            }
+            _authService?.removeListener(_onAuthStateChange);
+            await _performInitialization();
+          }
         }
         
       } catch (e, stackTrace) {
