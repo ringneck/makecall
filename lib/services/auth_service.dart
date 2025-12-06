@@ -787,10 +787,17 @@ class AuthService extends ChangeNotifier {
         
         // 🔥 CRITICAL: FCM 초기화 완료 후 notifyListeners() 호출
         // → MainScreen 전환 시점에 MaxDeviceLimit 체크 완료 보장 (이벤트 기반)
+        
+        // 🔧 FIX: 로그아웃 플래그 초기화 (isAuthenticated가 true를 반환하도록)
+        // onLoginScreenDisplayed()보다 확실하게 여기서 초기화
+        _isLoggingOut = false;
+        _isSigningOut = false;
+        
         if (kDebugMode) {
           debugPrint('');
           debugPrint('🔔 [signIn] FCM 초기화 완료 - notifyListeners() 호출');
           debugPrint('   → MainScreen 전환 시 MaxDeviceLimit 체크 완료됨');
+          debugPrint('   → isLoggingOut: $_isLoggingOut, isSigningOut: $_isSigningOut');
         }
         notifyListeners();
       }
