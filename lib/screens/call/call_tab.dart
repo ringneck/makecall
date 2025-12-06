@@ -140,6 +140,8 @@ class _CallTabState extends State<CallTab> {
         scaffoldKey: _scaffoldKey,
       );
       
+      // Note: 플래그 리셋은 _initializeSequentially()에서 수행됨
+      
       // ExtensionInitializer 초기화
       _extensionInitializer = ExtensionInitializer(
         authService: _authService!,
@@ -225,6 +227,15 @@ class _CallTabState extends State<CallTab> {
   /// 고급 패턴: Early Return + Fail-Fast + Single Responsibility + Event-Based
   Future<void> _initializeSequentially() async {
     if (!mounted) return;
+    
+    // 🔄 CRITICAL: 매 로그인마다 설정 체크 플래그 리셋
+    // initState에서 호출되는 것만으로는 부족 (위젯이 재생성되지 않을 수 있음)
+    // 로그인 플로우가 시작될 때마다 명시적으로 리셋
+    _settingsChecker.resetFlags();
+    
+    if (kDebugMode) {
+      debugPrint('🔄 [CALL_TAB] _initializeSequentially 시작 - 플래그 리셋 완료');
+    }
     
     // 🎯 STEP 1: 회원가입 완료 다이얼로그 표시 (이벤트 기반)
     // MainScreen 전환 후 렌더링 완료 시점에만 실행

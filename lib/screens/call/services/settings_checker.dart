@@ -33,6 +33,15 @@ class SettingsChecker {
 
   /// 설정 체크 완료 상태 설정
   set hasCheckedSettings(bool value) => _hasCheckedSettings = value;
+  
+  /// 🔄 로그인 세션마다 플래그 리셋 (매 로그인 시 설정 재체크)
+  void resetFlags() {
+    _hasCheckedSettings = false;
+    _isDialogShowing = false;
+    if (kDebugMode) {
+      debugPrint('🔄 [SettingsChecker] 플래그 리셋 완료 - 매 로그인마다 설정 체크');
+    }
+  }
 
   /// 🎯 설정 상태 확인 및 안내 다이얼로그 표시
   /// 
