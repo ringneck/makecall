@@ -917,6 +917,9 @@ class AuthService extends ChangeNotifier {
       // 로그인 실패 시 일시 비밀번호 삭제
       _tempPassword = null;
       
+      // 🔧 CRITICAL: FCM 초기화 플래그 해제 (오버레이 제거)
+      setFcmInitializing(false);
+      
       if (kDebugMode) {
         debugPrint('SignIn error: ${e.code} - ${e.message}');
       }
