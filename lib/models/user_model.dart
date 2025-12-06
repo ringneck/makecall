@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'consent_record.dart';
 
 class UserModel {
@@ -269,7 +270,16 @@ class UserModel {
   
   // API URL 생성 헬퍼 메서드 (/api/v2 경로 포함)
   String getApiUrl({bool useHttps = true}) {
+    if (kDebugMode) {
+      debugPrint('[UserModel] getApiUrl() 호출');
+      debugPrint('  - apiBaseUrl: $apiBaseUrl');
+      debugPrint('  - apiHttpPort: $apiHttpPort');
+      debugPrint('  - apiHttpsPort: $apiHttpsPort');
+      debugPrint('  - useHttps: $useHttps');
+    }
+    
     if (apiBaseUrl == null || apiBaseUrl!.isEmpty) {
+      if (kDebugMode) debugPrint('  ❌ apiBaseUrl이 비어있음 - 빈 문자열 반환');
       return '';
     }
     
@@ -278,18 +288,30 @@ class UserModel {
     
     // 이미 프로토콜이 있으면 그대로 사용
     if (baseUrl.startsWith('http://') || baseUrl.startsWith('https://')) {
+      if (kDebugMode) debugPrint('  ✅ 프로토콜 이미 포함됨: $baseUrl');
+      
       // /api/v2가 이미 포함되어 있는지 확인
       if (baseUrl.endsWith('/api/v2')) {
+        if (kDebugMode) debugPrint('  ✅ 최종 URL (프로토콜+경로 포함): $baseUrl');
         return baseUrl;
       }
       // 경로가 없으면 추가
-      return baseUrl.replaceAll(RegExp(r'/$'), '') + '/api/v2';
+      final finalUrl = baseUrl.replaceAll(RegExp(r'/$'), '') + '/api/v2';
+      if (kDebugMode) debugPrint('  ✅ 최종 URL (경로 추가): $finalUrl');
+      return finalUrl;
     }
     
     // 프로토콜이 없으면 추가
     final port = useHttps ? apiHttpsPort : apiHttpPort;
     final protocol = useHttps ? 'https' : 'http';
-    return '$protocol://$baseUrl:$port/api/v2';
+    final finalUrl = '$protocol://$baseUrl:$port/api/v2';
+    
+    if (kDebugMode) {
+      debugPrint('  ✅ 프로토콜 추가됨');
+      debugPrint('  ✅ 최종 URL (프로토콜+포트+경로): $finalUrl');
+    }
+    
+    return finalUrl;
   }
   
   // WebSocket URL 생성 헬퍼 메서드
