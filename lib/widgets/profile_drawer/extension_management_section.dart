@@ -176,7 +176,10 @@ class ExtensionManagementSection extends StatefulWidget {
                                   
                                   // Map<String, dynamic> -> MyExtensionModel 변환
                                   final myExtensions = extensionsData.map((data) {
-                                    return MyExtensionModel.fromApiResponse(data);
+                                    return MyExtensionModel.fromApi(
+                                      userId: userId,
+                                      apiData: data,
+                                    );
                                   }).toList();
                                   
                                   setState(() {
