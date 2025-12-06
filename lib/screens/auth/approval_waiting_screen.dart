@@ -111,8 +111,26 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
       debugPrint('⏰ [APPROVAL-SCREEN] 승인 대기 시간 초과 (5분)');
     }
 
+    // 🔥 CRITICAL: Firestore 승인 요청 문서를 'expired'로 업데이트
+    // FCM 백그라운드 승인 대기를 즉시 종료시킴
     try {
-      // 다이얼로그 표시 (3초 대기)
+      if (kDebugMode) {
+        debugPrint('🔄 [APPROVAL-SCREEN] 승인 요청 만료 처리 중...');
+      }
+      
+      await FCMDeviceApprovalService().markApprovalAsExpired(widget.approvalRequestId);
+      
+      if (kDebugMode) {
+        debugPrint('✅ [APPROVAL-SCREEN] 승인 요청 만료 처리 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ [APPROVAL-SCREEN] 승인 요청 만료 처리 실패: $e');
+      }
+    }
+
+    try {
+      // 다이얼로그 표시 (1초 대기)
       await DialogUtils.showError(
         context,
         '승인 대기 시간이 초과되었습니다.\n다시 로그인해주세요.',

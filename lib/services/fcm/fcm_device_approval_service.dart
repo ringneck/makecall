@@ -889,6 +889,36 @@ class FCMDeviceApprovalService {
     }
   }
 
+  /// 승인 요청을 만료 상태로 표시
+  /// 
+  /// 5분 타임아웃 시 호출되어 Firestore 승인 요청 문서를 'expired'로 업데이트
+  /// 이렇게 하면 FCM 백그라운드 승인 대기가 즉시 종료됨
+  Future<void> markApprovalAsExpired(String approvalRequestId) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('⏰ [FCM-APPROVAL] 승인 요청 만료 처리: $approvalRequestId');
+      }
+      
+      await _firestore
+          .collection('device_approval_requests')
+          .doc(approvalRequestId)
+          .update({
+        'status': 'expired',
+        'expiredAt': FieldValue.serverTimestamp(),
+      });
+      
+      if (kDebugMode) {
+        debugPrint('✅ [FCM-APPROVAL] 승인 요청 만료 처리 완료');
+      }
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('❌ [FCM-APPROVAL] 승인 요청 만료 처리 오류: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
+      rethrow;
+    }
+  }
+
   /// 승인 요청 정보 설정
   void setApprovalRequestInfo(String? requestId, String? userId) {
     _currentApprovalRequestId = requestId;
