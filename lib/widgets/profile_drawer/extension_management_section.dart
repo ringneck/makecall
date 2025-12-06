@@ -1645,6 +1645,10 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
         // 사용자는 my_extensions만 관리 가능
         
         if (mounted && context.mounted) {
+          // 🔥 CRITICAL FIX: 전체 삭제 성공 후 다이얼로그 닫기
+          // ProfileDrawer가 열려 있으면 닫기 (StatefulWidget이므로 context 유효)
+          Navigator.of(context).pop();
+          
           await DialogUtils.showInfo(context, '모든 단말번호가 삭제되었습니다', duration: const Duration(seconds: 1));
         }
       } catch (e) {
