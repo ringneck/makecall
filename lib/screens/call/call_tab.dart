@@ -78,6 +78,10 @@ class _CallTabState extends State<CallTab> {
   // 타이밍에 의존하지 않고 이벤트 발생 시 한 번만 처리하도록 보장
   bool _hasProcessedEmailSignupEvent = false;
   
+  // 🎯 이벤트 기반 플래그: 초기화 완료 여부
+  // addPostFrameCallback이 아닌 isAuthenticated 이벤트로 트리거
+  bool _hasInitialized = false;
+  
   // 🔒 고급 개발자 패턴: AuthService 참조를 안전하게 저장
   // dispose()에서 context 사용을 피하기 위한 전략
   AuthService? _authService;
@@ -121,10 +125,8 @@ class _CallTabState extends State<CallTab> {
     }
     
     // 🔄 CRITICAL: 소셜 로그인 오버레이 강제 제거 (화면 전환 안전장치)
-    // 로그인 성공 후 화면 전환 시 오버레이가 남아있을 수 있으므로 강제 제거
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        // dynamic import to avoid direct dependency
         SocialLoginProgressHelper.forceHide();
       } catch (e) {
         // Ignore if helper is not available
@@ -134,31 +136,26 @@ class _CallTabState extends State<CallTab> {
     // ✅ FCM에서 지정한 탭 인덱스 또는 기본값 (키패드) 사용
     _currentTabIndex = widget.initialTabIndex ?? 2; // 기본값: 2 (키패드)
     
-    // 🚀 고급 개발자 패턴: 순차적 초기화 체인
-    // 1️⃣ 설정 확인 먼저 → 2️⃣ 설정 완료 시에만 단말번호 조회
+    // 🎯 EVENT-BASED 초기화: AuthService 상태가 준비되면 트리거
+    // addPostFrameCallback (시간 기반) 대신 이벤트 기반으로 변경
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (kDebugMode) {
-        debugPrint('🔄 [CALL_TAB] addPostFrameCallback 시작');
-      }
+      if (!mounted) return;
       
-      if (!mounted) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [CALL_TAB] Widget not mounted - 초기화 중단');
-        }
-        return;
+      if (kDebugMode) {
+        debugPrint('🔄 [CALL_TAB] 서비스 초기화 시작');
       }
       
       try {
-        // 🔒 AuthService 참조를 안전하게 저장 (dispose에서 사용)
-        if (kDebugMode) {
-          debugPrint('🔄 [CALL_TAB] AuthService 가져오기 시도...');
-        }
+        // AuthService 가져오기
         _authService = context.read<AuthService>();
+        
         if (kDebugMode) {
-          debugPrint('✅ [CALL_TAB] AuthService 가져오기 성공');
+          debugPrint('✅ [CALL_TAB] AuthService 획득');
+          debugPrint('   - currentUser: ${_authService?.currentUser?.uid ?? "null"}');
+          debugPrint('   - isAuthenticated: ${_authService?.isAuthenticated ?? false}');
         }
-      
-      // SettingsChecker 초기화
+    
+        // SettingsChecker 초기화
       _settingsChecker = SettingsChecker(
         authService: _authService!,
         databaseService: _databaseService,
@@ -187,95 +184,115 @@ class _CallTabState extends State<CallTab> {
         onStateChanged: () => setState(() {}),
       );
       
-      // CallManager 초기화
-      _callManager = CallManager(
-        databaseService: _databaseService,
-        onTabChanged: (index) {
-          setState(() {
-            _currentTabIndex = index;
-          });
-        },
-      );
-      
-      // 로그아웃 상태 체크
-      if (kDebugMode) {
-        debugPrint('🔍 [CALL_TAB] 로그아웃 상태 체크');
-        debugPrint('   - currentUser: ${_authService?.currentUser?.uid ?? "null"}');
-        debugPrint('   - isAuthenticated: ${_authService?.isAuthenticated ?? false}');
-      }
-      
-      if (_authService?.currentUser == null || !(_authService?.isAuthenticated ?? false)) {
-        if (kDebugMode) {
-          debugPrint('⚠️ [CALL_TAB] 로그아웃 상태 감지 - 초기화 중단');
-          debugPrint('   → _initializeSequentially() 호출 안 됨!');
-        }
-        return;
-      }
-      
-      if (kDebugMode) {
-        debugPrint('✅ [CALL_TAB] 로그인 상태 확인 완료 - 초기화 계속 진행');
-      }
-      
-      // 🔒 CRITICAL: 이메일 회원가입 시 리스너 등록 지연 (MainScreen 렌더링 완료 후)
-      // 이렇게 하면 모든 다이얼로그가 MainScreen context에서만 표시됨
-      if (widget.showWelcomeDialog) {
-        // 이메일 회원가입: addPostFrameCallback에서 리스너 등록 (다이얼로그 표시 후)
-        if (kDebugMode) {
-          debugPrint('⏱️ [INIT] 이메일 회원가입 - AuthService 리스너 등록 지연 (다이얼로그 표시 후)');
-        }
-      } else {
-        // 일반 로그인/소셜 로그인: 즉시 리스너 등록
-        _authService?.addListener(_onAuthServiceStateChanged);
-        if (kDebugMode) {
-          debugPrint('✅ [INIT] AuthService 리스너 등록 완료 (즉시)');
-        }
-      }
-      
-      // 🔔 DCMIWS 이벤트 스트림 구독 (IncomingCallScreen 결과 처리)
-      _dcmiwsEventSubscription = DCMIWSService().events.listen((event) {
-        if (!mounted) return;
-        
-        if (event['type'] == 'MOVE_TO_TAB') {
-          final tabIndex = event['tabIndex'] as int?;
-          
-          if (tabIndex != null && kDebugMode) {
-            debugPrint('');
-            debugPrint('🔔 DCMIWS 이벤트 수신: MOVE_TO_TAB');
-            debugPrint('  → 탭 이동: $tabIndex');
-          }
-          
-          if (tabIndex != null) {
+        // CallManager 초기화
+        _callManager = CallManager(
+          databaseService: _databaseService,
+          onTabChanged: (index) {
             setState(() {
-              _currentTabIndex = tabIndex;
+              _currentTabIndex = index;
             });
-            
-            if (kDebugMode) {
-              debugPrint('  ✅ 탭 이동 완료: $_currentTabIndex');
-              debugPrint('');
+          },
+        );
+        
+        if (kDebugMode) {
+          debugPrint('✅ [CALL_TAB] 모든 서비스 초기화 완료');
+        }
+      
+        // 🔔 DCMIWS 이벤트 스트림 구독
+        _dcmiwsEventSubscription = DCMIWSService().events.listen((event) {
+          if (!mounted) return;
+          
+          if (event['type'] == 'MOVE_TO_TAB') {
+            final tabIndex = event['tabIndex'] as int?;
+            if (tabIndex != null) {
+              setState(() {
+                _currentTabIndex = tabIndex;
+              });
             }
           }
+        });
+        
+        // 🎯 EVENT-BASED: isAuthenticated 상태를 리스닝하여 초기화 트리거
+        // 타이밍 문제 없이 인증 완료 이벤트로 확실하게 처리
+        if (_authService?.isAuthenticated == true && _authService?.currentUser != null) {
+          // 이미 인증 완료 상태: 즉시 초기화
+          if (kDebugMode) {
+            debugPrint('✅ [CALL_TAB] 이미 인증 완료 - 즉시 초기화');
+          }
+          await _performInitialization();
+        } else {
+          // 인증 대기 중: 리스너로 이벤트 감지
+          if (kDebugMode) {
+            debugPrint('⏳ [CALL_TAB] 인증 대기 중 - 리스너 등록');
+          }
+          _authService?.addListener(_onAuthStateChange);
         }
-      });
-      
-      // 순차적 초기화 실행 (ExtensionInitializer 포함)
-      if (kDebugMode) {
-        debugPrint('🚀 [CALL_TAB] _initializeSequentially() 호출 직전');
-      }
-      await _initializeSequentially();
-      if (kDebugMode) {
-        debugPrint('✅ [CALL_TAB] _initializeSequentially() 완료');
-      }
-      
+        
       } catch (e, stackTrace) {
         if (kDebugMode) {
-          debugPrint('');
-          debugPrint('❌ [CALL_TAB] addPostFrameCallback 에러 발생!');
-          debugPrint('   Error: $e');
+          debugPrint('❌ [CALL_TAB] 초기화 에러: $e');
           debugPrint('   StackTrace: $stackTrace');
-          debugPrint('');
         }
       }
     });
+  }
+  
+  /// 🎯 이벤트 기반: AuthService 상태 변경 감지
+  void _onAuthStateChange() {
+    if (!mounted) return;
+    
+    if (kDebugMode) {
+      debugPrint('🔔 [CALL_TAB] AuthService 상태 변경 감지');
+      debugPrint('   - isAuthenticated: ${_authService?.isAuthenticated ?? false}');
+      debugPrint('   - currentUser: ${_authService?.currentUser?.uid ?? "null"}');
+    }
+    
+    // 인증 완료 && 초기화 미완료 → 초기화 실행
+    if (_authService?.isAuthenticated == true && 
+        _authService?.currentUser != null && 
+        !_hasInitialized) {
+      
+      if (kDebugMode) {
+        debugPrint('✅ [CALL_TAB] 인증 완료 이벤트 → 초기화 시작');
+      }
+      
+      // 리스너 제거 (한 번만 실행)
+      _authService?.removeListener(_onAuthStateChange);
+      
+      // 초기화 실행
+      _performInitialization();
+    }
+  }
+  
+  /// 🚀 실제 초기화 로직 실행
+  Future<void> _performInitialization() async {
+    if (_hasInitialized) {
+      if (kDebugMode) {
+        debugPrint('⚠️ [CALL_TAB] 이미 초기화 완료 - 스킵');
+      }
+      return;
+    }
+    
+    _hasInitialized = true;
+    
+    if (kDebugMode) {
+      debugPrint('🚀 [CALL_TAB] _performInitialization() 시작');
+    }
+    
+    // 이메일 회원가입인 경우 AuthService 리스너 등록
+    if (widget.showWelcomeDialog) {
+      _authService?.addListener(_onAuthServiceStateChanged);
+      if (kDebugMode) {
+        debugPrint('✅ [INIT] AuthService 리스너 등록 (이메일 회원가입)');
+      }
+    }
+    
+    // 순차적 초기화 실행
+    await _initializeSequentially();
+    
+    if (kDebugMode) {
+      debugPrint('✅ [CALL_TAB] _performInitialization() 완료');
+    }
   }
   
   /// 🔄 순차적 초기화 체인
@@ -418,8 +435,8 @@ class _CallTabState extends State<CallTab> {
   @override
   void dispose() {
     // 🔒 고급 개발자 패턴: 저장된 참조를 사용하여 안전하게 리스너 제거
-    // context.read()를 사용하지 않음 → deactivated widget 에러 방지
     _authService?.removeListener(_onAuthServiceStateChanged);
+    _authService?.removeListener(_onAuthStateChange); // 🎯 이벤트 기반 리스너 제거
     _authService = null; // 메모리 누수 방지
     
     // 🔔 DCMIWS 이벤트 구독 취소
