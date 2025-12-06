@@ -336,7 +336,6 @@ class SettingsChecker {
 
   /// 단말번호 등록 안내 다이얼로그
   Future<void> _showExtensionRegistrationDialog(BuildContext context) async {
-    final extensionController = TextEditingController();
     return showDialog(
       context: context,
       barrierDismissible: false,
@@ -346,12 +345,12 @@ class SettingsChecker {
           title: Row(
             children: [
               Icon(
-                Icons.phone_in_talk,
+                Icons.phone_disabled,
                 color: isDark ? Colors.orange[300] : Colors.orange,
                 size: 28,
               ),
               const SizedBox(width: 12),
-              const Text('단말번호 등록'),
+              const Text('단말번호 등록 필요'),
             ],
           ),
           content: Column(
@@ -367,29 +366,49 @@ class SettingsChecker {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
-                '사용할 단말번호를 입력하세요.',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.grey[300] : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: extensionController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: '단말번호',
-                  hintText: '예: 1000',
-                  prefixIcon: const Icon(Icons.phone),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.orange[900]!.withValues(alpha: 0.3)
+                      : Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark ? Colors.orange[700]! : Colors.orange[200]!,
                   ),
-                  filled: true,
-                  fillColor: isDark ? Colors.grey[850] : Colors.grey[50],
                 ),
-                autofocus: true,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.info,
+                          size: 16,
+                          color: isDark ? Colors.orange[300] : Colors.orange,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '등록 방법',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.orange[300] : Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '1. 왼쪽 상단 프로필 아이콘 클릭\n'
+                      '2. 단말번호 조회 및 등록\n',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey[400] : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -404,51 +423,16 @@ class SettingsChecker {
             ),
             ElevatedButton.icon(
               onPressed: () async {
-                final extension = extensionController.text.trim();
-                if (extension.isEmpty) {
-                  // 빈 값이면 그냥 리턴 (에러 표시 안 함)
-                  return;
-                }
-                
                 Navigator.pop(dialogContext);
-                
-                // 단말번호 저장
-                try {
-                  final userId = authService.currentUser?.uid;
-                  if (userId != null) {
-                    final myExtension = MyExtensionModel(
-                      id: '',
-                      userId: userId,
-                      extensionId: '',  // 단말번호 등록 시점에는 extension_id가 없음
-                      extension: extension,
-                      name: '기본 단말번호',
-                      classOfServicesId: '',  // 나중에 API 동기화 시 업데이트
-                      createdAt: DateTime.now(),
-                    );
-                    
-                    await databaseService.addMyExtension(myExtension);
-                    
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('단말번호가 등록되었습니다'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('단말번호 등록 실패: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
+
+                // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
+                await Future.delayed(const Duration(milliseconds: 300));
+
+                if (context.mounted) {
+                  scaffoldKey.currentState?.openDrawer();
                 }
               },
-              icon: const Icon(Icons.check, size: 18),
+              icon: const Icon(Icons.phone_in_talk, size: 18),
               label: const Text('등록하기'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: isDark ? Colors.orange[700] : Colors.orange,
