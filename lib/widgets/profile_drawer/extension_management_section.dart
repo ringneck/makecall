@@ -1641,10 +1641,8 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
         // my_extensions 컬렉션에서 전체 삭제
         await dbService.deleteAllMyExtensions(userId);
         
-        // registered_extensions에서 각 단말번호 등록 해제
-        for (final extension in extensionNumbers) {
-          await dbService.unregisterExtension(extension);
-        }
+        // ℹ️ registered_extensions는 관리자 전용 컬렉션이므로 사용자가 직접 삭제하지 않음
+        // 사용자는 my_extensions만 관리 가능
         
         if (mounted && context.mounted) {
           await DialogUtils.showInfo(context, '모든 단말번호가 삭제되었습니다', duration: const Duration(seconds: 1));
