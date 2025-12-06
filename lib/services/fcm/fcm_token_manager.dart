@@ -129,16 +129,19 @@ class FCMTokenManager {
             print('   ⚠️ 승인되지 않은 기존 토큰 발견: ${oldToken.fcmToken.substring(0, 20)}...');
           }
           
-          // Firestore에서 직접 비활성화
-          await _firestore
-              .collection('fcm_tokens')
-              .where('fcmToken', isEqualTo: oldToken.fcmToken)
-              .get()
-              .then((snapshot) async {
-            for (var doc in snapshot.docs) {
-              await doc.reference.update({'isActive': false});
-            }
-          });
+          // 🔧 FIX: Document ID로 직접 업데이트 (쿼리 대신)
+          // Document ID 형식: userId_deviceId_platform
+          final docId = '${oldToken.userId}_${oldToken.deviceId}_${oldToken.platform}';
+          try {
+            await _firestore
+                .collection('fcm_tokens')
+                .doc(docId)
+                .update({'isActive': false});
+          } catch (e) {
+            // ignore: avoid_print
+            print('   ⚠️ 비활성화 실패 (문서 없음 또는 권한 없음): $e');
+            // 에러 무시하고 계속 진행 (이미 삭제된 토큰일 수 있음)
+          }
           // ignore: avoid_print
           print('   ✅ 비활성화 완료: ${oldToken.fcmToken.substring(0, 20)}...');
         }
