@@ -988,7 +988,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                                       const CircularProgressIndicator(),
                                       const SizedBox(height: 20),
                                       Text(
-                                        'FCM 초기화 중...',
+                                        '서비스 로딩중...',
                                         style: TextStyle(
                                           fontSize: 16,
                                           color: Colors.grey[800],
