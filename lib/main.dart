@@ -912,9 +912,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         // 로그아웃 직후 onLoginScreenDisplayed() 호출하면 isLoggingOut=false로 변경되어
                         // Consumer rebuild → MainScreen 잠깐 표시 → forceRemoveAll() 호출 → 오버레이 0개
                         // 재로그인 시에는 login_screen.dart에서 명시적으로 호출함
+                        
+                        // 🎯 FIX: 고정된 Key 사용으로 중복 rebuild 시에도 동일한 LoginScreen 유지
+                        // isLoggingOut이 true인 동안에는 같은 인스턴스 재사용
                         return WebLoginWrapper(
                           child: LoginScreen(
-                            key: ValueKey('login_logout_${DateTime.now().millisecondsSinceEpoch}'),
+                            key: const ValueKey('login_logout_screen'),
                           ),
                         );
                       }
