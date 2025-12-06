@@ -376,6 +376,44 @@ class AuthService extends ChangeNotifier {
         }
       }
     }
+    
+    // 🔥 CRITICAL FIX: 재로그인 시 FCM 초기화 (authStateChanges 경로)
+    // _loadUserModel()이 signIn()을 거치지 않고 직접 호출될 때 FCM 초기화 필요
+    if (_currentUserModel != null && !_isWaitingForApproval) {
+      if (kDebugMode) {
+        debugPrint('🔔 [_loadUserModel] FCM 초기화 시작 (재로그인 경로)');
+        debugPrint('   userId: $uid');
+      }
+      
+      try {
+        final fcmService = FCMService();
+        await fcmService.initialize(uid);
+        
+        if (kDebugMode) {
+          debugPrint('✅ [_loadUserModel] FCM 초기화 완료');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [_loadUserModel] FCM 초기화 실패: $e');
+        }
+        
+        // 기기 승인 관련 오류는 재throw
+        if (e.toString().contains('Device approval') || 
+            e.toString().contains('denied') || 
+            e.toString().contains('timeout')) {
+          if (kDebugMode) {
+            debugPrint('🚫 [_loadUserModel] 기기 승인 실패 - 로그아웃 처리');
+          }
+          await _auth.signOut();
+          rethrow;
+        }
+        
+        // 기타 FCM 오류는 경고만 출력하고 로그인 진행
+        if (kDebugMode) {
+          debugPrint('⚠️ [_loadUserModel] FCM 초기화 실패했지만 로그인 진행');
+        }
+      }
+    }
   }
   
   // 🔧 PUBLIC: 외부에서 UserModel을 명시적으로 로드 (shouldNotify=true)
