@@ -214,11 +214,24 @@ class _CallTabState extends State<CallTab> {
         
         // 🎯 EVENT-BASED: isAuthenticated 상태를 리스닝하여 초기화 트리거
         // 타이밍 문제 없이 인증 완료 이벤트로 확실하게 처리
+        // 
+        // 🔒 CRITICAL FIX: _hasInitialized 플래그를 먼저 true로 설정하여 중복 호출 방지
+        // 비동기 _performInitialization() 실행 중 두 번째 체크가 발생하는 것 방지
         if (_authService?.isAuthenticated == true && _authService?.currentUser != null) {
           // 이미 인증 완료 상태: 즉시 초기화
           if (kDebugMode) {
             debugPrint('✅ [CALL_TAB] 이미 인증 완료 - 즉시 초기화');
           }
+          
+          // 🔒 중복 호출 방지: 플래그를 먼저 설정
+          if (_hasInitialized) {
+            if (kDebugMode) {
+              debugPrint('⚠️ [CALL_TAB] 이미 초기화 시작됨 - 중복 실행 방지');
+            }
+            return;
+          }
+          _hasInitialized = true;
+          
           await _performInitialization();
         } else {
           // 인증 대기 중: 리스너 등록
@@ -229,10 +242,14 @@ class _CallTabState extends State<CallTab> {
           
           // 🔧 FIX: 리스너 등록 직후 상태 재확인 (notifyListeners가 먼저 호출된 경우 대비)
           // 리스너 등록과 notifyListeners 호출 사이 타이밍 문제 해결
-          if (_authService?.isAuthenticated == true && _authService?.currentUser != null) {
+          // 🔒 CRITICAL FIX: 중복 실행 방지 체크 추가
+          if (_authService?.isAuthenticated == true && 
+              _authService?.currentUser != null && 
+              !_hasInitialized) {
             if (kDebugMode) {
               debugPrint('🔄 [CALL_TAB] 리스너 등록 후 인증 완료 감지 - 즉시 초기화');
             }
+            _hasInitialized = true;
             _authService?.removeListener(_onAuthStateChange);
             await _performInitialization();
           }
@@ -266,6 +283,9 @@ class _CallTabState extends State<CallTab> {
         debugPrint('✅ [CALL_TAB] 인증 완료 이벤트 → 초기화 시작');
       }
       
+      // 🔒 CRITICAL: 플래그를 먼저 설정하여 중복 호출 방지
+      _hasInitialized = true;
+      
       // 리스너 제거 (한 번만 실행)
       _authService?.removeListener(_onAuthStateChange);
       
@@ -275,16 +295,8 @@ class _CallTabState extends State<CallTab> {
   }
   
   /// 🚀 실제 초기화 로직 실행
+  /// 🔒 CRITICAL: 이 메소드 호출 전에 _hasInitialized 플래그가 이미 true로 설정되어야 함
   Future<void> _performInitialization() async {
-    if (_hasInitialized) {
-      if (kDebugMode) {
-        debugPrint('⚠️ [CALL_TAB] 이미 초기화 완료 - 스킵');
-      }
-      return;
-    }
-    
-    _hasInitialized = true;
-    
     if (kDebugMode) {
       debugPrint('🚀 [CALL_TAB] _performInitialization() 시작');
     }
