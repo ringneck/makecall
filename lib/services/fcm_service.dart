@@ -438,12 +438,17 @@ class FCMService {
           print('✅ [FCM-INIT] FCM 토큰 저장 완료');
           
           // 🚀 EVENT-BASED: FCM 초기화 완료 이벤트 발행 (AuthService에 알림)
-          // 🔥 CRITICAL: 토큰 저장 및 승인 처리 완료 직후 호출
-          // (승인 대기 상태가 아닌 경우에만 여기 도달)
-          if (_authService != null) {
+          // 🔥 CRITICAL: 승인 대기가 아닌 경우에만 여기서 setFcmInitialized 호출
+          // 승인 대기 시에는 MainScreen 오버레이 렌더링 후 notifyFcmLoadingOverlayRendered()에서 호출
+          if (_authService != null && !_authService!.isWaitingForApproval) {
             _authService!.setFcmInitialized(true);
             if (kDebugMode) {
-              debugPrint('🚀 [FCM] 초기화 완료 이벤트 발행 → AuthService 알림');
+              debugPrint('🚀 [FCM] 초기화 완료 이벤트 발행 → AuthService 알림 (승인 대기 아님)');
+            }
+          } else if (_authService != null && _authService!.isWaitingForApproval) {
+            if (kDebugMode) {
+              debugPrint('⏳ [FCM] setFcmInitialized 호출 건너뛰기 (승인 대기 중)');
+              debugPrint('   → MainScreen 오버레이 렌더링 후 자동 호출됨');
             }
           }
           
