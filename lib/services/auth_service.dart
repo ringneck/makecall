@@ -272,6 +272,17 @@ class AuthService extends ChangeNotifier {
     String? password,
     bool shouldNotify = true,  // 🔥 CRITICAL: notifyListeners() 제어 플래그
   }) async {
+    // 🔧 CRITICAL FIX: _loadUserModel 시작 시 플래그 초기화
+    // signIn()을 거치지 않고 직접 호출되는 경로 대응 (재로그인)
+    _isLoggingOut = false;
+    _isSigningOut = false;
+    
+    if (kDebugMode) {
+      debugPrint('🔐 [_loadUserModel] 로그아웃 플래그 초기화');
+      debugPrint('   - _isLoggingOut: $_isLoggingOut');
+      debugPrint('   - _isSigningOut: $_isSigningOut');
+    }
+    
     // 중복 호출 방지
     if (_isLoadingUserModel) return;
     
