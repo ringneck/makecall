@@ -339,21 +339,22 @@ class _CallTabState extends State<CallTab> {
     
     if (!mounted) return;
     
-    // 🎯 STEP 2: 공지사항 확인 및 표시 (우선 표시)
+    // 🎯 STEP 2: 설정 체크 및 단말번호 등록 안내 (우선 처리)
+    // 🔥 CRITICAL: 기기 승인이 필요한 경우 공지사항보다 먼저 처리
     if (kDebugMode) {
-      debugPrint('🔍 [CALL_TAB] 공지사항 표시 (단말번호 등록 안내보다 우선)');
-    }
-    await _checkAndShowAnnouncement();
-    
-    if (!mounted) return;
-    
-    // 🎯 STEP 3: 설정 체크 및 단말번호 등록 안내 (공지사항 이후)
-    if (kDebugMode) {
-      debugPrint('🔍 [CALL_TAB] 공지사항 표시 완료 - 설정 체크 시작');
+      debugPrint('🔍 [CALL_TAB] 설정 체크 시작 (기기 승인 우선)');
     }
     
     // 🔥 CRITICAL: 설정 체크 및 '초기 등록 필요' 다이얼로그 표시
     await _checkSettingsAndShowGuide();
+    
+    if (!mounted) return;
+    
+    // 🎯 STEP 3: 공지사항 확인 및 표시 (기기 승인 이후)
+    if (kDebugMode) {
+      debugPrint('🔍 [CALL_TAB] 설정 체크 완료 - 공지사항 표시');
+    }
+    await _checkAndShowAnnouncement();
     
     // 🔒 이메일 회원가입 이벤트 처리 완료 플래그 설정
     if (widget.showWelcomeDialog) {
