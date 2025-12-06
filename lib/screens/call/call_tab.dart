@@ -362,41 +362,45 @@ class _CallTabState extends State<CallTab> {
     // AuthService.isFcmInitialized 플래그가 true가 될 때까지 대기
     // 
     // 🎯 이벤트 흐름:
+    // 🚀 EVENT-BASED: FCM 초기화 완료 이벤트를 기다림 (완전한 이벤트 기반)
     // 1. AuthService.authStateChanges 리스너에서 FCM 초기화 시작
     // 2. FCMService.initialize() 실행
     //    - saveFCMToken() → needsApproval 체크
     //    - needsApproval = true → setWaitingForApproval(true)
     //    - needsApproval = false → 계속 진행
-    // 3. FCM 초기화 완료 시 setFcmInitialized(true) 호출
-    // 4. CallTab이 이 이벤트를 감지하고 다음 단계 진행
+    // 3. FCM 초기화 완료 시 setFcmInitialized(true) 호출 → Completer 완료
+    // 4. CallTab이 Completer Future를 기다림 (폴링 없음)
     
-    // ⏱️ 타임아웃 보호: 최대 10초 대기 (FCM 초기화 실패 대응)
-    int attempts = 0;
-    const maxAttempts = 100; // 최대 10초 (100ms * 100)
-    
-    while (!authService.isFcmInitialized && attempts < maxAttempts) {
-      // 🚨 CRITICAL: 승인 대기 상태가 먼저 설정되면 즉시 종료
-      if (authService.isWaitingForApproval) {
-        if (kDebugMode) {
-          debugPrint('🚫 [CALL_TAB] 기기 승인 대기 상태 감지 - 공지사항 건너뛰기');
-        }
-        return;
-      }
-      
-      // 100ms 대기 후 재확인
-      await Future.delayed(const Duration(milliseconds: 100));
-      attempts++;
+    if (kDebugMode) {
+      debugPrint('⏳ [CALL_TAB] FCM 초기화 완료 이벤트 대기 중...');
     }
     
-    // FCM 초기화 완료 확인
-    if (authService.isFcmInitialized) {
+    try {
+      // 🎯 EVENT-BASED: FCM 초기화 완료 이벤트를 타임아웃과 함께 대기
+      await authService.waitForFcmInitialization().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          if (kDebugMode) {
+            debugPrint('⚠️ [CALL_TAB] FCM 초기화 타임아웃 (10초) - 공지사항 표시 진행');
+          }
+        },
+      );
+      
       if (kDebugMode) {
-        debugPrint('✅ [CALL_TAB] FCM 초기화 완료 이벤트 수신 (${attempts * 100}ms)');
+        debugPrint('✅ [CALL_TAB] FCM 초기화 완료 이벤트 수신 (이벤트 기반)');
       }
-    } else {
+    } catch (e) {
       if (kDebugMode) {
-        debugPrint('⚠️ [CALL_TAB] FCM 초기화 타임아웃 (${attempts * 100}ms) - 공지사항 표시 진행');
+        debugPrint('⚠️ [CALL_TAB] FCM 초기화 대기 중 오류: $e');
       }
+    }
+    
+    // 🚨 CRITICAL: 승인 대기 상태 확인
+    if (authService.isWaitingForApproval) {
+      if (kDebugMode) {
+        debugPrint('🚫 [CALL_TAB] 기기 승인 대기 상태 감지 - 공지사항 건너뛰기');
+      }
+      return;
     }
     
     // 최종 체크: 승인 대기 상태가 아닌 경우에만 공지사항 표시
@@ -468,12 +472,13 @@ class _CallTabState extends State<CallTab> {
       
       // 공지사항 BottomSheet 표시
       if (mounted) {
-        // 🔒 CRITICAL: 공지사항 표시 직전 최종 검증
+        // 🔒 CRITICAL: 공지사항 표시 직전 최종 검증 (이벤트 기반)
         // MainScreen의 Consumer가 ApprovalWaitingScreen을 표시하는지 확인
         final authService = Provider.of<AuthService>(context, listen: false);
         
-        // 현재 프레임 렌더링 완료 대기 (MainScreen UI 업데이트 완료 보장)
-        await Future.delayed(const Duration(milliseconds: 50));
+        // 🎯 EVENT-BASED: 현재 프레임 렌더링 완료 대기 (MainScreen UI 업데이트 완료 보장)
+        // WidgetsBinding을 사용하여 프레임 렌더링 이벤트 대기
+        await WidgetsBinding.instance.endOfFrame;
         
         // 최종 체크: 승인 대기 상태가 되었으면 공지사항 표시 중단
         if (authService.isWaitingForApproval) {

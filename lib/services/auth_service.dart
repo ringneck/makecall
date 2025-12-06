@@ -197,6 +197,19 @@ class AuthService extends ChangeNotifier {
   bool _isFcmInitializing = false;
   bool get isFcmInitializing => _isFcmInitializing;
   
+  // 🎯 FCM 초기화 완료 이벤트 (이벤트 기반 대기용)
+  Completer<void>? _fcmInitializationCompleter;
+  
+  /// FCM 초기화 완료를 기다리는 Future 반환
+  Future<void> waitForFcmInitialization() async {
+    if (_isFcmInitialized) {
+      return; // 이미 초기화됨
+    }
+    
+    _fcmInitializationCompleter ??= Completer<void>();
+    return _fcmInitializationCompleter!.future;
+  }
+  
   // 🚫 MaxDeviceLimit 차단 상태 (로그인 차단 + 다이얼로그 표시용)
   bool _isBlockedByMaxDeviceLimit = false;
   bool get isBlockedByMaxDeviceLimit => _isBlockedByMaxDeviceLimit;
@@ -217,6 +230,14 @@ class AuthService extends ChangeNotifier {
   void setFcmInitialized(bool initialized) {
     _isFcmInitialized = initialized;
     _isFcmInitializing = false; // 초기화 완료 시 진행 중 플래그 해제
+    
+    // 🎯 EVENT-BASED: FCM 초기화 완료 이벤트 발행 (Completer 완료)
+    if (initialized && _fcmInitializationCompleter != null && !_fcmInitializationCompleter!.isCompleted) {
+      _fcmInitializationCompleter!.complete();
+      if (kDebugMode) {
+        debugPrint('✅ [FCM-EVENT] FCM 초기화 완료 이벤트 발행 (Completer)');
+      }
+    }
     
     // 🔒 CRITICAL: _loadUserModel 실행 중에는 notifyListeners() 호출 안 함
     // authStateChanges에서 shouldNotify=false로 호출한 경우
@@ -945,6 +966,14 @@ class AuthService extends ChangeNotifier {
     
     // 🔥 CRITICAL FIX: 소셜 로그인 완료 카운터 리셋 (재로그인 시 이벤트 감지 가능하도록)
     _socialLoginCompleteCounter.value = 0;
+    
+    // 🔄 FCM 초기화 상태 리셋 (재로그인 시 FCM 대기 가능하도록)
+    _isFcmInitialized = false;
+    _isFcmInitializing = false;
+    _fcmInitializationCompleter = null; // Completer 리셋
+    if (kDebugMode) {
+      debugPrint('🔄 [LOGOUT] FCM 초기화 상태 리셋 완료');
+    }
     
     // 🔄 공지사항 "다시 보지 않기" 설정 초기화 (재로그인 시 공지사항 재표시)
     try {

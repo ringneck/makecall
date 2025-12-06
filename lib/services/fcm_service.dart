@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart'; // SchedulerBinding 사용
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 import 'dart:async'; // TimeoutException 사용을 위해 필요
@@ -589,8 +590,14 @@ class FCMService {
             debugPrint('   - isWaitingForApproval: ${_authService!.isWaitingForApproval}');
           }
           
-          // ⏱️ CRITICAL: 50ms 대기 - MainScreen Consumer가 rebuild되어 ApprovalWaitingScreen 표시할 시간 확보
-          await Future.delayed(const Duration(milliseconds: 50));
+          // 🎯 EVENT-BASED: 현재 프레임 렌더링 완료 대기
+          // MainScreen Consumer가 rebuild되어 ApprovalWaitingScreen 표시할 시간 확보
+          // notifyListeners() 호출 후 다음 프레임까지 대기
+          if (SchedulerBinding.instance.schedulerPhase != SchedulerPhase.idle) {
+            await SchedulerBinding.instance.endOfFrame;
+          }
+          // 추가로 한 프레임 더 대기 (Consumer rebuild 보장)
+          await SchedulerBinding.instance.endOfFrame;
           
           // 🚀 STEP 2: FCM 초기화 완료 이벤트 발행 (나중에!)
           // ✅ 이제 CallTab이 이벤트를 받아도 isWaitingForApproval=true이므로 공지사항 건너뜀
