@@ -984,6 +984,28 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     }
                     authService.setIsInSocialLoginFlow(false);
                     
+                    // 🔧 CRITICAL FIX: currentUserModel 명시적 로드
+                    // - authStateChanges는 이미 완료되어 _loadUserModel이 호출되지 않음
+                    // - LoginScreen이 MainScreen으로 전환되려면 currentUserModel이 필요함
+                    if (authService.currentUserModel == null && authService.currentUser != null) {
+                      if (kDebugMode) {
+                        debugPrint('🔄 [SIGNUP] currentUserModel 명시적 로드 시작');
+                      }
+                      
+                      try {
+                        await authService.ensureUserModelLoaded();
+                        
+                        if (kDebugMode) {
+                          debugPrint('✅ [SIGNUP] currentUserModel 로드 완료');
+                          debugPrint('   - Email: ${authService.currentUserModel?.email}');
+                        }
+                      } catch (e) {
+                        if (kDebugMode) {
+                          debugPrint('❌ [SIGNUP] currentUserModel 로드 실패: $e');
+                        }
+                      }
+                    }
+                    
                     // SignupScreen 닫기 (LoginScreen으로 복귀)
                     navigatorKey.currentState?.pop();
                     
