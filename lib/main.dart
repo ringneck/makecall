@@ -983,10 +983,45 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         );
                       }
                       
-                      // ✅ 로그인 상태 체크: currentUser와 currentUserModel 존재 여부
+                      // 🚫 CRITICAL: MaxDeviceLimit 차단 상태 체크 (currentUser와 currentUserModel 모두 필요)
+                      // 📝 이 조건은 ApprovalWaitingScreen 다음, MainScreen 이전에 확인
                       if (authService.currentUser != null && 
                           authService.currentUserModel != null &&
-                          !authService.isBlockedByMaxDeviceLimit) {
+                          authService.isBlockedByMaxDeviceLimit) {
+                        if (kDebugMode) {
+                          debugPrint('🚫 [MAIN] MaxDeviceLimit 차단 화면 표시');
+                          debugPrint('   - userId: ${authService.currentUser?.uid}');
+                          debugPrint('   - exception: ${authService.maxDeviceLimitException}');
+                        }
+                        
+                        // 🧹 CRITICAL: 소셜 로그인 오버레이 제거
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          SocialLoginProgressHelper.forceHide();
+                        });
+                        
+                        // MaxDeviceLimit 다이얼로그 표시
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (navigatorKey.currentContext != null && 
+                              navigatorKey.currentContext!.mounted) {
+                            MaxDeviceLimitDialog.show(
+                              navigatorKey.currentContext!,
+                              authService.maxDeviceLimitException!,
+                            );
+                          }
+                        });
+                        
+                        // 임시 화면 (다이얼로그 뒤에 표시)
+                        return Scaffold(
+                          backgroundColor: Colors.white,
+                          body: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+                      
+                      // ✅ 로그인 상태 체크: currentUser와 currentUserModel 존재 여부
+                      if (authService.currentUser != null && 
+                          authService.currentUserModel != null) {
                         
                         // 🔄 개인정보보호법 준수: 동의 만료 체크 (2년 주기) - 현재 비활성화
                         // final userModel = authService.currentUserModel!;
