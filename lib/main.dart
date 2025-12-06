@@ -1058,6 +1058,32 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         //   return const ConsentRenewalScreen();
                         // }
                         
+                        // 🔥 CRITICAL: MainScreen 진입 전 승인 대기 상태 체크
+                        // ApprovalWaitingScreen이 MainScreen보다 우선!
+                        if (authService.isWaitingForApproval) {
+                          final requestId = authService.approvalRequestId;
+                          final userId = authService.currentUser?.uid;
+                          
+                          if (kDebugMode) {
+                            debugPrint('🔒 [MAIN] 기기 승인 대기 중 - ApprovalWaitingScreen 표시');
+                            debugPrint('   - requestId: $requestId');
+                            debugPrint('   - userId: $userId');
+                          }
+                          
+                          // 필수 데이터가 없으면 MainScreen으로 fallback
+                          if (requestId == null || userId == null) {
+                            if (kDebugMode) {
+                              debugPrint('⚠️ [MAIN] ApprovalWaitingScreen 데이터 누락 - MainScreen으로 fallback');
+                            }
+                          } else {
+                            // ✅ ApprovalWaitingScreen 반환 (MainScreen 진입 차단)
+                            return ApprovalWaitingScreen(
+                              approvalRequestId: requestId,
+                              userId: userId,
+                            );
+                          }
+                        }
+                        
                         // ⏱️ 사용자 활동 감지 (GestureDetector로 전체 앱 감싸기)
                         return GestureDetector(
                           key: ValueKey('gesture_${authService.currentUser?.uid}'),
