@@ -1,7 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart'; // SchedulerBinding 사용
+import 'package:flutter/scheduler.dart' hide Priority; // SchedulerBinding 사용, Priority 충돌 방지
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 import 'dart:async'; // TimeoutException 사용을 위해 필요
