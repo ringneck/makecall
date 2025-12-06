@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../call/call_tab.dart';
+import '../auth/approval_waiting_screen.dart';
 import '../../services/fcm_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/social_login_progress_overlay.dart';
@@ -77,26 +79,47 @@ class _MainScreenState extends State<MainScreen> {
       });
     }
     
-    // CallTab이 신규 사용자 감지 및 ProfileDrawer 자동 열기를 처리
-    // 공지사항 및 설정 체크도 CallTab에서 처리
-    // 
-    // 🔑 CRITICAL: ValueKey 사용으로 재로그인 시 CallTab 위젯 완전 재생성 보장
-    // - 로그인된 사용자의 UID를 key로 사용
-    // - 로그아웃 후 재로그인 시 다른 UID → CallTab 재생성 → initState() 호출
-    // - 이를 통해 공지사항 및 설정 체크 플래그가 매 로그인마다 초기화됨
-    final userId = AuthService().currentUser?.uid ?? 'guest';
-    final callTabKey = 'call_tab_$userId';
-    
-    if (kDebugMode) {
-      debugPrint('🔑 [MainScreen] CallTab key 생성: $callTabKey');
-      debugPrint('   - User ID: $userId');
-    }
-    
-    return CallTab(
-      key: ValueKey(callTabKey), // 🔑 사용자별 고유 키
-      autoOpenProfileForNewUser: true,
-      initialTabIndex: widget.initialTabIndex, // FCM에서 지정한 탭으로 이동
-      showWelcomeDialog: widget.showWelcomeDialog, // 회원가입 완료 다이얼로그 플래그 전달
+    // 🔥 CRITICAL: Consumer<AuthService>로 승인 대기 상태 감지
+    // MainScreen에서 직접 감지하여 ApprovalWaitingScreen 표시
+    return Consumer<AuthService>(
+      builder: (context, authService, child) {
+        // 📋 디버그 로그: Consumer rebuild 감지
+        if (kDebugMode) {
+          debugPrint('🔄 [MainScreen] Consumer<AuthService> rebuild');
+          debugPrint('   - isWaitingForApproval: ${authService.isWaitingForApproval}');
+        }
+        
+        // 🔒 기기 승인 대기 중이면 ApprovalWaitingScreen 표시
+        if (authService.isWaitingForApproval) {
+          if (kDebugMode) {
+            debugPrint('📺 [MainScreen] ApprovalWaitingScreen 표시');
+          }
+          return const ApprovalWaitingScreen();
+        }
+        
+        // 정상 로그인: CallTab 표시
+        // CallTab이 신규 사용자 감지 및 ProfileDrawer 자동 열기를 처리
+        // 공지사항 및 설정 체크도 CallTab에서 처리
+        // 
+        // 🔑 CRITICAL: ValueKey 사용으로 재로그인 시 CallTab 위젯 완전 재생성 보장
+        // - 로그인된 사용자의 UID를 key로 사용
+        // - 로그아웃 후 재로그인 시 다른 UID → CallTab 재생성 → initState() 호출
+        // - 이를 통해 공지사항 및 설정 체크 플래그가 매 로그인마다 초기화됨
+        final userId = authService.currentUser?.uid ?? 'guest';
+        final callTabKey = 'call_tab_$userId';
+        
+        if (kDebugMode) {
+          debugPrint('🔑 [MainScreen] CallTab key 생성: $callTabKey');
+          debugPrint('   - User ID: $userId');
+        }
+        
+        return CallTab(
+          key: ValueKey(callTabKey), // 🔑 사용자별 고유 키
+          autoOpenProfileForNewUser: true,
+          initialTabIndex: widget.initialTabIndex, // FCM에서 지정한 탭으로 이동
+          showWelcomeDialog: widget.showWelcomeDialog, // 회원가입 완료 다이얼로그 플래그 전달
+        );
+      },
     );
   }
 }
