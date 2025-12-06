@@ -326,6 +326,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   // 🔑 스플래시 스크린 GlobalKey (Fade Out 제어용)
   final GlobalKey<SplashScreenState> _splashKey = GlobalKey<SplashScreenState>();
   
+  // 🔑 CRITICAL: MainScreen GlobalKey - rebuild 시 위젯 인스턴스 유지
+  // - ValueKey 사용 시 매 rebuild마다 MainScreen이 재생성되어 initState() 재호출
+  // - GlobalKey 사용으로 같은 사용자는 동일 인스턴스 유지 → initState() 1번만 호출
+  GlobalKey? _mainScreenKey;
+  String? _currentMainScreenUserId; // MainScreen 사용자 ID 추적
+  
   // 🔒 로그인 유지 다이얼로그 표시 여부
   bool _isLoginKeepDialogShowing = false;
   
@@ -1167,13 +1173,30 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         if (kDebugMode) {
                           debugPrint('🏠 [MAIN-DECISION] ✅ MainScreen 반환');
                         }
+                        // 🔑 CRITICAL: MainScreen GlobalKey 관리
+                        // 사용자 변경 시에만 새로운 GlobalKey 생성, 같은 사용자는 인스턴스 유지
+                        final userId = authService.currentUser?.uid ?? 'guest';
+                        
+                        if (_currentMainScreenUserId != userId) {
+                          _currentMainScreenUserId = userId;
+                          _mainScreenKey = GlobalKey(debugLabel: 'main_screen_$userId');
+                          
+                          if (kDebugMode) {
+                            debugPrint('🔑 [MyApp] MainScreen GlobalKey 생성 (사용자 변경)');
+                            debugPrint('   - New User ID: $userId');
+                          }
+                        } else if (kDebugMode) {
+                          debugPrint('🔑 [MyApp] MainScreen GlobalKey 재사용 (같은 사용자)');
+                          debugPrint('   - User ID: $userId');
+                        }
+                        
                         return GestureDetector(
-                          key: ValueKey('gesture_${authService.currentUser?.uid}'),
+                          key: ValueKey('gesture_$userId'),
                           onTap: () => _inactivityService.updateActivity(),
                           onPanDown: (_) => _inactivityService.updateActivity(),
                           behavior: HitTestBehavior.translucent,
                           child: MainScreen(
-                            key: ValueKey('main_${authService.currentUser?.uid}'),
+                            key: _mainScreenKey, // 🔑 GlobalKey로 인스턴스 유지
                           ), // 로그인 후 MAKECALL 메인 화면으로 이동
                         );
                       } else {
