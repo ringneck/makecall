@@ -339,18 +339,8 @@ class _CallTabState extends State<CallTab> {
     
     if (!mounted) return;
     
-    // 🎯 STEP 2: 설정 체크 및 단말번호 등록 안내 (우선 처리)
-    // 🔥 CRITICAL: 기기 승인이 필요한 경우 공지사항보다 먼저 처리
-    if (kDebugMode) {
-      debugPrint('🔍 [CALL_TAB] 설정 체크 시작 (기기 승인 우선)');
-    }
-    
-    // 🔥 CRITICAL: 설정 체크 및 '초기 등록 필요' 다이얼로그 표시
-    await _checkSettingsAndShowGuide();
-    
-    if (!mounted) return;
-    
-    // 🎯 STEP 3: 공지사항 확인 및 표시 (기기 승인 이후)
+    // 🎯 STEP 2: 공지사항 확인 및 표시 (우선 처리)
+    // 🔥 CRITICAL: 공지사항을 먼저 표시하고, 닫힌 후 단말번호 체크
     // 🔒 CRITICAL: FCM 초기화 완료를 이벤트 기반으로 대기
     final authService = Provider.of<AuthService>(context, listen: false);
     
@@ -419,6 +409,17 @@ class _CallTabState extends State<CallTab> {
     if (widget.showWelcomeDialog) {
       _hasProcessedEmailSignupEvent = true;
     }
+    
+    if (!mounted) return;
+    
+    // 🎯 STEP 3: 설정 체크 및 단말번호 등록 안내 (공지사항 이후 처리)
+    // 🔥 CRITICAL: 공지사항이 닫힌 후 단말번호 체크 실행
+    if (kDebugMode) {
+      debugPrint('🔍 [CALL_TAB] 설정 체크 시작 (공지사항 이후)');
+    }
+    
+    // 🔥 CRITICAL: 설정 체크 및 '초기 등록 필요' 다이얼로그 표시
+    await _checkSettingsAndShowGuide();
     
     if (!mounted) return;
     
