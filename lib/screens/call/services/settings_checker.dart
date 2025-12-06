@@ -333,6 +333,106 @@ class SettingsChecker {
     );
   }
 
+  /// 단말번호 직접 입력 다이얼로그
+  Future<void> _showExtensionInputDialog(BuildContext context) async {
+    final extensionController = TextEditingController();
+    
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.phone_in_talk,
+                color: isDark ? Colors.blue[300] : const Color(0xFF2196F3),
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Text('단말번호 등록'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '사용할 단말번호를 입력하세요.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.grey[300] : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: extensionController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: '단말번호',
+                  hintText: '예: 1000',
+                  prefixIcon: const Icon(Icons.phone),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                autofocus: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final extension = extensionController.text.trim();
+                if (extension.isEmpty) {
+                  return;
+                }
+                
+                Navigator.pop(dialogContext);
+                
+                // 단말번호 저장
+                try {
+                  final userId = authService.currentUser?.uid;
+                  if (userId != null) {
+                    await databaseService.saveMyExtension(
+                      userId: userId,
+                      extensionNumber: extension,
+                      nickname: '기본 단말번호',
+                    );
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('단말번호가 등록되었습니다')),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('단말번호 등록 실패: $e')),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2196F3),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('등록'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   /// 단말번호 등록 안내 다이얼로그
   Future<void> _showExtensionRegistrationDialog(BuildContext context) async {
     return showDialog(
@@ -418,17 +518,17 @@ class SettingsChecker {
                 _hasCheckedSettings = true;
                 Navigator.pop(dialogContext);
               },
-              child: const Text('나중에'),
+              child: const Text('닫기'),
             ),
             ElevatedButton.icon(
               onPressed: () async {
                 Navigator.pop(dialogContext);
 
-                // 다이얼로그가 완전히 닫힌 후 ProfileDrawer 열기
+                // 다이얼로그가 완전히 닫힌 후 단말번호 등록 다이얼로그 표시
                 await Future.delayed(const Duration(milliseconds: 300));
 
-                if (context.mounted && scaffoldKey.currentState != null) {
-                  scaffoldKey.currentState!.openDrawer();
+                if (context.mounted) {
+                  await _showExtensionInputDialog(context);
                 }
               },
               icon: const Icon(Icons.phone_in_talk, size: 18),
