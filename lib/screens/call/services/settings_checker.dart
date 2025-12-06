@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/database_service.dart';
 import '../../../models/my_extension_model.dart';
+import '../../../widgets/profile_drawer/extension_management_section.dart';
 import '../../profile/api_settings_dialog.dart';
 
 /// 설정 확인 및 안내 서비스
@@ -425,11 +426,12 @@ class SettingsChecker {
               onPressed: () async {
                 Navigator.pop(dialogContext);
 
-                // 다이얼로그가 완전히 닫힌 후 단말번호 입력 다이얼로그 표시
+                // 다이얼로그가 완전히 닫힌 후 단말번호 관리 다이얼로그 직접 호출
                 await Future.delayed(const Duration(milliseconds: 300));
 
                 if (context.mounted) {
-                  await _showExtensionInputDialog(context);
+                  // ExtensionManagementSection의 static 메서드를 통해 단말번호 관리 다이얼로그 표시
+                  await ExtensionManagementSection.showExtensionManagementDialog(context);
                 }
               },
               icon: const Icon(Icons.phone_in_talk, size: 18),
