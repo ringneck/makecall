@@ -579,6 +579,13 @@ class FCMService {
             debugPrint('   - approvalRequestId: $approvalRequestId');
             debugPrint('   - isWaitingForApproval: ${_authService!.isWaitingForApproval}');
           }
+          
+          // 🚀 EVENT-BASED: FCM 초기화 완료 이벤트 발행 (승인 대기 상태도 초기화 완료)
+          // CallTab이 무한 대기하지 않도록 승인 대기 중에도 초기화 완료 알림
+          _authService!.setFcmInitialized(true);
+          if (kDebugMode) {
+            debugPrint('🚀 [FCM] 초기화 완료 이벤트 발행 (승인 대기 중) → AuthService 알림');
+          }
         }
         
         // 승인 대기 (최대 5분) - 🔧 Phase 2: FCMDeviceApprovalService 사용
