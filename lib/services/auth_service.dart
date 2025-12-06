@@ -67,7 +67,8 @@ class AuthService extends ChangeNotifier {
             
             // 🔥 CRITICAL FIX: authStateChanges 경로에서만 FCM 초기화
             // signIn() 메서드를 거치지 않는 재로그인 경로 대응
-            if (_currentUserModel != null && !_isWaitingForApproval && !isInSocialLoginFlow) {
+            // 🚨 IMPORTANT: signIn()이 이미 FCM 초기화 중이면 건너뛰기 (중복 방지)
+            if (_currentUserModel != null && !_isWaitingForApproval && !isInSocialLoginFlow && !_isFcmInitializing) {
               if (kDebugMode) {
                 debugPrint('🔔 [authStateChanges] FCM 초기화 시작 (재로그인 경로)');
                 debugPrint('   userId: ${user.uid}');
@@ -112,6 +113,11 @@ class AuthService extends ChangeNotifier {
                 if (kDebugMode) {
                   debugPrint('⚠️ [authStateChanges] FCM 초기화 실패했지만 로그인 진행');
                 }
+              }
+            } else if (_isFcmInitializing) {
+              if (kDebugMode) {
+                debugPrint('⏭️ [authStateChanges] FCM 초기화 이미 진행 중 - 건너뛰기');
+                debugPrint('   signIn() 메서드가 FCM 초기화 처리 중');
               }
             }
           } on ServiceSuspendedException {
