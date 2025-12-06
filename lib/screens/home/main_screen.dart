@@ -87,9 +87,23 @@ class _MainScreenState extends State<MainScreen> {
         // 📋 디버그 로그: Consumer rebuild 감지
         if (kDebugMode) {
           debugPrint('🔄 [MainScreen] Consumer<AuthService> rebuild');
+          debugPrint('   - isLoggingOut: ${authService.isLoggingOut}');
           debugPrint('   - isFcmInitializing: ${authService.isFcmInitializing}');
           debugPrint('   - isWaitingForApproval: ${authService.isWaitingForApproval}');
           debugPrint('   - approvalRequestId: ${authService.approvalRequestId}');
+        }
+        
+        // 🚨 CRITICAL: 로그아웃 중이면 즉시 빈 화면 반환
+        // main.dart Consumer 재빌드 실패 시 보조 수단
+        if (authService.isLoggingOut) {
+          if (kDebugMode) {
+            debugPrint('🚪 [MainScreen] 로그아웃 중 감지 - 빈 화면 반환 (main.dart가 LoginScreen 전환 처리)');
+          }
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
         }
         
         // ❌ REMOVED: FCM 초기화 오버레이 로직 제거
