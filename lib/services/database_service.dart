@@ -22,6 +22,7 @@ class DatabaseService {
       // Permission denied 에러는 조용히 무시 (로그아웃 시 정상)
       final errorString = error.toString();
       if (errorString.contains('PERMISSION_DENIED') || 
+          errorString.contains('permission-denied') ||  // ← 추가: 소문자 버전
           errorString.contains('Missing or insufficient permissions')) {
         if (kDebugMode) {
           debugPrint('🔒 [DB-STREAM] Permission denied (logged out) - ignoring');
@@ -217,7 +218,18 @@ class DatabaseService {
           .where('userId', isEqualTo: userId)
           .snapshots(includeMetadataChanges: true)
           .handleError((error) {
-            // Permission denied 에러 시 빈 리스트 반환
+            // Permission denied 에러는 조용히 무시 (로그아웃 시 정상)
+            final errorString = error.toString();
+            if (errorString.contains('permission-denied') || 
+                errorString.contains('PERMISSION_DENIED') ||
+                errorString.contains('Missing or insufficient permissions')) {
+              if (kDebugMode) {
+                debugPrint('🔒 [DB] getUserCallHistory permission denied (logged out) - ignoring');
+              }
+              return <CallHistoryModel>[];
+            }
+            
+            // 다른 예상치 못한 에러만 로그 출력
             if (kDebugMode) {
               debugPrint('⚠️ [DB] getUserCallHistory error: $error');
             }
