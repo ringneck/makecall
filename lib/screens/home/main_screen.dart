@@ -30,7 +30,7 @@ class _MainScreenState extends State<MainScreen> {
   // 🔑 CRITICAL: CallTab GlobalKey - rebuild 시 인스턴스 유지
   // - ValueKey는 rebuild 시 새 인스턴스 생성 → initState() 재호출
   // - GlobalKey는 같은 위젯 인스턴스 유지 → initState() 1번만 호출
-  GlobalKey<CallTabState>? _callTabKey;
+  GlobalKey? _callTabKey;
   String? _currentUserId; // 현재 사용자 ID 추적 (사용자 변경 감지용)
   
   @override
@@ -223,7 +223,7 @@ class _MainScreenState extends State<MainScreen> {
         // 사용자가 변경되면 새로운 GlobalKey 생성
         if (_currentUserId != userId) {
           _currentUserId = userId;
-          _callTabKey = GlobalKey<CallTabState>(debugLabel: 'call_tab_$userId');
+          _callTabKey = GlobalKey(debugLabel: 'call_tab_$userId');
           
           if (kDebugMode) {
             debugPrint('🔑 [MainScreen] CallTab GlobalKey 생성 (사용자 변경)');
