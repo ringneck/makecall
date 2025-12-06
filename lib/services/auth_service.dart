@@ -561,6 +561,17 @@ class AuthService extends ChangeNotifier {
     required String password,
   }) async {
     try {
+      // 🔧 CRITICAL FIX: 로그인 시작 시 플래그 초기화 (재로그인 시 필수)
+      // _loadUserModel() 전에 초기화해야 isAuthenticated가 true를 반환함
+      _isLoggingOut = false;
+      _isSigningOut = false;
+      
+      if (kDebugMode) {
+        debugPrint('🔐 [signIn] 로그아웃 플래그 초기화');
+        debugPrint('   - _isLoggingOut: $_isLoggingOut');
+        debugPrint('   - _isSigningOut: $_isSigningOut');
+      }
+      
       // 비밀번호를 일시 저장 (로그인 성공 후 saveAccount에서 사용)
       _tempPassword = password;
       
