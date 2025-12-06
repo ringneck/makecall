@@ -898,20 +898,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         });
                       }
 
-                      // 🔐 승인 대기 중인 경우
-                      if (authService.isWaitingForApproval) {
-                        if (kDebugMode) {
-                          debugPrint('📺 [MAIN] ApprovalWaitingScreen 표시');
-                          debugPrint('   - approvalRequestId: ${authService.approvalRequestId}');
-                          debugPrint('   - userId: ${authService.currentUser?.uid}');
-                        }
-                        return ApprovalWaitingScreen(
-                          approvalRequestId: authService.approvalRequestId!,
-                          userId: authService.currentUser!.uid,
-                        );
-                      }
-                      
-                      // 🚨 CRITICAL: 로그아웃 중이면 즉시 LoginScreen 표시
+                      // 🚨 CRITICAL: 로그아웃 중이면 즉시 LoginScreen 표시 (최우선 순위)
                       if (authService.isLoggingOut) {
                         if (kDebugMode) {
                           debugPrint('🚪 [MAIN] 로그아웃 중 감지 - LoginScreen 표시');
@@ -928,6 +915,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           child: LoginScreen(
                             key: ValueKey('login_logout_${DateTime.now().millisecondsSinceEpoch}'),
                           ),
+                        );
+                      }
+                      
+                      // 🔐 CRITICAL: 승인 대기 중인 경우 (currentUser만 체크, currentUserModel은 로딩 중일 수 있음)
+                      // 📝 이 조건은 로그인 완료 체크보다 먼저 확인되어야 함
+                      //    왜냐하면 currentUserModel 로딩 중에도 ApprovalWaitingScreen을 표시해야 하기 때문
+                      if (authService.currentUser != null && authService.isWaitingForApproval) {
+                        if (kDebugMode) {
+                          debugPrint('📺 [MAIN] ApprovalWaitingScreen 표시');
+                          debugPrint('   - approvalRequestId: ${authService.approvalRequestId}');
+                          debugPrint('   - userId: ${authService.currentUser?.uid}');
+                          debugPrint('   - currentUserModel: ${authService.currentUserModel?.email ?? "loading..."}');
+                        }
+                        return ApprovalWaitingScreen(
+                          approvalRequestId: authService.approvalRequestId!,
+                          userId: authService.currentUser!.uid,
                         );
                       }
                       
