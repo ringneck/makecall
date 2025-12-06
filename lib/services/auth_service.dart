@@ -264,6 +264,18 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
   
+  /// 🔥 EVENT-BASED: "서비스 로딩중..." 오버레이 렌더링 완료 알림
+  /// MainScreen에서 오버레이가 실제로 화면에 표시된 후 호출됨
+  void notifyFcmLoadingOverlayRendered() {
+    if (kDebugMode) {
+      debugPrint('📺 [AUTH-EVENT] "서비스 로딩중" 오버레이 렌더링 완료 이벤트 수신');
+    }
+    
+    // 🎯 CRITICAL: 이제 FCM 초기화 완료 처리 (ApprovalWaitingScreen 전환 준비)
+    // 시간 기반이 아닌 실제 렌더링 완료 후 처리
+    setFcmInitialized(true);
+  }
+  
   /// MaxDeviceLimit 차단 상태 설정
   void setBlockedByMaxDeviceLimit(bool blocked, {MaxDeviceLimitException? exception}) {
     _isBlockedByMaxDeviceLimit = blocked;

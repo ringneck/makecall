@@ -37,7 +37,20 @@ class _ApprovalWaitingScreenState extends State<ApprovalWaitingScreen> {
   @override
   void initState() {
     super.initState();
-    _startTimer();
+    
+    // 🔥 EVENT-BASED: 화면이 완전히 렌더링된 후 타이머 시작
+    // initState에서 즉시 시작하지 않고 첫 프레임 렌더링 완료 이벤트 대기
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          if (kDebugMode) {
+            debugPrint('🎬 [APPROVAL-SCREEN] 화면 렌더링 완료 - 타이머 시작 (이벤트 기반)');
+          }
+          _startTimer();
+        }
+      });
+    });
+    
     _waitForApproval();
   }
   

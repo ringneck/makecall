@@ -103,6 +103,17 @@ class _MainScreenState extends State<MainScreen> {
             SocialLoginProgressHelper.forceHide();
           });
           
+          // 🔥 EVENT-BASED: 오버레이 렌더링 완료 후 AuthService에 알림
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            SchedulerBinding.instance.addPostFrameCallback((_) {
+              if (kDebugMode) {
+                debugPrint('✅ [MainScreen] "서비스 로딩중" 오버레이 렌더링 완료');
+              }
+              // AuthService에 오버레이 표시 완료 이벤트 발행
+              authService.notifyFcmLoadingOverlayRendered();
+            });
+          });
+          
           // Scaffold 위에 오버레이 표시 (빈 화면 + 로딩)
           return Scaffold(
             body: Container(
