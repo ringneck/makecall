@@ -304,6 +304,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         return;
       }
       
+      // 🔒 CRITICAL: 승인 대기 상태 체크
+      // 승인 대기 중이면 Navigator 사용하지 않고 Consumer가 자동으로 ApprovalWaitingScreen 표시
+      final authService = context.read<AuthService>();
+      if (authService.isWaitingForApproval) {
+        if (kDebugMode) {
+          debugPrint('⏳ [LOGIN] 기기 승인 대기 중 - Navigator 전환 건너뛰기');
+          debugPrint('   - MainScreen Consumer가 ApprovalWaitingScreen을 자동으로 표시합니다');
+        }
+        // Consumer<AuthService>가 자동으로 ApprovalWaitingScreen을 표시하도록 함
+        // Navigator를 사용하지 않음
+        return;
+      }
+      
       // ⚡ CRITICAL: 이메일 회원가입 후 첫 로그인 체크
       final isFirstLogin = await _checkFirstLogin();
       
