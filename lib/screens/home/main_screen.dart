@@ -86,8 +86,68 @@ class _MainScreenState extends State<MainScreen> {
         // 📋 디버그 로그: Consumer rebuild 감지
         if (kDebugMode) {
           debugPrint('🔄 [MainScreen] Consumer<AuthService> rebuild');
+          debugPrint('   - isFcmInitializing: ${authService.isFcmInitializing}');
           debugPrint('   - isWaitingForApproval: ${authService.isWaitingForApproval}');
           debugPrint('   - approvalRequestId: ${authService.approvalRequestId}');
+        }
+        
+        // 🔄 CRITICAL: FCM 초기화 중이면 로딩 오버레이 표시
+        // ⚠️ 승인 대기 체크보다 먼저 확인 (로딩 우선!)
+        if (authService.isFcmInitializing) {
+          if (kDebugMode) {
+            debugPrint('🔄 [MainScreen] FCM 초기화 로딩 오버레이 표시');
+          }
+          
+          // 🧹 소셜 로그인 오버레이 제거 (충돌 방지)
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            SocialLoginProgressHelper.forceHide();
+          });
+          
+          // Scaffold 위에 오버레이 표시 (빈 화면 + 로딩)
+          return Scaffold(
+            body: Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 20),
+                      Text(
+                        '서비스 로딩중...',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[800],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '잠시만 기다려 주세요',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
         }
         
         // 🔒 기기 승인 대기 중이면 ApprovalWaitingScreen 표시
