@@ -876,8 +876,9 @@ class AuthService extends ChangeNotifier {
           print('⚠️ [AUTH] FCM 초기화 실패했지만 로그인은 계속 진행');
         }
         
-        // 🔥 CRITICAL: FCM 초기화 완료 후 notifyListeners() 호출
-        // → MainScreen 전환 시점에 MaxDeviceLimit 체크 완료 보장 (이벤트 기반)
+        // 🔥 CRITICAL: notifyListeners() 제거!
+        // → setWaitingForApproval(true)에서 notifyListeners() 호출하여
+        //   main.dart Consumer가 ApprovalWaitingScreen을 먼저 표시하도록 보장
         
         // 🔧 FIX: 로그아웃 플래그 초기화 (isAuthenticated가 true를 반환하도록)
         // onLoginScreenDisplayed()보다 확실하게 여기서 초기화
@@ -886,11 +887,15 @@ class AuthService extends ChangeNotifier {
         
         if (kDebugMode) {
           debugPrint('');
-          debugPrint('🔔 [signIn] FCM 초기화 완료 - notifyListeners() 호출');
-          debugPrint('   → MainScreen 전환 시 MaxDeviceLimit 체크 완료됨');
+          debugPrint('✅ [signIn] FCM 초기화 완료 - notifyListeners() 건너뛰기');
+          debugPrint('   → setWaitingForApproval(true)에서 notifyListeners() 호출 예정');
           debugPrint('   → isLoggingOut: $_isLoggingOut, isSigningOut: $_isSigningOut');
         }
-        notifyListeners();
+        
+        // ⚠️ notifyListeners() 제거됨
+        // - FCMService.initialize()에서 setWaitingForApproval(true) 호출 시 notifyListeners() 실행
+        // - 이렇게 해야 main.dart Consumer가 isWaitingForApproval=true를 먼저 감지
+        // - MainScreen → ApprovalWaitingScreen 순서 보장!
       }
       
       return credential;
