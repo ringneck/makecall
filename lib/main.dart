@@ -919,11 +919,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         );
                       }
                       
-                      // 🔄 CRITICAL: FCM 초기화 로딩 중인 경우 (소셜 로그인 오버레이와 충돌 방지)
-                      // ⚠️ 승인 대기보다 먼저 체크하여 로딩 화면이 우선 표시되도록 함
+                      // 🔄 CRITICAL: FCM 초기화 로딩 중인 경우 (오버레이 방식)
+                      // ⚠️ 승인 대기보다 먼저 체크하여 로딩 오버레이가 우선 표시되도록 함
                       if (authService.currentUser != null && authService.isFcmInitializing) {
                         if (kDebugMode) {
-                          debugPrint('🔄 [MAIN] FCM 초기화 로딩 화면 표시');
+                          debugPrint('🔄 [MAIN] FCM 초기화 로딩 오버레이 표시');
                           debugPrint('   - userId: ${authService.currentUser?.uid}');
                         }
                         
@@ -932,33 +932,59 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           SocialLoginProgressHelper.forceHide();
                         });
                         
-                        return Scaffold(
-                          backgroundColor: Colors.white,
-                          body: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const CircularProgressIndicator(),
-                                const SizedBox(height: 24),
-                                Text(
-                                  'FCM 초기화 중...',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[700],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  '잠시만 기다려 주세요',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[500],
-                                  ),
-                                ),
-                              ],
+                        // LoginScreen 위에 오버레이 표시
+                        return Stack(
+                          children: [
+                            // 배경: LoginScreen
+                            WebLoginWrapper(
+                              child: LoginScreen(
+                                key: ValueKey('login_fcm_init_${DateTime.now().millisecondsSinceEpoch}'),
+                              ),
                             ),
-                          ),
+                            // 오버레이: FCM 초기화 로딩
+                            Container(
+                              color: Colors.black.withOpacity(0.5),
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const CircularProgressIndicator(),
+                                      const SizedBox(height: 20),
+                                      Text(
+                                        'FCM 초기화 중...',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey[800],
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        '잠시만 기다려 주세요',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         );
                       }
                       
