@@ -290,6 +290,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         debugPrint('🔐 [LOGIN] 로그인 시도 시작 (승인 대기 포함)');
       }
       
+      // ⚡ CRITICAL: 로그인 버튼 클릭 시 즉시 "서비스 로딩중..." 오버레이 표시
+      authService.setFcmInitializing(true);
+      if (kDebugMode) {
+        debugPrint('🎬 [LOGIN] FCM 초기화 시작 - "서비스 로딩중..." 오버레이 표시');
+      }
+      
       await authService.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
