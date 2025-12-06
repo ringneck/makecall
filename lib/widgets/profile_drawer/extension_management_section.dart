@@ -1157,9 +1157,19 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
 
       // API Service 생성
       final useHttps = (userModel!.apiHttpPort ?? 3500) == 3501;
+      final apiUrl = userModel.getApiUrl(useHttps: useHttps);
+      
+      if (kDebugMode) {
+        debugPrint('🔍 [EXTENSION] API URL 생성');
+        debugPrint('   - apiBaseUrl: ${userModel.apiBaseUrl}');
+        debugPrint('   - useHttps: $useHttps');
+        debugPrint('   - apiHttpPort: ${userModel.apiHttpPort}');
+        debugPrint('   - apiHttpsPort: ${userModel.apiHttpsPort}');
+        debugPrint('   → 최종 URL: $apiUrl');
+      }
       
       final apiService = ApiService(
-        baseUrl: userModel.getApiUrl(useHttps: useHttps),
+        baseUrl: apiUrl,
         companyId: userModel.companyId,
         appKey: userModel.appKey,
       );

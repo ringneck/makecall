@@ -272,9 +272,24 @@ class UserModel {
     if (apiBaseUrl == null || apiBaseUrl!.isEmpty) {
       return '';
     }
+    
+    // 🔧 FIX: apiBaseUrl이 이미 프로토콜을 포함하는지 확인
+    String baseUrl = apiBaseUrl!;
+    
+    // 이미 프로토콜이 있으면 그대로 사용
+    if (baseUrl.startsWith('http://') || baseUrl.startsWith('https://')) {
+      // /api/v2가 이미 포함되어 있는지 확인
+      if (baseUrl.endsWith('/api/v2')) {
+        return baseUrl;
+      }
+      // 경로가 없으면 추가
+      return baseUrl.replaceAll(RegExp(r'/$'), '') + '/api/v2';
+    }
+    
+    // 프로토콜이 없으면 추가
     final port = useHttps ? apiHttpsPort : apiHttpPort;
     final protocol = useHttps ? 'https' : 'http';
-    return '$protocol://$apiBaseUrl:$port/api/v2';
+    return '$protocol://$baseUrl:$port/api/v2';
   }
   
   // WebSocket URL 생성 헬퍼 메서드
