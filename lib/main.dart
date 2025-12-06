@@ -919,8 +919,32 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         );
                       }
                       
+                      // 🔐 CRITICAL: 승인 대기 중인 경우 (최고 우선순위!)
+                      // ⚠️ FCM 초기화 로딩보다 먼저 체크하여 승인 대기 화면이 먼저 표시되도록 함
+                      // 📝 currentUser만 체크, currentUserModel은 로딩 중일 수 있음
+                      // 📝 이 조건은 로그인 완료 체크보다 먼저 확인되어야 함
+                      //    왜냐하면 currentUserModel 로딩 중에도 ApprovalWaitingScreen을 표시해야 하기 때문
+                      if (authService.currentUser != null && authService.isWaitingForApproval) {
+                        if (kDebugMode) {
+                          debugPrint('📺 [MAIN] ApprovalWaitingScreen 표시');
+                          debugPrint('   - approvalRequestId: ${authService.approvalRequestId}');
+                          debugPrint('   - userId: ${authService.currentUser?.uid}');
+                          debugPrint('   - currentUserModel: ${authService.currentUserModel?.email ?? "loading..."}');
+                        }
+                        
+                        // 🧹 CRITICAL: 소셜 로그인 오버레이 제거 (충돌 방지)
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          SocialLoginProgressHelper.forceHide();
+                        });
+                        
+                        return ApprovalWaitingScreen(
+                          approvalRequestId: authService.approvalRequestId!,
+                          userId: authService.currentUser!.uid,
+                        );
+                      }
+                      
                       // 🔄 CRITICAL: FCM 초기화 로딩 중인 경우 (오버레이 방식)
-                      // ⚠️ 승인 대기보다 먼저 체크하여 로딩 오버레이가 우선 표시되도록 함
+                      // ⚠️ 승인 대기 체크 이후에 확인 (승인 대기가 우선!)
                       if (authService.currentUser != null && authService.isFcmInitializing) {
                         if (kDebugMode) {
                           debugPrint('🔄 [MAIN] FCM 초기화 로딩 오버레이 표시');
@@ -985,28 +1009,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                               ),
                             ),
                           ],
-                        );
-                      }
-                      
-                      // 🔐 CRITICAL: 승인 대기 중인 경우 (currentUser만 체크, currentUserModel은 로딩 중일 수 있음)
-                      // 📝 이 조건은 로그인 완료 체크보다 먼저 확인되어야 함
-                      //    왜냐하면 currentUserModel 로딩 중에도 ApprovalWaitingScreen을 표시해야 하기 때문
-                      if (authService.currentUser != null && authService.isWaitingForApproval) {
-                        if (kDebugMode) {
-                          debugPrint('📺 [MAIN] ApprovalWaitingScreen 표시');
-                          debugPrint('   - approvalRequestId: ${authService.approvalRequestId}');
-                          debugPrint('   - userId: ${authService.currentUser?.uid}');
-                          debugPrint('   - currentUserModel: ${authService.currentUserModel?.email ?? "loading..."}');
-                        }
-                        
-                        // 🧹 CRITICAL: 소셜 로그인 오버레이 제거 (충돌 방지)
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          SocialLoginProgressHelper.forceHide();
-                        });
-                        
-                        return ApprovalWaitingScreen(
-                          approvalRequestId: authService.approvalRequestId!,
-                          userId: authService.currentUser!.uid,
                         );
                       }
                       
