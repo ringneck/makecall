@@ -1070,40 +1070,42 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         
                         return Scaffold(
                           body: Container(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withOpacity(0.7),
                             child: Center(
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: const Color(0xFF2C2C2C),
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
+                                      color: Colors.black.withOpacity(0.3),
                                       blurRadius: 20,
                                       offset: const Offset(0, 10),
                                     ),
                                   ],
                                 ),
-                                child: Column(
+                                child: const Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const CircularProgressIndicator(),
-                                    const SizedBox(height: 20),
-                                    const Text(
+                                    CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                    SizedBox(height: 20),
+                                    Text(
                                       '서비스 로딩중...',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.black87,
+                                        color: Colors.white,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
-                                    const Text(
+                                    SizedBox(height: 8),
+                                    Text(
                                       '잠시만 기다려주세요',
                                       style: TextStyle(
                                         fontSize: 14,
-                                        color: Colors.black54,
+                                        color: Colors.white70,
                                       ),
                                     ),
                                   ],
