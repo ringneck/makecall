@@ -18,6 +18,324 @@ class ExtensionManagementSection extends StatefulWidget {
 
   @override
   State<ExtensionManagementSection> createState() => _ExtensionManagementSectionState();
+  
+  /// 📋 외부에서 단말번호 관리 다이얼로그 직접 호출 (Static Helper)
+  /// 
+  /// SettingsChecker 등에서 사용 - extensions를 불러와서 다이얼로그 표시
+  static Future<void> showExtensionManagementDialog(BuildContext context) async {
+    final authService = context.read<AuthService>();
+    final userId = authService.currentUser?.uid ?? '';
+    
+    if (userId.isEmpty) {
+      await DialogUtils.showError(context, '로그인이 필요합니다');
+      return;
+    }
+    
+    // 현재 등록된 단말번호 조회
+    try {
+      final extensions = await DatabaseService().getMyExtensions(userId).first;
+      
+      if (context.mounted) {
+        // 단말번호 관리 다이얼로그 표시
+        await _showManagementDialogStatic(context, extensions);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ 단말번호 조회 실패: $e');
+      }
+      if (context.mounted) {
+        await DialogUtils.showError(context, '단말번호 조회 실패: $e');
+      }
+    }
+  }
+  
+  /// Static 단말번호 관리 다이얼로그
+  static Future<void> _showManagementDialogStatic(
+    BuildContext context, 
+    List<MyExtensionModel> extensions,
+  ) async {
+    final authService = context.read<AuthService>();
+    final userModel = authService.currentUserModel;
+    final userId = authService.currentUser?.uid ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        bool isSearching = false;
+        String? searchError;
+        
+        return StatefulBuilder(
+          builder: (context, setState) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              constraints: const BoxConstraints(
+                maxHeight: 650,
+                maxWidth: 500,
+              ),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[900] : Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(77),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 🎨 헤더
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isDark
+                            ? [const Color(0xFF1976D2), const Color(0xFF1565C0)]
+                            : [const Color(0xFF2196F3), const Color(0xFF1976D2)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(24),
+                        topRight: Radius.circular(24),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 16, 20),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(51),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.phone_android,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Text(
+                              '내 단말번호 관리',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => Navigator.pop(dialogContext),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  // 🔍 단말번호 조회 버튼
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: isSearching || userModel?.apiBaseUrl == null
+                            ? null
+                            : () async {
+                                setState(() {
+                                  isSearching = true;
+                                  searchError = null;
+                                });
+                                
+                                try {
+                                  // API 호출하여 단말번호 조회
+                                  final apiService = ApiService(
+                                    baseUrl: userModel!.apiBaseUrl!,
+                                    companyId: userModel.companyId!,
+                                    appKey: userModel.appKey!,
+                                  );
+                                  final extensionsData = await apiService.getExtensions();
+                                  
+                                  // Map<String, dynamic> -> MyExtensionModel 변환
+                                  final myExtensions = extensionsData.map((data) {
+                                    return MyExtensionModel.fromApiResponse(data);
+                                  }).toList();
+                                  
+                                  setState(() {
+                                    isSearching = false;
+                                  });
+                                  
+                                  if (!context.mounted) return;
+                                  
+                                  // 등록 한도 체크
+                                  final maxExtensions = userModel.maxExtensions ?? 1;
+                                  final currentExtensionCount = extensions.length;
+                                  
+                                  if (currentExtensionCount >= maxExtensions) {
+                                    Navigator.pop(dialogContext);
+                                    await DialogUtils.showError(
+                                      context,
+                                      '단말번호는 최대 $maxExtensions개까지 등록할 수 있습니다.\n현재: $currentExtensionCount개',
+                                    );
+                                    return;
+                                  }
+                                  
+                                  // 단말번호 선택 다이얼로그 표시
+                                  Navigator.pop(dialogContext);
+                                  await _showExtensionSelectionDialogStatic(
+                                    context,
+                                    myExtensions,
+                                    userId,
+                                  );
+                                } catch (e) {
+                                  setState(() {
+                                    isSearching = false;
+                                    searchError = e.toString();
+                                  });
+                                }
+                              },
+                        icon: isSearching
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.search_rounded, size: 22),
+                        label: Text(
+                          isSearching ? '조회 중...' : '단말번호 조회 및 등록',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2196F3),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // 에러 메시지
+                  if (searchError != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.red[900]!.withAlpha(128) : Colors.red[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark ? Colors.red[700]! : Colors.red[300]!,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_rounded,
+                              color: isDark ? Colors.red[300] : Colors.red[700],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                searchError!,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDark ? Colors.red[200] : Colors.red[800],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+  
+  /// Static 단말번호 선택 다이얼로그
+  static Future<void> _showExtensionSelectionDialogStatic(
+    BuildContext context,
+    List<MyExtensionModel> availableExtensions,
+    String userId,
+  ) async {
+    return showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('단말번호 선택'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: availableExtensions.length,
+              itemBuilder: (context, index) {
+                final ext = availableExtensions[index];
+                return ListTile(
+                  leading: const Icon(Icons.phone_android),
+                  title: Text(ext.extension),
+                  subtitle: Text(ext.name ?? ''),
+                  onTap: () async {
+                    Navigator.pop(dialogContext);
+                    
+                    try {
+                      await DatabaseService().addMyExtension(ext);
+                      if (context.mounted) {
+                        await DialogUtils.showSuccess(context, '단말번호가 등록되었습니다');
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        await DialogUtils.showError(context, '등록 실패: $e');
+                      }
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('취소'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _ExtensionManagementSectionState extends State<ExtensionManagementSection> {
@@ -1241,319 +1559,5 @@ class _ExtensionManagementSectionState extends State<ExtensionManagementSection>
         }
       }
     }
-  }
-  
-  /// 📋 외부에서 단말번호 관리 다이얼로그 직접 호출 (Static Helper)
-  /// 
-  /// SettingsChecker 등에서 사용 - extensions를 불러와서 다이얼로그 표시
-  static Future<void> showExtensionManagementDialog(BuildContext context) async {
-    final authService = context.read<AuthService>();
-    final userId = authService.currentUser?.uid ?? '';
-    
-    if (userId.isEmpty) {
-      await DialogUtils.showError(context, '로그인이 필요합니다');
-      return;
-    }
-    
-    // 현재 등록된 단말번호 조회
-    try {
-      final extensions = await DatabaseService().getMyExtensions(userId).first;
-      
-      if (context.mounted) {
-        // 단말번호 관리 다이얼로그 표시 (instance 메서드 호출하지 않고 직접 구현)
-        await _showManagementDialogStatic(context, extensions);
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ 단말번호 조회 실패: $e');
-      }
-      if (context.mounted) {
-        await DialogUtils.showError(context, '단말번호 조회 실패: $e');
-      }
-    }
-  }
-  
-  /// Static 단말번호 관리 다이얼로그 (단말번호 조회 기능만 포함)
-  static Future<void> _showManagementDialogStatic(
-    BuildContext context, 
-    List<MyExtensionModel> extensions,
-  ) async {
-    final authService = context.read<AuthService>();
-    final userModel = authService.currentUserModel;
-    final userId = authService.currentUser?.uid ?? '';
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        bool isSearching = false;
-        String? searchError;
-        
-        return StatefulBuilder(
-          builder: (context, setState) => Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Container(
-              constraints: const BoxConstraints(
-                maxHeight: 650,
-                maxWidth: 500,
-              ),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.grey[900] : Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(77),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 🎨 헤더
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isDark
-                            ? [const Color(0xFF1976D2), const Color(0xFF1565C0)]
-                            : [const Color(0xFF2196F3), const Color(0xFF1976D2)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(24),
-                        topRight: Radius.circular(24),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 20, 16, 20),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(51),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.phone_android,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          const Expanded(
-                            child: Text(
-                              '내 단말번호 관리',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () => Navigator.pop(dialogContext),
-                              borderRadius: BorderRadius.circular(20),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                child: const Icon(
-                                  Icons.close_rounded,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  // 🔍 단말번호 조회 버튼
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: isSearching || userModel?.apiBaseUrl == null
-                            ? null
-                            : () async {
-                                setState(() {
-                                  isSearching = true;
-                                  searchError = null;
-                                });
-                                
-                                try {
-                                  // API 호출하여 단말번호 조회
-                                  final apiService = ApiService();
-                                  final myExtensions = await apiService.getMyExtensions(
-                                    apiBaseUrl: userModel!.apiBaseUrl!,
-                                    companyId: userModel.companyId!,
-                                    appKey: userModel.appKey!,
-                                  );
-                                  
-                                  setState(() {
-                                    isSearching = false;
-                                  });
-                                  
-                                  if (!context.mounted) return;
-                                  
-                                  // 등록 한도 체크
-                                  final maxExtensions = userModel.maxExtensions ?? 1;
-                                  final currentExtensionCount = extensions.length;
-                                  
-                                  if (currentExtensionCount >= maxExtensions) {
-                                    Navigator.pop(dialogContext);
-                                    await DialogUtils.showError(
-                                      context,
-                                      '단말번호는 최대 $maxExtensions개까지 등록할 수 있습니다.\n현재: $currentExtensionCount개',
-                                    );
-                                    return;
-                                  }
-                                  
-                                  // 단말번호 선택 다이얼로그 표시
-                                  Navigator.pop(dialogContext);
-                                  await _showExtensionSelectionDialogStatic(
-                                    context,
-                                    myExtensions,
-                                    userId,
-                                  );
-                                } catch (e) {
-                                  setState(() {
-                                    isSearching = false;
-                                    searchError = e.toString();
-                                  });
-                                }
-                              },
-                        icon: isSearching
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.search_rounded, size: 22),
-                        label: Text(
-                          isSearching ? '조회 중...' : '단말번호 조회 및 등록',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2196F3),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  // 에러 메시지
-                  if (searchError != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.red[900]!.withAlpha(128) : Colors.red[50],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isDark ? Colors.red[700]! : Colors.red[300]!,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.error_rounded,
-                              color: isDark ? Colors.red[300] : Colors.red[700],
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                searchError!,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDark ? Colors.red[200] : Colors.red[800],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-  
-  /// Static 단말번호 선택 다이얼로그
-  static Future<void> _showExtensionSelectionDialogStatic(
-    BuildContext context,
-    List<MyExtensionModel> availableExtensions,
-    String userId,
-  ) async {
-    // 간단한 선택 다이얼로그 구현
-    return showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('단말번호 선택'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: availableExtensions.length,
-              itemBuilder: (context, index) {
-                final ext = availableExtensions[index];
-                return ListTile(
-                  leading: const Icon(Icons.phone_android),
-                  title: Text(ext.extension),
-                  subtitle: Text(ext.name ?? ''),
-                  onTap: () async {
-                    Navigator.pop(dialogContext);
-                    
-                    try {
-                      await DatabaseService().addMyExtension(ext);
-                      if (context.mounted) {
-                        await DialogUtils.showSuccess(context, '단말번호가 등록되었습니다');
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        await DialogUtils.showError(context, '등록 실패: $e');
-                      }
-                    }
-                  },
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('취소'),
-            ),
-          ],
-        );
-      },
-    );
   }
 }
