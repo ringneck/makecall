@@ -1095,7 +1095,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           ), // 로그인 후 MAKECALL 메인 화면으로 이동
                         );
                       } else {
-                        SocialLoginProgressHelper.forceHide();
+                        // ⚡ CRITICAL: FCM 초기화 중일 때는 오버레이 유지
+                        // LoginScreen 렌더링 시 forceHide()가 오버레이를 제거하는 문제 방지
+                        if (!authService.isFcmInitializing) {
+                          SocialLoginProgressHelper.forceHide();
+                        }
                         return WebLoginWrapper(
                           child: LoginScreen(
                             key: ValueKey('login_${DateTime.now().millisecondsSinceEpoch}'),
