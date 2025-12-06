@@ -27,6 +27,12 @@ class _MainScreenState extends State<MainScreen> {
   // 🎯 오버레이 제거 플래그: 이 인스턴스에서만 한 번만 제거
   bool _hasRemovedOverlay = false;
   
+  // 🔑 CRITICAL: CallTab GlobalKey - rebuild 시 인스턴스 유지
+  // - ValueKey는 rebuild 시 새 인스턴스 생성 → initState() 재호출
+  // - GlobalKey는 같은 위젯 인스턴스 유지 → initState() 1번만 호출
+  GlobalKey<CallTabState>? _callTabKey;
+  String? _currentUserId; // 현재 사용자 ID 추적 (사용자 변경 감지용)
+  
   @override
   void initState() {
     super.initState();
@@ -208,20 +214,28 @@ class _MainScreenState extends State<MainScreen> {
         // CallTab이 신규 사용자 감지 및 ProfileDrawer 자동 열기를 처리
         // 공지사항 및 설정 체크도 CallTab에서 처리
         // 
-        // 🔑 CRITICAL: ValueKey 사용으로 재로그인 시 CallTab 위젯 완전 재생성 보장
-        // - 로그인된 사용자의 UID를 key로 사용
-        // - 로그아웃 후 재로그인 시 다른 UID → CallTab 재생성 → initState() 호출
-        // - 이를 통해 공지사항 및 설정 체크 플래그가 매 로그인마다 초기화됨
+        // 🔑 CRITICAL: GlobalKey 사용으로 rebuild 시 위젯 인스턴스 유지
+        // - 로그인된 사용자의 UID를 기준으로 GlobalKey 생성/재사용
+        // - 같은 사용자 → 같은 GlobalKey → 위젯 인스턴스 유지 → initState() 1번만
+        // - 다른 사용자 → 새 GlobalKey → 위젯 재생성 → initState() 호출
         final userId = authService.currentUser?.uid ?? 'guest';
-        final callTabKey = 'call_tab_$userId';
         
-        if (kDebugMode) {
-          debugPrint('🔑 [MainScreen] CallTab key 생성: $callTabKey');
+        // 사용자가 변경되면 새로운 GlobalKey 생성
+        if (_currentUserId != userId) {
+          _currentUserId = userId;
+          _callTabKey = GlobalKey<CallTabState>(debugLabel: 'call_tab_$userId');
+          
+          if (kDebugMode) {
+            debugPrint('🔑 [MainScreen] CallTab GlobalKey 생성 (사용자 변경)');
+            debugPrint('   - New User ID: $userId');
+          }
+        } else if (kDebugMode) {
+          debugPrint('🔑 [MainScreen] CallTab GlobalKey 재사용 (같은 사용자)');
           debugPrint('   - User ID: $userId');
         }
         
         return CallTab(
-          key: ValueKey(callTabKey), // 🔑 사용자별 고유 키
+          key: _callTabKey, // 🔑 GlobalKey로 위젯 인스턴스 유지
           autoOpenProfileForNewUser: true,
           initialTabIndex: widget.initialTabIndex, // FCM에서 지정한 탭으로 이동
           showWelcomeDialog: widget.showWelcomeDialog, // 회원가입 완료 다이얼로그 플래그 전달
