@@ -85,9 +85,15 @@ class _MainScreenState extends State<MainScreen> {
     // - 로그아웃 후 재로그인 시 다른 UID → CallTab 재생성 → initState() 호출
     // - 이를 통해 공지사항 및 설정 체크 플래그가 매 로그인마다 초기화됨
     final userId = AuthService().currentUser?.uid ?? 'guest';
+    final callTabKey = 'call_tab_$userId';
+    
+    if (kDebugMode) {
+      debugPrint('🔑 [MainScreen] CallTab key 생성: $callTabKey');
+      debugPrint('   - User ID: $userId');
+    }
     
     return CallTab(
-      key: ValueKey('call_tab_$userId'), // 🔑 사용자별 고유 키
+      key: ValueKey(callTabKey), // 🔑 사용자별 고유 키
       autoOpenProfileForNewUser: true,
       initialTabIndex: widget.initialTabIndex, // FCM에서 지정한 탭으로 이동
       showWelcomeDialog: widget.showWelcomeDialog, // 회원가입 완료 다이얼로그 플래그 전달

@@ -111,6 +111,15 @@ class _CallTabState extends State<CallTab> {
   void initState() {
     super.initState();
     
+    if (kDebugMode) {
+      debugPrint('');
+      debugPrint('🚀 [CALL_TAB] initState() 호출됨!');
+      debugPrint('   - widget.key: ${widget.key}');
+      debugPrint('   - showWelcomeDialog: ${widget.showWelcomeDialog}');
+      debugPrint('   - autoOpenProfileForNewUser: ${widget.autoOpenProfileForNewUser}');
+      debugPrint('');
+    }
+    
     // 🔄 CRITICAL: 소셜 로그인 오버레이 강제 제거 (화면 전환 안전장치)
     // 로그인 성공 후 화면 전환 시 오버레이가 남아있을 수 있으므로 강제 제거
     WidgetsBinding.instance.addPostFrameCallback((_) {
